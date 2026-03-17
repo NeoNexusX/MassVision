@@ -16,7 +16,7 @@ export async function login(usr: UsrLogin) {
 
 
 // 注册接口
-export async function usrSignup(usr: UsrSignup) {
+export async function usrSignupApi(usr: UsrSignup) {
   return api.post('/user_signup', usr)
 }
 
@@ -33,4 +33,19 @@ export async function sendEmailCode(email: string) {
 // 获取当前用户信息
 export async function getCurrentUser() {
   return auth_api.get('/user')
+}
+
+// 登出接口
+export async function logoutApi() {
+  return auth_api.post('/logout')
+}
+
+// 更新用户信息 (Institution, Research Field etc.)
+export async function updateUserProfile(data: any) {
+  return auth_api.patch('/user', data)
+}
+
+// 更新账户信息 (Username, Email, Password)
+export async function updateUserInfo(data: any) {
+  return auth_api.post('/user_change', data)
 }

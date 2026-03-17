@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/LoginView.vue'
 import Dashboard from '../views/DashboardView.vue'
+import UserProfileView from '../views/UserProfileView.vue'
 
 const routes = [
   {
@@ -18,10 +19,16 @@ const routes = [
     component: () => import('../views/RegisterView.vue')
   },
   {
+    path: '/profile',
+    name: 'profile',
+    component: UserProfileView,
+    meta: { requiresAuth: true } // 只有登录才能看
+  },
+  {
     path: '/dashboard',
-    name: 'Dashboard',
+    name: 'dashboard',
     component: Dashboard,
-    // meta: { requiresAuth: true }
+    meta: { requiresAuth: true }
   }
 ]
 
@@ -34,7 +41,8 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const publicPages = ['/login', '/register'];
   const authRequired = !publicPages.includes(to.path);
-  const loggedIn = localStorage.getItem('jwtToken');
+  // FIX: 使用 'access_token'，与 LoginView.vue 中的存储名称保持一致
+  const loggedIn = localStorage.getItem('access_token');
 
   // 重定向到登录页
   if (authRequired && !loggedIn) {
@@ -43,12 +51,8 @@ router.beforeEach((to, from, next) => {
       query: { redirect: to.fullPath }
     });
   } else {
-    // 已登录时禁止访问登录/注册页
-    if (loggedIn && (to.path === '/login' || to.path === '/register')) {
-      next('/dashboard');
-    } else {
-      next();
-    }
+    // 允许已登录用户访问任何页面（包括登录/注册）
+    next();
   }
 });
 
