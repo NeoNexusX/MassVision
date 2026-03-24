@@ -15,8 +15,9 @@ export interface UsrSignup extends User{
 
 }
 
-export interface UsrLogin extends User{
-  password: string,
+export interface UsrLogin {
+  username: string;
+  password: string;
 }
 
 export interface UsrProfile extends User{

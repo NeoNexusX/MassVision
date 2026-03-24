@@ -1,0 +1,78 @@
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import { auth_api } from '@/utils/api';
+import { secureStorage } from '@/utils/auth';
+import { logoutApi } from '@/utils/usr-api';
+
+interface User {
+  username: string;
+  email: string;
+  [key: string]: any;
+}
+
+export const useAuthStore = defineStore('auth', () => {
+  const user = ref<User | null>(null);
+  const token = ref<string | null>(secureStorage.getToken());
+  
+  const isAuthenticated = computed(() => !!token.value);
+
+  // Initialize state from local storage and secureStorage (if available)
+  // But usually we just need token to fetch user profile
+  
+  async function fetchUser() {
+    try {
+      if (!token.value) return;
+      const response = await auth_api.get('/user');
+      user.value = response.data;
+    } catch (error: any) {
+      console.error('Failed to fetch user:', error);
+      // Only logout on 401 Unauthorized
+      if (error.response && error.response.status === 401) {
+        logout();
+      }
+    }
+  }
+
+  async function login(accessToken: string) {
+    if(!accessToken) return; 
+    token.value = accessToken;
+    // Update local storage
+    localStorage.setItem('access_token', accessToken);
+    // secureStorage.storeAuthData(accessToken, user.value); 
+    
+    // Fetch user immediately to update UI
+    await fetchUser();
+  }
+
+  async function logout() {
+    console.log('AuthStore: logout called. Token present:', !!token.value);
+    try {
+      if (token.value) {
+        await logoutApi();
+        console.log('Backend logout successful');
+      } else {
+        console.log('No token found, skipping backend logout');
+      }
+    } catch (error) {
+      console.error('Logout API failed:', error);
+    } finally {
+      token.value = null;
+      user.value = null;
+      secureStorage.clearAuthData();
+    }
+  }
+  
+  // Try to recover user if we have a token but no user data (e.g. on page reload)
+  if (token.value && !user.value) {
+    fetchUser();
+  }
+
+  return {
+    user,
+    token,
+    isAuthenticated,
+    login,
+    logout,
+    fetchUser
+  };
+});

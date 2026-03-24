@@ -1,8 +1,8 @@
 import { auth_api, api } from './api'
-import type { UsrSignup, UsrLogin } from '../types/usr'
+import type { UsrSignup, UsrLogin, UsrProfile } from '../types/usr'
 
 
-// 登录接口 - 使用 x-www-form-urlencoded 格式
+// Login endpoint - using x-www-form-urlencoded
 export async function login(usr: UsrLogin) {
   const params = new URLSearchParams()
   params.append('username', usr.username)
@@ -15,37 +15,35 @@ export async function login(usr: UsrLogin) {
 }
 
 
-// 注册接口
+// Signup endpoint
 export async function usrSignupApi(usr: UsrSignup) {
   return api.post('/user_signup', usr)
 }
 
-// 发送验证码接口
+// Send verification code endpoint
 export async function sendEmailCode(email: string) {
   const payload = {
-    email: email, // 邮箱地址
-    send_time: new Date().toISOString() // 发送时间，可选，默认当前时间
+    email: email, 
+    send_time: new Date().toISOString() 
   }
 
   return api.post('/emailsmtprequest', payload)
 }
 
-// 获取当前用户信息
+// Get current user info
 export async function getCurrentUser() {
-  return auth_api.get('/user')
+  return auth_api.get<UsrProfile>('/user')
 }
 
-// 登出接口
+// Logout endpoint
 export async function logoutApi() {
   return auth_api.post('/logout')
 }
 
-// 更新用户信息 (Institution, Research Field etc.)
-export async function updateUserProfile(data: any) {
-  return auth_api.patch('/user', data)
+// Update user profile
+// Backend supports modifying all fields EXCEPT username and identity via POST /user_change
+// BUT: We keep the fields in the payload because Pydantic models often require them for validation
+export async function updateUserProfile(data: Partial<UsrProfile>) {
+    return auth_api.post('/user_change', data)
 }
 
-// 更新账户信息 (Username, Email, Password)
-export async function updateUserInfo(data: any) {
-  return auth_api.post('/user_change', data)
-}

@@ -1,30 +1,7 @@
 <template>
-  <div class="flex flex-col min-h-screen bg-base-200">
-    <!-- Navbar: Glassmorphism effect -->
-    <div class="navbar bg-base-100/80 backdrop-blur-md sticky top-0 z-50 px-6 shadow-sm">
-      <div class="flex-1">
-        <a class="btn btn-ghost text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-          MassVision
-        </a>
-      </div>
-      <div class="flex-none gap-2">
-        <div class="dropdown dropdown-end">
-          <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar placeholder">
-            <div class="bg-neutral text-neutral-content rounded-full w-10">
-              <span class="text-xs">U</span>
-            </div>
-          </div>
-          <ul tabindex="0" class="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content bg-base-100 rounded-box w-52">
-            <li><a>Profile</a></li>
-            <li><a>Settings</a></li>
-            <li><a class="text-error" @click="handleLogout">Logout</a></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
+  <div class="flex-1 w-full flex flex-col items-center justify-start py-8 px-6 bg-base-200">
     <!-- Main Content -->
-    <div class="p-6 space-y-6 max-w-7xl mx-auto w-full">
+    <div class="space-y-6 max-w-7xl w-full">
       
       <!-- Stats Section: Cards grid instead of single bar -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -89,14 +66,5 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
-
-const router = useRouter();
-
-const handleLogout = () => {
-  // 1. 清除 Token
-  localStorage.removeItem('access_token');
-  // 2. 跳转回登录页
-  router.push('/login');
-};
+// Dashboard specific logic if needed
 </script>

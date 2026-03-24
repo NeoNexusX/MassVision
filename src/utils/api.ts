@@ -1,18 +1,18 @@
 import axios, { AxiosError } from 'axios';
 
-//最外层的Response body
+// Top-level Response body
 interface ErrorResponse {
   detail: FastAPIError[];
 }
 
-// 响应错误模型定义
+// Response error model definition
 interface FastAPIError {
   loc: string[];
   msg: string;
   type: string;
 }
 
-// 响应拦截器定义部分
+// Response interceptor definition
 function formatErrorMessage(detail: FastAPIError[] | string | any): string {
   if (typeof detail === 'string') {
     return detail;
@@ -20,6 +20,12 @@ function formatErrorMessage(detail: FastAPIError[] | string | any): string {
 
   if (Array.isArray(detail)) {
     console.error('Backend Error:', detail);
+    const firstError = detail[0];
+    if (firstError) {
+        // Include location info like "body.password" or "query.id"
+        const loc = firstError.loc ? firstError.loc.join('.') : '';
+        return `${firstError.msg} ${loc ? `(${loc})` : ''}`;
+    }
     return detail[0]?.msg || 'Unknown Error';
   }
 
@@ -34,18 +40,18 @@ function formatErrorMessage(detail: FastAPIError[] | string | any): string {
 const error_catch = (error: AxiosError<ErrorResponse>) => {
   if (error.response?.data) {
     const detail  = error.response.data?.detail || 'Unknown Error';
-    // 格式化错误信息
+    // Format error message
     const errorMessage = formatErrorMessage(detail);
-    // 替换错误信息
+    // Replace error message
     error.message = errorMessage;
   }
   return Promise.reject(error);
 }
 
-// 认证api
+// Authenticated API
 const auth_api = axios.create({baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:9000',});
 
-//认证api token 注入
+// Inject auth token
 auth_api.interceptors.request.use(config => {
   const token = localStorage.getItem('access_token');
   if (token) {
@@ -59,10 +65,10 @@ auth_api.interceptors.response.use(
   error_catch
 );
 
-//无认证api
+// Public API
 const api = axios.create({baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:9000',});
 
-// 无认证api 响应拦截器
+// Public API response interceptor
 api.interceptors.response.use(
   (response) => response,
   error_catch

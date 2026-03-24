@@ -1,41 +1,43 @@
 <template>
-  <div class="card max-w-md w-full flex flex-col gap-6">
-    <div class="text-center">
-      <h2 class="text-2xl font-bold">Sign In</h2>
-    </div>
+  <div class="flex-1 w-full flex items-center justify-center p-8 bg-base-200"> <!-- Added flex-1 and w-full -->
+    <div class="card max-w-md w-full flex flex-col gap-6 bg-base-100 shadow-xl p-8 rounded-box border border-base-200"> <!-- Enhanced card styling -->
+      <div class="text-center">
+        <h2 class="text-2xl font-bold">Sign In</h2>
+      </div>
 
-    <!-- Username input -->
-    <AuthInput 
-      v-model="username" 
-      icon-type="user" 
-      type="text" 
-      required 
-      placeholder="Username" 
-    />
-    
-    <!-- Password input -->
-    <AuthInput 
-      v-model="password" 
-      icon-type="password" 
-      type="password" 
-      required 
-      placeholder="Password" 
-    />
-    
-    <!-- Action Button -->
-    <div class="form-control w-full mt-2">
-      <button class="btn btn-primary w-full" @click="login" :disabled="isLoading">
-        <span v-if="isLoading" class="loading loading-spinner"></span>
-        {{ isLoading ? 'Signing In...' : 'Sign In' }}
-      </button>
-    </div>
+      <!-- Username input -->
+      <AuthInput 
+        v-model="username" 
+        icon-type="user" 
+        type="text" 
+        required 
+        placeholder="Username" 
+      />
+      
+      <!-- Password input -->
+      <AuthInput 
+        v-model="password" 
+        icon-type="password" 
+        type="password" 
+        required 
+        placeholder="Password" 
+      />
+      
+      <!-- Action Button -->
+      <div class="form-control w-full mt-2">
+        <button class="btn btn-primary w-full" @click="login" :disabled="isLoading">
+          <span v-if="isLoading" class="loading loading-spinner"></span>
+          {{ isLoading ? 'Signing In...' : 'Sign In' }}
+        </button>
+      </div>
 
-    <!-- Footer Link -->
-    <div class="text-center">
-      <span class="text-sm opacity-75">New to BionetServer? </span>
-      <router-link to="/register" class="link link-hover text-primary text-sm font-semibold">
-        Create an account
-      </router-link>
+      <!-- Footer Link -->
+      <div class="text-center">
+        <span class="text-sm opacity-75">New to BionetServer? </span>
+        <router-link to="/register" class="link link-hover text-primary text-sm font-semibold">
+          Create an account
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -44,47 +46,52 @@
 import { ref } from 'vue';
 import AuthInput from '../components/AuthInput.vue';
 import { useRouter } from 'vue-router';
-import { api as http } from '../utils/api';
-import qs from 'qs';
+import { useAuthStore } from '../stores/auth';
+import { login as loginApi } from '../utils/usr-api'; // Use the shared login helper
+import { useToast } from '../utils/toast';
 
+const { showToast } = useToast();
 const router = useRouter();
+const authStore = useAuthStore();
 const username = ref('');
 const password = ref('');
 const isLoading = ref(false);
 
 const login = async () => {
   if (!username.value || !password.value) {
-    alert('Please enter both username and password.');
+    showToast('Please enter both username and password.', 'warning');
     return;
   }
 
   isLoading.value = true;
 
   try {
-    const response = await http.post('/login', qs.stringify({
+    // Use the shared login API which handles grant_type and proper formatting
+    const response = await loginApi({
       username: username.value,
       password: password.value
-    }), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
     
     if (response.status !== 200) {
       throw new Error(response.data?.message || 'Unable to connect the server.');
     }
 
-    const { access_token } = await response.data;
+    const { access_token } = response.data;
     
-    // Store token securely
-    localStorage.setItem('access_token', access_token);
+    if (access_token) {
+       authStore.login(access_token);
+       showToast('Login successful! Redirecting...', 'success');
+       setTimeout(() => {
+          router.push('/profile').catch(err => console.error("Router Push Error:", err));
+       }, 800);
+    } else {
+       throw new Error("Invalid token received");
+    }
 
-    // Route redirection logic     
-    const redirectPath = (router.currentRoute.value.query.redirect as string) || '/profile';
-    await router.replace(redirectPath);
-  }
-  catch (error: any) {
-    console.error('Fail:', error);
-    const msg = error.response?.data?.message || error.message || 'Invalid username or password.';
-    alert(msg);
+  } catch (error: any) {
+    console.error('Login Error:', error);
+    const msg = error.response?.data?.detail || error.message || 'Login failed';
+    showToast(typeof msg === 'string' ? msg : JSON.stringify(msg), 'error');
   } finally {
     isLoading.value = false;
   }

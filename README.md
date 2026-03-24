@@ -1,6 +1,6 @@
-# MassVision
+# MassFlow
 
-MassVision 是一个基于 Vue 3 + TypeScript + Vite + daisy ui构建的现代前端项目。项目集成了 Pinia 状态管理、Vue Router 路由、Tailwind CSS 样式库以及完整的测试工具链。
+MassFlow 是一个基于 Vue 3 + TypeScript + Vite + daisy ui构建的现代前端项目。项目集成了 Pinia 状态管理、Vue Router 路由、Tailwind CSS 样式库以及完整的测试工具链。
 
 ## 🛠 技术栈
 
@@ -18,7 +18,7 @@ MassVision 是一个基于 Vue 3 + TypeScript + Vite + daisy ui构建的现代�
 ## 📂 项目结构
 
 ```
-MassVision/
+MassFlow/
 ├── public/              # 静态资源
 ├── src/
 │   ├── assets/          # 资源文件 (CSS, 图片等)
