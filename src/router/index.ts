@@ -1,11 +1,34 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/LoginView.vue'
 import Dashboard from '../views/DashboardView.vue'
+import Home from '../views/HomeView.vue'
+import UserProfileView from '../views/UserProfileView.vue'
+import PublicDatasets from '../views/PublicDatasets.vue'
+import MyDatasets from '../views/MyDatasets.vue'
+import { secureStorage } from '../utils/auth'
 
 const routes = [
   {
     path: '/',
-    redirect: '/login'
+    name: 'Home',
+    component: Home
+  },
+  {
+    path: '/datasets',
+    name: 'PublicDatasets',
+    component: PublicDatasets
+  },
+  {
+    path: '/my-datasets',
+    name: 'MyDatasets',
+    component: MyDatasets,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: Dashboard,
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',
@@ -18,10 +41,10 @@ const routes = [
     component: () => import('../views/RegisterView.vue')
   },
   {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: Dashboard,
-    // meta: { requiresAuth: true }
+    path: '/profile',
+    name: 'Profile',
+    component: UserProfileView,
+    meta: { requiresAuth: true }
   }
 ]
 
@@ -32,23 +55,25 @@ const router = createRouter({
 
 
 router.beforeEach((to, from, next) => {
-  const publicPages = ['/login', '/register'];
-  const authRequired = !publicPages.includes(to.path);
-  const loggedIn = localStorage.getItem('jwtToken');
+  // Check if authentication is required using meta fields
+  const authRequired = to.matched.some(record => record.meta.requiresAuth);
+  // Retrieve token using the secure storage utility
+  const loggedIn = secureStorage.getToken();
 
-  // 重定向到登录页
+  // Redirect to Profile if already logged in and trying to access login/register pages
+  if (loggedIn && ['/login', '/register'].includes(to.path)) {
+    return next('/profile');
+  }
+
+  // Redirect to login page if authentication is required but user is not logged in
   if (authRequired && !loggedIn) {
     next({
       path: '/login',
       query: { redirect: to.fullPath }
     });
   } else {
-    // 已登录时禁止访问登录/注册页
-    if (loggedIn && (to.path === '/login' || to.path === '/register')) {
-      next('/dashboard');
-    } else {
-      next();
-    }
+    // Proceed with navigation
+    next();
   }
 });
 

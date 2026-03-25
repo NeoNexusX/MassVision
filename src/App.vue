@@ -1,12 +1,15 @@
 <template>
-  <div class="flex flex-col min-h-screen">
+  <div class="min-h-screen flex flex-col transition-colors duration-300">
     <Navbar />
-    <div class="flex flex-1 items-center justify-center p-[clamp(0.5rem,10vw,2rem)]">
+    <!-- Main content area -->
+    <main class="flex-1 w-full relative flex flex-col">
       <router-view></router-view>
-    </div>
+      <ToastContainer />
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import Navbar from './components/Navbar.vue'
+import ToastContainer from './components/ToastContainer.vue';
 </script>

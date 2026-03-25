@@ -1,8 +1,8 @@
 import { auth_api, api } from './api'
-import type { UsrSignup, UsrLogin } from '../types/usr'
+import type { UsrSignup, UsrLogin, UsrProfile, UsrProfileUpdate } from '../types/usr'
 
 
-// 登录接口 - 使用 x-www-form-urlencoded 格式
+// Login endpoint - using x-www-form-urlencoded
 export async function login(usr: UsrLogin) {
   const params = new URLSearchParams()
   params.append('username', usr.username)
@@ -15,22 +15,35 @@ export async function login(usr: UsrLogin) {
 }
 
 
-// 注册接口
-export async function usrSignup(usr: UsrSignup) {
+// Signup endpoint
+export async function usrSignupApi(usr: UsrSignup) {
   return api.post('/user_signup', usr)
 }
 
-// 发送验证码接口
+// Send verification code endpoint
 export async function sendEmailCode(email: string) {
   const payload = {
-    email: email, // 邮箱地址
-    send_time: new Date().toISOString() // 发送时间，可选，默认当前时间
+    email: email, 
+    send_time: new Date().toISOString() 
   }
 
   return api.post('/emailsmtprequest', payload)
 }
 
-// 获取当前用户信息
+// Get current user info
 export async function getCurrentUser() {
-  return auth_api.get('/user')
+  return auth_api.get<UsrProfile>('/user')
 }
+
+// Logout endpoint
+export async function logoutApi() {
+  return auth_api.post('/logout')
+}
+
+// Update user profile
+// Backend supports modifying all fields EXCEPT username and identity via POST /user_change
+// Allows password field, type-safe
+export async function updateUserProfile(data: Partial<UsrProfileUpdate>) {
+  return auth_api.post('/user_change', data)
+}
+
