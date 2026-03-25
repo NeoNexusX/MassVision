@@ -28,7 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
       console.error('Failed to fetch user:', error);
       // Only logout on 401 Unauthorized
       if (error.response && error.response.status === 401) {
-        logout();
+        await logout();
       }
     }
   }

@@ -1,3 +1,8 @@
+// For user profile update (allows password field)
+export type UsrProfileUpdate = Omit<UsrProfile, 'username' | 'identity'> & {
+  username?: string;
+  password?: string;
+};
 export interface User{
   username: string,
   email: string,

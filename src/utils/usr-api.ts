@@ -1,5 +1,5 @@
 import { auth_api, api } from './api'
-import type { UsrSignup, UsrLogin, UsrProfile } from '../types/usr'
+import type { UsrSignup, UsrLogin, UsrProfile, UsrProfileUpdate } from '../types/usr'
 
 
 // Login endpoint - using x-www-form-urlencoded
@@ -42,8 +42,8 @@ export async function logoutApi() {
 
 // Update user profile
 // Backend supports modifying all fields EXCEPT username and identity via POST /user_change
-// BUT: We keep the fields in the payload because Pydantic models often require them for validation
-export async function updateUserProfile(data: Partial<UsrProfile>) {
-    return auth_api.post('/user_change', data)
+// Allows password field, type-safe
+export async function updateUserProfile(data: Partial<UsrProfileUpdate>) {
+  return auth_api.post('/user_change', data)
 }
 

@@ -209,6 +209,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
+import { useCountdown } from '@/utils/useCountdown'
 import { useRouter } from 'vue-router'
 import AuthInput from '../components/AuthInput.vue'
 import AuthSelect from '../components/AuthSelect.vue'
@@ -329,8 +330,7 @@ const patterns = {
 }
 
 const loading = reactive({ register: false, sendCode: false })
-const isCountdownActive = ref(false)
-const countdown = ref(60)
+const { count: countdown, isActive: isCountdownActive, start: startCountdown, stop: stopCountdown } = useCountdown(60)
 const passwordScore = ref(0)
 const progressBarClass = computed(() => {
   const classes = ['progress-error', 'progress-warning', 'progress-warning', 'progress-success', 'progress-success']
@@ -424,15 +424,7 @@ const sendVerificationCode = async () => {
       await sendEmailCode(form.email)
       showToast('Verification code sent!', 'success')
       
-      isCountdownActive.value = true
-      const timer = setInterval(() => {
-        countdown.value--
-        if (countdown.value <= 0) {
-          clearInterval(timer)
-          isCountdownActive.value = false
-          countdown.value = 60
-        }
-      }, 1000)
+      startCountdown()
       
     } catch (error: any) {
       console.error('Send code error:', error.message)

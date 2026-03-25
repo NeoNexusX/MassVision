@@ -196,7 +196,7 @@ const handleSave = async () => {
   // Check if password field has content
   if (formData.password && formData.password.trim() !== "") {
     try {
-        await updateUserProfile({ password: formData.password } as any);
+        await updateUserProfile({ username: formData.username, password: formData.password });
         logoutRequired = true;
         messages.push("Password updated.");
     } catch (pwError: any) {
@@ -229,8 +229,8 @@ const handleSave = async () => {
   }
 
   const fullMessage = messages.join("\n") + (logoutRequired ? "\n\nPlease login again with your new password." : "");
-  // Check if any failure occurred to decide toast type
-  const isFailure = messages.some(msg => msg.includes("failed"));
+  // Check if any failure occurred to decide toast type (case-insensitive)
+  const isFailure = messages.some(msg => msg.toLowerCase().includes("failed"));
   showToast(fullMessage, isFailure ? 'error' : 'success');
   
   if (logoutRequired) {

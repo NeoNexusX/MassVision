@@ -13,6 +13,7 @@ export const secureStorage = {
   clearAuthData() {
     window.localStorage.removeItem('access_token');
     window.localStorage.removeItem('user');
+    window.localStorage.removeItem('user_details');
   }, 
 
   // Store user details
