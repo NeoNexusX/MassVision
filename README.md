@@ -1,4 +1,3 @@
-```markdown
 # MassVision
 <div align="center">
   <!-- 顶级开源仓库级多语言切换按钮（视觉对标Vue.js/Vite官方仓库） -->
@@ -327,3 +326,5 @@ npm run test:e2e
 - **Network Requests**: Encapsulated Axios instance with support for API base path configuration.
 - **Responsive Layout**: Modern UI built with Tailwind CSS and DaisyUI.
 ```
+
+---
