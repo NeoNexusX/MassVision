@@ -1,24 +1,24 @@
 <template>
-  <div class="py-16 bg-white dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
+  <div class="py-16 bg-base-100 dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
         
         <!-- Column 1 -->
-        <div class="flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <span class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Mass Spec Community</span>
+        <div class="flex flex-col items-center justify-center p-8 bg-base-200 rounded-2xl shadow-sm border border-base-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <span class="text-sm font-bold text-base-content/60 dark:text-base-content/50 uppercase tracking-wider mb-3">Mass Spec Community</span>
           <div class="flex items-baseline gap-2">
             <span class="text-5xl font-extrabold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent dark:from-indigo-400 dark:to-violet-400">{{ usersCount }}k+</span>
           </div>
-          <span class="text-base font-medium text-slate-600 dark:text-slate-300 mt-2">Active Researchers</span>
+          <span class="text-base font-medium text-base-content mt-2">Active Researchers</span>
         </div>
 
         <!-- Column 2 (Original Column 3) -->
-        <div class="flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <span class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Curated MS Data</span>
+        <div class="flex flex-col items-center justify-center p-8 bg-base-200 rounded-2xl shadow-sm border border-base-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <span class="text-sm font-bold text-base-content/60 dark:text-base-content/50 uppercase tracking-wider mb-3">Curated MS Data</span>
           <div class="flex items-baseline gap-2">
             <span class="text-5xl font-extrabold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent dark:from-blue-400 dark:to-cyan-400">{{ datasetsCount }}k+</span>
           </div>
-          <span class="text-base font-medium text-slate-600 dark:text-slate-300 mt-2">Mass Spectrometry Datasets</span>
+          <span class="text-base font-medium text-base-content mt-2">Mass Spectrometry Datasets</span>
         </div>
 
       </div>

@@ -15,7 +15,7 @@ const { toasts, removeToast } = useToast();
           'alert-info text-blue-700 bg-blue-50/95 border-blue-200 dark:bg-blue-900/90 dark:text-blue-100 dark:border-blue-700': toast.type === 'info',
           'alert-success text-green-700 bg-green-50/95 border-green-200 dark:bg-green-900/90 dark:text-green-100 dark:border-green-700': toast.type === 'success',
           'alert-warning text-yellow-700 bg-yellow-50/95 border-yellow-200 dark:bg-yellow-900/90 dark:text-yellow-100 dark:border-yellow-700': toast.type === 'warning',
-          'alert-error text-red-700 bg-red-50/95 border-red-200 dark:bg-red-900/90 dark:text-red-100 dark:border-red-700': toast.type === 'error'
+          'alert-error text-error bg-red-50/95 border-red-200 dark:bg-red-900/90 dark:text-red-100 dark:border-red-700': toast.type === 'error'
         }"
       >
         <div class="flex items-center gap-3">

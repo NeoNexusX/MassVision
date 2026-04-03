@@ -6,7 +6,7 @@
       
       <select 
         class="select select-ghost w-full font-normal h-full px-0 focus:bg-transparent focus:outline-none outline-none border-none focus:border-none shadow-none focus:shadow-none ring-0 focus:ring-0"
-        :class="{'text-gray-400': !modelValue}"
+        :class="{'text-base-content/50': !modelValue}"
         :value="modelValue"
         @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value); $emit('change', $event)"
         @focus="$emit('focus')"

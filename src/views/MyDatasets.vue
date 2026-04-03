@@ -1,91 +1,332 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import DatasetCard from '@/components/dataset/DatasetCard.vue';
 import DatasetFilterBar from '@/components/dataset/DatasetFilterBar.vue';
+import UploadModal from '@/components/UploadModal.vue';
 import type { Dataset } from '@/types/dataset';
+import { listFiles } from '@/utils/file-api';
+import { useAuthStore } from '@/stores/auth';
 
-// 1. Mock minimal data (3-4 items)
-const generateMockDatasets = (count: number): Dataset[] => {
-  return Array.from({ length: count }).map((_, i) => ({
-    id: `my-dataset-${i + 1}`,
-    name: i === 0 
-      ? `High-Res Spatial Lipidomics of Mouse Brain` 
-      : i === 1 
-      ? `Single-Cell Metabolomics of Kidney Tissue`
-      : `Colorectal Cancer Tissue Microarray Analysis`,
-    sampleDesc: i === 0 ? 'C57BL/6 mouse brain sections (sagittal)' : 'Human kidney biopsy cores', 
-    instrument: i % 2 === 0 ? 'Bruker timsTOF flex' : 'Thermo Orbitrap Exploris 240',
-    submitTime: new Date(Date.now() - i * 86400000 * 2).toISOString(),
-    submitter: 'Dr. Li',
-    institution: 'MassVision Lab',
-    status: i === 0 ? 'Finished' : i === 1 ? 'Processing' : 'Queued',
-    isPublic: i !== 1,
-    thumbnailUrl: '',
-    description: 'Investigation of lipid distribution changes in neurodegenerative disease models.',
-    species: 'Mus musculus'
-  }));
+// State
+const datasets = ref<Dataset[]>([]);
+const loading = ref(false);
+const error = ref('');
+
+// Pagination & meta
+const meta = reactive({ current_page: 1, current_records: 0, total_pages: 1, total_records: 0 });
+const page = ref<number>(1);
+const size = ref<number>(10);
+
+// Filters (match backend keys)
+const filters = reactive({
+  filename: '',
+  experiment_type: '',
+  username: '',
+  organism: '',
+  organism_part: '',
+  condition: '',
+  sample_stabilization: '',
+  tissue_modification: '',
+  maldi_matrix: '',
+  maldi_matrix_application: '',
+  solvent: '',
+  status: [] as string[]
+});
+
+const sortDesc = ref(true);
+
+const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
+
+const stripFileSuffix = (name = '') => name.replace(/\.[^.]+$/, '');
+
+const mapItemToDataset = (item: any): Dataset => {
+  return {
+    id: item.file_id ? String(item.file_id) : String(item.filename || Math.random()),
+    name: stripFileSuffix(item.filename || ''),
+    sampleDesc: [
+      item.organism_part && item.organism ? `${item.organism_part} (${item.organism})` : (item.organism_part || item.organism),
+      item.condition
+    ].filter(Boolean).join(', '),
+    instrument: item.experiment_type || '',
+    submitTime: item.uploaded_at || item.created_at || new Date().toISOString(),
+    submitter: item.username || item.uploaded_by || '',
+    institution: item.institution || '',
+    status: (item.status as any) || (item.state as any) || 'Finished',
+    isPublic: !!item.is_public,
+    thumbnailUrl: item.thumbnail || '',
+    description: item.description || ''
+    ,
+    sizeBytes: item.size || item.file_size || item.size_bytes || item.sizeInBytes || 0
+  } as any;
 };
 
-const datasets = ref<Dataset[]>(generateMockDatasets(3)); // Only 3 real items
-const currentTab = ref('My Submissions');
+const applyClientSort = (arr: Dataset[]) => {
+  return arr.sort((a, b) => {
+    const ta = new Date(a.submitTime).getTime();
+    const tb = new Date(b.submitTime).getTime();
+    return sortDesc.value ? tb - ta : ta - tb;
+  });
+};
 
-// Empty handlers
-const handleVisibilityFilter = (tab: string) => { currentTab.value = tab; };
-const handleUpload = () => { console.log('Upload click'); };
-const handleSort = () => {};
-const handleExport = () => {};
-const handleSearch = () => {};
-const handleEdit = () => {};
-const handleDelete = () => {};
-const viewMetadata = () => {};
-const viewOverview = () => {};
+const fetchFiles = async (opts: { page?: number; size?: number } = {}) => {
+  loading.value = true;
+  error.value = '';
+  const p = opts.page ?? page.value;
+  const s = opts.size ?? size.value;
+  try {
+    // Ensure username is set to current user for MyDatasets
+    const username = auth.user?.username || '';
+    const body: Record<string, any> = {
+      filename: filters.filename || '',
+      experiment_type: filters.experiment_type || '',
+      username: username,
+      organism: filters.organism || '',
+      organism_part: filters.organism_part || '',
+      condition: filters.condition || '',
+      sample_stabilization: filters.sample_stabilization || '',
+      tissue_modification: filters.tissue_modification || '',
+      maldi_matrix: filters.maldi_matrix || '',
+      maldi_matrix_application: filters.maldi_matrix_application || '',
+      solvent: filters.solvent || ''
+    };
+    if (filters.status && (filters.status as any).length) body.status = filters.status;
+
+    const resp = await listFiles(body, p, s);
+    const data = resp.data || {};
+
+    if (data.meta) {
+      meta.current_page = data.meta.current_page || p;
+      meta.current_records = data.meta.current_records || (Array.isArray(data.data) ? data.data.length : 0);
+      meta.total_pages = data.meta.total_pages || 1;
+      meta.total_records = data.meta.total_records || meta.current_records;
+    }
+
+    const items = Array.isArray(data.data) ? data.data.map(mapItemToDataset) : [];
+    datasets.value = applyClientSort(items);
+  } catch (err: any) {
+    error.value = err?.message || String(err) || 'Failed to load files';
+    datasets.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  const qp = Number(route.query.page || 1);
+  const qs = Number(route.query.size || size.value);
+  page.value = qp > 0 ? qp : 1;
+  size.value = qs > 0 ? qs : size.value;
+  // Try to fetch user first if not present
+  if (!auth.user && auth.token) {
+    auth.fetchUser().finally(() => fetchFiles({ page: page.value, size: size.value }));
+  } else {
+    fetchFiles({ page: page.value, size: size.value });
+  }
+});
+
+// Handlers
+const handleSearch = (query: string) => {
+  filters.filename = query || '';
+  page.value = 1;
+  router.replace({ query: { ...route.query, page: String(page.value) } });
+  fetchFiles({ page: page.value, size: size.value });
+};
+
+const handleApplyFilters = (payload: Record<string, any>) => {
+  Object.assign(filters, payload);
+  page.value = 1;
+  router.replace({ query: { ...route.query, page: String(page.value) } });
+  fetchFiles({ page: page.value, size: size.value });
+};
+
+const handleStatusFilter = (statuses: string[]) => {
+  filters.status = statuses as any;
+  page.value = 1;
+  router.replace({ query: { ...route.query, page: String(page.value) } });
+  fetchFiles({ page: page.value, size: size.value });
+};
+
+const handleSort = (sortValue: string) => {
+  sortDesc.value = !sortDesc.value;
+  datasets.value = applyClientSort(datasets.value);
+};
+
+// UI handlers used by the filter bar and cards
+const handleVisibilityFilter = (tab: string) => { /* placeholder: could toggle between My/Public */ };
+const isUploadOpen = ref(false);
+const onUploadSuccess = () => {
+  isUploadOpen.value = false;
+  // refresh list after upload
+  fetchFiles({ page: page.value, size: size.value });
+};
+const handleUpload = () => { isUploadOpen.value = true; };
+const handleEdit = (id?: string) => { console.log('Edit', id); };
+const handleDelete = (id?: string) => { console.log('Delete', id); };
+
+const viewMetadata = (id: string) => console.log('View Metadata', id);
+const viewOverview = (id: string) => console.log('View Overview', id);
+
+const goToPage = (np: number) => {
+  if (np < 1) np = 1;
+  if (np > (meta.total_pages || 1)) np = meta.total_pages || 1;
+  page.value = np;
+  meta.current_page = np;
+  router.replace({ query: { ...route.query, page: String(np) } });
+  fetchFiles({ page: np, size: size.value });
+};
+
+// Build pagination items with ellipsis when needed
+const pagination = computed<(number | string)[]>(() => {
+  const total = Number(meta.total_pages || 1);
+  const current = Number(meta.current_page || 1);
+  const pages: (number | string)[] = [];
+  const maxButtons = 7;
+
+  if (total <= maxButtons) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+    return pages;
+  }
+
+  pages.push(1);
+
+  let left = Math.max(current - 1, 2);
+  let right = Math.min(current + 1, total - 1);
+
+  if (current <= 3) {
+    left = 2;
+    right = 4;
+  }
+  if (current >= total - 2) {
+    left = total - 3;
+    right = total - 1;
+  }
+
+  if (left > 2) pages.push('...');
+  for (let i = left; i <= right; i++) pages.push(i);
+  if (right < total - 1) pages.push('...');
+
+  pages.push(total);
+  return pages;
+});
+
+const changeSize = (newSize: number) => {
+  size.value = newSize;
+  page.value = 1;
+  router.replace({ query: { ...route.query, page: String(1), size: String(newSize) } });
+  fetchFiles({ page: 1, size: newSize });
+};
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-8">
+  <div class="min-h-screen bg-base-200 p-4 md:p-8">
     <div class="max-w-7xl mx-auto">
-      <h1 class="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-6">My Datasets</h1>
+      <h1 class="text-3xl font-bold text-base-content mb-6">My Datasets</h1>
       
       <DatasetFilterBar 
+        :show-add-filter="true"
         :show-visibility-filter="true"
         :show-upload="true"
         search-placeholder="Search my datasets"
         @filter-visibility="handleVisibilityFilter"
         @upload="handleUpload"
         @search="handleSearch"
+        @filter-status="handleStatusFilter"
+        @apply-filters="handleApplyFilters"
         @sort="handleSort"
-        @export="handleExport"
       />
 
-      <div class="flex flex-wrap gap-6 justify-start">
-        <!-- Real Dataset Cards -->
-        <div 
-          v-for="dataset in datasets" 
-          :key="dataset.id"
-          class="w-full md:w-[calc(50%-12px)] flex-shrink-0"
-        >
-          <DatasetCard 
-            :dataset="dataset"
-            :is-my-dataset="true"
-            @view-metadata="viewMetadata"
-            @view-overview="viewOverview"
-            @edit="handleEdit"
-            @delete="handleDelete"
-          />
+      <UploadModal :is-open="isUploadOpen" @close="isUploadOpen = false" @upload-success="onUploadSuccess" />
+
+      <div>
+        <!-- Loading state -->
+        <div v-if="loading" class="flex flex-col gap-3">
+          <div class="animate-pulse flex flex-col gap-4">
+            <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
+            <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
+          </div>
         </div>
 
-        <!-- Skeleton / Placeholder Cards to fill space visually -->
-         <div 
-          v-for="n in 3" 
-          :key="`placeholder-${n}`"
-          class="w-full md:w-[calc(50%-12px)] flex-shrink-0 h-[154px] rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col items-center justify-center gap-3 group cursor-default transition-colors hover:border-slate-300 dark:hover:border-slate-600"
-        >
-           <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-300 dark:text-slate-600">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-           </div>
-           <span class="text-sm font-medium text-slate-400 dark:text-slate-500">Reserved Slot</span>
+        <!-- Error state -->
+        <div v-else-if="error" class="p-4 bg-error/10 dark:bg-error/10/30 rounded mb-4 border border-error/20 text-error">
+          {{ error }}
+        </div>
+
+        <!-- Empty state -->
+        <div v-else-if="!datasets.length" class="p-6 bg-base-100 dark:bg-slate-800 rounded-xl text-base-content mb-4">
+          You have no datasets yet matching your filters.
+        </div>
+
+        <!-- Data grid -->
+        <div v-else class="flex flex-wrap gap-6 justify-start">
+          <div 
+            v-for="dataset in datasets" 
+            :key="dataset.id"
+            class="w-full md:w-[calc(50%-12px)] flex-shrink-0"
+          >
+            <DatasetCard 
+              :dataset="dataset"
+              :is-my-dataset="true"
+              @view-metadata="viewMetadata"
+              @view-overview="viewOverview"
+              @edit="handleEdit"
+              @delete="handleDelete"
+            />
+          </div>
+
+          <!-- No placeholder cards: only render actual datasets -->
+        </div>
+
+        <!-- Pagination (daisyUI join-style) -->
+        <div class="mt-6 flex items-center justify-between">
+          <div class="text-sm text-base-content">
+            Page <span class="font-medium">{{ meta.current_page }}</span> of <span class="font-medium">{{ meta.total_pages }}</span> — <span class="font-medium">{{ meta.total_records }}</span> records
+          </div>
+          <div class="flex flex-wrap items-center gap-4">
+            <div class="flex items-center gap-2">
+              <label class="whitespace-nowrap text-sm text-base-content/60">Per page</label>
+              <select v-model.number="size" @change="() => changeSize(size)" class="select select-sm select-bordered">
+                <option :value="10">10</option>
+                <option :value="20">20</option>
+              </select>
+            </div>
+
+            <nav aria-label="Pagination" class="">
+              <ul class="join">
+                <!-- Prev -->
+                <li class="join-item">
+                  <button
+                    :disabled="meta.current_page <= 1"
+                    @click="() => goToPage(meta.current_page - 1)"
+                    class="btn btn-sm"
+                  >Prev</button>
+                </li>
+
+                <!-- Page buttons -->
+                <li v-for="(p, idx) in pagination" :key="`pg-${idx}-${p}`" class="join-item">
+                  <button
+                    v-if="p !== '...'"
+                    @click="() => goToPage(Number(p))"
+                    :aria-current="p === meta.current_page ? 'page' : undefined"
+                    :class="['btn btn-sm', p === meta.current_page ? 'btn-primary' : 'btn-ghost']"
+                  >{{ p }}</button>
+
+                  <button v-else class="btn btn-sm btn-ghost cursor-default" disabled>...</button>
+                </li>
+
+                <!-- Next -->
+                <li class="join-item">
+                  <button
+                    :disabled="meta.current_page >= meta.total_pages"
+                    @click="() => goToPage(meta.current_page + 1)"
+                    class="btn btn-sm"
+                  >Next</button>
+                </li>
+              </ul>
+            </nav>
+          </div>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
   <div class="relative overflow-hidden bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 pt-32 pb-20 sm:pt-40 sm:pb-24 transition-colors duration-300">
     <!-- Abstract Background Elements -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-       <div class="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-indigo-200/20 dark:bg-indigo-500/10 blur-3xl animate-pulse"></div>
+       <div class="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-indigo-200/20 dark:bg-primary/100/10 blur-3xl animate-pulse"></div>
        <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-blue-200/20 dark:bg-blue-500/10 blur-3xl" style="animation-delay: 1s;"></div>
     </div>
 
@@ -13,7 +13,7 @@
         <div class="w-full lg:w-1/2 flex justify-center lg:justify-start order-2 lg:order-1 fade-in-element">
             <div class="relative w-full max-w-lg aspect-square">
                  <!-- Molecular / Mass Spec Visual Abstract -->
-                 <svg viewBox="0 0 500 500" class="w-full h-full drop-shadow-2xl text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                 <svg viewBox="0 0 500 500" class="w-full h-full drop-shadow-2xl text-primary dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <!-- 1. Background Grid (Scientific Foundation) -->
                     <g class="opacity-10 dark:opacity-20" stroke-dasharray="4 4" stroke-width="1">
                          <line x1="50" y1="400" x2="450" y2="400" />
@@ -26,7 +26,7 @@
                     </g>
 
                     <!-- 2. Baseline -->
-                    <line x1="50" y1="400" x2="450" y2="400" stroke-width="2" class="text-slate-400 dark:text-slate-600 opacity-50" />
+                    <line x1="50" y1="400" x2="450" y2="400" stroke-width="2" class="text-base-content opacity-50" />
 
                     <!-- 3. Mass Spectrum Peaks (Simplified Signal) -->
                     <g transform="translate(0, 0)">
@@ -39,7 +39,7 @@
                         </g>
 -
                         <!-- Highlighted Peak Group (Main Signal) -->
-                        <g class="text-indigo-600 dark:text-indigo-400">
+                        <g class="text-primary dark:text-indigo-400">
                              <!-- Monoisotopic Peak -->
                              <line x1="250" y1="400" x2="250" y2="120" stroke-width="5" />
                              <circle cx="250" cy="120" r="6" fill="currentColor" class="text-indigo-100 dark:text-indigo-900 stroke-current stroke-2" />
@@ -54,13 +54,13 @@
                         </g>
 
                         <!-- Secondary Peak Group -->
-                        <g class="text-indigo-400 dark:text-indigo-500 opacity-90">
+                        <g class="text-indigo-400 dark:text-primary-content opacity-90">
                             <line x1="160" y1="400" x2="160" y2="280" stroke-width="3" />
                             <circle cx="160" cy="280" r="4" fill="currentColor" />
                         </g>
 
                         <!-- Tertiary Peak -->
-                        <g class="text-indigo-300 dark:text-indigo-600 opacity-70">
+                        <g class="text-indigo-300 dark:text-primary opacity-70">
                             <line x1="380" y1="400" x2="380" y2="310" stroke-width="2.5" />
                             <circle cx="380" cy="310" r="3" fill="currentColor" />
                         </g>
@@ -74,15 +74,15 @@
           <h1 class="text-5xl sm:text-6xl font-bold tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
             MassFlow
           </h1>
-          <p class="text-xl sm:text-2xl text-slate-600 dark:text-gray-300 font-light mb-8 max-w-2xl mx-auto lg:mx-0">
+          <p class="text-xl sm:text-2xl text-slate-600 dark:text-base-content/40 font-light mb-8 max-w-2xl mx-auto lg:mx-0">
             Next-Generation Mass Spectrometry Data Platform. Unlock biological insights with unprecedented speed and precision according to cloud-native architecture.
           </p>
           
           <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-            <button class="px-8 py-3.5 rounded-full bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-700 transition-all hover:scale-105 shadow-lg shadow-indigo-200 dark:shadow-none">
+            <button class="px-8 py-3.5 rounded-full btn-primary font-bold text-lg hover:btn-active transition-all hover:scale-105 shadow-lg shadow-indigo-200 dark:shadow-none">
               Get Started
             </button>
-            <button class="px-8 py-3.5 rounded-full border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-gray-300 font-medium text-lg hover:bg-slate-50 dark:hover:bg-gray-800 transition-all">
+            <button class="px-8 py-3.5 rounded-full border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-base-content/40 font-medium text-lg hover:bg-slate-50 dark:hover:bg-gray-800 transition-all">
               View Demo
             </button>
           </div>

@@ -48,6 +48,7 @@ import AuthInput from '../components/AuthInput.vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { login as loginApi } from '../utils/usr-api'; // Use the shared login helper
+import { formatErrorMessage } from '../utils/api';
 import { useToast } from '../utils/toast';
 
 const { showToast } = useToast();
@@ -90,8 +91,10 @@ const login = async () => {
 
   } catch (error: any) {
     console.error('Login Error:', error);
-    const msg = error.response?.data?.detail || error.message || 'Login failed';
-    showToast(typeof msg === 'string' ? msg : JSON.stringify(msg), 'error');
+      // Normalize message from multiple possible locations (response.data.detail/msg or error.message)
+      const candidate = error?.response?.data?.detail ?? error?.response?.data?.message ?? error?.response?.data?.msg ?? error?.message;
+      const msgStr = formatErrorMessage(candidate);
+      showToast(msgStr, 'error');
   } finally {
     isLoading.value = false;
   }
