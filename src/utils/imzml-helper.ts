@@ -9,7 +9,7 @@ export function formatSpeed(bytesPerSec: number): string {
 }
 
 export function formatETA(seconds: number): string {
-  if (seconds <= 0 || !isFinite(seconds)) return 'Cal...';
+  if (seconds <= 0 || !isFinite(seconds)) return 'Calculating...';
   if (seconds > 3600) return '>1h';
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);

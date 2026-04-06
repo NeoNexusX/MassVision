@@ -34,7 +34,6 @@ const emit = defineEmits<{
   (e: 'search', query: string): void;
   (e: 'filter-status', status: string[]): void;
   (e: 'filter-visibility', visibility: string): void;
-  (e: 'add-filter', type: string): void;
   (e: 'apply-filters', payload: Record<string, any>): void;
   (e: 'sort', value: string): void;
   (e: 'upload'): void;

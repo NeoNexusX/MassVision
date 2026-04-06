@@ -43,9 +43,9 @@ const auth = useAuthStore();
 
 const stripFileSuffix = (name = '') => name.replace(/\.[^.]+$/, '');
 
-const mapItemToDataset = (item: any): Dataset => {
+const mapItemToDataset = (item: any, index: number): Dataset => {
   return {
-    id: item.file_id ? String(item.file_id) : String(item.filename || Math.random()),
+    id: String(item.file_id || item.id || item.filename || `dataset-${index}`),
     name: stripFileSuffix(item.filename || ''),
     sampleDesc: [
       item.organism_part && item.organism ? `${item.organism_part} (${item.organism})` : (item.organism_part || item.organism)
@@ -59,7 +59,7 @@ const mapItemToDataset = (item: any): Dataset => {
     thumbnailUrl: item.thumbnail || '',
     description: item.description || ''
     ,
-    sizeBytes: item.size || item.file_size || item.size_bytes || item.sizeInBytes || 0
+    sizeBytes: item.size ?? item.file_size ?? item.size_bytes ?? item.sizeInBytes ?? undefined
   } as any;
 };
 

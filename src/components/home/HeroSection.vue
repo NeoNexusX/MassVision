@@ -2,7 +2,7 @@
   <div class="relative overflow-hidden bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 pt-32 pb-20 sm:pt-40 sm:pb-24 transition-colors duration-300">
     <!-- Abstract Background Elements -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-       <div class="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-indigo-200/20 dark:bg-primary/100/10 blur-3xl animate-pulse"></div>
+       <div class="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-indigo-200/20 dark:bg-primary/10 blur-3xl animate-pulse"></div>
        <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-blue-200/20 dark:bg-blue-500/10 blur-3xl" style="animation-delay: 1s;"></div>
     </div>
 
@@ -79,10 +79,10 @@
           </p>
           
           <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-            <button class="px-8 py-3.5 rounded-full btn-primary font-bold text-lg hover:btn-active transition-all hover:scale-105 shadow-lg shadow-indigo-200 dark:shadow-none">
+            <button class="btn btn-primary px-8 h-auto py-3.5 rounded-full font-bold text-lg transition-all hover:scale-105 shadow-lg shadow-indigo-200 dark:shadow-none">
               Get Started
             </button>
-            <button class="px-8 py-3.5 rounded-full border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-base-content/40 font-medium text-lg hover:bg-slate-50 dark:hover:bg-gray-800 transition-all">
+            <button class="btn px-8 h-auto py-3.5 rounded-full border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-base-content/40 font-medium text-lg hover:bg-slate-50 dark:hover:bg-gray-800 transition-all bg-transparent">
               View Demo
             </button>
           </div>

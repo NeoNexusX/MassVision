@@ -97,7 +97,7 @@ const formattedSize = computed(() => formatBytes(props.dataset.sizeBytes));
         <span> at </span>
         <span class="font-medium text-primary dark:text-indigo-400 bg-primary/10 dark:bg-indigo-900/20 px-1 rounded">{{ dataset.institution }}</span>
         <span class="ml-1 text-slate-400 text-xs">({{ new Date(dataset.submitTime).toLocaleDateString() }})</span>
-        <span class="ml-6 text-sm text-base-content/60" :title="dataset.sizeBytes ? `${dataset.sizeBytes.toLocaleString()} bytes` : ''" :aria-label="dataset.sizeBytes ? `File size: ${formattedSize} (${dataset.sizeBytes.toLocaleString()} bytes)` : 'File size unknown'">
+        <span class="ml-6 text-sm text-base-content/60" :title="dataset.sizeBytes != null ? `${dataset.sizeBytes.toLocaleString()} bytes` : ''" :aria-label="dataset.sizeBytes != null ? `File size: ${formattedSize} (${dataset.sizeBytes.toLocaleString()} bytes)` : 'File size unknown'">
           {{ formattedSize }}
         </span>
       </p>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch, computed } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import DatasetCard from '@/components/dataset/DatasetCard.vue';
 import DatasetFilterBar from '@/components/dataset/DatasetFilterBar.vue';
@@ -43,9 +43,9 @@ const router = useRouter();
 // Helpers
 const stripFileSuffix = (name = '') => name.replace(/\.[^.]+$/, '');
 
-const mapItemToDataset = (item: any): Dataset => {
+const mapItemToDataset = (item: any, index: number): Dataset => {
   return {
-    id: item.file_id ? String(item.file_id) : String(item.filename || Math.random()),
+    id: String(item.file_id || item.id || item.filename || `dataset-${index}`),
     name: stripFileSuffix(item.filename || ''),
     sampleDesc: [
       item.organism_part && item.organism ? `${item.organism_part} (${item.organism})` : (item.organism_part || item.organism)
@@ -59,7 +59,7 @@ const mapItemToDataset = (item: any): Dataset => {
     thumbnailUrl: item.thumbnail || '',
     description: item.description || '',
     // map possible size fields from backend
-    sizeBytes: item.size || item.file_size || item.size_bytes || item.sizeInBytes || 0
+    sizeBytes: item.size ?? item.file_size ?? item.size_bytes ?? item.sizeInBytes ?? undefined
   } as any;
 };
 
@@ -150,11 +150,6 @@ const handleSort = (sortValue: string) => {
   // only uploaded_at sort supported per requirements; toggle asc/desc
   sortDesc.value = !sortDesc.value;
   datasets.value = applyClientSort(datasets.value);
-};
-
-const handleExport = () => {
-  // keep existing UI behaviour (placeholder). Could implement CSV export later.
-  console.log('Export CSV');
 };
 
 // Card actions

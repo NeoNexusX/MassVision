@@ -43,8 +43,7 @@ export async function downloadFile(fileId: string) {
 // 4. Delete file
 // DELETE /files/{file_id}
 export async function deleteFile(fileId: string | number) {
-  const url = `http://10.26.58.61:34567/files/${fileId}`;
-  return auth_api.delete(url);
+  return auth_api.delete(`/files/${fileId}`);
 }
 
 /**
@@ -81,8 +80,8 @@ export async function getUploadStatus(fileId: string) {
 // POST /files/list_files?page={page}&size={size}
 export async function listFiles(filters: Record<string, any> = {}, page = 1, size = 10) {
   // Use the exact backend endpoint as specified by requirements.
-  // Note: providing an absolute URL overrides axios instance baseURL.
-  const url = `http://10.26.58.61:34567/files/list_files?page=${page}&size=${size}`;
   // Backend expects JSON body containing 11 filter attributes.
-  return auth_api.post(url, filters);
+  return auth_api.post('/files/list_files', filters, {
+    params: { page, size }
+  });
 }

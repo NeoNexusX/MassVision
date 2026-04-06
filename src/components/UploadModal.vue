@@ -118,7 +118,7 @@
 </div>
 
 <!-- Success State -->
-<div v-if="stage === 'success'" class="flex flex-col flex-center items-center py-10 gap-4">
+<div v-if="stage === 'success'" class="flex flex-col items-center justify-center py-10 gap-4">
 <div class="text-success text-2xl font-bold">Upload Complete!</div>
 <button class="btn bg-blue-600 text-white hover:bg-blue-700 border-none mt-4" @click="toDatasets">View Datasets</button>
 </div>
