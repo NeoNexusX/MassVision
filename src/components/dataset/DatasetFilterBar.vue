@@ -1,5 +1,17 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
+import DropdownSelect from '../DropdownSelect.vue';
+import {
+  EXPERIMENT_TYPES,
+  ORGANISMS,
+  ORGANISM_PARTS,
+  CONDITIONS,
+  SAMPLE_STABILIZATIONS,
+  TISSUE_MODIFICATIONS,
+  MALDI_MATRICES,
+  MALDI_MATRIX_APPLICATIONS,
+  SOLVENTS
+} from '@/constants/dataset-metadata';
 
 interface SortOption {
   label: string;
@@ -43,8 +55,9 @@ const sortOptions: SortOption[] = [
 // Add filter panel state and fields matching backend request
 const showFilterPanel = ref(false);
 const filterBtn = ref<HTMLElement | null>(null);
+const filterPanelRef = ref<HTMLElement | null>(null);
 const panelStyle = ref<Record<string, string>>({});
-const filters = ref<Record<string, string>>({
+const filters = ref<Record<string, any>>({
   filename: '',
   experiment_type: '',
   username: '',
@@ -73,14 +86,14 @@ const computePanelPosition = () => {
   const btn = filterBtn.value;
   if (!btn) return;
   const rect = btn.getBoundingClientRect();
-  const panelWidth = Math.min(520, Math.max(280, rect.width * 6)); // fallback width
-  const left = Math.min(Math.max(8, rect.left), window.innerWidth - panelWidth - 8);
+  const panelWidth = Math.min(650, window.innerWidth - 32); 
+  const left = Math.min(Math.max(16, rect.left), window.innerWidth - panelWidth - 16);
   const top = rect.bottom + window.scrollY + 8;
   panelStyle.value = {
     position: 'absolute',
     top: `${top}px`,
     left: `${left + window.scrollX}px`,
-    width: `${Math.min(520, 360)}px`,
+    width: `${panelWidth}px`,
     zIndex: '9999'
   };
 };
@@ -92,6 +105,24 @@ const toggleFilterPanel = () => {
     setTimeout(() => computePanelPosition(), 0);
   }
 };
+
+const handleClickOutside = (e: MouseEvent) => {
+  if (showFilterPanel.value) {
+    const isClickOnBtn = filterBtn.value?.contains(e.target as Node);
+    const isClickOnPanel = filterPanelRef.value?.contains(e.target as Node);
+    if (!isClickOnBtn && !isClickOnPanel) {
+      showFilterPanel.value = false;
+    }
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 
 // Watchers to emit changes
 watch(searchQuery, (val) => emit('search', val));
@@ -130,41 +161,41 @@ watch(sortValue, (val) => emit('sort', val));
              Add filter
            </button>
           <teleport to="body">
-            <div v-if="showFilterPanel" :style="panelStyle" class="bg-base-100 dark:bg-slate-800 border border-base-300 rounded-lg p-4 shadow-lg">
-             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-               <label class="text-xs text-base-content/60">Filename
+            <div v-if="showFilterPanel" ref="filterPanelRef" :style="panelStyle" class="bg-base-100 dark:bg-slate-800 border border-base-300 rounded-lg p-5 shadow-2xl">
+             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <div class="text-xs text-base-content/60 flex flex-col">Filename
                  <input v-model="filters.filename" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Filename" />
-               </label>
-               <label class="text-xs text-base-content/60">Experiment Type
-                 <input v-model="filters.experiment_type" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="imzML / MALDI" />
-               </label>
-               <label class="text-xs text-base-content/60">Username
+               </div>
+               <div class="text-xs text-base-content/60 flex flex-col">Experiment Type      
+                 <DropdownSelect v-model="filters.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Any" class="mt-1" />
+               </div>
+               <div class="text-xs text-base-content/60 flex flex-col">Username
                  <input v-model="filters.username" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Submitter username" />
-               </label>
-               <label class="text-xs text-base-content/60">Organism
-                 <input v-model="filters.organism" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Organism" />
-               </label>
-               <label class="text-xs text-base-content/60">Organism Part
-                 <input v-model="filters.organism_part" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Organism part" />
-               </label>
-               <label class="text-xs text-base-content/60">Condition
-                 <input v-model="filters.condition" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Condition" />
-               </label>
-               <label class="text-xs text-base-content/60">Sample Stabilization
-                 <input v-model="filters.sample_stabilization" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Stabilization" />
-               </label>
-               <label class="text-xs text-base-content/60">Tissue Modification
-                 <input v-model="filters.tissue_modification" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Tissue modification" />
-               </label>
-               <label class="text-xs text-base-content/60">MALDI Matrix
-                 <input v-model="filters.maldi_matrix" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="MALDI matrix" />
-               </label>
-               <label class="text-xs text-base-content/60">Matrix Application
-                 <input v-model="filters.maldi_matrix_application" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Application" />
-               </label>
-               <label class="text-xs text-base-content/60">Solvent
-                 <input v-model="filters.solvent" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Solvent" />
-               </label>
+               </div>
+               <div class="text-xs text-base-content/60 flex flex-col">Organism
+                 <DropdownSelect v-model="filters.organism" :options="ORGANISMS" placeholder="Any" class="mt-1" />
+               </div>
+               <div class="text-xs text-base-content/60 flex flex-col">Organism Part
+                 <DropdownSelect v-model="filters.organism_part" :options="ORGANISM_PARTS" placeholder="Any" class="mt-1" />
+               </div>
+               <div class="text-xs text-base-content/60 flex flex-col">Condition
+                 <DropdownSelect v-model="filters.condition" :options="CONDITIONS" placeholder="Any" class="mt-1" />
+               </div>
+               <div class="text-xs text-base-content/60 flex flex-col">Sample Stabilization
+                 <DropdownSelect v-model="filters.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Any" class="mt-1" />
+               </div>
+               <div class="text-xs text-base-content/60 flex flex-col">Tissue Modification
+                 <DropdownSelect v-model="filters.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Any" class="mt-1" />
+               </div>
+               <div class="text-xs text-base-content/60 flex flex-col">MALDI Matrix
+                 <DropdownSelect v-model="filters.maldi_matrix" :options="MALDI_MATRICES" placeholder="Any" class="mt-1" />
+               </div>
+               <div class="text-xs text-base-content/60 flex flex-col">Matrix Application
+                 <DropdownSelect v-model="filters.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Any" class="mt-1" />
+               </div>
+               <div class="text-xs text-base-content/60 flex flex-col">Solvent
+                 <DropdownSelect v-model="filters.solvent" :options="SOLVENTS" placeholder="Any" placement="dropdown-top dropdown-end" class="mt-1" />
+               </div>
              </div>
              <div class="mt-3 flex justify-end gap-2">
                <button @click="resetFilters" class="btn btn-sm btn-ghost border border-base-300">Reset</button>
@@ -196,12 +227,12 @@ watch(sortValue, (val) => emit('sort', val));
          <button 
            v-if="showUpload"
            @click="$emit('upload')"
-           class="flex items-center gap-2 btn-primary hover:btn-active text-white py-2 px-4 rounded-lg shadow-sm transition-all transform active:scale-95 text-sm font-medium"
+           class="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-none rounded-lg shadow-sm transition-all transform active:scale-95 text-sm font-medium py-2 px-4"
          >
            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
            </svg>
-           Upload new dataset
+           Upload New Dataset (imzML + ibd)
          </button>
 
          <!-- Sort Dropdown -->

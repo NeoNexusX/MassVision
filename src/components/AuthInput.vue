@@ -40,7 +40,7 @@ const onBlur = (e: Event) => {
   <div>
     <label class="input validator w-full flex items-center">
         <SvgIcon :type="iconType" />
-        <!-- v model 双向绑定 -->
+        <!-- v-model two-way binding -->
         <input
             v-model="value"
             :type="type"

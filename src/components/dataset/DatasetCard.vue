@@ -106,18 +106,18 @@ const formattedSize = computed(() => formatBytes(props.dataset.sizeBytes));
     <!-- Right: Actions -->
     <div class="flex-none w-[140px] flex flex-col gap-2 border-l border-base-300 pl-4 items-start justify-center">
 
-      <button class="flex items-center gap-2 text-sm text-primary dark:text-indigo-400 hover:text-primary-content dark:hover:text-indigo-300 transition-colors group/btn" @click="$emit('view-metadata', dataset.id)">
+      <button class="flex items-center gap-2 text-sm font-medium text-base-content/70 hover:text-base-content transition-colors group/btn" @click="$emit('view-metadata', dataset.id)">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008h-.008V8.25z" />
         </svg>
-        <span class="group-hover/btn:underline decoration-transparent group-hover/btn:decoration-indigo-300 underline-offset-2 transition-all">Metadata</span>
+        <span>Metadata</span>
       </button>
 
-      <button class="flex items-center gap-2 text-sm text-primary dark:text-indigo-400 hover:text-primary-content dark:hover:text-indigo-300 transition-colors group/btn" @click="$emit('view-overview', dataset.id)">
+      <button class="flex items-center gap-2 text-sm font-medium text-base-content/70 hover:text-base-content transition-colors group/btn" @click="$emit('view-overview', dataset.id)">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
         </svg>
-        <span class="group-hover/btn:underline decoration-transparent group-hover/btn:decoration-indigo-300 underline-offset-2 transition-all">Overview</span>
+        <span>Overview</span>
       </button>
 
       <!-- Edit/Delete for Owner -->

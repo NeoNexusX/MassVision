@@ -5,8 +5,9 @@ import DatasetCard from '@/components/dataset/DatasetCard.vue';
 import DatasetFilterBar from '@/components/dataset/DatasetFilterBar.vue';
 import UploadModal from '@/components/UploadModal.vue';
 import type { Dataset } from '@/types/dataset';
-import { listFiles } from '@/utils/file-api';
+import { listFiles, deleteFile } from '@/utils/file-api';
 import { useAuthStore } from '@/stores/auth';
+import { useToast } from '@/utils/toast';
 
 // State
 const datasets = ref<Dataset[]>([]);
@@ -47,8 +48,7 @@ const mapItemToDataset = (item: any): Dataset => {
     id: item.file_id ? String(item.file_id) : String(item.filename || Math.random()),
     name: stripFileSuffix(item.filename || ''),
     sampleDesc: [
-      item.organism_part && item.organism ? `${item.organism_part} (${item.organism})` : (item.organism_part || item.organism),
-      item.condition
+      item.organism_part && item.organism ? `${item.organism_part} (${item.organism})` : (item.organism_part || item.organism)
     ].filter(Boolean).join(', '),
     instrument: item.experiment_type || '',
     submitTime: item.uploaded_at || item.created_at || new Date().toISOString(),
@@ -164,7 +164,29 @@ const onUploadSuccess = () => {
 };
 const handleUpload = () => { isUploadOpen.value = true; };
 const handleEdit = (id?: string) => { console.log('Edit', id); };
-const handleDelete = (id?: string) => { console.log('Delete', id); };
+
+const deletingId = ref<string | null>(null);
+const { showToast } = useToast();
+
+const handleDelete = async (id?: string) => { 
+  if (!id) return;
+  if (!confirm('Are you sure you want to delete this dataset? This action cannot be undone.')) {
+    return;
+  }
+  
+  deletingId.value = id;
+  try {
+    const res = await deleteFile(id);
+    showToast('Dataset deleted successfully', 'success');
+    // Refresh current page after deletion
+    fetchFiles({ page: page.value, size: size.value });
+  } catch (err: any) {
+    showToast(err.message || 'Failed to delete dataset', 'error');
+    console.error('Delete failed:', err);
+  } finally {
+    deletingId.value = null;
+  }
+};
 
 const viewMetadata = (id: string) => console.log('View Metadata', id);
 const viewOverview = (id: string) => console.log('View Overview', id);
@@ -265,6 +287,7 @@ const changeSize = (newSize: number) => {
             v-for="dataset in datasets" 
             :key="dataset.id"
             class="w-full md:w-[calc(50%-12px)] flex-shrink-0"
+            :class="{ 'opacity-50 pointer-events-none': deletingId === dataset.id }"
           >
             <DatasetCard 
               :dataset="dataset"

@@ -48,8 +48,7 @@ const mapItemToDataset = (item: any): Dataset => {
     id: item.file_id ? String(item.file_id) : String(item.filename || Math.random()),
     name: stripFileSuffix(item.filename || ''),
     sampleDesc: [
-      item.organism_part && item.organism ? `${item.organism_part} (${item.organism})` : (item.organism_part || item.organism),
-      item.condition
+      item.organism_part && item.organism ? `${item.organism_part} (${item.organism})` : (item.organism_part || item.organism)
     ].filter(Boolean).join(', '),
     instrument: item.experiment_type || '',
     submitTime: item.uploaded_at || item.created_at || new Date().toISOString(),

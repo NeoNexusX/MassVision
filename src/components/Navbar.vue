@@ -14,7 +14,7 @@
         </li>
         <li>
           <router-link to="/" @click="sidebarOpen = false" class="flex items-center gap-6 py-4 px-3 text-xl">
-            <SvgIcon type="home" class="w-8 h-8 text-base-content" />
+            <SvgIcon type="home" class="!w-8 !h-8 text-base-content" />
             <span class="align-middle">Home</span>
           </router-link>
         </li>
@@ -73,7 +73,7 @@
     <div class="fab fab-flower" :class="{ 'fab-open': fabOpen }">
       <!-- Trigger (focusable) - default Home icon -->
       <div tabindex="0" role="button" class="btn btn-circle btn-lg" @click="toggleFab" aria-label="Open menu">
-        <SvgIcon type="home" class="w-6 h-6 text-base-content" aria-label="Home" />
+        <SvgIcon type="home" class="!w-6 !h-6 text-base-content" aria-label="Home" />
       </div>
 
       <!-- Main Action button replaces the trigger when FAB is open -->
@@ -96,12 +96,12 @@
           <template v-if="user">
             <!-- logged-in: show four buttons around FAB -->
             <button class="btn btn-circle btn-lg child-btn" @click="toggleSidebar" title="Menu">
-              <SvgIcon type="menu" class="w-5 h-5" />
+              <SvgIcon type="menu" class="!w-5 !h-5" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="toggleTheme" :title="isDark ? 'dark' : 'light'" :aria-label="isDark ? 'dark' : 'light'">
-              <SvgIcon v-if="!isDark" type="sun" class="w-6 h-6 text-yellow-400" />
-              <SvgIcon v-else type="moon" class="w-6 h-6 text-indigo-300" />
+              <SvgIcon v-if="!isDark" type="sun" class="!w-6 !h-6 text-yellow-400" />
+              <SvgIcon v-else type="moon" class="!w-6 !h-6 text-indigo-300" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="goProfile" title="Profile">
@@ -118,12 +118,12 @@
             <button class="btn btn-circle btn-lg child-btn invisible pointer-events-none" aria-hidden="true"></button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="toggleSidebar" title="Menu">
-              <SvgIcon type="menu" class="w-6 h-6" />
+              <SvgIcon type="menu" class="!w-6 !h-6" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="toggleTheme" :title="isDark ? 'dark' : 'light'" :aria-label="isDark ? 'dark' : 'light'">
-              <SvgIcon v-if="!isDark" type="sun" class="w-6 h-6 text-yellow-400" />
-              <SvgIcon v-else type="moon" class="w-6 h-6 text-indigo-300" />  
+              <SvgIcon v-if="!isDark" type="sun" class="!w-6 !h-6 text-yellow-400" />
+              <SvgIcon v-else type="moon" class="!w-6 !h-6 text-indigo-300" />  
             </button>
 
             <!-- Invisible button 4 (position 4) -->
@@ -197,3 +197,4 @@ onMounted(() => {
   }
 });
 </script>
+

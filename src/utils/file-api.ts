@@ -1,16 +1,16 @@
 import { auth_api } from './api'
 
 /**
- * 文件管理接口 (File Manager API)
+ * File Manager API
  */
-// 1. 获取用户文件列表
+// 1. Get user file list
 // GET /files
 export async function getUserFiles() {
-  // 根据经验，这个接口可能返回一个包含文件对象的列表
+  // As per experience, this interface may return a list containing file objects
   return auth_api.get('/files');
 }
 
-// 2. 简单文件上传
+// 2. Simple file upload
 // POST /files/upload_simple
 export async function uploadSimpleFile(
   file: File,
@@ -31,38 +31,39 @@ export async function uploadSimpleFile(
   });
 }
 
-// 3. 下载文件
+// 3. Download file
 // GET /files/{file_id}/download
 export async function downloadFile(fileId: string) {
-  // 注意：需要确保 fileId 是字符串
+  // Note: needs to assure fileId is a string
   return auth_api.get(`/files/${fileId}/download`, {
-    responseType: 'blob' // 重要：告诉 axios 返回二进制流数据，而不是 JSON
+    responseType: 'blob' // Important: Instructs axios to return binary stream data instead of JSON
   })
 }
 
-// 4. 删除文件
+// 4. Delete file
 // DELETE /files/{file_id}
-export async function deleteFile(fileId: string) {
-  return auth_api.delete(`/files/${fileId}`);
+export async function deleteFile(fileId: string | number) {
+  const url = `http://10.26.58.61:34567/files/${fileId}`;
+  return auth_api.delete(url);
 }
 
 /**
- * 分片上传相关接口 (Chunked Upload)
- * 如果文件较大，建议使用这一组接口
+ * Chunked Upload API
+ * Recommended for larger files
  */
 
-// 5. 文件预检查 (Preflight)
+// 5. Preflight file check
 // POST /files/preflight
-// 通常用于检查文件是否允许上传，或者获取分片上传的 upload_id
+// Used to verify if file is allowed to be uploaded, or to retrieve upload_id for chunked upload
 export async function preflightFile(fileInfo: any) {
-  // fileInfo 可能包含 name, size, type 等
+  // fileInfo might contain name, size, type, etc.
   return auth_api.post('/files/preflight', fileInfo);
 }
 
-// 6. 分片上传 (Chunk Upload)
+// 6. Chunk Upload
 // POST /files/chunked/upload
 export async function uploadChunk(chunkData: FormData) {
-  // chunkData 需要包含 chunk 本身以及 upload_id, chunk_index 等信息
+  // chunkData needs to contain the chunk itself alongside upload_id, chunk_index, etc.
   return auth_api.post('/files/chunked/upload', chunkData, {
     headers: {
       'Content-Type': 'multipart/form-data'
@@ -70,18 +71,18 @@ export async function uploadChunk(chunkData: FormData) {
   });
 }
 
-// 7. 获取分片上传状态
+// 7. Get Chunk Upload Status
 // GET /files/chunked/{file_id}/status
 export async function getUploadStatus(fileId: string) {
   return auth_api.get(`/files/chunked/${fileId}/status`);
 }
 
-// 8. 列表查询（搜索 / 过滤 / 分页）
+// 8. List Query (Search / Filter / Pagination)
 // POST /files/list_files?page={page}&size={size}
 export async function listFiles(filters: Record<string, any> = {}, page = 1, size = 10) {
   // Use the exact backend endpoint as specified by requirements.
   // Note: providing an absolute URL overrides axios instance baseURL.
   const url = `http://10.26.58.61:34567/files/list_files?page=${page}&size=${size}`;
-  // 后端期望 JSON body 包含过滤字段（11 个属性）。
+  // Backend expects JSON body containing 11 filter attributes.
   return auth_api.post(url, filters);
 }
