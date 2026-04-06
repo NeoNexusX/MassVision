@@ -576,7 +576,7 @@ export async function uploadChunks(
         fileHash, 
         uploadId,
         options?.signal, 
-        0, // Set to 0: Do not retry on failure, throw exception to terminate 
+        3, // Retry up to 3 times on configuration failure.
         (loadedBytesInChunk, errMsgStr) => {
           inProgressMap.set(chunk.partNumber, loadedBytesInChunk);
           if (options?.onProgress) {
