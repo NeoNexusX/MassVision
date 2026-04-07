@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
+  <div class="bg-base-200 dark:bg-gray-900 overflow-x-hidden">
     <!-- Hero Section -->
     <HeroSection />
 

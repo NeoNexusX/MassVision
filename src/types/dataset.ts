@@ -12,4 +12,6 @@ export interface Dataset {
   // Additional fields based on requirements or future expansion
   species?: string;
   description?: string;
+  // Size in bytes (optional) - mapped from backend size/file_size fields
+  sizeBytes?: number;
 }

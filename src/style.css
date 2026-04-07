@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui";
+@import "./assets/daisy-theme.css";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 

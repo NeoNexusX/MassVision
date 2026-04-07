@@ -82,7 +82,7 @@ import { useRouter } from 'vue-router';
 import { getCurrentUser, updateUserProfile } from '../utils/usr-api';
 import { useToast } from '../utils/toast';  // Import toast
 import { useAuthStore } from '../stores/auth';
-// 引入国家列表库 (与 RegisterView 保持一致)
+// Import country list library (consistent with RegisterView)
 import countries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
 import BaseInput from '../components/BaseInput.vue';

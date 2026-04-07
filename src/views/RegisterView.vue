@@ -6,7 +6,7 @@
         <!-- Left Side: Account Credentials -->
         <div class="p-8 md:p-10 flex flex-col gap-5 border-b lg:border-b-0 lg:border-r border-base-200">
            <div class="mb-2">
-             <h2 class="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Create Account</h2>
+             <h2 class="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit">Create Account</h2>
              <p class="text-base-content/60 mt-2 text-sm">Join MassFlow for scientific data analysis</p>
            </div>
 

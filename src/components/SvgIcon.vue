@@ -8,7 +8,7 @@ defineProps({
 </script>
 
 <template>
-  <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <svg class="inline-block h-[1em] w-[1em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
     <g
       stroke-linejoin="round"
       stroke-linecap="round"
@@ -16,6 +16,34 @@ defineProps({
       fill="none"
       stroke="currentColor"
     >
+      <!-- Home -->
+      <path v-if="type === 'home'" d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-5H9v5H4a1 1 0 0 1-1-1v-8.5z"></path>
+
+      <!-- Menu (hamburger) -->
+      <g v-else-if="type === 'menu'">
+        <path d="M3 7h18" />
+        <path d="M3 12h18" />
+        <path d="M3 17h18" />
+      </g>
+
+      <!-- Sun -->
+      <g v-else-if="type === 'sun'">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 1v2" />
+        <path d="M12 21v2" />
+        <path d="M4.22 4.22l1.42 1.42" />
+        <path d="M18.36 18.36l1.42 1.42" />
+        <path d="M1 12h2" />
+        <path d="M21 12h2" />
+        <path d="M4.22 19.78l1.42-1.42" />
+        <path d="M18.36 5.64l1.42-1.42" />
+      </g>
+
+      <!-- Moon (crescent) -->
+      <g v-else-if="type === 'moon'">
+        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+      </g>
+
       <!-- Research -->
       <path v-if="type === 'research'" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
       

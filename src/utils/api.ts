@@ -13,40 +13,57 @@ interface FastAPIError {
 }
 
 // Response interceptor definition
-function formatErrorMessage(detail: FastAPIError[] | string | any): string {
-  if (typeof detail === 'string') {
-    return detail;
+export function formatErrorMessage(detail: FastAPIError[] | string | any): string {
+  // Normalize various backend error shapes into a readable string.
+  // Accepts FastAPI-style arrays, objects with msg/message, or strings (possibly JSON).
+  const safeStringify = (o: any) => {
+    try { return JSON.stringify(o); } catch { return String(o); }
+  };
+
+  let msg: any = detail ?? 'Unknown Error';
+
+  // If it's an array (FastAPI validation errors), pick first message
+  if (Array.isArray(msg)) {
+    const first = msg[0];
+    msg = (first && (first.msg || first.message)) ? (first.msg || first.message) : safeStringify(first);
+  } else if (msg && typeof msg === 'object') {
+    // If it's an object, prefer msg/message fields
+    msg = msg.msg || msg.message || safeStringify(msg);
+  } else {
+    msg = String(msg);
   }
 
-  if (Array.isArray(detail)) {
-    console.error('Backend Error:', detail);
-    const firstError = detail[0];
-    if (firstError) {
-        // Include location info like "body.password" or "query.id"
-        const loc = firstError.loc ? firstError.loc.join('.') : '';
-        return `${firstError.msg} ${loc ? `(${loc})` : ''}`;
+  // If msg is a JSON string, try parsing nested detail/msg
+  if (typeof msg === 'string' && (msg.trim().startsWith('{') || msg.trim().startsWith('['))) {
+    try {
+      const parsed = JSON.parse(msg);
+      const inner = parsed?.detail || parsed?.msg || parsed;
+      if (Array.isArray(inner) && inner.length && inner[0].msg) {
+        msg = inner[0].msg;
+      } else if (typeof inner === 'object' && inner.msg) {
+        msg = inner.msg;
+      } else {
+        msg = String(inner);
+      }
+    } catch (e) {
+      // ignore parse errors
     }
-    return detail[0]?.msg || 'Unknown Error';
   }
 
-  // Handle object errors (e.g., if detail is a single object {msg: "..."})
-  if (detail && typeof detail === 'object') {
-     return detail.msg || detail.message || JSON.stringify(detail);
-  }
-
-  return 'Response Failed: ' + String(detail);
+  return String(msg || 'Response Failed');
 }
 
 const error_catch = (error: AxiosError<ErrorResponse>) => {
   if (error.response?.data) {
-    const detail  = error.response.data?.detail || 'Unknown Error';
-    // Format error message
-    const errorMessage = formatErrorMessage(detail);
-    // Replace error message
-    error.message = errorMessage;
+    const raw = (error.response.data as any) || {};
+    const candidate = raw?.detail ?? raw?.message ?? raw?.msg ?? error.message ?? raw;
+    const errorMessage = formatErrorMessage(candidate);
+    // set formatted message on the error and also on response.data for callers
+    try { error.message = errorMessage; } catch {}
+    try { (error.response.data as any).message = errorMessage; } catch {}
   }
   return Promise.reject(error);
-}
+};
 
 // Authenticated API
 const auth_api = axios.create({baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:9000',});
