@@ -6,6 +6,7 @@ import UserProfileView from '../views/UserProfileView.vue'
 import PublicDatasets from '../views/PublicDatasets.vue'
 import MyDatasets from '../views/MyDatasets.vue'
 import { secureStorage } from '../utils/auth'
+import { useAuthStore } from '../stores/auth'
 
 const routes = [
   {
@@ -25,6 +26,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/datasets/:id',
+    name: 'DatasetOverview',
+    component: () => import('../views/DatasetOverviewView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,
@@ -39,6 +46,12 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: () => import('../views/RegisterView.vue')
+  },
+  {
+    path: '/users',
+    name: 'UserManagement',
+    component: () => import('../views/UserManagementView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/profile',

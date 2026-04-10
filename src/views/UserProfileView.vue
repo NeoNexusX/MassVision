@@ -80,6 +80,7 @@
 import { reactive, ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getCurrentUser, updateUserProfile } from '../utils/usr-api';
+import { formatErrorMessage } from '../utils/api';
 import { useToast } from '../utils/toast';  // Import toast
 import { useAuthStore } from '../stores/auth';
 // Import country list library (consistent with RegisterView)
@@ -184,10 +185,8 @@ const handleSave = async () => {
     messages.push("Profile info updated.");
   } catch (profileError: any) {
     console.warn("Profile update failed:", profileError);
-    const detailedMsg = profileError.response?.data?.detail 
-        ? JSON.stringify(profileError.response.data.detail) 
-        : profileError.message;
-    messages.push(`Profile update failed: ${detailedMsg}`);
+    const candidate = profileError?.response?.data?.detail ?? profileError?.response?.data?.message ?? profileError?.response?.data?.msg ?? profileError?.message;
+    messages.push(`Profile update failed: ${formatErrorMessage(candidate)}`);
   }
   
   // --- 2. Update Account Info (Password) if changed ---
@@ -201,7 +200,8 @@ const handleSave = async () => {
         messages.push("Password updated.");
     } catch (pwError: any) {
             console.warn("Password update failed:", pwError);
-            messages.push("Failed to update password.");
+            const candidate = pwError?.response?.data?.detail ?? pwError?.response?.data?.message ?? pwError?.response?.data?.msg ?? pwError?.message;
+            messages.push(`Failed to update password: ${formatErrorMessage(candidate)}`);
     }
   }
   

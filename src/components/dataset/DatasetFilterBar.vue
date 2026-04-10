@@ -48,7 +48,7 @@ const statusOptions = ['Processing', 'Queued', 'Finished'];
 const visibilityOptions = ['My Submissions', 'Shared with Me', 'Publicly Shared'];
 const sortOptions: SortOption[] = [
   { label: 'Sort by submission time', value: 'submission_time' },
-  { label: 'Sort by annotation count', value: 'annotation_count' }
+  { label: 'Sort by file size', value: 'size_bytes' }
 ];
 
 // Add filter panel state and fields matching backend request
@@ -137,7 +137,7 @@ watch(sortValue, (val) => emit('sort', val));
     <div class="flex flex-col md:flex-row gap-4 justify-between items-center">
       
       <!-- Left: Visibility or Add Filter -->
-      <div class="flex items-center gap-2 w-full md:w-auto">
+      <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
         <!-- Visibility Filter (My Datasets) -->
         <div v-if="showVisibilityFilter" class="relative group">
            <select 
@@ -221,24 +221,24 @@ watch(sortValue, (val) => emit('sort', val));
       </div>
 
       <!-- Right: Sort, Export, Upload -->
-      <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full md:w-auto">
          <!-- Upload Button -->
          <button 
            v-if="showUpload"
            @click="$emit('upload')"
-           class="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-none rounded-lg shadow-sm transition-all transform active:scale-95 text-sm font-medium py-2 px-4"
+           class="flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-none rounded-lg shadow-sm transition-all transform active:scale-95 text-sm font-medium py-2 px-4 whitespace-normal text-center leading-tight"
          >
-           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 shrink-0">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
            </svg>
-           Upload New Dataset (imzML + ibd)
+           <span>Upload New Dataset (imzML + ibd)</span>
          </button>
 
          <!-- Sort Dropdown -->
-         <div class="relative">
+         <div class="relative w-full sm:w-auto">
             <select 
              v-model="sortValue"
-             class="appearance-none bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-sm"
+             class="appearance-none w-full bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-sm truncate"
             >
               <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             </select>
@@ -252,17 +252,19 @@ watch(sortValue, (val) => emit('sort', val));
     </div>
 
     <!-- Bottom Row: Status Filter -->
-    <div class="flex flex-wrap items-center gap-4 text-sm border-t border-base-300 pt-3 mt-1">
-      <span class="text-base-content font-medium">Status:</span>
-      <label v-for="status in statusOptions" :key="status" class="flex items-center gap-2 cursor-pointer select-none">
-        <input 
-          type="checkbox" 
-          :value="status" 
-          v-model="selectedStatuses"
-          class="rounded text-primary focus:ring-primary border-base-300 dark:border-gray-600 dark:bg-gray-700"
-        >
-        <span class="text-base-content">{{ status }}</span>
-      </label>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm border-t border-base-300 pt-3 mt-1">
+      <span class="text-base-content font-medium whitespace-nowrap">Status:</span>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <label v-for="status in statusOptions" :key="status" class="flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
+          <input 
+            type="checkbox" 
+            :value="status" 
+            v-model="selectedStatuses"
+            class="rounded text-primary focus:ring-primary border-base-300 dark:border-gray-600 dark:bg-gray-700"
+          >
+          <span class="text-base-content">{{ status }}</span>
+        </label>
+      </div>
     </div>
   </div>
 </template>

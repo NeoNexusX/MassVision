@@ -33,7 +33,7 @@
 
       <!-- Footer Link -->
       <div class="text-center">
-        <span class="text-sm opacity-75">New to BionetServer? </span>
+        <span class="text-sm opacity-75">New to MassFlow? </span>
         <router-link to="/register" class="link link-hover text-primary text-sm font-semibold">
           Create an account
         </router-link>

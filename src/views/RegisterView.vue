@@ -69,7 +69,7 @@
 
             <!-- Verify Code -->
             <div class="form-control">
-                <div class="flex w-full gap-3">
+                <div class="flex w-full gap-3 items-start">
                   <div class="flex-grow">
                     <AuthInput
                       v-model="form.verify_code"
@@ -84,10 +84,13 @@
                   </div>
                   <button
                     @click="sendVerificationCode"
-                    class="btn btn-neutral h-[3rem] min-w-[100px]"
-                    :disabled="isCountdownActive || loading.sendCode">
+                    class="btn btn-neutral min-w-[100px]"
+                    :disabled="isCountdownActive || loading.sendCode || isExhausted"
+                    :class="{'opacity-50 cursor-not-allowed': isExhausted}"
+                    :title="isExhausted ? 'Too many requests for now' : ''">
                     <span v-if="loading.sendCode" class="loading loading-spinner loading-xs"></span>
                     <span v-else-if="isCountdownActive" class="font-mono">{{ countdown }}s</span>
+                    <span v-else-if="isExhausted">Limit Reached</span>
                     <span v-else>Send Code</span>
                   </button>
                 </div>
@@ -230,11 +233,16 @@ const regionOptions = computed(() => {
   
   return Object.entries(countryObj)
     .map(([code, name]) => {
-      if (code === 'CN' || name === "People's Republic of China") {
-        return { code, name: "China" };
-      }
-      return { code, name };
+      let displayName = name;
+      if (code === 'CN' || name === "People's Republic of China") displayName = "China";
+      if (code === 'US' || name === "United States of America") displayName = "United States";
+      if (code === 'GB' || name === "United Kingdom of Great Britain and Northern Ireland") displayName = "United Kingdom";
+      if (code === 'RU' || name === "Russian Federation") displayName = "Russia";
+      if (code === 'KR' || name === "Korea, Republic of") displayName = "South Korea";
+      if (code === 'KP' || name === "Korea, Democratic People's Republic of") displayName = "North Korea";
+      return { code, name: displayName };
     })
+    .filter((c) => c.name.length <= 28) 
     .sort((a, b) => a.name.localeCompare(b.name));
 });
 
@@ -330,7 +338,7 @@ const patterns = {
 }
 
 const loading = reactive({ register: false, sendCode: false })
-const { count: countdown, isActive: isCountdownActive, start: startCountdown, stop: stopCountdown } = useCountdown(60)
+const { count: countdown, isActive: isCountdownActive, isExhausted, start: startCountdown, stop: stopCountdown } = useCountdown(60, 'register_code_attempts', 3)
 const passwordScore = ref(0)
 const progressBarClass = computed(() => {
   const classes = ['progress-error', 'progress-warning', 'progress-warning', 'progress-success', 'progress-success']
@@ -413,6 +421,11 @@ const validateField = (field: keyof typeof errors) => {
 }
 
 const sendVerificationCode = async () => {
+    if (isExhausted.value) {
+      showToast('Maximum verification code requests reached for this session. Please try again later.', 'error')
+      return
+    }
+
     validateField('email')
     if (errors.email) {
       showToast(errors.email, 'error')

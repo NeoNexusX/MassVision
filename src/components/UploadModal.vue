@@ -1,11 +1,11 @@
 ﻿<template>
 <dialog class="modal" :class="{ 'modal-open': isOpen }">
-<div class="modal-box w-11/12 max-w-2xl">
-<h3 class="font-bold text-lg mb-4">Upload New Dataset (imzML + ibd)</h3>
+<div class="modal-box w-11/12 max-w-2xl max-h-[90vh] flex flex-col text-base-content">
+<h3 class="font-bold text-lg mb-4 shrink-0">Upload New Dataset (imzML + ibd)</h3>
 
 <!-- File selection & Metadata form -->
 <div v-if="stage === 'select'" class="flex flex-col gap-4">
-<label class="form-control w-full">
+<label class="form-control w-full shrink-0">
 <div class="label">
 <span class="label-text">Select an .imzML and .ibd file pair</span>
 <span class="label-text-alt text-error" v-if="error">{{ error }}</span>
@@ -25,70 +25,70 @@
 
 <!-- Immediately available Metadata form -->
 <div class="space-y-4">
-<div class="grid grid-cols-1 gap-4 pb-32">
+<div class="grid grid-cols-1 gap-4 pb-4">
   <div class="flex flex-col">
-    <label class="label"><span class="label-text">Experiment Type</span></label>
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Experiment Type</span></label>
     <DropdownSelect v-model="form.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Select type..." />
     <input v-if="form.experiment_type === 'Other'" v-model="otherInputs.experiment_type" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text">Organism</span></label>
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Organism</span></label>
     <DropdownSelect v-model="form.organism" :options="ORGANISMS" placeholder="Select organism..." />
     <input v-if="form.organism === 'Other'" v-model="otherInputs.organism" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text">Organism Part</span></label>
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Organism Part</span></label>
     <DropdownSelect v-model="form.organism_part" :options="ORGANISM_PARTS" placeholder="Select part..." />
     <input v-if="form.organism_part === 'Other'" v-model="otherInputs.organism_part" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text">Condition (Multi-select)</span></label>
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Condition (Multi-select)</span></label>
     <DropdownSelect v-model="form.condition" :options="CONDITIONS" placeholder="Select condition..." :multiple="true" />
     <input v-if="form.condition.includes('Other')" v-model="otherInputs.condition" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text">Sample Growth Conditions (Multi-select)</span></label>
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Growth Conditions (Multi-select)</span></label>
     <DropdownSelect v-model="form.sample_growth_conditions" :options="SAMPLE_GROWTH_CONDITIONS" placeholder="Select growth..." :multiple="true" />
     <input v-if="form.sample_growth_conditions.includes('Other')" v-model="otherInputs.sample_growth_conditions" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text">Sample Stabilization</span></label>
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Stabilization</span></label>
     <DropdownSelect v-model="form.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Select stabilization..." />
     <input v-if="form.sample_stabilization === 'Other'" v-model="otherInputs.sample_stabilization" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text">Tissue Modification (Multi-select)</span></label>
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Tissue Modification (Multi-select)</span></label>
     <DropdownSelect v-model="form.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Select modification..." :multiple="true" />
     <input v-if="form.tissue_modification.includes('Other')" v-model="otherInputs.tissue_modification" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text">MALDI Matrix</span></label>
+    <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI Matrix</span></label>
     <DropdownSelect v-model="form.maldi_matrix" :options="MALDI_MATRICES" placeholder="Select matrix..." />
     <input v-if="form.maldi_matrix === 'Other'" v-model="otherInputs.maldi_matrix" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text">MALDI Matrix Application</span></label>
+    <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI Matrix Application</span></label>
     <DropdownSelect v-model="form.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Select application..." />
     <input v-if="form.maldi_matrix_application === 'Other'" v-model="otherInputs.maldi_matrix_application" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text">Solvent (Multi-select)</span></label>
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Solvent (Multi-select)</span></label>
     <DropdownSelect v-model="form.solvent" :options="SOLVENTS" placeholder="Select solvent..." :multiple="true" />
     <input v-if="form.solvent.includes('Other')" v-model="otherInputs.solvent" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 </div>
 </div>
 
-<div class="flex items-center gap-2 mt-2">
+<div class="flex items-center gap-2 mt-4 pt-4 border-t border-base-200 shrink-0">
 <button class="btn bg-blue-600 text-white hover:bg-blue-700 border-none" @click="confirmAndUpload" :disabled="!selectedPair || uploading">Confirm & Upload</button>
 <button class="btn btn-ghost" @click="closeModal" :disabled="uploading">Cancel</button>
 </div>
@@ -116,13 +116,6 @@
 <button class="btn btn-outline btn-error btn-sm" @click="abortUpload">Abort Upload</button>
 </div>
 </div>
-
-<!-- Success State -->
-<div v-if="stage === 'success'" class="flex flex-col items-center justify-center py-10 gap-4">
-<div class="text-success text-2xl font-bold">Upload Complete!</div>
-<button class="btn bg-blue-600 text-white hover:bg-blue-700 border-none mt-4" @click="toDatasets">View Datasets</button>
-</div>
-
 
 </div>
 <form method="dialog" class="modal-backdrop"><button @click="closeModal" :disabled="stage === 'uploading'">close</button></form>
@@ -233,14 +226,11 @@ function resetAll() {
 
 
 const closeModal = () => {
-if (uploading.value) return;
-emit('close');
-resetAll();
-};
-
-const toDatasets = () => {
-closeModal();
-router.push({ name: 'MyDatasets' });
+    if (uploading.value) return;
+    emit('close');
+    setTimeout(() => {
+        resetAll();
+    }, 300); // Wait for closing animation before resetting
 };
 
 const onFileChange = (e: Event) => {
@@ -321,8 +311,9 @@ try {
         });
 
 showToast('Dataset pipeline successfully completed', 'success');
+uploading.value = false; // Set this before closing so closeModal succeeds
 emit('upload-success');
-stage.value = 'success';
+closeModal();
 } catch (err: any) {
 console.error('Upload pipeline failed', err);
         if (err.name === 'AbortError') {

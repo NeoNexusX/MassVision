@@ -45,7 +45,7 @@
     <div class="border-t border-base-300 bg-base-200/40">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row justify-between items-center text-xs text-base-content/60">
          <p>&copy; 2025 MassFlow. All rights reserved.</p>
-         <div class="flex gap-6 mt-4 sm:mt-0">
+         <div class="flex flex-wrap justify-center gap-6 mt-4 sm:mt-0">
             <a href="#" class="hover:text-base-content/40 transition-colors">Terms of Service</a>
             <a href="#" class="hover:text-base-content/40 transition-colors">Privacy Policy</a>
          </div>

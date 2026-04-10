@@ -15,6 +15,9 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(secureStorage.getToken());
   
   const isAuthenticated = computed(() => !!token.value);
+  const isAdmin = computed(() => {
+    return user.value?.identity === 'admin';
+  });
 
   // Initialize state from local storage and secureStorage (if available)
   // But usually we just need token to fetch user profile
@@ -71,6 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     token,
     isAuthenticated,
+    isAdmin,
     login,
     logout,
     fetchUser

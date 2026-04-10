@@ -5,7 +5,7 @@ import DatasetCard from '@/components/dataset/DatasetCard.vue';
 import DatasetFilterBar from '@/components/dataset/DatasetFilterBar.vue';
 import UploadModal from '@/components/UploadModal.vue';
 import type { Dataset } from '@/types/dataset';
-import { listFiles, deleteFile } from '@/utils/file-api';
+import { listFiles, deleteFile, downloadFile } from '@/utils/file-api';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/utils/toast';
 
@@ -36,6 +36,7 @@ const filters = reactive({
 });
 
 const sortDesc = ref(true);
+const currentSort = ref('submission_time');
 
 const route = useRoute();
 const router = useRouter();
@@ -65,6 +66,11 @@ const mapItemToDataset = (item: any, index: number): Dataset => {
 
 const applyClientSort = (arr: Dataset[]) => {
   return arr.sort((a, b) => {
+    if (currentSort.value === 'size_bytes') {
+      const sa = a.sizeBytes || 0;
+      const sb = b.sizeBytes || 0;
+      return sortDesc.value ? sb - sa : sa - sb;
+    }
     const ta = new Date(a.submitTime).getTime();
     const tb = new Date(b.submitTime).getTime();
     return sortDesc.value ? tb - ta : ta - tb;
@@ -150,7 +156,12 @@ const handleStatusFilter = (statuses: string[]) => {
 };
 
 const handleSort = (sortValue: string) => {
-  sortDesc.value = !sortDesc.value;
+  if (currentSort.value === sortValue) {
+    sortDesc.value = !sortDesc.value; // toggle desc/asc if same sort type clicked
+  } else {
+    currentSort.value = sortValue;
+    sortDesc.value = true; // default to descending on new sort type
+  }
   datasets.value = applyClientSort(datasets.value);
 };
 
@@ -163,20 +174,94 @@ const onUploadSuccess = () => {
   fetchFiles({ page: page.value, size: size.value });
 };
 const handleUpload = () => { isUploadOpen.value = true; };
-const handleEdit = (id?: string) => { console.log('Edit', id); };
+
+// Track download progress keyed by dataset id
+const downloadingMap = ref<Record<string, number>>({});
+
+const handleDownload = async (id?: string) => { 
+  if (!id) return;
+  if (downloadingMap.value[id] !== undefined) return; // Prevent concurrent requests
+  
+  try {
+    downloadingMap.value[id] = 0; // Initialize loading state
+    showToast('Download started, please wait...', 'info');
+    
+    const response = await downloadFile(id, (progressEvent) => {
+      // Calculate and update progress percentage
+      if (progressEvent.total) {
+        downloadingMap.value[id] = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+      }
+    });
+    
+    // Default fallback
+    let filename = `${id}.zip`;
+    
+    // 前端因为跨域限制暂时拿不到后端返回的 Content-Disposition 文件名
+    // 先使用前端列表数据兜底获取文件名
+    const ds = datasets.value.find(d => d.id === id);
+    if (ds && ds.name) {
+      filename = ds.name.toLowerCase().endsWith('.zip') ? ds.name : `${ds.name}.zip`;
+    }
+
+    // Parse filename from content-disposition header if available (预留给未来后端放开跨域 header 时使用)
+    const cd = response.headers?.['content-disposition'] || response.headers?.['Content-Disposition'];
+    if (cd) {
+      // 1. Try standard filename="name.zip" or filename=name.zip
+      const match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+      if (match && match[1]) {
+        filename = match[1].replace(/['"]/g, '').trim();
+      }
+      // 2. Try RFC5987 utf-8 encoded format: filename*=UTF-8''name.zip
+      const utf8Match = cd.match(/filename\*=utf-8''([^;\n]*)/i);
+      if (utf8Match && utf8Match[1]) {
+        filename = decodeURIComponent(utf8Match[1]);
+      }
+    }
+
+    // Create blob and trigger download via a temporary link
+    const blob = new Blob([response.data], { type: response.headers?.['content-type'] || 'application/octet-stream' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    
+    // Cleanup
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    showToast('Download completed successfully!', 'success');
+  } catch (error) {
+    showToast('Failed to download file', 'error');
+    console.error('Download error:', error);
+  } finally {
+    // Clear downloading state
+    delete downloadingMap.value[id];
+  }
+};
 
 const deletingId = ref<string | null>(null);
 const { showToast } = useToast();
 
+const isDeleteModalOpen = ref(false);
+const datasetToDelete = ref<string | null>(null);
+
 const handleDelete = async (id?: string) => { 
   if (!id) return;
-  if (!confirm('Are you sure you want to delete this dataset? This action cannot be undone.')) {
-    return;
-  }
+  datasetToDelete.value = id;
+  isDeleteModalOpen.value = true;
+};
+
+const confirmDelete = async () => {
+  if (!datasetToDelete.value) return;
   
+  const id = datasetToDelete.value;
+  isDeleteModalOpen.value = false;
   deletingId.value = id;
+  
   try {
-    const res = await deleteFile(id);
+    await deleteFile(id);
     showToast('Dataset deleted successfully', 'success');
     // Refresh current page after deletion
     fetchFiles({ page: page.value, size: size.value });
@@ -185,11 +270,19 @@ const handleDelete = async (id?: string) => {
     console.error('Delete failed:', err);
   } finally {
     deletingId.value = null;
+    datasetToDelete.value = null;
   }
 };
 
+const cancelDelete = () => {
+  isDeleteModalOpen.value = false;
+  datasetToDelete.value = null;
+};
+
 const viewMetadata = (id: string) => console.log('View Metadata', id);
-const viewOverview = (id: string) => console.log('View Overview', id);
+const viewOverview = (id: string) => {
+  router.push({ name: 'DatasetOverview', params: { id }, query: { from: 'my' } });
+};
 
 const goToPage = (np: number) => {
   if (np < 1) np = 1;
@@ -262,6 +355,21 @@ const changeSize = (newSize: number) => {
 
       <UploadModal :is-open="isUploadOpen" @close="isUploadOpen = false" @upload-success="onUploadSuccess" />
 
+      <!-- Delete Confirmation Modal -->
+      <dialog class="modal" :class="{ 'modal-open': isDeleteModalOpen }">
+        <div class="modal-box">
+          <h3 class="text-lg font-bold">Delete Dataset</h3>
+          <p class="py-4">Are you sure you want to delete this dataset? This action cannot be undone.</p>
+          <div class="modal-action">
+            <button class="btn" @click="cancelDelete">Cancel</button>
+            <button class="btn btn-error" @click="confirmDelete">Delete</button>
+          </div>
+        </div>
+        <div class="modal-backdrop" @click="cancelDelete">
+          <button>close</button>
+        </div>
+      </dialog>
+
       <div>
         <!-- Loading state -->
         <div v-if="loading" class="flex flex-col gap-3">
@@ -292,9 +400,10 @@ const changeSize = (newSize: number) => {
             <DatasetCard 
               :dataset="dataset"
               :is-my-dataset="true"
+              :download-progress="downloadingMap[dataset.id]"
               @view-metadata="viewMetadata"
               @view-overview="viewOverview"
-              @edit="handleEdit"
+              @download="handleDownload"
               @delete="handleDelete"
             />
           </div>
@@ -303,8 +412,8 @@ const changeSize = (newSize: number) => {
         </div>
 
         <!-- Pagination (daisyUI join-style) -->
-        <div class="mt-6 flex items-center justify-between">
-          <div class="text-sm text-base-content">
+        <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="text-sm text-base-content text-center sm:text-left">
             Page <span class="font-medium">{{ meta.current_page }}</span> of <span class="font-medium">{{ meta.total_pages }}</span> — <span class="font-medium">{{ meta.total_records }}</span> records
           </div>
           <div class="flex flex-wrap items-center gap-4">
@@ -316,40 +425,57 @@ const changeSize = (newSize: number) => {
               </select>
             </div>
 
-            <nav aria-label="Pagination" class="">
+            <nav aria-label="Pagination">
               <ul class="join">
                 <!-- Prev -->
-                <li class="join-item">
+                <li>
                   <button
                     :disabled="meta.current_page <= 1"
                     @click="() => goToPage(meta.current_page - 1)"
-                    class="btn btn-sm"
+                    class="join-item btn btn-sm"
                   >Prev</button>
                 </li>
 
                 <!-- Page buttons -->
-                <li v-for="(p, idx) in pagination" :key="`pg-${idx}-${p}`" class="join-item">
+                <li v-for="(p, idx) in pagination" :key="`pg-${idx}-${p}`">
                   <button
                     v-if="p !== '...'"
                     @click="() => goToPage(Number(p))"
                     :aria-current="p === meta.current_page ? 'page' : undefined"
-                    :class="['btn btn-sm', p === meta.current_page ? 'btn-primary' : 'btn-ghost']"
+                    :class="['join-item btn btn-sm', p === meta.current_page ? 'btn-active' : '']"
                   >{{ p }}</button>
 
-                  <button v-else class="btn btn-sm btn-ghost cursor-default" disabled>...</button>
+                  <button v-else class="join-item btn btn-sm btn-disabled">...</button>
                 </li>
 
                 <!-- Next -->
-                <li class="join-item">
+                <li>
                   <button
                     :disabled="meta.current_page >= meta.total_pages"
                     @click="() => goToPage(meta.current_page + 1)"
-                    class="btn btn-sm"
+                    class="join-item btn btn-sm"
                   >Next</button>
                 </li>
               </ul>
             </nav>
           </div>
+        </div>
+      </div>
+
+      <!-- Active Downloads Overlay Widgets -->
+      <div v-if="Object.keys(downloadingMap).length > 0" class="fixed bottom-6 right-20 z-50 flex flex-col gap-3 pointer-events-none">
+        <div 
+          v-for="(progress, id) in downloadingMap" 
+          :key="id"
+          class="card bg-base-100 shadow-2xl border border-base-200 p-4 w-72 pointer-events-auto rounded-xl animate-fade-in-up"
+        >
+          <div class="flex items-center justify-between mb-3 text-sm">
+            <span class="font-bold truncate pr-3 text-base-content" :title="datasets.find(d => d.id === id)?.name || String(id)">
+              Downloading: {{ datasets.find(d => d.id === id)?.name || 'Dataset' }}
+            </span>
+            <span class="font-black text-black whitespace-nowrap">{{ progress }}%</span>
+          </div>
+          <progress class="progress progress-primary w-full h-2" :value="progress" max="100"></progress>
         </div>
       </div>
     </div>

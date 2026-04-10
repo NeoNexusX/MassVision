@@ -1,6 +1,6 @@
 ﻿import { Zip, ZipDeflate } from 'fflate';
 import { createSHA256 } from 'hash-wasm';
-import { auth_api } from '@/utils/api';
+import { auth_api, formatErrorMessage } from '@/utils/api';
 
 export function formatSpeed(bytesPerSec: number): string {
   if (bytesPerSec < 1024) return `${bytesPerSec.toFixed(1)} B/s`;
@@ -326,9 +326,9 @@ export function createFileChunks(
   // Default 100MB per chunk
   let actualChunkSize = chunkSize || (100 * 1024 * 1024);
 
-  // Logic added: Files < 100MB use 25MB chunks
+  // Logic added: Files < 100MB use 20MB chunks
   if (totalSize < 100 * 1024 * 1024) {
-    actualChunkSize = 25 * 1024 * 1024;
+    actualChunkSize = 20 * 1024 * 1024;
   }
 
   const originalName = zipFile.name || 'dataset.zip';
@@ -414,7 +414,7 @@ export async function preflightFile(params: PreflightParams, signal?: AbortSigna
   } catch (error: any) {
     if (error.response && error.response.status === 400) {
       console.error('Preflight 400 error details:', error.response.data);
-      throw new Error(`Preflight failed (400 Invalid param): ${JSON.stringify(error.response.data)}`);
+      throw new Error(`Preflight failed (400 Invalid param): ${formatErrorMessage(error.response.data)}`);
     }
     throw error;
   }
@@ -484,9 +484,7 @@ export async function uploadChunk(
       
       let errorDetail = error.message;
       if (error.response && error.response.data) {
-        errorDetail = typeof error.response.data === 'string' 
-          ? error.response.data 
-          : JSON.stringify(error.response.data);
+        errorDetail = formatErrorMessage(error.response.data);
       }
       
       const errMsg = error.response ? `(${error.response.status}) ${errorDetail}` : errorDetail;
@@ -556,7 +554,7 @@ export async function uploadChunks(
   // Initial report
   reportProgress();
 
-  const concurrency = 3; // Concurrent upload counts, adjustable to 3-5
+  const concurrency = 1; // 原为 3，现设为 1 以保证稳定合并
   const chunkQueue = [...pendingChunks];
 
   const worker = async () => {

@@ -33,10 +33,11 @@ export async function uploadSimpleFile(
 
 // 3. Download file
 // GET /files/{file_id}/download
-export async function downloadFile(fileId: string) {
+export async function downloadFile(fileId: string, onDownloadProgress?: (progressEvent: any) => void) {
   // Note: needs to assure fileId is a string
   return auth_api.get(`/files/${fileId}/download`, {
-    responseType: 'blob' // Important: Instructs axios to return binary stream data instead of JSON
+    responseType: 'blob', // Important: Instructs axios to return binary stream data instead of JSON
+    onDownloadProgress
   })
 }
 
