@@ -81,7 +81,7 @@ import { reactive, ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getCurrentUser, updateUserProfile } from '../utils/usr-api';
 import { formatErrorMessage } from '../utils/api';
-import { useToast } from '../utils/toast';  // Import toast
+import { useToast } from '@/composables/useToast';  // Import toast
 import { useAuthStore } from '../stores/auth';
 // Import country list library (consistent with RegisterView)
 import countries from "i18n-iso-countries";

@@ -124,7 +124,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useToast } from '@/utils/toast';
+import { useToast } from '@/composables/useToast';
 import { useRouter } from 'vue-router';
 import { uploadImzmlZipFile, type ImzmlFilePair, type UnifiedUploadProgress } from '@/utils/imzml-helper';
 import DropdownSelect from './DropdownSelect.vue';

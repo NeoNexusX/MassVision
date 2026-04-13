@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import SvgIcon from './SvgIcon.vue';
 import { computed } from 'vue';
 
 const emit = defineEmits(['update:modelValue', 'blur', 'input', 'focus']);
@@ -39,10 +38,11 @@ const onBlur = (e: Event) => {
 <template>
   <div>
     <label class="input validator w-full flex items-center">
-        <SvgIcon :type="iconType" />
+        <SvgIcon :type="iconType" class="w-5 h-5 mr-3 flex-shrink-0" aria-hidden="true" />
         <!-- v-model two-way binding -->
         <input
             v-model="value"
+            class="flex-1 bg-transparent outline-none"
             :type="type"
             :required="required"
             :placeholder="placeholder"

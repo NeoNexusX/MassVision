@@ -41,23 +41,10 @@ const statusColor = computed(() => {
 const formattedSize = computed(() => formatBytes(props.dataset.sizeBytes));
 
 const placeholderSvg = computed(() => {
-  if (props.isMyDataset) {
-    return getDatasetPlaceholderSvg({
-      lineColor: '#7C3AED',
-      primaryColor: '#7C3AED',
-      secondaryColor: '#F0ABFC',
-      tertiaryColor: '#DDD6FE',
-      showGuides: true
-    });
-  } else {
-    return getDatasetPlaceholderSvg({
-      lineColor: '#3F51B5',
-      primaryColor: '#3F51B5',
-      secondaryColor: '#90CAF9',
-      tertiaryColor: '#C5CAE9',
-      showGuides: true
-    });
-  }
+  return getDatasetPlaceholderSvg({
+    // Color is chosen randomly inside the generator on each call
+    showGuides: true
+  });
 });
 </script>
 
@@ -92,13 +79,11 @@ const placeholderSvg = computed(() => {
           >
             {{ dataset.name }}
           </h3>
-          <!-- Private/Public Icon for MyDatasets -->
-          <div v-if="isMyDataset" class="flex-shrink-0" :title="dataset.isPublic ? 'Public' : 'Private'">
-             <svg v-if="dataset.isPublic" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-slate-400">
-                <path fill-rule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zM5.94 13.94A5.994 5.994 0 0110 4.06v2.333a3.666 3.666 0 100 7.333V16.7c-2.32-.445-4.218-2.022-4.06-2.76z M10 16.7v-2.977a3.667 3.667 0 003.553-3.666h2.333A5.994 5.994 0 0110 16.7z" clip-rule="evenodd" /> <!-- Simplified globe -->
-                <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v3H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-1V6a4 4 0 00-4-4zm-2 4a2 2 0 114 0v3H8V6z" clip-rule="evenodd" />
-             </svg>
-          </div>
+           <!-- Private/Public Icon for MyDatasets -->
+           <div v-if="isMyDataset" class="flex-shrink-0" :title="dataset.isPublic ? 'Public' : 'Private'">
+             <SvgIcon v-if="dataset.isPublic" type="region" class="w-4 h-4 text-slate-400" />
+             <SvgIcon v-else type="password" class="w-4 h-4 text-slate-400" />
+           </div>
         </div>
         <!-- Fixed Status Badge on the right, prevents overlap by forcing title to truncate -->
         <span class="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 whitespace-nowrap" :class="statusColor">
@@ -130,16 +115,12 @@ const placeholderSvg = computed(() => {
     <div class="relative z-10 flex-none w-full md:w-[140px] flex flex-row md:flex-col gap-3 md:gap-2 md:border-l border-t md:border-t-0 border-base-300 pt-3 md:pt-0 md:pl-4 items-center md:items-start justify-start md:justify-center flex-wrap cursor-default self-stretch" @click.stop>
 
         <button class="flex items-center gap-2 text-sm font-medium text-base-content/70 hover:text-base-content transition-colors group/btn" @click.stop="$emit('view-metadata', dataset.id)">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008h-.008V8.25z" />
-          </svg>
+          <SvgIcon type="info" class="w-4 h-4" />
           <span>Metadata</span>
         </button>
 
         <button class="flex items-center gap-2 text-sm font-medium text-base-content/70 hover:text-base-content transition-colors group/btn" @click.stop="$emit('view-overview', dataset.id)">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
-        </svg>
+        <SvgIcon type="link" class="w-4 h-4" />
         <span>Overview</span>
       </button>
 
@@ -149,9 +130,7 @@ const placeholderSvg = computed(() => {
         @click.stop="$emit('download', dataset.id)"
       >
           <span v-if="downloadProgress !== undefined" class="loading loading-spinner loading-xs"></span>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
+          <SvgIcon v-else type="download" class="w-4 h-4" />
           <span>{{ downloadProgress !== undefined ? `${downloadProgress}%` : 'Download' }}</span>
       </button>
 
@@ -159,12 +138,10 @@ const placeholderSvg = computed(() => {
       <template v-if="isMyDataset">
         <div class="hidden md:block w-full h-px bg-base-200 my-1"></div>
         <div class="md:hidden h-4 w-px bg-base-200 mx-1"></div>
-          <button class="flex items-center gap-2 text-sm text-error hover:text-error transition-colors group/btn" @click.stop="$emit('delete', dataset.id)">
-           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-           </svg>
-           <span>Delete</span>
-        </button>
+           <button class="flex items-center gap-2 text-sm text-error hover:text-error transition-colors group/btn" @click.stop="$emit('delete', dataset.id)">
+            <SvgIcon type="trash" class="w-4 h-4" />
+            <span>Delete</span>
+          </button>
       </template>
     </div>
   </div>

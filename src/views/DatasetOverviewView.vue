@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { listFiles, downloadFile } from '@/utils/file-api';
-import { useToast } from '@/utils/toast';
+import { listFiles } from '@/utils/file-api';
+import { useDownloadProgress } from '@/composables/useDownloadProgress';
 import { getDatasetPlaceholderSvg } from '@/utils/dataset-placeholder';
 
 // Data strictly according to the structure provided
@@ -32,7 +32,11 @@ const router = useRouter();
 const dataset = ref<DatasetDetails | null>(null);
 const loading = ref(true);
 const isCopied = ref(false);
-const { showToast } = useToast();
+
+// reuse shared download progress composable (overview uses explicit fallback filename)
+const { downloadingMap, handleDownload } = useDownloadProgress();
+
+const downloadProgress = computed(() => downloadingMap.value[String(route.params.id)]);
 
 // Format bytes to MB/GB
 const formatSize = (bytes?: number) => {
@@ -66,80 +70,25 @@ const goBack = () => {
   }
 };
 
-const downloadProgress = ref<number | undefined>(undefined);
-
 const placeholderSvg = computed(() => {
-  const isMyDataset = route.query.from !== 'public';
+  const targetId = (route.params.id as string) || (dataset.value?.filename as string);
   return getDatasetPlaceholderSvg({
-    lineColor: isMyDataset ? '#7C3AED' : '#3F51B5',
-    primaryColor: isMyDataset ? '#7C3AED' : '#3F51B5',
-    secondaryColor: isMyDataset ? '#F0ABFC' : '#90CAF9',
-    tertiaryColor: isMyDataset ? '#DDD6FE' : '#C5CAE9',
+    id: targetId,
     showGuides: true
   });
 });
 
-const handleDownload = async () => {
+const downloadCurrent = async () => {
   const targetId = route.params.id as string;
   if (!targetId) return;
-  if (downloadProgress.value !== undefined) return; // Prevent concurrent requests
-  
-  try {
-    downloadProgress.value = 0; // Initialize loading state
-    showToast('Download started, please wait...', 'info');
-    
-    const response = await downloadFile(targetId, (progressEvent) => {
-      // Calculate and update progress percentage
-      if (progressEvent.total) {
-        downloadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+  await handleDownload(targetId, {
+    getFallbackFilename: () => {
+      if (dataset.value?.filename) {
+        return dataset.value.filename.toLowerCase().endsWith('.zip') ? dataset.value.filename : `${dataset.value.filename}.zip`;
       }
-    });
-    
-    // Default fallback
-    let filename = `${targetId}.zip`;
-    
-    // 前端因为跨域限制暂时拿不到后端返回的 Content-Disposition 文件名
-    // 先使用前端数据兜底获取文件名
-    if (dataset.value?.filename) {
-      filename = dataset.value.filename.toLowerCase().endsWith('.zip') ? dataset.value.filename : `${dataset.value.filename}.zip`;
+      return undefined;
     }
-
-    // Parse filename from content-disposition header if available (预留给未来后端放开跨域 header 时使用)
-    const cd = response.headers?.['content-disposition'] || response.headers?.['Content-Disposition'];
-    if (cd) {
-      // 1. Try standard filename="name.zip" or filename=name.zip
-      const match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
-      if (match && match[1]) {
-        filename = match[1].replace(/['"]/g, '').trim();
-      }
-      // 2. Try RFC5987 utf-8 encoded format: filename*=UTF-8''name.zip
-      const utf8Match = cd.match(/filename\*=utf-8''([^;\n]*)/i);
-      if (utf8Match && utf8Match[1]) {
-        filename = decodeURIComponent(utf8Match[1]);
-      }
-    }
-
-    // Create blob and trigger download via a temporary link
-    const blob = new Blob([response.data], { type: response.headers?.['content-type'] || 'application/octet-stream' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    
-    // Cleanup
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    showToast('Download completed successfully!', 'success');
-  } catch (error) {
-    showToast('Failed to download file', 'error');
-    console.error('Download error:', error);
-  } finally {
-    // Clear downloading state
-    downloadProgress.value = undefined;
-  }
+  });
 };
 
 const formatString = (val?: string) => {
@@ -164,20 +113,8 @@ const fetchDatasetDetails = async () => {
     const items = res.data?.data;
     
     if (Array.isArray(items)) {
-      found = items.find((item: any) => String(item.file_id || item.id || item.filename) === id);
-    }
-    
-    // Fallback if not found in first 100
-    if (!found) {
-      const resName = await listFiles({ filename: id }, 1, 50);
-      const nameItems = resName.data?.data;
-      if (Array.isArray(nameItems)) {
-        found = nameItems.find((item: any) => String(item.file_id || item.id || item.filename) === id);
-        // If still not an exact match by ID, maybe the ID was actually the filename
-        if (!found && nameItems.length > 0) {
-           found = nameItems.find((item: any) => item.filename === id) || nameItems[0];
-        }
-      }
+      // Only match by backend-provided file_id. Do not fallback to id/filename.
+      found = items.find((item: any) => String(item.file_id) === id);
     }
 
     if (found) {
@@ -223,9 +160,7 @@ onMounted(() => {
       <!-- 1. Top Navigation Area -->
       <div class="flex flex-col sm:flex-row sm:items-start gap-4 mb-2">
         <button @click="goBack" class="btn btn-sm btn-ghost text-base-content/70 hover:bg-base-300 rounded-lg shrink-0 mt-1">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mr-1">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
+          <svg-icon type="back" class="w-4 h-4 mr-1" />
           Back to {{ route.query.from === 'public' ? 'Public Datasets' : 'My Datasets' }}
         </button>
         <div class="ml-1 sm:ml-4">
@@ -265,9 +200,7 @@ onMounted(() => {
       <!-- Empty Data State -->
       <template v-else-if="!dataset">
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200 p-12 text-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-          </svg>
+            <svg-icon type="duplicate" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
           <h3 class="text-lg font-bold text-base-content">No data available</h3>
           <p class="text-base-content/60 mt-1">The dataset information could not be found or has been deleted.</p>
         </div>
@@ -286,11 +219,9 @@ onMounted(() => {
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <h2 class="text-2xl md:text-3xl font-bold text-base-content truncate">{{ dataset.filename }}</h2>
               <div class="flex items-center gap-2 shrink-0">
-                <button @click="handleDownload" class="btn btn-sm btn-primary" :disabled="downloadProgress !== undefined">
+                <button @click="downloadCurrent" class="btn btn-sm btn-primary" :disabled="downloadProgress !== undefined">
                   <span v-if="downloadProgress !== undefined" class="loading loading-spinner loading-xs"></span>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                  </svg>
+                    <svg-icon v-else type="download" class="w-4 h-4" />
                   {{ downloadProgress !== undefined ? `Downloading ${downloadProgress}%` : 'Download' }}
                 </button>
                 <div class="badge badge-soft shrink-0 border-0 font-medium px-3 py-3" :class="dataset.status === 'Finished' ? 'badge-success bg-success/10 text-success' : 'badge-neutral bg-base-200 text-base-content/70'">
@@ -393,14 +324,10 @@ onMounted(() => {
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">SHA-256 Hash</span>
               <div class="flex items-center gap-2 max-w-full">
                 <span class="text-base-content bg-base-200/50 px-2 py-1 rounded font-mono text-sm truncate flex-1 md:max-w-md">{{ dataset.hash_sha256 || '—' }}</span>
-                <div class="tooltip tooltip-top" :data-tip="isCopied ? 'Copied!' : 'Copy Hash'" v-if="dataset.hash_sha256">
+                  <div class="tooltip tooltip-top" :data-tip="isCopied ? 'Copied!' : 'Copy Hash'" v-if="dataset.hash_sha256">
                   <button @click="copyHash(dataset.hash_sha256)" class="btn btn-sm btn-ghost btn-square rounded-md hover:bg-base-200 shrink-0">
-                    <svg v-if="!isCopied" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
-                    </svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-success">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                    </svg>
+                    <svg-icon v-if="!isCopied" type="duplicate" class="w-4 h-4" />
+                    <svg-icon v-else type="check" class="w-4 h-4 text-success" />
                   </button>
                 </div>
               </div>
@@ -419,6 +346,24 @@ onMounted(() => {
       </template>
 
     </div>
+
+    <!-- Active Downloads Overlay Widgets -->
+    <div v-if="Object.keys(downloadingMap).length > 0" class="fixed bottom-6 right-20 z-50 flex flex-col gap-3 pointer-events-none">
+      <div 
+        v-for="(progress, id) in downloadingMap" 
+        :key="id"
+        class="card bg-base-100 shadow-2xl border border-base-200 p-4 w-72 pointer-events-auto rounded-xl animate-fade-in-up"
+      >
+        <div class="flex items-center justify-between mb-3 text-sm">
+          <span class="font-bold truncate pr-3 text-base-content" :title="(String(route.params.id) === String(id) && dataset) ? dataset.filename : String(id)">
+            Downloading: {{ (String(route.params.id) === String(id) && dataset) ? dataset.filename : String(id) }}
+          </span>
+          <span class="font-black text-black whitespace-nowrap">{{ progress }}%</span>
+        </div>
+        <progress class="progress progress-primary w-full h-2" :value="progress" max="100"></progress>
+      </div>
+    </div>
+
   </div>
 </template>
 

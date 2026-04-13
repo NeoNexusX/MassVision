@@ -6,6 +6,7 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import SvgIcon from './components/SvgIcon.vue'
 
 // Initialize theme: prefer saved value in localStorage, otherwise match system preference.
 ;(function initTheme() {
@@ -36,5 +37,8 @@ const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
+
+// Register SvgIcon globally so templates can use <SvgIcon /> without local import
+app.component('SvgIcon', SvgIcon)
 
 app.mount('#app')

@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/LoginView.vue'
-import Dashboard from '../views/DashboardView.vue'
 import Home from '../views/HomeView.vue'
 import UserProfileView from '../views/UserProfileView.vue'
 import PublicDatasets from '../views/PublicDatasets.vue'
@@ -29,12 +28,6 @@ const routes = [
     path: '/datasets/:id',
     name: 'DatasetOverview',
     component: () => import('../views/DatasetOverviewView.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: Dashboard,
     meta: { requiresAuth: true }
   },
   {

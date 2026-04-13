@@ -2,7 +2,7 @@
   <div class="form-control w-full relative">
     <!-- Wrap select in label.input-group pattern to match AuthInput -->
     <label class="input validator w-full flex items-center gap-2">
-      <SvgIcon v-if="iconType" :type="iconType" />
+      <SvgIcon v-if="iconType" :type="iconType" class="w-5 h-5 mr-3 flex-shrink-0" aria-hidden="true" />
       
       <select
         class="grow focus:outline-none bg-transparent border-none focus:border-transparent ring-0 focus:ring-0 outline-none h-full font-normal min-w-0"
@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import type { PropType } from 'vue';
-import SvgIcon from './SvgIcon.vue';
+// SvgIcon is globally registered in main.ts
 
 interface OptionItem {
   label: string;

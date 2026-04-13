@@ -49,7 +49,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { login as loginApi } from '../utils/usr-api'; // Use the shared login helper
 import { formatErrorMessage } from '../utils/api';
-import { useToast } from '../utils/toast';
+import { useToast } from '@/composables/useToast';
 
 const { showToast } = useToast();
 const router = useRouter();

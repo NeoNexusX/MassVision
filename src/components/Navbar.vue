@@ -9,13 +9,13 @@
       <!-- Menu itself: Base bg, ideally 450px but never more than 85vw on small screens -->
       <ul class="menu p-8 w-[450px] max-w-[85vw] min-h-full bg-base-100 text-base-content flex flex-col gap-6 overflow-y-auto">
         <li class="menu-title mb-8 flex items-center gap-5">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-10 h-10 text-blue-600"><line x1="12" y1="20" x2="12" y2="8" stroke-width="2.5"></line><circle cx="12" cy="6" r="2" fill="currentColor" stroke="none"></circle><line x1="6" y1="20" x2="6" y2="12" stroke-width="2.5"></line><circle cx="6" cy="10" r="2" fill="currentColor" stroke="none"></circle><line x1="18" y1="20" x2="18" y2="14" stroke-width="2.5"></line><circle cx="18" cy="12" r="2" fill="currentColor" stroke="none"></circle></svg>
+          <svg-icon type="home" class="w-10 h-10 text-blue-600" />
           <span class="text-2xl md:text-3xl font-semibold">MassFlow</span>
         </li>
         <li>
           <router-link to="/" @click="sidebarOpen = false" class="flex items-center gap-6 py-4 px-3 text-xl">
             <span class="w-8 h-8 flex justify-center items-center shrink-0">
-              <HomeIcon class="w-8 h-8 text-base-content" />
+              <svg-icon type="home" class="w-8 h-8 text-base-content" />
             </span>
             <span>Home</span>
           </router-link>
@@ -25,15 +25,15 @@
           <details>
             <summary class="flex items-center gap-6 py-4 px-3 text-xl">
               <span class="w-8 h-8 flex justify-center items-center shrink-0">
-                <CircleStackIcon class="w-8 h-8 text-base-content" />
+                <svg-icon type="circle_stack" class="w-8 h-8 text-base-content" />
               </span>
               <span>Datahub</span>
             </summary>
             <ul class="p-2 mt-2 flex flex-col gap-3">
             <li>
               <router-link to="/datasets" @click="sidebarOpen = false" class="flex items-center gap-6 py-4 px-3 text-xl">
-                <span class="w-8 h-8 flex justify-center items-center shrink-0">
-                  <QueueListIcon class="w-8 h-8 text-base-content" />
+                  <span class="w-8 h-8 flex justify-center items-center shrink-0">
+                  <svg-icon type="queue_list" class="w-8 h-8 text-base-content" />
                 </span>
                 <span>Public Datasets</span>
               </router-link>
@@ -41,7 +41,7 @@
             <li v-if="user">
               <router-link to="/my-datasets" @click="sidebarOpen = false" class="flex items-center gap-6 py-4 px-3 text-xl">
                 <span class="w-8 h-8 flex justify-center items-center shrink-0">
-                  <FolderIcon class="w-8 h-8 text-base-content" />
+                  <svg-icon type="folder" class="w-8 h-8 text-base-content" />
                 </span>
                 <span>My Datasets</span>
               </router-link>
@@ -52,7 +52,7 @@
         <li v-if="authStore.isAdmin">
           <router-link to="/users" @click="sidebarOpen = false" class="flex items-center gap-6 py-4 px-3 text-xl">
             <span class="w-8 h-8 flex justify-center items-center shrink-0">
-              <UsersIcon class="w-8 h-8 text-base-content" />
+              <svg-icon type="users" class="w-8 h-8 text-base-content" />
             </span>
             <span>Users</span>
           </router-link>
@@ -60,7 +60,7 @@
         <li>
           <a @click.prevent="openSupport" class="flex items-center gap-6 py-4 px-3 text-xl">
             <span class="w-8 h-8 flex justify-center items-center shrink-0">
-              <QuestionMarkCircleIcon class="w-8 h-8 text-base-content" />
+              <svg-icon type="question" class="w-8 h-8 text-base-content" />
             </span>
             <span>Support</span>
           </a>
@@ -68,7 +68,7 @@
         <li v-if="!user">
           <router-link to="/login" class="flex items-center gap-6 py-4 px-3 text-xl">
             <span class="w-8 h-8 flex justify-center items-center shrink-0">
-              <ArrowRightEndOnRectangleIcon class="w-8 h-8 text-base-content" />
+              <svg-icon type="signin" class="w-8 h-8 text-base-content" />
             </span>
             <span>Sign in</span>
           </router-link>
@@ -76,7 +76,7 @@
         <li v-if="!user">
           <router-link to="/register" class="flex items-center gap-6 py-4 px-3 text-xl">
             <span class="w-8 h-8 flex justify-center items-center shrink-0">
-              <UserPlusIcon class="w-8 h-8 text-base-content" />
+              <svg-icon type="user_plus" class="w-8 h-8 text-base-content" />
             </span>
             <span>Create account</span>
           </router-link>
@@ -85,12 +85,12 @@
     </div>
   </div>
 
-  <!-- FAB: fixed bottom-right, always on top-->
-  <div class="fixed bottom-4 right-4 z-[9999]">
-    <div class="fab fab-flower" :class="{ 'fab-open': fabOpen }">
+  <!-- FAB: fixed top-right, always on top -->
+  <div class="fixed top-4 right-4 z-[9999]">
+      <div class="fab fab-flower" :class="{ 'fab-open': fabOpen }">
       <!-- Trigger (focusable) - default Home icon -->
       <div tabindex="0" role="button" class="btn btn-circle btn-lg" @click="toggleFab" aria-label="Open menu">
-        <HomeIcon class="w-6 h-6 text-base-content" aria-label="Home" />
+        <svg-icon type="home" class="w-6 h-6 text-base-content" aria-label="Home" />
       </div>
 
       <!-- Main Action button replaces the trigger when FAB is open -->
@@ -102,7 +102,7 @@
         </template>
         <template v-else>
           <!-- personal silhouette icon when not logged in -->
-          <HeroUserIcon class="w-6 h-6" aria-label="Profile" />
+          <svg-icon type="user" class="w-6 h-6" aria-label="Profile" />
         </template>
       </button>
 
@@ -110,20 +110,20 @@
           <template v-if="user">
             <!-- logged-in: show four buttons around FAB -->
             <button class="btn btn-circle btn-lg child-btn" @click="toggleSidebar" title="Menu">
-              <Bars3Icon class="w-5 h-5" />
+              <svg-icon type="bars3" class="w-5 h-5" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="toggleTheme" :title="isDark ? 'dark' : 'light'" :aria-label="isDark ? 'dark' : 'light'">
-              <SunIcon v-if="!isDark" class="w-6 h-6 text-yellow-400" />
-              <MoonIcon v-else class="w-6 h-6 text-indigo-300" />
+              <svg-icon v-if="!isDark" type="sun" class="w-6 h-6 text-yellow-400" />
+              <svg-icon v-else type="moon" class="w-6 h-6 text-indigo-300" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="goProfile" title="Profile">
-              <UserCircleIcon class="w-5 h-5" />
+              <svg-icon type="user-circle" class="w-5 h-5" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn btn-error" @click="logout" title="Sign out">
-              <ArrowRightEndOnRectangleIcon class="w-5 h-5" />
+              <svg-icon type="signin" class="w-5 h-5" />
             </button>
           </template>
           <template v-else>
@@ -132,12 +132,12 @@
             <button class="btn btn-circle btn-lg child-btn invisible pointer-events-none" aria-hidden="true"></button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="toggleSidebar" title="Menu">
-              <Bars3Icon class="w-6 h-6" />
+              <svg-icon type="bars3" class="w-6 h-6" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="toggleTheme" :title="isDark ? 'dark' : 'light'" :aria-label="isDark ? 'dark' : 'light'">
-              <SunIcon v-if="!isDark" class="w-6 h-6 text-yellow-400" />
-              <MoonIcon v-else class="w-6 h-6 text-indigo-300" />  
+              <svg-icon v-if="!isDark" type="sun" class="w-6 h-6 text-yellow-400" />
+              <svg-icon v-else type="moon" class="w-6 h-6 text-indigo-300" />  
             </button>
 
             <!-- Invisible button 4 (position 4) -->
@@ -152,21 +152,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { storeToRefs } from 'pinia';
-import {
-  HomeIcon,
-  CircleStackIcon,
-  QueueListIcon,
-  FolderIcon,
-  UsersIcon,
-  QuestionMarkCircleIcon,
-  ArrowRightEndOnRectangleIcon,
-  UserPlusIcon,
-  Bars3Icon,
-  SunIcon,
-  MoonIcon,
-  UserCircleIcon,
-  UserIcon as HeroUserIcon
-} from '@heroicons/vue/24/outline';
+// Icons are consumed via SvgIcon global component; individual Heroicons imports removed.
 
 const router = useRouter();
 const authStore = useAuthStore();

@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watchEffect } from 'vue';
 import { useRouter } from 'vue-router';
 import { auth_api } from '@/utils/api'; 
 import { useAuthStore } from '@/stores/auth';
-import { useToast } from '@/utils/toast';
+import { useToast } from '@/composables/useToast';
 
 interface User {
   username: string;
@@ -173,9 +173,7 @@ const goToPage = (page: number) => { currentPage.value = page; fetchUsers(); };
         </div>
         <button class="btn btn-primary rounded-xl shadow-sm border-none" @click="fetchUsers" :disabled="loading">
           <span v-if="loading" class="loading loading-spinner loading-sm"></span>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+          <SvgIcon v-else type="refresh" class="h-4 w-4" />
           Refresh
         </button>
       </div>
@@ -202,7 +200,7 @@ const goToPage = (page: number) => { currentPage.value = page; fetchUsers(); };
 
       <!-- Error State -->
       <div v-if="error" class="alert alert-error alert-soft rounded-2xl shadow-sm border border-error/20">
-        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <SvgIcon type="error" class="stroke-current shrink-0 h-6 w-6" />
         <div class="flex-1">
           <h3 class="font-bold">Failed to load users</h3>
           <div class="text-sm opacity-80">{{ error }}</div>
@@ -223,9 +221,7 @@ const goToPage = (page: number) => { currentPage.value = page; fetchUsers(); };
               placeholder="Search username..." 
               class="input input-sm input-bordered rounded-lg bg-base-100 w-full pl-9 focus:outline-none focus:border-primary/50 text-sm"
             />
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
+            <SvgIcon type="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
           </div>
           
           <select v-model="filters.status" class="select select-sm select-bordered rounded-lg bg-base-100 font-normal text-sm w-36">
@@ -256,7 +252,7 @@ const goToPage = (page: number) => { currentPage.value = page; fetchUsers(); };
             Search
           </button>
           
-          <button @click="resetFilters" class="btn btn-sm btn-ghost rounded-lg text-base-content/60 hover:text-base-content hover:bg-base-200 font-medium">
+          <button @click="resetFilters" class="btn btn-sm btn-outline border border-base-300 text-base-content/70 hover:bg-base-200 font-medium">
             Reset Filters
           </button>
         </div>
@@ -278,9 +274,7 @@ const goToPage = (page: number) => { currentPage.value = page; fetchUsers(); };
               <tr v-if="!loading && users.length === 0">
                 <td colspan="5" class="py-20 text-center text-base-content/40">
                   <div class="flex flex-col items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
+                    <SvgIcon type="duplicate" class="h-10 w-10 mb-3 opacity-30" />
                     <span>No users match your filters.</span>
                   </div>
                 </td>
@@ -471,7 +465,7 @@ const goToPage = (page: number) => { currentPage.value = page; fetchUsers(); };
     <dialog ref="confirmModal" class="modal">
       <div class="modal-box">
         <h3 class="font-bold text-lg text-error flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <SvgIcon type="warning" class="h-6 w-6" />
           Confirm Deletion
         </h3>
         <p class="py-4 text-base">

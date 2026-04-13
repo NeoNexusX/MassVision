@@ -9,9 +9,6 @@ export interface Dataset {
   status: 'Processing' | 'Queued' | 'Finished';
   isPublic: boolean;
   thumbnailUrl: string;
-  // Additional fields based on requirements or future expansion
-  species?: string;
-  description?: string;
   // Size in bytes (optional) - mapped from backend size/file_size fields
   sizeBytes?: number;
 }

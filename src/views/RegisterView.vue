@@ -105,12 +105,12 @@
         </div>
 
         <!-- Right Side: Researcher Profile -->
-        <div class="p-8 md:p-10 pb-32 flex flex-col gap-5 bg-base-50/50 dark:bg-base-200/20">
+        <div class="p-8 md:p-10 pb-8 flex flex-col gap-5 bg-base-50/50 dark:bg-base-200/20">
             <div class="mb-2">
-               <h3 class="text-xl font-bold flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  Researcher Profile
-               </h3>
+              <h3 class="text-xl font-bold flex items-center gap-2">
+                <svg-icon type="user" class="h-5 w-5 text-primary" />
+                Researcher Profile
+              </h3>
                <p class="text-base-content/60 text-sm mt-1">Complete your professional details</p>
             </div>
 
@@ -212,13 +212,13 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
-import { useCountdown } from '@/utils/useCountdown'
+import { useCountdown } from '@/composables/useCountdown'
 import { useRouter } from 'vue-router'
 import AuthInput from '../components/AuthInput.vue'
 import AuthSelect from '../components/AuthSelect.vue'
 import { usrSignupApi, sendEmailCode } from '@/utils/usr-api'
 import type { UsrSignup } from '@/types/usr';
-import { useToast } from '@/utils/toast';
+import { useToast } from '@/composables/useToast';
 
 import countries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
