@@ -83,10 +83,23 @@ const fetchUsers = async () => {
   }
 };
 
-onMounted(() => {
-  if (authStore.isAdmin || !authStore.user) {
-    fetchUsers();
+onMounted(async () => {
+  // If user is already loaded, only fetch when user is admin
+  if (authStore.user) {
+    if (authStore.isAdmin) fetchUsers();
+    return;
   }
+
+  // If we have a token but no user loaded yet, fetch user first then conditionally fetch list
+  if (authStore.token) {
+    try {
+      await authStore.fetchUser();
+      if (authStore.isAdmin) fetchUsers();
+    } catch (err) {
+      // fetchUser handles logout on 401; if fetch failed, do not call fetchUsers
+    }
+  }
+  // If no token and no user, do nothing (user not authenticated)
 });
 
 // ---------------- Computed ----------------

@@ -60,9 +60,10 @@ const router = createRouter({
 })
 
 
-router.beforeEach((to, from, next) => {
-  // Check if authentication is required using meta fields
+router.beforeEach(async (to, from, next) => {
+  // Check meta fields
   const authRequired = to.matched.some(record => record.meta.requiresAuth);
+  const adminRequired = to.matched.some(record => record.meta.requiresAdmin);
   // Retrieve token using the secure storage utility
   const loggedIn = secureStorage.getToken();
 
@@ -73,14 +74,36 @@ router.beforeEach((to, from, next) => {
 
   // Redirect to login page if authentication is required but user is not logged in
   if (authRequired && !loggedIn) {
-    next({
+    return next({
       path: '/login',
       query: { redirect: to.fullPath }
     });
-  } else {
-    // Proceed with navigation
-    next();
   }
+
+  // If route requires admin, ensure the current user is an admin
+  if (adminRequired) {
+    const auth = useAuthStore();
+    // If we have a token but no user loaded, try to fetch the user profile first
+    if (loggedIn && !auth.user) {
+      try {
+        await auth.fetchUser();
+      } catch (err) {
+        // ignore - fetchUser will handle logout on 401
+      }
+    }
+
+    // If user is not admin, block access
+    if (!auth.isAdmin) {
+      // If not authenticated, redirect to login; otherwise redirect to profile/home
+      if (!loggedIn) {
+        return next({ path: '/login', query: { redirect: to.fullPath } });
+      }
+      return next({ path: '/profile' });
+    }
+  }
+
+  // Proceed with navigation
+  return next();
 });
 
 export default router

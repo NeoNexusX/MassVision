@@ -7,7 +7,6 @@ import { listFiles} from '@/utils/file-api';
 import { useDownloadProgress } from '@/composables/useDownloadProgress';
 import { useDatasets } from '@/composables/useDatasets';
 import { useAuthStore } from '@/stores/auth';
-import { useToast } from '@/composables/useToast';
 
 
 // Use composable for datasets (fetch/map/pagination/sort)
@@ -160,22 +159,7 @@ const changeSize = (newSize: number) => {
         </DatasetList>
       </div>
 
-      <!-- Active Downloads Overlay Widgets -->
-      <div v-if="Object.keys(downloadingMap).length > 0" class="fixed bottom-6 right-20 z-50 flex flex-col gap-3 pointer-events-none">
-        <div 
-          v-for="(progress, id) in downloadingMap" 
-          :key="id"
-          class="card bg-base-100 shadow-2xl border border-base-200 p-4 w-72 pointer-events-auto rounded-xl animate-fade-in-up"
-        >
-          <div class="flex items-center justify-between mb-3 text-sm">
-            <span class="font-bold truncate pr-3 text-base-content" :title="datasets.find(d => d.id === id)?.name || String(id)">
-              Downloading: {{ datasets.find(d => d.id === id)?.name || 'Dataset' }}
-            </span>
-            <span class="font-black text-black whitespace-nowrap">{{ progress }}%</span>
-          </div>
-          <progress class="progress progress-primary w-full h-2" :value="progress" max="100"></progress>
-        </div>
-      </div>
+      <!-- Active downloads overlay is rendered inside DatasetList; removed duplicate here -->
     </div>
   </div>
 </template>

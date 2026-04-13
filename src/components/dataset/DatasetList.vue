@@ -12,7 +12,7 @@ const props = defineProps({
   pagination: { type: Array as PropType<(number | string)[]>, required: true },
   downloadingMap: { type: Object as PropType<Record<string, number>>, required: true },
   isMyDataset: { type: Boolean, required: false, default: false },
-  deletingId: { type: [String, null] as PropType<string | null>, required: false }
+  deletingId: { type: String as PropType<string | null>, required: false, default: null }
 });
 
 const emit = defineEmits([

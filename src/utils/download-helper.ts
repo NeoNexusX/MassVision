@@ -25,7 +25,13 @@ export async function downloadAndSave(fileId: string, options?: DownloadOptions)
       const match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i)
       if (match && match[1]) filename = match[1].replace(/['"]/g, '').trim()
       const utf8Match = cd.match(/filename\*=utf-8''([^;\n]*)/i)
-      if (utf8Match && utf8Match[1]) filename = decodeURIComponent(utf8Match[1])
+      if (utf8Match && utf8Match[1]) {
+        try {
+          filename = decodeURIComponent(utf8Match[1])
+        } catch (e) {
+          // Ignore malformed percent-encoding in header and keep previous filename
+        }
+      }
     } else if (getFallbackFilename) {
       const f = getFallbackFilename()
       if (f) filename = f.toLowerCase().endsWith('.zip') ? f : `${f}.zip`
