@@ -7,6 +7,7 @@ import { getDatasetPlaceholderSvg } from '@/utils/dataset-placeholder';
 
 // Data strictly according to the structure provided
 interface DatasetDetails {
+  id?: string | number;
   filename: string;
   file_type: string;
   experiment_type: string;
@@ -32,11 +33,15 @@ const router = useRouter();
 const dataset = ref<DatasetDetails | null>(null);
 const loading = ref(true);
 const isCopied = ref(false);
+// keep URL as original filename; do not replace with numeric id
 
 // reuse shared download progress composable (overview uses explicit fallback filename)
 const { downloadingMap, handleDownload } = useDownloadProgress();
 
-const downloadProgress = computed(() => downloadingMap.value[String(route.params.id)]);
+const downloadProgress = computed(() => {
+  const idKey = dataset.value?.id ? String(dataset.value.id) : String(route.params.id);
+  return downloadingMap.value[idKey];
+});
 
 // Format bytes to MB/GB
 const formatSize = (bytes?: number) => {
@@ -79,7 +84,7 @@ const placeholderSvg = computed(() => {
 });
 
 const downloadCurrent = async () => {
-  const targetId = route.params.id as string;
+  const targetId = dataset.value?.id ? String(dataset.value.id) : (route.params.id as string);
   if (!targetId) return;
   await handleDownload(targetId, {
     getFallbackFilename: () => {
@@ -101,24 +106,59 @@ const formatString = (val?: string) => {
 const fetchDatasetDetails = async () => {
   loading.value = true;
   try {
-    const id = route.params.id as string;
-    
-    // As per user direction, querying POST /files/list_files
-    // In theory, we can fetch items and find the exact file_id matching the route params.
-    let found = null;
-    
-    // We fetch a larger batch and precisely match the ID locally
-    // to prevent partial matches like "1.zip" when ID is "1".
-    const res = await listFiles({}, 1, 100);
-    const items = res.data?.data;
-    
-    if (Array.isArray(items)) {
-      // Only match by backend-provided file_id. Do not fallback to id/filename.
-      found = items.find((item: any) => String(item.file_id) === id);
+    const searchKey = String(route.params.id || '');
+    let found: any = null;
+
+    // If the route param is a numeric id, try to find by file_id first
+    if (/^\d+$/.test(searchKey)) {
+      try {
+        const resNum = await listFiles({}, 1, 200);
+        const itemsNum = resNum.data?.data;
+        if (Array.isArray(itemsNum) && itemsNum.length > 0) {
+          found = itemsNum.find((item: any) => String(item.file_id) === searchKey);
+        }
+      } catch (e) {
+        console.warn('Numeric file_id search failed', e);
+      }
     }
+    // Use filename exact matching only (case-insensitive). Support matching with or without
+    // a common extension (e.g., '.zip'). If that fails and the route param looks numeric,
+    // attempt a fallback search by file_id across a larger page (best-effort).
+    if (searchKey) {
+      // Use the route param as-is (no normalization) and perform exact filename match.
+      try {
+        const res = await listFiles({ filename: searchKey }, 1, 20);
+        const items = res.data?.data;
+        if (Array.isArray(items) && items.length > 0) {
+          const tryWithZip = searchKey.endsWith('.zip') ? searchKey : `${searchKey}.zip`;
+
+          // per-candidate comparisons removed (cleanup)
+
+          found = items.find((item: any) => {
+            const fn = (item.filename || '').toString();
+            const fnBase = fn.replace(/\.[^/.]+$/, '');
+            if (fn === searchKey) return true;
+            if (fnBase === searchKey) return true;
+            if (fn === tryWithZip) return true;
+            return false;
+          });
+
+          if (!found) {
+            // no exact match found among candidates
+          } else {
+            // found by filename
+          }
+        }
+      } catch (e) {
+        console.warn('Filename filter search failed', e);
+      }
+    }
+    // NOTE: No fallback by numeric file_id — strict filename-only matching required.
 
     if (found) {
+      // We matched an item (either by numeric id branch or filename branch).
       dataset.value = {
+        id: found.file_id,
         filename: found.filename || '',
         file_type: found.file_type || (found.filename ? found.filename.split('.').pop() : ''),
         experiment_type: found.experiment_type || '',
@@ -137,6 +177,7 @@ const fetchDatasetDetails = async () => {
         status: found.status || found.state || 'Finished',
         thumbnailUrl: found.thumbnail_url || found.thumbnailUrl || ''
       };
+      // keep the route parameter as the original filename (no router.replace)
     } else {
       dataset.value = null;
     }

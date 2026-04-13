@@ -49,7 +49,7 @@ const placeholderSvg = computed(() => {
 </script>
 
 <template>
-  <div class="group flex flex-col md:flex-row items-start md:items-center p-4 gap-4 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 border border-base-300 cursor-pointer relative" @click="$emit('view-overview', dataset.id)">
+  <div class="group flex flex-col md:flex-row items-start md:items-center p-4 gap-4 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 border border-base-300 cursor-pointer relative" @click="$emit('view-overview', dataset.name)">
     
     <!-- Unclickable background mask to intercept clicks on the entire right side and bottom right edges -->
     <div class="absolute right-0 top-0 bottom-0 md:w-[160px] w-full max-md:h-[120px] max-md:top-auto z-0 cursor-default" @click.stop></div>
@@ -73,7 +73,7 @@ const placeholderSvg = computed(() => {
         <div class="flex items-center gap-2 flex-1 min-w-0">
           <h3
             class="font-bold text-lg text-base-content truncate cursor-pointer hover:text-primary dark:hover:text-indigo-400 transition-colors block"
-            @click.stop="$emit('view-overview', dataset.id)"
+            @click.stop="$emit('view-overview', dataset.name)"
             :title="dataset.name"
             :aria-label="`Dataset name: ${dataset.name}`"
           >
@@ -119,7 +119,7 @@ const placeholderSvg = computed(() => {
           <span>Metadata</span>
         </button>
 
-        <button class="flex items-center gap-2 text-sm font-medium text-base-content/70 hover:text-base-content transition-colors group/btn" @click.stop="$emit('view-overview', dataset.id)">
+        <button class="flex items-center gap-2 text-sm font-medium text-base-content/70 hover:text-base-content transition-colors group/btn" @click.stop="$emit('view-overview', dataset.name)">
         <SvgIcon type="link" class="w-4 h-4" />
         <span>Overview</span>
       </button>
