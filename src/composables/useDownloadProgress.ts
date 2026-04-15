@@ -2,12 +2,12 @@ import { ref } from 'vue';
 import type { Ref } from 'vue';
 import { downloadAndSave } from '@/utils/download-helper';
 import type { GetFallbackFilename } from '@/utils/download-helper';
-import type { Dataset } from '@/types/dataset';
+import type { File } from '@/types/file';
 import { useToast } from '@/composables/useToast';
 
 export type HandleDownload = (id?: string, options?: { getFallbackFilename?: GetFallbackFilename }) => Promise<void>;
 
-export function useDownloadProgress(datasets?: Ref<Dataset[] | undefined>) {
+export function useDownloadProgress(datasets?: Ref<File[] | undefined>) {
   const downloadingMap = ref<Record<string, number>>({});
   const { showToast } = useToast();
 

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { PropType } from 'vue';
 import DatasetCard from '@/components/dataset/DatasetCard.vue';
-import type { Dataset } from '@/types/dataset';
+import type { File } from '@/types/file';
 
 const props = defineProps({
-  datasets: { type: Array as PropType<Dataset[]>, required: true },
+  datasets: { type: Array as PropType<File[]>, required: true },
   loading: { type: Boolean, required: true },
   error: { type: String, required: true },
   meta: { type: Object as PropType<Record<string, any>>, required: true },

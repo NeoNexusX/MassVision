@@ -1,36 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { listFiles } from '@/utils/file-api';
+import { listFiles, listUserFiles } from '@/utils/file-api';
 import { useDownloadProgress } from '@/composables/useDownloadProgress';
 import { getDatasetPlaceholderSvg } from '@/utils/dataset-placeholder';
-
-// Data strictly according to the structure provided
-interface DatasetDetails {
-  id?: string | number;
-  filename: string;
-  file_type: string;
-  experiment_type: string;
-  size: number;
-  storage_type: string;
-  hash_sha256: string;
-  organism: string;
-  organism_part: string;
-  condition: string;
-  sample_growth_conditions: string;
-  sample_stabilization: string;
-  tissue_modification: string;
-  maldi_matrix: string;
-  maldi_matrix_application: string;
-  solvent: string;
-  status?: string; // Additional field for UI badge representation
-  thumbnailUrl?: string;
-}
+import { mapItemToDataset } from '@/utils/dataset-transform';
+import type { File } from '@/types/file';
 
 const route = useRoute();
 const router = useRouter();
 
-const dataset = ref<DatasetDetails | null>(null);
+const dataset = ref<File | null>(null);
 const loading = ref(true);
 const isCopied = ref(false);
 // keep URL as original filename; do not replace with numeric id
@@ -109,10 +89,13 @@ const fetchDatasetDetails = async () => {
     const searchKey = String(route.params.id || '');
     let found: any = null;
 
+    // Choose list API based on origin: 'my' should query user's files, otherwise public
+    const listApi = route.query.from === 'my' ? listUserFiles : listFiles;
+
     // If the route param is a numeric id, try to find by file_id first
     if (/^\d+$/.test(searchKey)) {
       try {
-        const resNum = await listFiles({}, 1, 200);
+        const resNum = await listApi({}, 1, 200);
         const itemsNum = resNum.data?.data;
         if (Array.isArray(itemsNum) && itemsNum.length > 0) {
           found = itemsNum.find((item: any) => String(item.file_id) === searchKey);
@@ -127,7 +110,7 @@ const fetchDatasetDetails = async () => {
     if (searchKey) {
       // Use the route param as-is (no normalization) and perform exact filename match.
       try {
-        const res = await listFiles({ filename: searchKey }, 1, 20);
+        const res = await listApi({ filename: searchKey }, 1, 20);
         const items = res.data?.data;
         if (Array.isArray(items) && items.length > 0) {
           const tryWithZip = searchKey.endsWith('.zip') ? searchKey : `${searchKey}.zip`;
@@ -156,27 +139,8 @@ const fetchDatasetDetails = async () => {
     // NOTE: No fallback by numeric file_id — strict filename-only matching required.
 
     if (found) {
-      // We matched an item (either by numeric id branch or filename branch).
-      dataset.value = {
-        id: found.file_id,
-        filename: found.filename || '',
-        file_type: found.file_type || (found.filename ? found.filename.split('.').pop() : ''),
-        experiment_type: found.experiment_type || '',
-        size: found.size ?? found.file_size ?? found.size_bytes ?? 0,
-        storage_type: found.storage_type || 'Local',
-        hash_sha256: found.hash_sha256 || found.hash || '',
-        organism: found.organism || '',
-        organism_part: found.organism_part || '',
-        condition: found.condition || '',
-        sample_growth_conditions: found.sample_growth_conditions || '',
-        sample_stabilization: found.sample_stabilization || '',
-        tissue_modification: found.tissue_modification || '',
-        maldi_matrix: found.maldi_matrix || '',
-        maldi_matrix_application: found.maldi_matrix_application || '',
-        solvent: found.solvent || '',
-        status: found.status || found.state || 'Finished',
-        thumbnailUrl: found.thumbnail_url || found.thumbnailUrl || ''
-      };
+      // Map backend item to frontend File shape
+      dataset.value = mapItemToDataset(found);
       // keep the route parameter as the original filename (no router.replace)
     } else {
       dataset.value = null;
@@ -273,21 +237,21 @@ onMounted(() => {
             
             <div class="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
               <div class="flex flex-col">
-                <span class="text-xs font-semibold tracking-wider text-base-content/40">File Type</span>
-                <span class="font-medium mt-1 text-base-content">{{ dataset.file_type || '—' }}</span>
-              </div>
-              <div class="flex flex-col">
-                <span class="text-xs font-semibold tracking-wider text-base-content/40">Experiment</span>
-                <span class="font-medium mt-1 text-base-content">{{ dataset.experiment_type || '—' }}</span>
-              </div>
-              <div class="flex flex-col">
-                <span class="text-xs font-semibold tracking-wider text-base-content/40">Size</span>
-                <span class="font-medium mt-1 text-base-content">{{ formatSize(dataset.size) }}</span>
-              </div>
-              <div class="flex flex-col">
-                <span class="text-xs font-semibold tracking-wider text-base-content/40">Storage</span>
-                <span class="font-medium mt-1 text-base-content">{{ dataset.storage_type || '—' }}</span>
-              </div>
+                  <span class="text-xs font-semibold tracking-wider text-base-content/40">File Type</span>
+                  <span class="font-medium mt-1 text-base-content">{{ dataset?.fileType || '—' }}</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs font-semibold tracking-wider text-base-content/40">Experiment</span>
+                  <span class="font-medium mt-1 text-base-content">{{ dataset?.experimentType || '—' }}</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs font-semibold tracking-wider text-base-content/40">Size</span>
+                  <span class="font-medium mt-1 text-base-content">{{ formatSize(dataset?.sizeBytes) }}</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs font-semibold tracking-wider text-base-content/40">Instrument</span>
+                  <span class="font-medium mt-1 text-base-content">{{ (dataset?.instrumentTypes && dataset.instrumentTypes.length) ? dataset.instrumentTypes.join(', ') : '—' }}</span>
+                </div>
             </div>
           </div>
         </div>
@@ -300,15 +264,15 @@ onMounted(() => {
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Organism</span>
-              <span class="text-base-content break-words">{{ formatString(dataset.organism) }}</span>
+              <span class="text-base-content break-words">{{ formatString(dataset?.organism) }}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Organism Part</span>
-              <span class="text-base-content break-words">{{ formatString(dataset.organism_part) }}</span>
+              <span class="text-base-content break-words">{{ formatString(dataset?.organismPart) }}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Condition</span>
-              <span class="text-base-content break-words">{{ formatString(dataset.condition) }}</span>
+              <span class="text-base-content break-words">{{ formatString(dataset?.condition) }}</span>
             </div>
           </div>
         </div>
@@ -321,15 +285,15 @@ onMounted(() => {
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Growth Conditions</span>
-              <span class="text-base-content break-words">{{ formatString(dataset.sample_growth_conditions) }}</span>
+              <span class="text-base-content break-words">{{ formatString(dataset?.sampleGrowthConditions) }}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Stabilization</span>
-              <span class="text-base-content break-words">{{ formatString(dataset.sample_stabilization) }}</span>
+              <span class="text-base-content break-words">{{ formatString(dataset?.sampleStabilization) }}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Tissue Modification</span>
-              <span class="text-base-content break-words">{{ formatString(dataset.tissue_modification) }}</span>
+              <span class="text-base-content break-words">{{ formatString(dataset?.tissueModification) }}</span>
             </div>
           </div>
         </div>
@@ -342,31 +306,31 @@ onMounted(() => {
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Matrix</span>
-              <span class="text-base-content break-words">{{ formatString(dataset.maldi_matrix) }}</span>
+              <span class="text-base-content break-words">{{ formatString(dataset?.maldiMatrix) }}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Matrix Application</span>
-              <span class="text-base-content break-words">{{ formatString(dataset.maldi_matrix_application) }}</span>
+              <span class="text-base-content break-words">{{ formatString(dataset?.maldiMatrixApplication) }}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Solvent</span>
-              <span class="text-base-content break-words">{{ formatString(dataset.solvent) }}</span>
+              <span class="text-base-content break-words">{{ formatString(dataset?.solvent) }}</span>
             </div>
           </div>
         </div>
 
         <!-- 6. Technical Info -->
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
-          <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
+            <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
             Technical Details
           </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="flex flex-col max-w-full">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">SHA-256 Hash</span>
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">MD5 Hash</span>
               <div class="flex items-center gap-2 max-w-full">
-                <span class="text-base-content bg-base-200/50 px-2 py-1 rounded font-mono text-sm truncate flex-1 md:max-w-md">{{ dataset.hash_sha256 || '—' }}</span>
-                  <div class="tooltip tooltip-top" :data-tip="isCopied ? 'Copied!' : 'Copy Hash'" v-if="dataset.hash_sha256">
-                  <button @click="copyHash(dataset.hash_sha256)" class="btn btn-sm btn-ghost btn-square rounded-md hover:bg-base-200 shrink-0">
+                <span class="text-base-content bg-base-200/50 px-2 py-1 rounded font-mono text-sm truncate flex-1 md:max-w-md">{{ dataset?.hashMd5 || '—' }}</span>
+                  <div class="tooltip tooltip-top" :data-tip="isCopied ? 'Copied!' : 'Copy Hash'" v-if="dataset?.hashMd5">
+                  <button @click="copyHash(dataset.hashMd5)" class="btn btn-sm btn-ghost btn-square rounded-md hover:bg-base-200 shrink-0">
                     <svg-icon v-if="!isCopied" type="duplicate" class="w-4 h-4" />
                     <svg-icon v-else type="check" class="w-4 h-4 text-success" />
                   </button>
@@ -374,12 +338,12 @@ onMounted(() => {
               </div>
             </div>
             <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Storage Type</span>
-              <span class="text-base-content break-words">{{ dataset.storage_type || '—' }}</span>
+                <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Storage Type</span>
+                <span class="text-base-content break-words">{{ dataset?.storageType || '—' }}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Total Size</span>
-              <span class="text-base-content break-words">{{ formatSize(dataset.size) }}</span>
+                <span class="text-base-content break-words">{{ formatSize(dataset?.sizeBytes) }}</span>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { Dataset } from '@/types/dataset';
+import type { File } from '@/types/file';
 import { getDatasetPlaceholderSvg } from '@/utils/dataset-placeholder';
 
 function formatBytes(bytes?: number): string {
@@ -17,7 +17,7 @@ function formatBytes(bytes?: number): string {
 }
 
 const props = defineProps<{
-  dataset: Dataset;
+  dataset: File;
   isMyDataset?: boolean;
   downloadProgress?: number;
 }>();
@@ -52,10 +52,10 @@ const placeholderSvg = computed(() => {
   <div class="group flex flex-col md:flex-row items-start md:items-center p-4 gap-4 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 border border-base-300 cursor-pointer relative" @click="$emit('view-overview', dataset.name)">
     
     <!-- Unclickable background mask to intercept clicks on the entire right side and bottom right edges -->
-    <div class="absolute right-0 top-0 bottom-0 md:w-[160px] w-full max-md:h-[120px] max-md:top-auto z-0 cursor-default" @click.stop></div>
+    <div class="absolute right-0 top-0 bottom-0 md:w-[200px] w-full max-md:h-[120px] max-md:top-auto z-0 cursor-default" @click.stop></div>
 
     <!-- Left: Image -->
-    <div class="relative z-10 flex-none w-full md:w-[120px] h-48 md:h-[120px] rounded-lg overflow-hidden bg-base-200 flex items-center justify-center border border-base-300">
+    <div class="relative z-10 flex-none w-full md:w-[160px] h-48 md:h-[160px] rounded-lg overflow-hidden bg-base-200 flex items-center justify-center border border-base-300">
       <img 
         v-if="dataset.thumbnailUrl" 
         :src="dataset.thumbnailUrl" 
@@ -67,7 +67,7 @@ const placeholderSvg = computed(() => {
     </div>
 
     <!-- Middle: Info -->
-    <div class="relative z-10 flex-1 w-full md:w-auto flex flex-col gap-1 md:px-2 min-w-0">
+    <div class="relative z-10 flex-1 w-full md:w-[60%] flex flex-col gap-2 md:px-4 min-w-0">
       <div class="flex items-center justify-between gap-2 w-full min-w-0 overflow-hidden">
         <!-- Title and Private/Public Icon wrapper -->
         <div class="flex items-center gap-2 flex-1 min-w-0">
@@ -79,8 +79,8 @@ const placeholderSvg = computed(() => {
           >
             {{ dataset.name }}
           </h3>
-           <!-- Private/Public Icon for MyDatasets -->
-           <div v-if="isMyDataset" class="flex-shrink-0" :title="dataset.isPublic ? 'Public' : 'Private'">
+          <!-- Private/Public Icon for MyDatasets -->
+           <div v-if="isMyDataset" class="flex-shrink-0 self-center ml-2" :title="dataset.isPublic ? 'Public' : 'Private'">
              <SvgIcon v-if="dataset.isPublic" type="region" class="w-4 h-4 text-slate-400" />
              <SvgIcon v-else type="password" class="w-4 h-4 text-slate-400" />
            </div>
@@ -91,15 +91,23 @@ const placeholderSvg = computed(() => {
         </span>
       </div>
 
-      <p class="text-sm text-base-content truncate" :title="dataset.sampleDesc">
-        <span class="font-medium">organism_part:</span> {{ dataset.sampleDesc }}
-      </p>
-      
-      <p class="text-sm text-base-content truncate" :title="dataset.instrument">
-        <span class="font-medium">Experiment Type:</span> {{ dataset.instrument }}
+      <p class="text-sm text-base-content truncate" :title="dataset.organism">
+        <span class="font-medium">Organism:</span> {{ dataset.organism || '—' }}
       </p>
 
-      <p class="text-sm text-base-content truncate mt-1">
+      <p class="text-sm text-base-content truncate" :title="dataset.organismPart">
+        <span class="font-medium">Organism Part:</span> {{ dataset.organismPart || '—' }}
+      </p>
+
+      <p class="text-sm text-base-content truncate" :title="dataset.experimentType">
+        <span class="font-medium">Experiment Type:</span> {{ dataset.experimentType || '—' }}
+      </p>
+
+      <p class="text-sm text-base-content truncate" :title="(dataset.instrumentTypes || []).join(', ')">
+        <span class="font-medium">Instrument Types:</span> {{ (dataset.instrumentTypes && dataset.instrumentTypes.length) ? dataset.instrumentTypes.join(', ') : '—' }}
+      </p>
+
+      <p class="text-sm text-base-content truncate">
         <span class="inline-flex items-center gap-1 flex-wrap">
           <span>Submitted by </span>
           <span class="font-medium text-base-content">{{ dataset.submitter }}</span>
@@ -112,7 +120,7 @@ const placeholderSvg = computed(() => {
     </div>
 
     <!-- Right: Actions -->
-    <div class="relative z-10 flex-none w-full md:w-[140px] flex flex-row md:flex-col gap-3 md:gap-2 md:border-l border-t md:border-t-0 border-base-300 pt-3 md:pt-0 md:pl-4 items-center md:items-start justify-start md:justify-center flex-wrap cursor-default self-stretch" @click.stop>
+    <div class="relative z-10 flex-none w-full md:w-[180px] flex flex-row md:flex-col gap-3 md:gap-2 md:border-l border-t md:border-t-0 border-base-300 pt-3 md:pt-0 md:pl-4 items-center md:items-center justify-start md:justify-center flex-wrap cursor-default self-stretch" @click.stop>
 
         <button class="flex items-center gap-2 text-sm font-medium text-base-content/70 hover:text-base-content transition-colors group/btn" @click.stop="$emit('view-metadata', dataset.id)">
           <SvgIcon type="info" class="w-4 h-4" />

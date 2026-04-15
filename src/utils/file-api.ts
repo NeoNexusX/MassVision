@@ -86,3 +86,11 @@ export async function listFiles(filters: Record<string, any> = {}, page = 1, siz
     params: { page, size }
   });
 }
+
+// List files for the current user (backend separates public vs user scope)
+// POST /files/list_user_files?page={page}&size={size}
+export async function listUserFiles(filters: Record<string, any> = {}, page = 1, size = 10) {
+  return auth_api.post('/files/list_user_files', filters, {
+    params: { page, size }
+  });
+}

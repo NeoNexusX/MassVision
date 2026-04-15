@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import DatasetList from '@/components/dataset/DatasetList.vue';
 import DatasetFilterBar from '@/components/dataset/DatasetFilterBar.vue';
 import UploadModal from '@/components/UploadModal.vue';
-import { listFiles, deleteFile } from '@/utils/file-api';
+import { listUserFiles, deleteFile } from '@/utils/file-api';
 import { useDownloadProgress } from '@/composables/useDownloadProgress';
 import { useDatasets } from '@/composables/useDatasets';
 import { useAuthStore } from '@/stores/auth';
@@ -30,7 +30,7 @@ const fetcher = async (f: Record<string, any>, p: number, s: number) => {
   // ensure username is set for MyDatasets
   const username = auth.user?.username || ''
   const body = { ...f, username }
-  return await listFiles(body, p, s)
+  return await listUserFiles(body, p, s)
 }
 
 const {
@@ -166,7 +166,7 @@ const changeSize = (newSize: number) => {
 
 <template>
   <div class="min-h-screen bg-base-200 p-4 md:p-8">
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-screen-2xl mx-auto">
       <h1 class="text-3xl font-bold text-base-content mb-6">My Datasets</h1>
       
       <DatasetFilterBar 
@@ -205,11 +205,6 @@ const changeSize = (newSize: number) => {
             <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
             <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
           </div>
-        </div>
-
-        <!-- Error state -->
-        <div v-else-if="error" class="p-4 bg-error/10 dark:bg-error/10/30 rounded mb-4 border border-error/20 text-error">
-          {{ error }}
         </div>
 
         <DatasetList

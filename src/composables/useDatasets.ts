@@ -1,7 +1,6 @@
 import { ref, reactive, computed } from 'vue'
-import type { Ref } from 'vue'
 import { mapItemToDataset } from '@/utils/dataset-transform'
-import type { Dataset } from '@/types/dataset'
+import type { File } from '@/types/file'
 
 type Fetcher = (filters: Record<string, any>, page: number, size: number) => Promise<any>
 
@@ -10,7 +9,7 @@ export function useDatasets(fetcher: Fetcher, opts?: { defaultFilters?: Record<s
   const initialSort = opts?.initialSort || 'submission_time'
   const initialDesc = opts?.initialDesc ?? true
 
-  const datasets = ref<Dataset[]>([])
+  const datasets = ref<File[]>([])
   const loading = ref(false)
   const error = ref('')
 
@@ -23,7 +22,7 @@ export function useDatasets(fetcher: Fetcher, opts?: { defaultFilters?: Record<s
   const currentSort = ref<string>(initialSort)
   const sortDesc = ref<boolean>(initialDesc)
 
-  const applyClientSort = (arr: Dataset[]) => {
+  const applyClientSort = (arr: File[]) => {
     return arr.sort((a, b) => {
       if (currentSort.value === 'size_bytes') {
         const sa = a.sizeBytes || 0

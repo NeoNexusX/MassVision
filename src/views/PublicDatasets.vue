@@ -115,7 +115,7 @@ const changeSize = (newSize: number) => {
 
 <template>
   <div class="min-h-screen bg-base-200 p-4 md:p-8">
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-screen-2xl mx-auto">
       <h1 class="text-3xl font-bold text-base-content mb-6">Public Datasets</h1>
       
       <DatasetFilterBar 
@@ -134,11 +134,6 @@ const changeSize = (newSize: number) => {
             <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
             <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
           </div>
-        </div>
-
-        <!-- Error state -->
-        <div v-else-if="error" class="p-4 bg-error/10 dark:bg-error/10/30 rounded mb-4 border border-error/20 text-error">
-          {{ error }}
         </div>
 
         <DatasetList

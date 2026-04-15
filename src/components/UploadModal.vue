@@ -1,6 +1,6 @@
 ﻿<template>
 <dialog class="modal" :class="{ 'modal-open': isOpen }">
-<div class="modal-box w-11/12 max-w-2xl max-h-[90vh] flex flex-col text-base-content">
+<div class="modal-box rounded-lg w-11/12 max-w-2xl max-h-[90vh] flex flex-col text-base-content">
 <h3 class="font-bold text-lg mb-4 shrink-0">Upload New Dataset (imzML + ibd)</h3>
 
 <!-- File selection & Metadata form -->
@@ -26,6 +26,12 @@
 <!-- Immediately available Metadata form -->
 <div class="space-y-4">
 <div class="grid grid-cols-1 gap-4 pb-4">
+  <!-- Public toggle -->
+  <div class="flex items-center gap-3">
+    <input type="checkbox" id="is_public" v-model="form.is_public" class="checkbox checkbox-sm" />
+    <label for="is_public" class="text-sm">Make dataset public (visible to others)</label>
+  </div>
+
   <div class="flex flex-col">
     <label class="label"><span class="label-text font-medium text-base-content text-base">Experiment Type</span></label>
     <DropdownSelect v-model="form.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Select type..." />
@@ -171,7 +177,8 @@ const form = ref({
   tissue_modification: [] as string[],
   maldi_matrix: '',
   maldi_matrix_application: '',
-  solvent: [] as string[]
+  solvent: [] as string[],
+  is_public: false
 });
 
 const otherInputs = ref({
@@ -293,9 +300,9 @@ try {
         });
 
         await uploadImzmlZipFile({
-            files: selectedPair.value,
-            datasetName: selectedPair.value.baseName,
-            metadata: { ...payload, file_type: 'zip', storage_type: 'local' },
+          files: selectedPair.value,
+          datasetName: selectedPair.value.baseName,
+          metadata: { ...payload, file_type: 'zip', storage_type: 'local', is_public: form.value.is_public },
             signal: abortController.signal,
             onProgress: (p: UnifiedUploadProgress) => {
                 progress.value = p.percent;
