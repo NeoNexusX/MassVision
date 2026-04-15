@@ -65,7 +65,8 @@ router.beforeEach(async (to, from, next) => {
   const authRequired = to.matched.some(record => record.meta.requiresAuth);
   const adminRequired = to.matched.some(record => record.meta.requiresAdmin);
   // Retrieve token using the secure storage utility
-  const loggedIn = secureStorage.getToken();
+  // Use `let` so we can re-check after attempting to fetch user (fetchUser may clear token on 401)
+  let loggedIn = secureStorage.getToken();
 
   // Redirect to Profile if already logged in and trying to access login/register pages
   if (loggedIn && ['/login', '/register'].includes(to.path)) {
@@ -90,6 +91,8 @@ router.beforeEach(async (to, from, next) => {
       } catch (err) {
         // ignore - fetchUser will handle logout on 401
       }
+      // Re-check token after fetchUser because it may have triggered logout and cleared the token
+      loggedIn = secureStorage.getToken();
     }
 
     // If user is not admin, block access

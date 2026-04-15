@@ -92,18 +92,7 @@ const fetchDatasetDetails = async () => {
     // Choose list API based on origin: 'my' should query user's files, otherwise public
     const listApi = route.query.from === 'my' ? listUserFiles : listFiles;
 
-    // If the route param is a numeric id, try to find by file_id first
-    if (/^\d+$/.test(searchKey)) {
-      try {
-        const resNum = await listApi({}, 1, 200);
-        const itemsNum = resNum.data?.data;
-        if (Array.isArray(itemsNum) && itemsNum.length > 0) {
-          found = itemsNum.find((item: any) => String(item.file_id) === searchKey);
-        }
-      } catch (e) {
-        console.warn('Numeric file_id search failed', e);
-      }
-    }
+    // (Removed numeric file_id fallback - using filename-only search)
     // Use filename exact matching only (case-insensitive). Support matching with or without
     // a common extension (e.g., '.zip'). If that fails and the route param looks numeric,
     // attempt a fallback search by file_id across a larger page (best-effort).

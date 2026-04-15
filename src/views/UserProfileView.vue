@@ -118,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getCurrentUser, updateUserProfile, sendEmailCode } from '../utils/usr-api';
 import { formatErrorMessage } from '../utils/api';
@@ -197,6 +197,12 @@ const openEmailModal = () => {
 
 const closeEmailModal = () => {
   isEmailModalOpen.value = false;
+  // clear any running cooldown timer when modal is closed
+  if (codeTimer !== null) {
+    window.clearInterval(codeTimer);
+    codeTimer = null;
+  }
+  codeCooldown.value = 0;
 };
 
 const sendVerificationCode = async () => {
@@ -277,6 +283,13 @@ onMounted(async () => {
     } finally {
         loading.value = false;
     }
+});
+
+onUnmounted(() => {
+  if (codeTimer !== null) {
+    window.clearInterval(codeTimer);
+    codeTimer = null;
+  }
 });
 
 // 4. Save Changes

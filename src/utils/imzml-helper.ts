@@ -228,12 +228,13 @@ export interface CalculateHashOptions {
 }
 
 /**
- * Module 3 & 8: Incremental SHA-256 calculation for given Blob (ZIP or chunk)
- * Efficient streaming calculation using hash-wasm and Web Stream API, supports interruption and progress callbacks
- * 
+ * Module 3 & 8: Incremental MD5 calculation for given Blob (ZIP or chunk)
+ * Efficient streaming calculation using `hash-wasm` and the Web Stream API.
+ * Supports interruption via AbortSignal and progress callbacks for large files.
+ *
  * @param blob Target Blob to hash (full large file or a single chunk)
  * @param options Options including progress callback and cancel signal
- * @returns Hexadecimal SHA-256 string
+ * @returns Hexadecimal MD5 string
  */
 export async function calculateFileMD5(
   blob: Blob,

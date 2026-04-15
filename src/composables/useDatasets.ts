@@ -35,13 +35,28 @@ export function useDatasets(fetcher: Fetcher, opts?: { defaultFilters?: Record<s
     })
   }
 
+  const normalizeFilters = (f: Record<string, any>) => {
+    const out: Record<string, any> = {}
+    for (const k in f) {
+      const v = (f as any)[k]
+      if (v === null || v === undefined) {
+        out[k] = ''
+      } else if (Array.isArray(v)) {
+        out[k] = v.length === 0 ? '' : v
+      } else {
+        out[k] = v
+      }
+    }
+    return out
+  }
+
   const fetchFiles = async (opts?: { page?: number; size?: number }) => {
     loading.value = true
     error.value = ''
     const p = opts?.page ?? page.value
     const s = opts?.size ?? size.value
     try {
-      const resp = await fetcher(filters as Record<string, any>, p, s)
+      const resp = await fetcher(normalizeFilters(filters as Record<string, any>), p, s)
       const data = resp.data || {}
 
       if (data.meta) {

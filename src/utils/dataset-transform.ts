@@ -31,8 +31,14 @@ export function mapItemToDataset(item: any, index = 0): File {
 
     // Experiment / instrument
     experimentType: item.experiment_type || '',
-    // do not force empty array; keep undefined when backend doesn't provide
-    instrumentTypes: item.instrument_types || '',
+    // Normalize instrumentTypes: prefer array from backend; if single string provided, wrap into array;
+    // keep `undefined` when not provided to allow templates to render '—'.
+    instrumentTypes: (() => {
+      const raw = item.instrument_types ?? item.instrumentTypes;
+      if (Array.isArray(raw)) return raw;
+      if (raw == null) return undefined;
+      return [String(raw)];
+    })(),
 
     // Technical
     sizeBytes: item.size ?? undefined,
