@@ -1,5 +1,5 @@
 export const EXPERIMENT_TYPES = [
-  'imzML', 'MALDI', 'DESI', 'SIMS', 'MALDI-FTICR', 'Other'
+  'imzML', 'Other'
 ];
 
 export const ORGANISMS = [

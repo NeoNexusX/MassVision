@@ -33,10 +33,11 @@ export async function uploadSimpleFile(
 
 // 3. Download file
 // GET /files/{file_id}/download
-export async function downloadFile(fileId: string) {
+export async function downloadFile(fileId: string, onDownloadProgress?: (progressEvent: any) => void) {
   // Note: needs to assure fileId is a string
   return auth_api.get(`/files/${fileId}/download`, {
-    responseType: 'blob' // Important: Instructs axios to return binary stream data instead of JSON
+    responseType: 'blob', // Important: Instructs axios to return binary stream data instead of JSON
+    onDownloadProgress
   })
 }
 
@@ -82,6 +83,14 @@ export async function listFiles(filters: Record<string, any> = {}, page = 1, siz
   // Use the exact backend endpoint as specified by requirements.
   // Backend expects JSON body containing 11 filter attributes.
   return auth_api.post('/files/list_files', filters, {
+    params: { page, size }
+  });
+}
+
+// List files for the current user (backend separates public vs user scope)
+// POST /files/list_user_files?page={page}&size={size}
+export async function listUserFiles(filters: Record<string, any> = {}, page = 1, size = 10) {
+  return auth_api.post('/files/list_user_files', filters, {
     params: { page, size }
   });
 }

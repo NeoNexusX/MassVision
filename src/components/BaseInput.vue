@@ -1,8 +1,10 @@
 <template>
   <div class="form-control">
-    <label class="label">
-      <span class="label-text font-semibold" :class="{ 'opacity-70': readonly }">{{ label }}</span>
-    </label>
+    <template v-if="!hideLabel && label">
+      <label class="label">
+        <span class="label-text font-semibold" :class="{ 'opacity-70': readonly }">{{ label }}</span>
+      </label>
+    </template>
     <input
       :type="type"
       :value="modelValue"
@@ -19,7 +21,7 @@
 defineProps({
   label: {
     type: String,
-    required: true
+    default: ''
   },
   modelValue: {
     type: [String, Number],
@@ -34,6 +36,11 @@ defineProps({
     default: ''
   },
   readonly: {
+    type: Boolean,
+    default: false
+  }
+  ,
+  hideLabel: {
     type: Boolean,
     default: false
   }

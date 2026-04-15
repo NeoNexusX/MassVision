@@ -33,7 +33,7 @@
 
       <!-- Footer Link -->
       <div class="text-center">
-        <span class="text-sm opacity-75">New to BionetServer? </span>
+        <span class="text-sm opacity-75">New to MassFlow? </span>
         <router-link to="/register" class="link link-hover text-primary text-sm font-semibold">
           Create an account
         </router-link>
@@ -49,7 +49,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { login as loginApi } from '../utils/usr-api'; // Use the shared login helper
 import { formatErrorMessage } from '../utils/api';
-import { useToast } from '../utils/toast';
+import { useToast } from '@/composables/useToast';
 
 const { showToast } = useToast();
 const router = useRouter();

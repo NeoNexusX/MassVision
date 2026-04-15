@@ -1,6 +1,6 @@
 ﻿import { Zip, ZipDeflate } from 'fflate';
-import { createSHA256 } from 'hash-wasm';
-import { auth_api } from '@/utils/api';
+import { createMD5 } from 'hash-wasm';
+import { auth_api, formatErrorMessage } from '@/utils/api';
 
 export function formatSpeed(bytesPerSec: number): string {
   if (bytesPerSec < 1024) return `${bytesPerSec.toFixed(1)} B/s`;
@@ -228,14 +228,15 @@ export interface CalculateHashOptions {
 }
 
 /**
- * Module 3 & 8: Incremental SHA-256 calculation for given Blob (ZIP or chunk)
- * Efficient streaming calculation using hash-wasm and Web Stream API, supports interruption and progress callbacks
- * 
+ * Module 3 & 8: Incremental MD5 calculation for given Blob (ZIP or chunk)
+ * Efficient streaming calculation using `hash-wasm` and the Web Stream API.
+ * Supports interruption via AbortSignal and progress callbacks for large files.
+ *
  * @param blob Target Blob to hash (full large file or a single chunk)
  * @param options Options including progress callback and cancel signal
- * @returns Hexadecimal SHA-256 string
+ * @returns Hexadecimal MD5 string
  */
-export async function calculateFileSHA256(
+export async function calculateFileMD5(
   blob: Blob,
   options?: CalculateHashOptions
 ): Promise<string> {
@@ -243,7 +244,7 @@ export async function calculateFileSHA256(
     throw new DOMException('Aborted by user', 'AbortError');
   }
 
-  const hasher = await createSHA256();
+  const hasher = await createMD5();
 
   const totalBytes = blob.size;
   let loadedBytes = 0;
@@ -326,9 +327,9 @@ export function createFileChunks(
   // Default 100MB per chunk
   let actualChunkSize = chunkSize || (100 * 1024 * 1024);
 
-  // Logic added: Files < 100MB use 25MB chunks
+  // Logic added: Files < 100MB use 20MB chunks
   if (totalSize < 100 * 1024 * 1024) {
-    actualChunkSize = 25 * 1024 * 1024;
+    actualChunkSize = 20 * 1024 * 1024;
   }
 
   const originalName = zipFile.name || 'dataset.zip';
@@ -366,7 +367,8 @@ export function createFileChunks(
 export interface PreflightParams {
   filename: string;
   size: number;
-  hash_sha256: string;
+  file_verify_code: string; // MD5 checksum (file verification code)
+  is_public?: boolean; // optional flag from user, default false
   total_parts: number;
   [key: string]: any; // Extensible for business logic
 }
@@ -414,7 +416,7 @@ export async function preflightFile(params: PreflightParams, signal?: AbortSigna
   } catch (error: any) {
     if (error.response && error.response.status === 400) {
       console.error('Preflight 400 error details:', error.response.data);
-      throw new Error(`Preflight failed (400 Invalid param): ${JSON.stringify(error.response.data)}`);
+      throw new Error(`Preflight failed (400 Invalid param): ${formatErrorMessage(error.response.data)}`);
     }
     throw error;
   }
@@ -450,18 +452,27 @@ export async function uploadChunk(
   onUploadProgress?: (loadedBytes: number, errStr?: string) => void
 ): Promise<void> {
   const chunkBlob = zipFile.slice(chunk.startOffset, chunk.endOffset);
-  const partHash = await calculateFileSHA256(chunkBlob, { signal });
+  const partHash = await calculateFileMD5(chunkBlob, { signal });
 
+  // Use actual blob size for declared part_size to avoid metadata mismatch
   const partDataJson: PartDataJson = {
     file_hash: fileHash,
     part_number: chunk.partNumber,
     part_hash: partHash,
-    part_size: chunk.chunkSize
+    part_size: chunkBlob.size
   };
 
+  const partDataJsonStr = JSON.stringify(partDataJson);
+
+
+  // Wrap slice in a File to make multipart file metadata explicit and consistent
+  const uploadBlob = new File([chunkBlob], chunk.partFilename);
+
   const formData = new FormData();
-  formData.append('part_data_json', JSON.stringify(partDataJson));
-  formData.append('part', chunkBlob, chunk.partFilename); 
+  formData.append('part_data_json', partDataJsonStr);
+  formData.append('part', uploadBlob, chunk.partFilename);
+
+  // formData prepared for upload
 
   let attempt = 0;
   while (attempt <= maxRetries) {
@@ -484,9 +495,7 @@ export async function uploadChunk(
       
       let errorDetail = error.message;
       if (error.response && error.response.data) {
-        errorDetail = typeof error.response.data === 'string' 
-          ? error.response.data 
-          : JSON.stringify(error.response.data);
+        errorDetail = formatErrorMessage(error.response.data);
       }
       
       const errMsg = error.response ? `(${error.response.status}) ${errorDetail}` : errorDetail;
@@ -518,7 +527,7 @@ export async function uploadChunks(
   fileHash: string,
   uploadId: string,
   options?: UploadChunksOptions
-): Promise<void> {
+): Promise<number[]> {
   const totalBytes = zipFile.size;
   
   // Successful uploaded byte base
@@ -556,8 +565,10 @@ export async function uploadChunks(
   // Initial report
   reportProgress();
 
-  const concurrency = 3; // Concurrent upload counts, adjustable to 3-5
+  const concurrency = 1; // 原为 3，现设为 1 以保证稳定合并
   const chunkQueue = [...pendingChunks];
+
+  const failedParts: number[] = [];
 
   const worker = async () => {
     while (chunkQueue.length > 0) {
@@ -570,34 +581,61 @@ export async function uploadChunks(
 
       inProgressMap.set(chunk.partNumber, 0);
 
-      await uploadChunk(
-        zipFile, 
-        chunk, 
-        fileHash, 
-        uploadId,
-        options?.signal, 
-        3, // Retry up to 3 times on configuration failure.
-        (loadedBytesInChunk, errMsgStr) => {
-          inProgressMap.set(chunk.partNumber, loadedBytesInChunk);
+      // For the last part, only attempt a single upload and do not retry on failure
+      const isLastPart = chunk.partNumber === (options?.totalPartsCount || totalParts || 0);
+      const maxRetriesForThisChunk = isLastPart ? 0 : 3;
+
+      try {
+        await uploadChunk(
+          zipFile,
+          chunk,
+          fileHash,
+          uploadId,
+          options?.signal,
+          maxRetriesForThisChunk,
+          (loadedBytesInChunk, errMsgStr) => {
+            inProgressMap.set(chunk.partNumber, loadedBytesInChunk);
+            if (options?.onProgress) {
+              let currentInflightTotal = 0;
+              inProgressMap.forEach(bytes => { currentInflightTotal += bytes; });
+              const currentTotal = completedBytes + currentInflightTotal;
+              
+              const { speedStr, etaStr } = tracker.update(currentTotal, totalBytes);
+              options.onProgress({
+                loadedBytes: currentTotal,
+                totalBytes,
+                percent: Math.min(100, Math.round((currentTotal / totalBytes) * 100)),
+                message: errMsgStr,
+                currentUploadedParts,
+                totalParts,
+                speedStr,
+                etaStr
+              });
+            }
+          }
+        );
+      } catch (err: any) {
+        // If last part fails, record it and continue; otherwise rethrow to abort
+        if (isLastPart) {
+          console.warn(`Last chunk ${chunk.partNumber} upload failed and will be skipped:`, err?.message || err);
+          failedParts.push(chunk.partNumber);
           if (options?.onProgress) {
-            let currentInflightTotal = 0;
-            inProgressMap.forEach(bytes => { currentInflightTotal += bytes; });
-            const currentTotal = completedBytes + currentInflightTotal;
-            
-            const { speedStr, etaStr } = tracker.update(currentTotal, totalBytes);
             options.onProgress({
-              loadedBytes: currentTotal,
+              loadedBytes: completedBytes,
               totalBytes,
-              percent: Math.min(100, Math.round((currentTotal / totalBytes) * 100)),
-              message: errMsgStr,
+              percent: Math.min(100, Math.round((completedBytes / totalBytes) * 100)),
+              message: `Last chunk ${chunk.partNumber} failed and was skipped.`,
               currentUploadedParts,
               totalParts,
-              speedStr,
-              etaStr
             });
           }
+          // Clean up inProgress map entry for this chunk
+          inProgressMap.delete(chunk.partNumber);
+          // Continue with next chunk (if any)
+          continue;
         }
-      );
+        throw err;
+      }
   
       // Once completely uploaded, accumulate to completedBytes and remove from inProgressMap
       inProgressMap.delete(chunk.partNumber);
@@ -613,6 +651,7 @@ export async function uploadChunks(
   );
   
   await Promise.all(workers);
+  return failedParts;
 }
   
 /**
@@ -665,7 +704,7 @@ export async function uploadImzmlZipFile({
   const zipFile = new File([zipBlob], `${datasetName}.zip`, { type: 'application/zip' });
   onProgress?.({ stage: 'hashing', percent: 0, message: 'Calculating file hash...' });
   
-  const fileHash = await calculateFileSHA256(zipFile, {
+  const fileHash = await calculateFileMD5(zipFile, {
     signal,
     onProgress: p => onProgress?.({ stage: 'hashing', percent: p.percent, message: `Hashing ${p.percent.toFixed(1)}%`, speedStr: p.speedStr, etaStr: p.etaStr })
   });
@@ -674,16 +713,23 @@ export async function uploadImzmlZipFile({
 
   // ================= Phase 3: Preflight & Token Retrieval =================  
   onProgress?.({ stage: 'preflight', percent: 100, message: 'Requesting upload token...' });
-  const uploadTokenStr = await preflightFile(
-    { 
-      filename: `${datasetName}.zip`, 
-      size: zipFile.size, 
-      hash_sha256: fileHash,
-      total_parts: chunkPlans.length,
-      ...metadata
-    },
-    signal
-  );
+  // Prepare preflight payload: include new `file_verify_code` (MD5) and `is_public` flag
+  const normalizedFilename = datasetName && String(datasetName).toLowerCase().endsWith('.zip')
+    ? String(datasetName).slice(0, -4)
+    : String(datasetName);
+
+  const preflightPayload = {
+    filename: normalizedFilename,
+    size: zipFile.size,
+    file_verify_code: fileHash,
+    is_public: metadata?.is_public ?? false,
+    total_parts: chunkPlans.length,
+    ...metadata
+  };
+
+  // end preflight payload prepared
+
+  const uploadTokenStr = await preflightFile(preflightPayload, signal);
   
   const upload_id = uploadTokenStr; // Adjust to what preflightFile truly returns
 
@@ -706,24 +752,36 @@ export async function uploadImzmlZipFile({
     .filter(p => !pendingChunks.includes(p))
     .reduce((sum, p) => sum + p.chunkSize, 0);
 
-  await uploadChunks(
-    zipFile,
-    pendingChunks,
-    fileHash,
-    upload_id,
-    {
-      signal,
-      totalPartsCount: chunkPlans.length,
-      alreadyUploadedPartsCount: alreadyUploadedCount,
-      onProgress: (p: any) => onProgress?.({ 
-        stage: 'uploading', 
-        percent: p.percent, 
-        message: `Chunks: ${p.currentUploadedParts}/${p.totalParts} | Uploaded: ${(p.loadedBytes / 1048576).toFixed(2)}MB / ${(p.totalBytes / 1048576).toFixed(2)}MB`,
-        speedStr: p.speedStr,
-        etaStr: p.etaStr
-      })
-    } // the previous parameter `completedBytes` seems to be non-existent in uploadChunks signature. Wait, you can adjust uploadChunks to accept it, or omit it. Actually, here it matches options param in uploadChunks
-  );
+  let failedParts: number[] = [];
+  try {
+    failedParts = await uploadChunks(
+      zipFile,
+      pendingChunks,
+      fileHash,
+      upload_id,
+      {
+        signal,
+        totalPartsCount: chunkPlans.length,
+        alreadyUploadedPartsCount: alreadyUploadedCount,
+        onProgress: (p: any) => onProgress?.({ 
+          stage: 'uploading', 
+          percent: p.percent, 
+          message: `Chunks: ${p.currentUploadedParts}/${p.totalParts} | Uploaded: ${(p.loadedBytes / 1048576).toFixed(2)}MB / ${(p.totalBytes / 1048576).toFixed(2)}MB`,
+          speedStr: p.speedStr,
+          etaStr: p.etaStr
+        })
+      }
+    );
+  } catch (err) {
+    // Rethrow so caller sees failure and UI doesn't mark upload as completed
+    throw err;
+  }
+
+  if (failedParts.length > 0) {
+    const msg = `Failed to upload parts: ${failedParts.join(',')}`;
+    onProgress?.({ stage: 'uploading', percent: 100, message: msg });
+    throw new Error(msg);
+  }
 
   // ================= Phase 6: All Normal =================
   onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete.' });

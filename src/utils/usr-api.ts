@@ -21,10 +21,11 @@ export async function usrSignupApi(usr: UsrSignup) {
 }
 
 // Send verification code endpoint
-export async function sendEmailCode(email: string) {
+export async function sendEmailCode(email: string, purpose: string = 'register') {
   const payload = {
-    email: email, 
-    send_time: new Date().toISOString() 
+    email: email,
+    send_time: new Date().toISOString(),
+    purpose: purpose
   }
 
   return api.post('/emailsmtprequest', payload)

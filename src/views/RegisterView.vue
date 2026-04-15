@@ -69,7 +69,7 @@
 
             <!-- Verify Code -->
             <div class="form-control">
-                <div class="flex w-full gap-3">
+                <div class="flex w-full gap-3 items-start">
                   <div class="flex-grow">
                     <AuthInput
                       v-model="form.verify_code"
@@ -84,10 +84,13 @@
                   </div>
                   <button
                     @click="sendVerificationCode"
-                    class="btn btn-neutral h-[3rem] min-w-[100px]"
-                    :disabled="isCountdownActive || loading.sendCode">
+                    class="btn btn-neutral min-w-[100px]"
+                    :disabled="isCountdownActive || loading.sendCode || isExhausted"
+                    :class="{'opacity-50 cursor-not-allowed': isExhausted}"
+                    :title="isExhausted ? 'Too many requests for now' : ''">
                     <span v-if="loading.sendCode" class="loading loading-spinner loading-xs"></span>
                     <span v-else-if="isCountdownActive" class="font-mono">{{ countdown }}s</span>
+                    <span v-else-if="isExhausted">Limit Reached</span>
                     <span v-else>Send Code</span>
                   </button>
                 </div>
@@ -102,12 +105,12 @@
         </div>
 
         <!-- Right Side: Researcher Profile -->
-        <div class="p-8 md:p-10 pb-32 flex flex-col gap-5 bg-base-50/50 dark:bg-base-200/20">
+        <div class="p-8 md:p-10 pb-8 flex flex-col gap-5 bg-base-50/50 dark:bg-base-200/20">
             <div class="mb-2">
-               <h3 class="text-xl font-bold flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  Researcher Profile
-               </h3>
+              <h3 class="text-xl font-bold flex items-center gap-2">
+                <svg-icon type="user" class="h-5 w-5 text-primary" />
+                Researcher Profile
+              </h3>
                <p class="text-base-content/60 text-sm mt-1">Complete your professional details</p>
             </div>
 
@@ -209,13 +212,13 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
-import { useCountdown } from '@/utils/useCountdown'
+import { useCountdown } from '@/composables/useCountdown'
 import { useRouter } from 'vue-router'
 import AuthInput from '../components/AuthInput.vue'
 import AuthSelect from '../components/AuthSelect.vue'
 import { usrSignupApi, sendEmailCode } from '@/utils/usr-api'
 import type { UsrSignup } from '@/types/usr';
-import { useToast } from '@/utils/toast';
+import { useToast } from '@/composables/useToast';
 
 import countries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
@@ -230,11 +233,16 @@ const regionOptions = computed(() => {
   
   return Object.entries(countryObj)
     .map(([code, name]) => {
-      if (code === 'CN' || name === "People's Republic of China") {
-        return { code, name: "China" };
-      }
-      return { code, name };
+      let displayName = name;
+      if (code === 'CN' || name === "People's Republic of China") displayName = "China";
+      if (code === 'US' || name === "United States of America") displayName = "United States";
+      if (code === 'GB' || name === "United Kingdom of Great Britain and Northern Ireland") displayName = "United Kingdom";
+      if (code === 'RU' || name === "Russian Federation") displayName = "Russia";
+      if (code === 'KR' || name === "Korea, Republic of") displayName = "South Korea";
+      if (code === 'KP' || name === "Korea, Democratic People's Republic of") displayName = "North Korea";
+      return { code, name: displayName };
     })
+    .filter((c) => c.name.length <= 28) 
     .sort((a, b) => a.name.localeCompare(b.name));
 });
 
@@ -330,7 +338,7 @@ const patterns = {
 }
 
 const loading = reactive({ register: false, sendCode: false })
-const { count: countdown, isActive: isCountdownActive, start: startCountdown, stop: stopCountdown } = useCountdown(60)
+const { count: countdown, isActive: isCountdownActive, isExhausted, start: startCountdown, stop: stopCountdown } = useCountdown(60, 'register_code_attempts', 3)
 const passwordScore = ref(0)
 const progressBarClass = computed(() => {
   const classes = ['progress-error', 'progress-warning', 'progress-warning', 'progress-success', 'progress-success']
@@ -413,6 +421,11 @@ const validateField = (field: keyof typeof errors) => {
 }
 
 const sendVerificationCode = async () => {
+    if (isExhausted.value) {
+      showToast('Maximum verification code requests reached for this session. Please try again later.', 'error')
+      return
+    }
+
     validateField('email')
     if (errors.email) {
       showToast(errors.email, 'error')

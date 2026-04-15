@@ -78,7 +78,7 @@
             Next-Generation Mass Spectrometry Data Platform. Unlock biological insights with unprecedented speed and precision according to cloud-native architecture.
           </p>
           
-          <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+          <div class="flex flex-col sm:flex-row flex-wrap items-center justify-center lg:justify-start gap-4">
             <button class="btn btn-primary px-8 h-auto py-3.5 rounded-full font-bold text-lg transition-all hover:scale-105 shadow-lg shadow-indigo-200 dark:shadow-none">
               Get Started
             </button>

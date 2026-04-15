@@ -6,61 +6,78 @@
     <div class="drawer-side fixed inset-0 h-screen">
       <!-- Clicking this dark backdrop overlay closes the menu -->
       <label for="nav-drawer" aria-label="close sidebar" class="drawer-overlay" @click.prevent="sidebarOpen = false"></label>
-      <!-- Menu itself: Base bg, fixed width (w-4/5 mobile sm:w-[450px] tablet/desktop) -->
-      <ul class="menu p-8 w-4/5 sm:w-[450px] min-h-full bg-base-100 text-base-content space-y-6 overflow-y-auto">
+      <!-- Menu itself: Base bg, ideally 450px but never more than 85vw on small screens -->
+      <ul class="menu p-8 w-[450px] max-w-[85vw] min-h-full bg-base-100 text-base-content flex flex-col gap-6 overflow-y-auto">
         <li class="menu-title mb-8 flex items-center gap-5">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-10 h-10 text-blue-600"><line x1="12" y1="20" x2="12" y2="8" stroke-width="2.5"></line><circle cx="12" cy="6" r="2" fill="currentColor" stroke="none"></circle><line x1="6" y1="20" x2="6" y2="12" stroke-width="2.5"></line><circle cx="6" cy="10" r="2" fill="currentColor" stroke="none"></circle><line x1="18" y1="20" x2="18" y2="14" stroke-width="2.5"></line><circle cx="18" cy="12" r="2" fill="currentColor" stroke="none"></circle></svg>
+          <svg-icon type="home" class="w-10 h-10 text-blue-600" />
           <span class="text-2xl md:text-3xl font-semibold">MassFlow</span>
         </li>
         <li>
           <router-link to="/" @click="sidebarOpen = false" class="flex items-center gap-6 py-4 px-3 text-xl">
-            <SvgIcon type="home" class="!w-8 !h-8 text-base-content" />
-            <span class="align-middle">Home</span>
+            <span class="w-8 h-8 flex justify-center items-center shrink-0">
+              <svg-icon type="home" class="w-8 h-8 text-base-content" />
+            </span>
+            <span>Home</span>
           </router-link>
         </li>
 
-        <li tabindex="0">
-          <a class="justify-between flex items-center gap-6">
-            <span class="flex items-center gap-6">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-base-content" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-              <span class="text-xl">Datahub</span>
-            </span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
-          </a>
-          <ul class="p-2 space-y-3">
+        <li>
+          <details>
+            <summary class="flex items-center gap-6 py-4 px-3 text-xl">
+              <span class="w-8 h-8 flex justify-center items-center shrink-0">
+                <svg-icon type="circle_stack" class="w-8 h-8 text-base-content" />
+              </span>
+              <span>Datahub</span>
+            </summary>
+            <ul class="p-2 mt-2 flex flex-col gap-3">
             <li>
               <router-link to="/datasets" @click="sidebarOpen = false" class="flex items-center gap-6 py-4 px-3 text-xl">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-base-content" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="2"/><rect x="3" y="10" width="18" height="4" rx="2"/><rect x="3" y="16" width="18" height="4" rx="2"/></svg>
+                  <span class="w-8 h-8 flex justify-center items-center shrink-0">
+                  <svg-icon type="queue_list" class="w-8 h-8 text-base-content" />
+                </span>
                 <span>Public Datasets</span>
               </router-link>
             </li>
             <li v-if="user">
               <router-link to="/my-datasets" @click="sidebarOpen = false" class="flex items-center gap-6 py-4 px-3 text-xl">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-base-content" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 7l4-4h10l4 4"/></svg>
+                <span class="w-8 h-8 flex justify-center items-center shrink-0">
+                  <svg-icon type="folder" class="w-8 h-8 text-base-content" />
+                </span>
                 <span>My Datasets</span>
               </router-link>
             </li>
           </ul>
+          </details>
+        </li>
+        <li v-if="authStore.isAdmin">
+          <router-link to="/users" @click="sidebarOpen = false" class="flex items-center gap-6 py-4 px-3 text-xl">
+            <span class="w-8 h-8 flex justify-center items-center shrink-0">
+              <svg-icon type="users" class="w-8 h-8 text-base-content" />
+            </span>
+            <span>Users</span>
+          </router-link>
         </li>
         <li>
-          <a @click.prevent="openSupport" class="flex items-center gap-4 py-3 px-2 text-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-base-content" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M9.09 9a3 3 0 0 1 5.82 1c0 1.5-2 2-2 2" />
-              <circle cx="12" cy="17" r="1" fill="currentColor" />
-            </svg>
+          <a @click.prevent="openSupport" class="flex items-center gap-6 py-4 px-3 text-xl">
+            <span class="w-8 h-8 flex justify-center items-center shrink-0">
+              <svg-icon type="question" class="w-8 h-8 text-base-content" />
+            </span>
             <span>Support</span>
           </a>
         </li>
         <li v-if="!user">
-          <router-link to="/login" class="flex items-center gap-4 py-3 px-2 text-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-base-content" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <router-link to="/login" class="flex items-center gap-6 py-4 px-3 text-xl">
+            <span class="w-8 h-8 flex justify-center items-center shrink-0">
+              <svg-icon type="signin" class="w-8 h-8 text-base-content" />
+            </span>
             <span>Sign in</span>
           </router-link>
         </li>
         <li v-if="!user">
-          <router-link to="/register" class="flex items-center gap-4 py-3 px-2 text-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-base-content" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M16 11a4 4 0 0 0-8 0"/></svg>
+          <router-link to="/register" class="flex items-center gap-6 py-4 px-3 text-xl">
+            <span class="w-8 h-8 flex justify-center items-center shrink-0">
+              <svg-icon type="user_plus" class="w-8 h-8 text-base-content" />
+            </span>
             <span>Create account</span>
           </router-link>
         </li>
@@ -68,12 +85,12 @@
     </div>
   </div>
 
-  <!-- FAB: fixed bottom-right, always on top -->
-  <div class="fixed bottom-4 right-4 z-[9999]">
-    <div class="fab fab-flower" :class="{ 'fab-open': fabOpen }">
+  <!-- FAB: fixed top-right, always on top -->
+  <div class="fixed top-4 right-4 z-[9999]">
+      <div class="fab fab-flower" :class="{ 'fab-open': fabOpen }">
       <!-- Trigger (focusable) - default Home icon -->
       <div tabindex="0" role="button" class="btn btn-circle btn-lg" @click="toggleFab" aria-label="Open menu">
-        <SvgIcon type="home" class="!w-6 !h-6 text-base-content" aria-label="Home" />
+        <svg-icon type="home" class="w-6 h-6 text-base-content" aria-label="Home" />
       </div>
 
       <!-- Main Action button replaces the trigger when FAB is open -->
@@ -85,10 +102,7 @@
         </template>
         <template v-else>
           <!-- personal silhouette icon when not logged in -->
-          <svg xmlns="http://www.w3.org/2000/svg" aria-label="Profile" viewBox="0 0 16 16" fill="currentColor" class="size-6">
-            <path d="M8 1a2 2 0 0 0-2 2v1a2 2 0 1 0 4 0V3a2 2 0 0 0-2-2Z"/>
-            <path d="M4 13s1-1 4-1 4 1 4 1v1H4v-1Z"/>
-          </svg>
+          <svg-icon type="user" class="w-6 h-6" aria-label="Profile" />
         </template>
       </button>
 
@@ -96,20 +110,20 @@
           <template v-if="user">
             <!-- logged-in: show four buttons around FAB -->
             <button class="btn btn-circle btn-lg child-btn" @click="toggleSidebar" title="Menu">
-              <SvgIcon type="menu" class="!w-5 !h-5" />
+              <svg-icon type="bars3" class="w-5 h-5" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="toggleTheme" :title="isDark ? 'dark' : 'light'" :aria-label="isDark ? 'dark' : 'light'">
-              <SvgIcon v-if="!isDark" type="sun" class="!w-6 !h-6 text-yellow-400" />
-              <SvgIcon v-else type="moon" class="!w-6 !h-6 text-indigo-300" />
+              <svg-icon v-if="!isDark" type="sun" class="w-6 h-6 text-yellow-400" />
+              <svg-icon v-else type="moon" class="w-6 h-6 text-indigo-300" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="goProfile" title="Profile">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.24 21a9 9 0 1 0-16.48 0"/><circle cx="12" cy="7" r="4"/></svg>
+              <svg-icon type="user-circle" class="w-5 h-5" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn btn-error" @click="logout" title="Sign out">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <svg-icon type="signin" class="w-5 h-5" />
             </button>
           </template>
           <template v-else>
@@ -118,12 +132,12 @@
             <button class="btn btn-circle btn-lg child-btn invisible pointer-events-none" aria-hidden="true"></button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="toggleSidebar" title="Menu">
-              <SvgIcon type="menu" class="!w-6 !h-6" />
+              <svg-icon type="bars3" class="w-6 h-6" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn" @click="toggleTheme" :title="isDark ? 'dark' : 'light'" :aria-label="isDark ? 'dark' : 'light'">
-              <SvgIcon v-if="!isDark" type="sun" class="!w-6 !h-6 text-yellow-400" />
-              <SvgIcon v-else type="moon" class="!w-6 !h-6 text-indigo-300" />  
+              <svg-icon v-if="!isDark" type="sun" class="w-6 h-6 text-yellow-400" />
+              <svg-icon v-else type="moon" class="w-6 h-6 text-indigo-300" />  
             </button>
 
             <!-- Invisible button 4 (position 4) -->
@@ -135,10 +149,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import SvgIcon from './SvgIcon.vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { storeToRefs } from 'pinia';
+// Icons are consumed via SvgIcon global component; individual Heroicons imports removed.
 
 const router = useRouter();
 const authStore = useAuthStore();

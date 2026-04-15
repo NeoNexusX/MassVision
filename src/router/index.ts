@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/LoginView.vue'
-import Dashboard from '../views/DashboardView.vue'
 import Home from '../views/HomeView.vue'
 import UserProfileView from '../views/UserProfileView.vue'
 import PublicDatasets from '../views/PublicDatasets.vue'
 import MyDatasets from '../views/MyDatasets.vue'
 import { secureStorage } from '../utils/auth'
+import { useAuthStore } from '../stores/auth'
 
 const routes = [
   {
@@ -25,9 +25,9 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: Dashboard,
+    path: '/datasets/:id',
+    name: 'DatasetOverview',
+    component: () => import('../views/DatasetOverviewView.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -39,6 +39,12 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: () => import('../views/RegisterView.vue')
+  },
+  {
+    path: '/users',
+    name: 'UserManagement',
+    component: () => import('../views/UserManagementView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/profile',
@@ -54,11 +60,13 @@ const router = createRouter({
 })
 
 
-router.beforeEach((to, from, next) => {
-  // Check if authentication is required using meta fields
+router.beforeEach(async (to, from, next) => {
+  // Check meta fields
   const authRequired = to.matched.some(record => record.meta.requiresAuth);
+  const adminRequired = to.matched.some(record => record.meta.requiresAdmin);
   // Retrieve token using the secure storage utility
-  const loggedIn = secureStorage.getToken();
+  // Use `let` so we can re-check after attempting to fetch user (fetchUser may clear token on 401)
+  let loggedIn = secureStorage.getToken();
 
   // Redirect to Profile if already logged in and trying to access login/register pages
   if (loggedIn && ['/login', '/register'].includes(to.path)) {
@@ -67,14 +75,38 @@ router.beforeEach((to, from, next) => {
 
   // Redirect to login page if authentication is required but user is not logged in
   if (authRequired && !loggedIn) {
-    next({
+    return next({
       path: '/login',
       query: { redirect: to.fullPath }
     });
-  } else {
-    // Proceed with navigation
-    next();
   }
+
+  // If route requires admin, ensure the current user is an admin
+  if (adminRequired) {
+    const auth = useAuthStore();
+    // If we have a token but no user loaded, try to fetch the user profile first
+    if (loggedIn && !auth.user) {
+      try {
+        await auth.fetchUser();
+      } catch (err) {
+        // ignore - fetchUser will handle logout on 401
+      }
+      // Re-check token after fetchUser because it may have triggered logout and cleared the token
+      loggedIn = secureStorage.getToken();
+    }
+
+    // If user is not admin, block access
+    if (!auth.isAdmin) {
+      // If not authenticated, redirect to login; otherwise redirect to profile/home
+      if (!loggedIn) {
+        return next({ path: '/login', query: { redirect: to.fullPath } });
+      }
+      return next({ path: '/profile' });
+    }
+  }
+
+  // Proceed with navigation
+  return next();
 });
 
 export default router
