@@ -49,7 +49,7 @@ const placeholderSvg = computed(() => {
 </script>
 
 <template>
-  <div class="group flex flex-col md:flex-row items-start md:items-center p-4 gap-4 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 border border-base-300 cursor-pointer relative" @click="$emit('view-overview', dataset.name)">
+  <div class="group flex flex-col md:flex-row items-start md:items-center p-4 gap-4 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-base-300 cursor-pointer relative antialiased" @click="$emit('view-overview', dataset.name)">
     
     <!-- Unclickable background mask to intercept clicks on the entire right side and bottom right edges -->
     <div class="absolute right-0 top-0 bottom-0 md:w-[200px] w-full max-md:h-[120px] max-md:top-auto z-0 cursor-default" @click.stop></div>
@@ -72,7 +72,7 @@ const placeholderSvg = computed(() => {
         <!-- Title and Private/Public Icon wrapper -->
         <div class="flex items-center gap-2 flex-1 min-w-0">
           <h3
-            class="font-bold text-lg text-base-content truncate cursor-pointer hover:text-primary dark:hover:text-indigo-400 transition-colors block"
+            class="text-2xl md:text-3xl font-semibold text-base-content truncate cursor-pointer hover:text-primary dark:hover:text-indigo-400 transition-colors block mb-4"
             @click.stop="$emit('view-overview', dataset.name)"
             :title="dataset.name"
             :aria-label="`Dataset name: ${dataset.name}`"
@@ -91,54 +91,54 @@ const placeholderSvg = computed(() => {
         </span>
       </div>
 
-      <p class="text-sm text-base-content truncate" :title="dataset.organism">
+      <p class="text-base text-base-content truncate" :title="dataset.organism">
         <span class="font-medium">Organism:</span> {{ dataset.organism || '—' }}
       </p>
 
-      <p class="text-sm text-base-content truncate" :title="dataset.organismPart">
+      <p class="text-base text-base-content truncate" :title="dataset.organismPart">
         <span class="font-medium">Organism Part:</span> {{ dataset.organismPart || '—' }}
       </p>
 
-      <p class="text-sm text-base-content truncate" :title="dataset.experimentType">
+      <p class="text-base text-base-content truncate" :title="dataset.experimentType">
         <span class="font-medium">Experiment Type:</span> {{ dataset.experimentType || '—' }}
       </p>
 
-      <p class="text-sm text-base-content truncate" :title="(dataset.instrumentTypes || []).join(', ')">
+      <p class="text-base text-base-content truncate" :title="(dataset.instrumentTypes || []).join(', ')">
         <span class="font-medium">Instrument Types:</span> {{ (dataset.instrumentTypes && dataset.instrumentTypes.length) ? dataset.instrumentTypes.join(', ') : '—' }}
       </p>
 
-      <p class="text-sm text-base-content truncate">
+      <p class="text-base text-base-content truncate">
         <span class="inline-flex items-center gap-1 flex-wrap">
           <span>Submitted by </span>
           <span class="font-medium text-base-content">{{ dataset.submitter }}</span>
-          <span class="text-slate-400 text-xs">({{ new Date(dataset.submitTime).toLocaleDateString() }})</span>
+          <span class="text-slate-400 text-sm">({{ new Date(dataset.submitTime).toLocaleDateString() }})</span>
         </span>
-        <span class="block md:inline md:ml-2 mt-1 md:mt-0 text-sm text-base-content/60" :title="dataset.sizeBytes != null ? `${dataset.sizeBytes.toLocaleString()} bytes` : ''" :aria-label="dataset.sizeBytes != null ? `File size: ${formattedSize} (${dataset.sizeBytes.toLocaleString()} bytes)` : 'File size unknown'">
+        <span class="block md:inline md:ml-2 mt-1 md:mt-0 text-base text-base-content/60" :title="dataset.sizeBytes != null ? `${dataset.sizeBytes.toLocaleString()} bytes` : ''" :aria-label="dataset.sizeBytes != null ? `File size: ${formattedSize} (${dataset.sizeBytes.toLocaleString()} bytes)` : 'File size unknown'">
           {{ formattedSize }}
         </span>
       </p>
     </div>
 
     <!-- Right: Actions -->
-    <div class="relative z-10 flex-none w-full md:w-[180px] flex flex-row md:flex-col gap-3 md:gap-2 md:border-l border-t md:border-t-0 border-base-300 pt-3 md:pt-0 md:pl-4 items-center md:items-center justify-start md:justify-center flex-wrap cursor-default self-stretch" @click.stop>
+    <div class="relative z-10 flex-none w-full md:w-[180px] flex flex-row md:flex-col gap-4 md:gap-3 md:border-l border-t md:border-t-0 border-base-300 pt-3 md:pt-0 md:pl-4 items-center md:items-center justify-start md:justify-center flex-wrap cursor-default self-stretch" @click.stop>
 
-        <button class="flex items-center gap-2 text-sm font-medium text-base-content/70 hover:text-base-content transition-colors group/btn" @click.stop="$emit('view-metadata', dataset.id)">
-          <SvgIcon type="info" class="w-4 h-4" />
+        <button class="flex items-center gap-3 text-base font-medium text-base-content/80 hover:text-base-content transition-colors group/btn p-2 rounded" @click.stop="$emit('view-metadata', dataset.id)">
+          <SvgIcon type="info" class="w-5 h-5" />
           <span>Metadata</span>
         </button>
 
-        <button class="flex items-center gap-2 text-sm font-medium text-base-content/70 hover:text-base-content transition-colors group/btn" @click.stop="$emit('view-overview', dataset.name)">
-        <SvgIcon type="link" class="w-4 h-4" />
+        <button class="flex items-center gap-3 text-base font-medium text-base-content/80 hover:text-base-content transition-colors group/btn p-2 rounded" @click.stop="$emit('view-overview', dataset.name)">
+        <SvgIcon type="link" class="w-5 h-5" />
         <span>Overview</span>
       </button>
 
       <button 
-        class="flex items-center gap-2 text-sm font-medium transition-colors group/btn" 
-        :class="downloadProgress !== undefined ? 'text-primary pointer-events-none' : 'text-base-content/70 hover:text-base-content'"
+        class="flex items-center gap-3 text-base font-medium transition-colors group/btn p-2 rounded" 
+        :class="downloadProgress !== undefined ? 'text-primary pointer-events-none' : 'text-base-content/80 hover:text-base-content'"
         @click.stop="$emit('download', dataset.id)"
       >
           <span v-if="downloadProgress !== undefined" class="loading loading-spinner loading-xs"></span>
-          <SvgIcon v-else type="download" class="w-4 h-4" />
+          <SvgIcon v-else type="download" class="w-5 h-5" />
           <span>{{ downloadProgress !== undefined ? `${downloadProgress}%` : 'Download' }}</span>
       </button>
 
@@ -146,8 +146,8 @@ const placeholderSvg = computed(() => {
       <template v-if="isMyDataset">
         <div class="hidden md:block w-full h-px bg-base-200 my-1"></div>
         <div class="md:hidden h-4 w-px bg-base-200 mx-1"></div>
-           <button class="flex items-center gap-2 text-sm text-error hover:text-error transition-colors group/btn" @click.stop="$emit('delete', dataset.id)">
-            <SvgIcon type="trash" class="w-4 h-4" />
+           <button class="flex items-center gap-3 text-base text-error hover:text-error transition-colors group/btn p-2 rounded" @click.stop="$emit('delete', dataset.id)">
+            <SvgIcon type="trash" class="w-5 h-5" />
             <span>Delete</span>
           </button>
       </template>

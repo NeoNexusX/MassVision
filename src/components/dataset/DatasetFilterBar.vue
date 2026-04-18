@@ -228,7 +228,7 @@ watch(sortValue, (val) => emit('sort', val));
            class="flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-none rounded-lg shadow-sm transition-all transform active:scale-95 text-sm font-medium py-2 px-4 whitespace-normal text-center leading-tight"
          >
             <SvgIcon type="upload" class="w-4 h-4 shrink-0" />
-           <span>Upload New Dataset (imzML + ibd)</span>
+           <span>Upload New Dataset</span>
          </button>
 
          <!-- Sort Dropdown -->

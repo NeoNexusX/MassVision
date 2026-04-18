@@ -1,7 +1,7 @@
 ﻿<template>
 <dialog class="modal" :class="{ 'modal-open': isOpen }">
 <div class="modal-box rounded-lg w-11/12 max-w-2xl max-h-[90vh] flex flex-col text-base-content">
-<h3 class="font-bold text-lg mb-4 shrink-0">Upload New Dataset (imzML + ibd)</h3>
+<h3 class="font-bold text-lg mb-4 shrink-0">Upload New Dataset</h3>
 
 <!-- File selection & Metadata form -->
 <div v-if="stage === 'select'" class="flex flex-col gap-4">

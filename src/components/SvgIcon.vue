@@ -23,6 +23,7 @@ import {
 	MagnifyingGlassIcon,
 	ChevronDownIcon,
 	ChevronUpIcon,
+	ChevronRightIcon,
 	ArrowPathIcon,
 	ArrowLeftIcon,
 	PlusIcon,
@@ -43,6 +44,7 @@ import {
 	Bars3Icon,
 	SunIcon,
 	MoonIcon,
+	// chart/result and adjustments icons removed as unused for now
 } from '@heroicons/vue/24/outline';
 
 
@@ -71,6 +73,7 @@ const ICON_MAP: Record<string, any> = {
 	search: MagnifyingGlassIcon,
 	chevron_down: ChevronDownIcon,
 	chevron_up: ChevronUpIcon,
+	chevron_right: ChevronRightIcon,
 	plus: PlusIcon,
 	upload: ArrowUpTrayIcon,
 	download: ArrowDownTrayIcon,
@@ -92,6 +95,7 @@ const ICON_MAP: Record<string, any> = {
 	bars3: Bars3Icon,
 	sun: SunIcon,
 	moon: MoonIcon,
+
 };
 
 const IconComp = computed(() => ICON_MAP[props.type] || QuestionMarkCircleIcon);
