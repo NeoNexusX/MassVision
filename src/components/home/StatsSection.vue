@@ -1,7 +1,7 @@
 <template>
   <div class="py-16 bg-base-100 dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="grid grid-cols-1 md:flex md:flex-wrap gap-8 text-center">
+      <div class="flex flex-col md:flex-row flex-wrap gap-8 text-center">
 
         <!-- Column 1 -->
         <div class="flex-1 min-w-[250px] flex flex-col items-center justify-center p-8 bg-base-200 rounded-2xl shadow-sm border border-base-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">

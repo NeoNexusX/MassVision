@@ -31,6 +31,12 @@ export interface File {
 
   // Experiment / instrument
   instrumentTypes?: string[];
+  polarity?: string;
+  ionSource?: string;
+  analyzer?: string;
+  pixelSizeHorizontal?: number;
+  pixelSizeVertical?: number;
+  resolvingPower?: number | string;
 
   // Submission info
   submitTime: string; // ISO string

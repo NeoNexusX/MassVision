@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue';
-import DropdownSelect from '../DropdownSelect.vue';
+import BaseSelect from '../BaseSelect.vue';
 import {
   EXPERIMENT_TYPES,
   ORGANISMS,
@@ -138,7 +138,7 @@ watch(sortValue, (val) => emit('sort', val));
     <div class="flex flex-col md:flex-row gap-4 justify-between items-center">
       
       <!-- Left: Visibility or Add Filter -->
-      <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+      <div class="flex items-center gap-2 w-full md:w-auto min-w-0">
         <!-- Visibility Filter (My Datasets) -->
         <div v-if="showVisibilityFilter" class="relative group">
            <select 
@@ -152,7 +152,24 @@ watch(sortValue, (val) => emit('sort', val));
           </div>
         </div>
 
-        <!-- Add Filter (Public Datasets) -->
+        <!-- Add Filter (Public Datasets) -- moved after search -->
+
+        <!-- Search Box -->
+        <div class="relative flex-1 md:w-64 flex items-center gap-2 min-w-0">
+           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+             <SvgIcon type="search" class="h-4 w-4 text-slate-400" />
+           </div>
+           <input 
+             v-model="searchQuery"
+             @keydown.enter.prevent="() => {}"
+             type="text" 
+             class="flex-1 min-w-0 bg-base-200 border border-base-300 text-base-content text-sm rounded-lg focus:ring-primary focus:border-primary block pl-10 p-2 placeholder:text-base-content/40" 
+             :placeholder="searchPlaceholder"
+           />
+           <button @click="onSearchClick" class="btn btn-sm btn-primary ml-2 whitespace-nowrap">Search</button>
+        </div>
+
+        <!-- Add Filter (Public Datasets) - now to the right of search -->
         <div v-if="showAddFilter" class="relative group">
           <button ref="filterBtn" @click="toggleFilterPanel" class="flex items-center gap-2 bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content py-2 px-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium">
              <SvgIcon type="plus" class="w-4 h-4" />
@@ -165,34 +182,34 @@ watch(sortValue, (val) => emit('sort', val));
                  <input v-model="filters.filename" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Filename" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Experiment Type      
-                 <DropdownSelect v-model="filters.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Any" class="mt-1" />
+                 <BaseSelect v-model="filters.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Any" class="mt-1" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Username
                  <input v-model="filters.username" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Submitter username" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Organism
-                 <DropdownSelect v-model="filters.organism" :options="ORGANISMS" placeholder="Any" class="mt-1" />
+                 <BaseSelect v-model="filters.organism" :options="ORGANISMS" placeholder="Any" class="mt-1" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Organism Part
-                 <DropdownSelect v-model="filters.organism_part" :options="ORGANISM_PARTS" placeholder="Any" class="mt-1" />
+                 <BaseSelect v-model="filters.organism_part" :options="ORGANISM_PARTS" placeholder="Any" class="mt-1" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Condition
-                 <DropdownSelect v-model="filters.condition" :options="CONDITIONS" placeholder="Any" class="mt-1" />
+                 <BaseSelect v-model="filters.condition" :options="CONDITIONS" placeholder="Any" class="mt-1" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Sample Stabilization
-                 <DropdownSelect v-model="filters.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Any" class="mt-1" />
+                 <BaseSelect v-model="filters.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Any" class="mt-1" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Tissue Modification
-                 <DropdownSelect v-model="filters.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Any" class="mt-1" />
+                 <BaseSelect v-model="filters.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Any" class="mt-1" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">MALDI Matrix
-                 <DropdownSelect v-model="filters.maldi_matrix" :options="MALDI_MATRICES" placeholder="Any" class="mt-1" />
+                 <BaseSelect v-model="filters.maldi_matrix" :options="MALDI_MATRICES" placeholder="Any" class="mt-1" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Matrix Application
-                 <DropdownSelect v-model="filters.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Any" class="mt-1" />
+                 <BaseSelect v-model="filters.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Any" class="mt-1" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Solvent
-                 <DropdownSelect v-model="filters.solvent" :options="SOLVENTS" placeholder="Any" placement="dropdown-top dropdown-end" class="mt-1" />
+                 <BaseSelect v-model="filters.solvent" :options="SOLVENTS" placeholder="Any" placement="dropdown-top dropdown-end" class="mt-1" />
                </div>
              </div>
              <div class="mt-3 flex justify-end gap-2">
@@ -202,33 +219,18 @@ watch(sortValue, (val) => emit('sort', val));
            </div>
           </teleport>
         </div>
-
-        <!-- Search Box -->
-        <div class="relative flex-1 md:w-64 flex items-center gap-2">
-           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-             <SvgIcon type="search" class="h-4 w-4 text-slate-400" />
-           </div>
-           <input 
-             v-model="searchQuery"
-             @keydown.enter.prevent="() => {}"
-             type="text" 
-             class="flex-1 bg-base-200 border border-base-300 text-base-content text-sm rounded-lg focus:ring-primary focus:border-primary block pl-10 p-2 placeholder:text-base-content/40" 
-             :placeholder="searchPlaceholder"
-           />
-           <button @click="onSearchClick" class="btn btn-sm btn-primary ml-2">Search</button>
-        </div>
       </div>
 
       <!-- Right: Sort, Export, Upload -->
-      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-2 w-full md:w-auto">
+      <div class="flex flex-row flex-nowrap items-center justify-start gap-2 w-full md:w-auto overflow-hidden">
          <!-- Upload Button -->
          <button 
            v-if="showUpload"
            @click="$emit('upload')"
-           class="flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-none rounded-lg shadow-sm transition-all transform active:scale-95 text-sm font-medium py-2 px-4 whitespace-normal text-center leading-tight"
+           class="flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-none rounded-lg shadow-sm transition-all transform active:scale-95 text-sm font-medium py-2 px-4 min-w-0 overflow-hidden"
          >
             <SvgIcon type="upload" class="w-4 h-4 shrink-0" />
-           <span>Upload New Dataset</span>
+           <span class="truncate">Upload New Dataset</span>
          </button>
 
          <!-- Sort Dropdown -->

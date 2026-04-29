@@ -43,7 +43,7 @@ const onGoToPage = (p: number) => emit('go-to-page', p);
       <slot name="empty">No datasets found matching your filters.</slot>
     </div>
 
-    <!-- Data grid -->
+    <!-- Data list -->
     <div v-else class="flex flex-wrap gap-6 justify-start">
       <div 
         v-for="dataset in datasets" 

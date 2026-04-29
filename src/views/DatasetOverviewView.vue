@@ -23,6 +23,22 @@ const downloadProgress = computed(() => {
   return downloadingMap.value[idKey];
 });
 
+const getDownloadLabel = (id: string) => {
+  // Prefer the dataset filename/name when the id corresponds to current dataset
+  try {
+    if (dataset.value) {
+      const ds = dataset.value;
+      if (String(ds.id) === String(id)) return ds.filename || ds.name || String(id);
+      if (ds.filename === id || ds.name === id) return ds.filename || ds.name || String(id);
+    }
+  } catch (e) {
+    // ignore and fallback
+  }
+  // If route param equals id and dataset exists, use dataset filename
+  if (String(route.params.id) === String(id) && dataset.value) return dataset.value.filename || dataset.value.name || String(id);
+  return String(id);
+}
+
 // Format bytes to MB/GB
 const formatSize = (bytes?: number) => {
   if (bytes === undefined || bytes === null || isNaN(bytes)) return '—';
@@ -68,10 +84,10 @@ const downloadCurrent = async () => {
   if (!targetId) return;
   await handleDownload(targetId, {
     getFallbackFilename: () => {
-      if (dataset.value?.filename) {
-        return dataset.value.filename.toLowerCase().endsWith('.zip') ? dataset.value.filename : `${dataset.value.filename}.zip`;
-      }
-      return undefined;
+      // Prefer raw filename, then display name, then route param as last resort
+      const fn = dataset.value?.filename || dataset.value?.name || (route.params.id as string) || undefined;
+      if (!fn) return undefined;
+      return fn.toLowerCase().endsWith('.zip') ? fn : `${fn}.zip`;
     }
   });
 };
@@ -308,12 +324,46 @@ onMounted(() => {
           </div>
         </div>
 
+        <!-- 5b. MS Analysis Settings -->
+        <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
+          <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
+            MS Analysis Settings
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Polarity</span>
+              <span class="text-base-content break-words">{{ dataset?.polarity || '—' }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Ionisation Source</span>
+              <span class="text-base-content break-words">{{ dataset?.ionSource || '—' }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Analyzer</span>
+              <span class="text-base-content break-words">{{ dataset?.analyzer || '—' }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Pixel Size</span>
+              <span class="text-base-content break-words">
+                <template v-if="dataset?.pixelSizeHorizontal != null || dataset?.pixelSizeVertical != null">
+                  {{ dataset?.pixelSizeHorizontal ?? '—' }} × {{ dataset?.pixelSizeVertical ?? '—' }} μm
+                </template>
+                <template v-else>—</template>
+              </span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Resolving Power</span>
+              <span class="text-base-content break-words">{{ dataset?.resolvingPower != null ? dataset.resolvingPower : '—' }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 6. Technical Info -->
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
             <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
             Technical Details
           </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="flex flex-col max-w-full">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">MD5 Hash</span>
               <div class="flex items-center gap-2 max-w-full">
@@ -334,6 +384,10 @@ onMounted(() => {
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Total Size</span>
                 <span class="text-base-content break-words">{{ formatSize(dataset?.sizeBytes) }}</span>
             </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Submitted By</span>
+                <span class="text-base-content break-words">{{ dataset?.submitter || (dataset?.raw?.first_uploaded_by) || '—' }}</span>
+            </div>
           </div>
         </div>
 
@@ -349,8 +403,8 @@ onMounted(() => {
         class="card bg-base-100 shadow-2xl border border-base-200 p-4 w-72 pointer-events-auto rounded-xl animate-fade-in-up"
       >
         <div class="flex items-center justify-between mb-3 text-sm">
-          <span class="font-bold truncate pr-3 text-base-content" :title="(String(route.params.id) === String(id) && dataset) ? dataset.filename : String(id)">
-            Downloading: {{ (String(route.params.id) === String(id) && dataset) ? dataset.filename : String(id) }}
+          <span class="font-bold truncate pr-3 text-base-content" :title="getDownloadLabel(id)">
+            Downloading: {{ getDownloadLabel(id) }}
           </span>
           <span class="font-black text-black whitespace-nowrap">{{ progress }}%</span>
         </div>

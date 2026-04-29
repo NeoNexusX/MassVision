@@ -49,7 +49,7 @@ const placeholderSvg = computed(() => {
 </script>
 
 <template>
-  <div class="group flex flex-col md:flex-row items-start md:items-center p-4 gap-4 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-base-300 cursor-pointer relative antialiased" @click="$emit('view-overview', dataset.name)">
+  <div class="group flex flex-col md:flex-row items-start md:items-center p-4 gap-4 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-base-300 cursor-pointer relative antialiased overflow-hidden" @click="$emit('view-overview', dataset.name)">
     
     <!-- Unclickable background mask to intercept clicks on the entire right side and bottom right edges -->
     <div class="absolute right-0 top-0 bottom-0 md:w-[200px] w-full max-md:h-[120px] max-md:top-auto z-0 cursor-default" @click.stop></div>
@@ -103,8 +103,12 @@ const placeholderSvg = computed(() => {
         <span class="font-medium">Experiment Type:</span> {{ dataset.experimentType || '—' }}
       </p>
 
-      <p class="text-base text-base-content truncate" :title="(dataset.instrumentTypes || []).join(', ')">
-        <span class="font-medium">Instrument Types:</span> {{ (dataset.instrumentTypes && dataset.instrumentTypes.length) ? dataset.instrumentTypes.join(', ') : '—' }}
+      <p class="text-base text-base-content truncate" :title="dataset.ionSource">
+        <span class="font-medium">Ionisation Source:</span> {{ dataset.ionSource || '—' }}
+      </p>
+
+      <p class="text-base text-base-content truncate" :title="dataset.analyzer">
+        <span class="font-medium">Analyzer:</span> {{ dataset.analyzer || '—' }}
       </p>
 
       <p class="text-base text-base-content truncate">
@@ -120,35 +124,35 @@ const placeholderSvg = computed(() => {
     </div>
 
     <!-- Right: Actions -->
-    <div class="relative z-10 flex-none w-full md:w-[180px] flex flex-row md:flex-col gap-4 md:gap-3 md:border-l border-t md:border-t-0 border-base-300 pt-3 md:pt-0 md:pl-4 items-center md:items-center justify-start md:justify-center flex-wrap cursor-default self-stretch" @click.stop>
+    <div class="relative z-10 w-full md:max-w-[180px] shrink flex flex-row md:flex-col gap-4 md:gap-3 md:border-l border-t md:border-t-0 border-base-300 pt-3 md:pt-0 md:pl-4 items-center md:items-center justify-start md:justify-center flex-wrap cursor-default self-stretch min-w-0" @click.stop>
 
-        <button class="flex items-center gap-3 text-base font-medium text-base-content/80 hover:text-base-content transition-colors group/btn p-2 rounded" @click.stop="$emit('view-metadata', dataset.id)">
+        <button class="flex items-center gap-3 text-base font-medium text-base-content/80 hover:text-base-content transition-colors group/btn p-2 rounded min-w-0" @click.stop="$emit('view-metadata', dataset.id)">
           <SvgIcon type="info" class="w-5 h-5" />
-          <span>Metadata</span>
+          <span class="truncate">Metadata</span>
         </button>
 
-        <button class="flex items-center gap-3 text-base font-medium text-base-content/80 hover:text-base-content transition-colors group/btn p-2 rounded" @click.stop="$emit('view-overview', dataset.name)">
+        <button class="flex items-center gap-3 text-base font-medium text-base-content/80 hover:text-base-content transition-colors group/btn p-2 rounded min-w-0" @click.stop="$emit('view-overview', dataset.name)">
         <SvgIcon type="link" class="w-5 h-5" />
-        <span>Overview</span>
+        <span class="truncate">Overview</span>
       </button>
 
       <button 
-        class="flex items-center gap-3 text-base font-medium transition-colors group/btn p-2 rounded" 
+        class="flex items-center gap-3 text-base font-medium transition-colors group/btn p-2 rounded min-w-0" 
         :class="downloadProgress !== undefined ? 'text-primary pointer-events-none' : 'text-base-content/80 hover:text-base-content'"
         @click.stop="$emit('download', dataset.id)"
       >
           <span v-if="downloadProgress !== undefined" class="loading loading-spinner loading-xs"></span>
           <SvgIcon v-else type="download" class="w-5 h-5" />
-          <span>{{ downloadProgress !== undefined ? `${downloadProgress}%` : 'Download' }}</span>
+          <span class="truncate">{{ downloadProgress !== undefined ? `${downloadProgress}%` : 'Download' }}</span>
       </button>
 
       <!-- Delete for Owner -->
       <template v-if="isMyDataset">
         <div class="hidden md:block w-full h-px bg-base-200 my-1"></div>
         <div class="md:hidden h-4 w-px bg-base-200 mx-1"></div>
-           <button class="flex items-center gap-3 text-base text-error hover:text-error transition-colors group/btn p-2 rounded" @click.stop="$emit('delete', dataset.id)">
+           <button class="flex items-center gap-3 text-base text-error hover:text-error transition-colors group/btn p-2 rounded min-w-0" @click.stop="$emit('delete', dataset.id)">
             <SvgIcon type="trash" class="w-5 h-5" />
-            <span>Delete</span>
+            <span class="truncate">Delete</span>
           </button>
       </template>
     </div>

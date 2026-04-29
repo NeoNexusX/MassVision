@@ -40,6 +40,14 @@ export function mapItemToDataset(item: any, index = 0): File {
       return [String(raw)];
     })(),
 
+    // MS Analysis
+    polarity: item.polarity || '',
+    ionSource: item.ionisation_source || '',
+    analyzer: item.analyzer || '',
+    pixelSizeHorizontal: item.pixel_size_horizontal,
+    pixelSizeVertical: item.pixel_size_vertical,
+    resolvingPower: item.resolving_power,
+
     // Technical
     sizeBytes: item.size ?? undefined,
     storageType: item.storage_type || '',
@@ -47,7 +55,7 @@ export function mapItemToDataset(item: any, index = 0): File {
 
     // Submission info
     submitTime: item.uploaded_at || '',
-    submitter: item.username || '',
+    submitter: item.first_uploaded_by || '',
     institution: item.institution || '',
 
     status: (item.status as any) || 'Finished',

@@ -5,7 +5,7 @@
       <SvgIcon v-if="iconType" :type="iconType" class="w-5 h-5 mr-3 flex-shrink-0" aria-hidden="true" />
       
       <select
-        class="grow focus:outline-none bg-transparent border-none focus:border-transparent ring-0 focus:ring-0 outline-none h-full font-normal min-w-0"
+        class="grow focus:outline-none bg-transparent border-none focus:border-transparent ring-0 focus:ring-0 outline-none h-full font-normal min-w-0 py-2"
         :class="{'text-base-content/50': !modelValue}"
         :value="modelValue"
         @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value); $emit('change', $event)"

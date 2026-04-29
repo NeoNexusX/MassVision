@@ -4,7 +4,7 @@
 
     <!-- Main Content -->
     <div class="w-full max-w-7xl">
-      <div class="card bg-base-100 border border-base-200 shadow-sm overflow-hidden flex flex-col">
+      <div class="card bg-base-100 border border-base-200 shadow-sm overflow-visible flex flex-col">
         
         <!-- Header / Banner -->
         <div class="h-32 shrink-0 bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center px-8">
@@ -60,13 +60,23 @@
               <BaseInput label="Institution" v-model="formData.institution" placeholder="University Name" />
 
               <!-- Position -->
-              <BaseSelect label="Position" v-model="formData.position" :options="positionOptions" placeholder="Select Position" />
+              <div>
+                <label class="label mb-0"><span class="label-text font-semibold">Position</span></label>
+                <div class="bold-select">
+                  <DropdownSelect v-model="formData.position" :options="positionOptions" placeholder="Select Position" />
+                </div>
+              </div>
 
               <!-- Research Field -->
               <BaseInput label="Research Field" v-model="formData.research_field" placeholder="e.g. Computer Vision" />
 
               <!-- Region -->
-              <BaseSelect label="Region" v-model="formData.region" :options="regionOptions" placeholder="Select Region" />
+              <div>
+                <label class="label mb-0"><span class="label-text font-semibold">Region</span></label>
+                <div class="bold-select">
+                  <DropdownSelect v-model="regionLabel" :options="regionNames" placeholder="Select Region" />
+                </div>
+              </div>
 
               <!-- ORCID -->
               <BaseInput label="ORCID" v-model="formData.orcid" placeholder="0000-0000-0000-0000" />
@@ -128,7 +138,7 @@ import { useAuthStore } from '../stores/auth';
 import countries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
 import BaseInput from '../components/BaseInput.vue';
-import BaseSelect from '../components/BaseSelect.vue';
+import DropdownSelect from '../components/BaseSelect.vue';
 
 countries.registerLocale(enLocale);
 
@@ -138,15 +148,23 @@ const authStore = useAuthStore();
 const loading = ref(false);
 
 // 1. Dropdown options
-const regionOptions = computed(() => {
-  const countryObj = countries.getNames("en");
-  return Object.entries(countryObj)
-    .map(([code, name]) => {
-      // China code handling
-      if (code === 'CN') return { code, name: "China" };
-      return { code, name };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name));
+const countryObj = countries.getNames("en");
+const countryList = Object.entries(countryObj)
+  .map(([code, name]) => ({ code, name: code === 'CN' ? 'China' : name }))
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+const regionOptions = computed(() => countryList);
+const regionNames = computed(() => countryList.map(c => c.name));
+
+const regionLabel = computed<string>({
+  get() {
+    const found = countryList.find(c => c.code === formData.region);
+    return found ? found.name : '';
+  },
+  set(val: string) {
+    const found = countryList.find(c => c.name === val);
+    formData.region = found ? found.code : val;
+  }
 });
 
 const positionOptions = [
@@ -379,3 +397,10 @@ const handleLogout = async () => {
     router.push('/login');
 };
 </script>
+
+<style scoped>
+/* Make dropdown displayed value bold only on this page for elements wrapped in .bold-select */
+.bold-select ::v-deep .truncate {
+  font-weight: 600 !important;
+}
+</style>

@@ -21,9 +21,9 @@
           
           <div class="flex flex-col gap-3">
              <!-- Email -->
-             <a href="mailto:support@massflow.org" class="flex items-center gap-2 text-base-content/50 hover:text-base-content transition-colors text-sm group w-fit">
+             <a href="mailto:jydong@xmu.edu.cn" class="flex items-center gap-2 text-base-content/50 hover:text-base-content transition-colors text-sm group w-fit">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                <span class="group-hover:border-b border-gray-500 pb-0.5">support@massflow.org</span>
+                <span class="group-hover:border-b border-gray-500 pb-0.5">jydong@xmu.edu.cn</span>
              </a>
 
              <!-- GitHub -->

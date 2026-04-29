@@ -1,7 +1,7 @@
 ﻿<template>
 <dialog class="modal" :class="{ 'modal-open': isOpen }">
 <div class="modal-box rounded-lg w-11/12 max-w-2xl max-h-[90vh] flex flex-col text-base-content">
-<h3 class="font-bold text-lg mb-4 shrink-0">Upload New Dataset</h3>
+<h3 class="font-bold text-lg mb-4 shrink-0">Upload New Dataset (imzML + ibd)</h3>
 
 <!-- File selection & Metadata form -->
 <div v-if="stage === 'select'" class="flex flex-col gap-4">
@@ -25,7 +25,7 @@
 
 <!-- Immediately available Metadata form -->
 <div class="space-y-4">
-<div class="grid grid-cols-1 gap-4 pb-4">
+<div class="flex flex-col gap-4 pb-4">
   <!-- Public toggle -->
   <div class="flex items-center gap-3">
     <input type="checkbox" id="is_public" v-model="form.is_public" class="checkbox checkbox-sm" />
@@ -34,61 +34,94 @@
 
   <div class="flex flex-col">
     <label class="label"><span class="label-text font-medium text-base-content text-base">Experiment Type</span></label>
-    <DropdownSelect v-model="form.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Select type..." />
+    <BaseSelect v-model="form.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Select type..." />
     <input v-if="form.experiment_type === 'Other'" v-model="otherInputs.experiment_type" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Polarity</span></label>
+    <BaseSelect v-model="form.polarity" :options="['Positive', 'Negative']" placeholder="Select polarity..." />
+  </div>
+
+  <div class="flex flex-col">
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Ionisation Source</span></label>
+    <BaseSelect v-model="form.ionisation_source" :options="['MALDI', 'DESI', 'SIMS', 'Other']" placeholder="Select source..." />
+    <input v-if="form.ionisation_source === 'Other'" v-model="otherInputs.ionisation_source" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+  </div>
+
+  <div class="flex flex-col">
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Analyzer</span></label>
+    <BaseSelect v-model="form.analyzer" :options="['Orbitrap', 'FTICR', 'TOF', 'Q-TOF', 'Other']" placeholder="Select analyzer..." />
+    <input v-if="form.analyzer === 'Other'" v-model="otherInputs.analyzer" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+  </div>
+
+  <div class="grid grid-cols-2 gap-3">
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Pixel Size X (μm)</span></label>
+      <input v-model="form.pixel_size_horizontal" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 50" />
+    </div>
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Pixel Size Y (μm)</span></label>
+      <input v-model="form.pixel_size_vertical" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 50" />
+    </div>
+  </div>
+
+  <div class="flex flex-col">
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Resolving Power</span></label>
+    <input v-model="form.resolving_power" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 70000" />
+  </div>
+
+  <div class="flex flex-col">
     <label class="label"><span class="label-text font-medium text-base-content text-base">Organism</span></label>
-    <DropdownSelect v-model="form.organism" :options="ORGANISMS" placeholder="Select organism..." />
+    <BaseSelect v-model="form.organism" :options="ORGANISMS" placeholder="Select organism..." />
     <input v-if="form.organism === 'Other'" v-model="otherInputs.organism" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
     <label class="label"><span class="label-text font-medium text-base-content text-base">Organism Part</span></label>
-    <DropdownSelect v-model="form.organism_part" :options="ORGANISM_PARTS" placeholder="Select part..." />
+    <BaseSelect v-model="form.organism_part" :options="ORGANISM_PARTS" placeholder="Select part..." />
     <input v-if="form.organism_part === 'Other'" v-model="otherInputs.organism_part" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
     <label class="label"><span class="label-text font-medium text-base-content text-base">Condition (Multi-select)</span></label>
-    <DropdownSelect v-model="form.condition" :options="CONDITIONS" placeholder="Select condition..." :multiple="true" />
+    <BaseSelect v-model="form.condition" :options="CONDITIONS" placeholder="Select condition..." :multiple="true" />
     <input v-if="form.condition.includes('Other')" v-model="otherInputs.condition" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
     <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Growth Conditions (Multi-select)</span></label>
-    <DropdownSelect v-model="form.sample_growth_conditions" :options="SAMPLE_GROWTH_CONDITIONS" placeholder="Select growth..." :multiple="true" />
+    <BaseSelect v-model="form.sample_growth_conditions" :options="SAMPLE_GROWTH_CONDITIONS" placeholder="Select growth..." :multiple="true" />
     <input v-if="form.sample_growth_conditions.includes('Other')" v-model="otherInputs.sample_growth_conditions" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
     <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Stabilization</span></label>
-    <DropdownSelect v-model="form.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Select stabilization..." />
+    <BaseSelect v-model="form.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Select stabilization..." />
     <input v-if="form.sample_stabilization === 'Other'" v-model="otherInputs.sample_stabilization" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
     <label class="label"><span class="label-text font-medium text-base-content text-base">Tissue Modification (Multi-select)</span></label>
-    <DropdownSelect v-model="form.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Select modification..." :multiple="true" />
+    <BaseSelect v-model="form.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Select modification..." :multiple="true" />
     <input v-if="form.tissue_modification.includes('Other')" v-model="otherInputs.tissue_modification" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
     <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI Matrix</span></label>
-    <DropdownSelect v-model="form.maldi_matrix" :options="MALDI_MATRICES" placeholder="Select matrix..." />
+    <BaseSelect v-model="form.maldi_matrix" :options="MALDI_MATRICES" placeholder="Select matrix..." />
     <input v-if="form.maldi_matrix === 'Other'" v-model="otherInputs.maldi_matrix" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
     <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI Matrix Application</span></label>
-    <DropdownSelect v-model="form.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Select application..." />
+    <BaseSelect v-model="form.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Select application..." />
     <input v-if="form.maldi_matrix_application === 'Other'" v-model="otherInputs.maldi_matrix_application" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
     <label class="label"><span class="label-text font-medium text-base-content text-base">Solvent (Multi-select)</span></label>
-    <DropdownSelect v-model="form.solvent" :options="SOLVENTS" placeholder="Select solvent..." :multiple="true" />
+    <BaseSelect v-model="form.solvent" :options="SOLVENTS" placeholder="Select solvent..." :multiple="true" />
     <input v-if="form.solvent.includes('Other')" v-model="otherInputs.solvent" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 </div>
@@ -133,7 +166,8 @@ import { ref, computed } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useRouter } from 'vue-router';
 import { uploadImzmlZipFile, type ImzmlFilePair, type UnifiedUploadProgress } from '@/utils/imzml-helper';
-import DropdownSelect from './DropdownSelect.vue';
+import { parseImzMLMSSettings } from '@/utils/imzml-parser';
+import BaseSelect from './BaseSelect.vue';
 import {
   EXPERIMENT_TYPES,
   ORGANISMS,
@@ -169,6 +203,12 @@ let abortController: AbortController | null = null;
 
 const form = ref({
   experiment_type: 'imzML',
+  polarity: '',
+  ionisation_source: '',
+  analyzer: '',
+  pixel_size_horizontal: '',
+  pixel_size_vertical: '',
+  resolving_power: '',
   organism: '',
   organism_part: '',
   condition: [] as string[],
@@ -183,6 +223,8 @@ const form = ref({
 
 const otherInputs = ref({
   experiment_type: '',
+  ionisation_source: '',
+  analyzer: '',
   organism: '',
   organism_part: '',
   condition: '',
@@ -216,6 +258,12 @@ function resetAll() {
   abortController = null;
   Object.assign(form.value, {
     experiment_type: 'imzML',
+    polarity: '',
+    ionisation_source: '',
+    analyzer: '',
+    pixel_size_horizontal: '',
+    pixel_size_vertical: '',
+    resolving_power: '',
     organism: '',
     organism_part: '',
     condition: [],
@@ -266,6 +314,26 @@ const base2 = imzml.name.substring(0, imzml.name.lastIndexOf('.'));
 
     error.value = '';
     selectedPair.value = { ibd, imzml, baseName: base2 };
+
+    // Auto-fill MS settings from imzML metadata
+    parseImzMLMSSettings(imzml).then((settings) => {
+      if (settings.polarity) {
+        form.value.polarity = settings.polarity === 'negative' ? 'Negative' : 'Positive';
+      }
+      if (settings.ionSource && ['MALDI', 'DESI', 'SIMS'].includes(settings.ionSource)) {
+        form.value.ionisation_source = settings.ionSource;
+      }
+      if (settings.analyzer) {
+        const analyzers = ['Orbitrap', 'FTICR', 'TOF', 'Q-TOF'];
+        form.value.analyzer = analyzers.includes(settings.analyzer) ? settings.analyzer : '';
+      }
+      if (settings.pixelSizeX != null) {
+        form.value.pixel_size_horizontal = String(settings.pixelSizeX);
+      }
+      if (settings.pixelSizeY != null) {
+        form.value.pixel_size_vertical = String(settings.pixelSizeY);
+      }
+    }).catch(() => {});
 };
 
 const abortUpload = () => {
@@ -287,17 +355,22 @@ error.value = '';
 abortController = new AbortController();
 
 try {
-        const payload: Record<string, string> = {};
+        const payload: Record<string, any> = {};
         Object.keys(form.value).forEach((key) => {
           const k = key as keyof typeof form.value;
-          const val = form.value[k] as any;
+          const val = (form.value as any)[k];
           if (Array.isArray(val)) {
             const others = val.includes('Other') ? [(otherInputs.value as any)[k]] : [];
-            payload[k] = val.filter(v => v !== 'Other').concat(others).filter(Boolean).join(', ');
+            payload[k] = val.filter((v: string) => v !== 'Other').concat(others).filter(Boolean).join(', ');
           } else {
             payload[k] = val === 'Other' ? (otherInputs.value as any)[k] : val;
           }
         });
+
+        // Convert numeric fields (always, empty string → 0)
+        payload.pixel_size_horizontal = Number(payload.pixel_size_horizontal);
+        payload.pixel_size_vertical = Number(payload.pixel_size_vertical);
+        payload.resolving_power = Number(payload.resolving_power);
 
         await uploadImzmlZipFile({
           files: selectedPair.value,

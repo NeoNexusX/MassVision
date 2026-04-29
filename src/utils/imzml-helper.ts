@@ -380,8 +380,11 @@ export interface PreflightResponse {
 
 // 3. Status check return value
 export interface ChunkStatusResponse {
-  uploaded_parts: number[];
+  file_hash: string;
+  filename: string;
   total_parts: number;
+  uploaded_parts: number[];
+  total_size: number;
   is_complete: boolean;
 }
 
@@ -427,6 +430,14 @@ export async function preflightFile(params: PreflightParams, signal?: AbortSigna
  */
 export async function getChunkUploadStatus(fileId: string, signal?: AbortSignal): Promise<ChunkStatusResponse> {
   const response = await auth_api.get(`/files/chunked/${fileId}/status`, { signal });
+  return response.data || response;
+}
+
+/**
+ * 3.2b Validate & Merge API: Manually trigger chunk merge when is_complete is false
+ */
+export async function validateAndMergeChunks(fileId: string, signal?: AbortSignal): Promise<ChunkStatusResponse> {
+  const response = await auth_api.post(`/files/chunked/${fileId}/validate_and_merge`, null, { signal });
   return response.data || response;
 }
 
@@ -565,7 +576,7 @@ export async function uploadChunks(
   // Initial report
   reportProgress();
 
-  const concurrency = 1; // 原为 3，现设为 1 以保证稳定合并
+  const concurrency = 4; // Limit concurrency to 4 to balance speed and resource usage; can be adjusted based on testing
   const chunkQueue = [...pendingChunks];
 
   const failedParts: number[] = [];
@@ -740,52 +751,54 @@ export async function uploadImzmlZipFile({
   const alreadyUploadedCount = uploadedPartsRes.uploaded_parts?.length || 0;
   const pendingChunks = filterPendingChunks(chunkPlans, uploadedPartsRes.uploaded_parts || []);
 
-  if (pendingChunks.length === 0) {
-    onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete (file exists on server).' });
-    return { upload_id, fileHash }; 
-  }
-
   // ================= Phase 5: Batch Serial Generator =================
-  onProgress?.({ stage: 'uploading', percent: 0, message: `Preparing to upload ${chunkPlans.length} chunks...` });
-  
-  const completedBytes = chunkPlans
-    .filter(p => !pendingChunks.includes(p))
-    .reduce((sum, p) => sum + p.chunkSize, 0);
+  if (pendingChunks.length > 0) {
+    onProgress?.({ stage: 'uploading', percent: 0, message: `Preparing to upload ${pendingChunks.length} chunks...` });
 
-  let failedParts: number[] = [];
-  try {
-    failedParts = await uploadChunks(
-      zipFile,
-      pendingChunks,
-      fileHash,
-      upload_id,
-      {
-        signal,
-        totalPartsCount: chunkPlans.length,
-        alreadyUploadedPartsCount: alreadyUploadedCount,
-        onProgress: (p: any) => onProgress?.({ 
-          stage: 'uploading', 
-          percent: p.percent, 
-          message: `Chunks: ${p.currentUploadedParts}/${p.totalParts} | Uploaded: ${(p.loadedBytes / 1048576).toFixed(2)}MB / ${(p.totalBytes / 1048576).toFixed(2)}MB`,
-          speedStr: p.speedStr,
-          etaStr: p.etaStr
-        })
-      }
-    );
-  } catch (err) {
-    // Rethrow so caller sees failure and UI doesn't mark upload as completed
-    throw err;
+    let failedParts: number[] = [];
+    try {
+      failedParts = await uploadChunks(
+        zipFile,
+        pendingChunks,
+        fileHash,
+        upload_id,
+        {
+          signal,
+          totalPartsCount: chunkPlans.length,
+          alreadyUploadedPartsCount: alreadyUploadedCount,
+          onProgress: (p: any) => onProgress?.({
+            stage: 'uploading',
+            percent: p.percent,
+            message: `Chunks: ${p.currentUploadedParts}/${p.totalParts} | Uploaded: ${(p.loadedBytes / 1048576).toFixed(2)}MB / ${(p.totalBytes / 1048576).toFixed(2)}MB`,
+            speedStr: p.speedStr,
+            etaStr: p.etaStr
+          })
+        }
+      );
+    } catch (err) {
+      // Rethrow so caller sees failure and UI doesn't mark upload as completed
+      throw err;
+    }
+
+    if (failedParts.length > 0) {
+      const msg = `Failed to upload parts: ${failedParts.join(',')}`;
+      onProgress?.({ stage: 'uploading', percent: 100, message: msg });
+      throw new Error(msg);
+    }
   }
 
-  if (failedParts.length > 0) {
-    const msg = `Failed to upload parts: ${failedParts.join(',')}`;
-    onProgress?.({ stage: 'uploading', percent: 100, message: msg });
-    throw new Error(msg);
+  // ================= Phase 6: Finalize — check merge status and trigger if needed =================
+  onProgress?.({ stage: 'completed', percent: 95, message: 'Verifying chunk merge...' });
+
+  const finalStatus = await getChunkUploadStatus(upload_id, signal);
+
+  if (!finalStatus.is_complete) {
+    onProgress?.({ stage: 'completed', percent: 97, message: 'Triggering server-side merge...' });
+    await validateAndMergeChunks(upload_id, signal);
   }
 
-  // ================= Phase 6: All Normal =================
   onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete.' });
-  
+
   return { upload_id, fileHash };
 }
 
