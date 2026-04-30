@@ -23,110 +23,118 @@
 </div>
 </label>
 
-<!-- Immediately available Metadata form -->
-<div class="space-y-4">
-<div class="flex flex-col gap-4 pb-4">
-  <!-- Public toggle -->
-  <div class="flex items-center gap-3">
-    <input type="checkbox" id="is_public" v-model="form.is_public" class="checkbox checkbox-sm" />
-    <label for="is_public" class="text-sm">Make dataset public (visible to others)</label>
-  </div>
+  <!-- Metadata form — Required fields first, then optional -->
+  <div class="space-y-4">
+  <div class="flex flex-col gap-4 pb-4">
 
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Experiment Type</span></label>
-    <BaseSelect v-model="form.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Select type..." />
-    <input v-if="form.experiment_type === 'Other'" v-model="otherInputs.experiment_type" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
-
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Polarity</span></label>
-    <BaseSelect v-model="form.polarity" :options="['Positive', 'Negative']" placeholder="Select polarity..." />
-  </div>
-
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Ionisation Source</span></label>
-    <BaseSelect v-model="form.ionisation_source" :options="['MALDI', 'DESI', 'SIMS', 'Other']" placeholder="Select source..." />
-    <input v-if="form.ionisation_source === 'Other'" v-model="otherInputs.ionisation_source" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
-
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Analyzer</span></label>
-    <BaseSelect v-model="form.analyzer" :options="['Orbitrap', 'FTICR', 'TOF', 'Q-TOF', 'Other']" placeholder="Select analyzer..." />
-    <input v-if="form.analyzer === 'Other'" v-model="otherInputs.analyzer" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
-
-  <div class="grid grid-cols-2 gap-3">
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Pixel Size X (μm)</span></label>
-      <input v-model="form.pixel_size_horizontal" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 50" />
+    <div class="flex items-center gap-3">
+      <input type="checkbox" id="is_public" v-model="form.is_public" class="checkbox checkbox-sm" />
+      <label for="is_public" class="text-sm">Make dataset public (visible to others)</label>
     </div>
+
+    <div class="divider text-sm text-base-content/50">Required</div>
+
+    <!-- ===== Required Fields ===== -->
+
     <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Pixel Size Y (μm)</span></label>
-      <input v-model="form.pixel_size_vertical" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 50" />
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Polarity <span class="text-error">*</span></span></label>
+      <BaseSelect v-model="form.polarity" :options="['Positive', 'Negative']" placeholder="Select polarity..." />
     </div>
-  </div>
 
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Resolving Power</span></label>
-    <input v-model="form.resolving_power" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 70000" />
-  </div>
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Ionisation Source <span class="text-error">*</span></span></label>
+      <BaseSelect v-model="form.ionisation_source" :options="['MALDI', 'DESI', 'SIMS', 'Other']" placeholder="Select source..." />
+      <input v-if="form.ionisation_source === 'Other'" v-model="otherInputs.ionisation_source" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
 
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Organism</span></label>
-    <BaseSelect v-model="form.organism" :options="ORGANISMS" placeholder="Select organism..." />
-    <input v-if="form.organism === 'Other'" v-model="otherInputs.organism" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Analyzer <span class="text-error">*</span></span></label>
+      <BaseSelect v-model="form.analyzer" :options="['Orbitrap', 'FTICR', 'TOF', 'Q-TOF', 'Other']" placeholder="Select analyzer..." />
+      <input v-if="form.analyzer === 'Other'" v-model="otherInputs.analyzer" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
 
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Organism Part</span></label>
-    <BaseSelect v-model="form.organism_part" :options="ORGANISM_PARTS" placeholder="Select part..." />
-    <input v-if="form.organism_part === 'Other'" v-model="otherInputs.organism_part" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div class="flex flex-col">
+        <label class="label"><span class="label-text font-medium text-base-content text-base">Pixel Size X (μm) <span class="text-error">*</span></span></label>
+        <input v-model="form.pixel_size_horizontal" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 50" />
+      </div>
+      <div class="flex flex-col">
+        <label class="label"><span class="label-text font-medium text-base-content text-base">Pixel Size Y (μm) <span class="text-error">*</span></span></label>
+        <input v-model="form.pixel_size_vertical" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 50" />
+      </div>
+    </div>
 
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Condition  </span></label>
-    <BaseSelect v-model="form.condition" :options="CONDITIONS" placeholder="Select condition..." />
-    <input v-if="form.condition === 'Other'" v-model="otherInputs.condition" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Organism <span class="text-error">*</span></span></label>
+      <BaseSelect v-model="form.organism" :options="ORGANISMS" placeholder="Select organism..." />
+      <input v-if="form.organism === 'Other'" v-model="otherInputs.organism" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
 
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Growth Conditions  </span></label>
-    <BaseSelect v-model="form.sample_growth_conditions" :options="SAMPLE_GROWTH_CONDITIONS" placeholder="Select growth..." />
-    <input v-if="form.sample_growth_conditions === 'Other'" v-model="otherInputs.sample_growth_conditions" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Organism Part <span class="text-error">*</span></span></label>
+      <BaseSelect v-model="form.organism_part" :options="ORGANISM_PARTS" placeholder="Select part..." />
+      <input v-if="form.organism_part === 'Other'" v-model="otherInputs.organism_part" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
 
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Stabilization</span></label>
-    <BaseSelect v-model="form.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Select stabilization..." />
-    <input v-if="form.sample_stabilization === 'Other'" v-model="otherInputs.sample_stabilization" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Condition <span class="text-error">*</span></span></label>
+      <BaseSelect v-model="form.condition" :options="CONDITIONS" placeholder="Select condition..." />
+      <input v-if="form.condition === 'Other'" v-model="otherInputs.condition" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
 
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Tissue Modification  </span></label>
-    <BaseSelect v-model="form.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Select modification..." />
-    <input v-if="form.tissue_modification === 'Other'" v-model="otherInputs.tissue_modification" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Stabilization <span class="text-error">*</span></span></label>
+      <BaseSelect v-model="form.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Select stabilization..." />
+      <input v-if="form.sample_stabilization === 'Other'" v-model="otherInputs.sample_stabilization" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
 
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI Matrix</span></label>
-    <BaseSelect v-model="form.maldi_matrix" :options="MALDI_MATRICES" placeholder="Select matrix..." />
-    <input v-if="form.maldi_matrix === 'Other'" v-model="otherInputs.maldi_matrix" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Solvent <span class="text-error">*</span></span></label>
+      <BaseSelect v-model="form.solvent" :options="SOLVENTS" placeholder="Select solvent..." />
+      <input v-if="form.solvent === 'Other'" v-model="otherInputs.solvent" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
 
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI Matrix Application</span></label>
-    <BaseSelect v-model="form.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Select application..." />
-    <input v-if="form.maldi_matrix_application === 'Other'" v-model="otherInputs.maldi_matrix_application" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
+    <div class="divider text-sm text-base-content/50">Optional</div>
 
-  <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Solvent  </span></label>
-    <BaseSelect v-model="form.solvent" :options="SOLVENTS" placeholder="Select solvent..." />
-    <input v-if="form.solvent === 'Other'" v-model="otherInputs.solvent" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-  </div>
-</div>
-</div>
+    <!-- ===== Optional Fields ===== -->
 
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Experiment Type</span></label>
+      <BaseSelect v-model="form.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Select type..." />
+      <input v-if="form.experiment_type === 'Other'" v-model="otherInputs.experiment_type" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
+
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Resolving Power</span></label>
+      <input v-model="form.resolving_power" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 70000" />
+    </div>
+
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Growth Conditions</span></label>
+      <BaseSelect v-model="form.sample_growth_conditions" :options="SAMPLE_GROWTH_CONDITIONS" placeholder="Select growth..." />
+      <input v-if="form.sample_growth_conditions === 'Other'" v-model="otherInputs.sample_growth_conditions" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
+
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">Tissue Modification</span></label>
+      <BaseSelect v-model="form.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Select modification..." />
+      <input v-if="form.tissue_modification === 'Other'" v-model="otherInputs.tissue_modification" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
+
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI Matrix</span></label>
+      <BaseSelect v-model="form.maldi_matrix" :options="MALDI_MATRICES" placeholder="Select matrix..." />
+      <input v-if="form.maldi_matrix === 'Other'" v-model="otherInputs.maldi_matrix" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
+
+    <div class="flex flex-col">
+      <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI Matrix Application</span></label>
+      <BaseSelect v-model="form.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Select application..." />
+      <input v-if="form.maldi_matrix_application === 'Other'" v-model="otherInputs.maldi_matrix_application" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    </div>
+
+  </div>
+  </div>
 <div class="flex items-center gap-2 mt-4 pt-4 border-t border-base-200 shrink-0">
 <button class="btn bg-blue-600 text-white hover:bg-blue-700 border-none" @click="confirmAndUpload" :disabled="!selectedPair || uploading">Confirm & Upload</button>
 <button class="btn btn-ghost" @click="closeModal" :disabled="uploading">Cancel</button>
@@ -273,7 +281,7 @@ function resetAll() {
     tissue_modification: '',
     maldi_matrix: '',
     maldi_matrix_application: '',
-    solvent: []
+    solvent: ''
   });
   Object.keys(otherInputs.value).forEach(k => {
     (otherInputs.value as any)[k] = '';
@@ -344,8 +352,33 @@ const abortUpload = () => {
     }
 };
 
+const REQUIRED_FIELDS: { key: keyof typeof form.value; label: string }[] = [
+  { key: 'polarity', label: 'Polarity' },
+  { key: 'ionisation_source', label: 'Ionisation Source' },
+  { key: 'analyzer', label: 'Analyzer' },
+  { key: 'pixel_size_horizontal', label: 'Pixel Size X (μm)' },
+  { key: 'pixel_size_vertical', label: 'Pixel Size Y (μm)' },
+  { key: 'organism', label: 'Organism' },
+  { key: 'organism_part', label: 'Organism Part' },
+  { key: 'condition', label: 'Condition' },
+  { key: 'sample_stabilization', label: 'Sample Stabilization' },
+  { key: 'solvent', label: 'Solvent' },
+];
+
 const confirmAndUpload = async () => {
 if (!selectedPair.value) return;
+
+for (const field of REQUIRED_FIELDS) {
+  const val = form.value[field.key];
+  if (!val || (typeof val === 'string' && !val.trim())) {
+    showToast(`${field.label} is required.`, 'error');
+    return;
+  }
+  if (val === 'Other' && !(otherInputs.value as any)[field.key]?.trim()) {
+    showToast(`Please specify custom value for ${field.label}.`, 'error');
+    return;
+  }
+}
 
 uploading.value = true;
 stage.value = 'uploading';

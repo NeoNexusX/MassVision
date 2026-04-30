@@ -249,21 +249,5 @@ watch(sortValue, (val) => emit('sort', val));
          <!-- Export Button removed as requested -->
       </div>
     </div>
-
-    <!-- Bottom Row: Status Filter -->
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm border-t border-base-300 pt-3 mt-1">
-      <span class="text-base-content font-medium whitespace-nowrap">Status:</span>
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <label v-for="status in statusOptions" :key="status" class="flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
-          <input 
-            type="checkbox" 
-            :value="status" 
-            v-model="selectedStatuses"
-            class="rounded text-primary focus:ring-primary border-base-300 dark:border-gray-600 dark:bg-gray-700"
-          >
-          <span class="text-base-content">{{ status }}</span>
-        </label>
-      </div>
-    </div>
   </div>
 </template>

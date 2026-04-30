@@ -2,6 +2,7 @@ import OSS from 'ali-oss';
 import {
   packageFilesToZip,
   calculateFileMD5,
+  ProgressTracker,
   type ImzmlFilePair,
   type UnifiedUploadProgress,
 } from './imzml-helper';
@@ -19,7 +20,6 @@ export interface OssUploadResponse {
   oss_bucket: string;
   oss_path: string;
   oss_region_id?: string;
-  [key: string]: any;
 }
 
 export interface UploadImzmlOssConfig {
@@ -60,9 +60,7 @@ export async function uploadImzmlZipFileOSS({
       etaStr: p.etaStr,
     }),
   });
-  console.log('[OSS] Phase 1 ZIP done — size:', zipBlob.size, 'bytes, type:', zipBlob.type);
-
-  // ================= Phase 2: Hashing =================
+  // Phase 1 ZIP done
   const zipFile = new File([zipBlob], `${datasetName}.zip`, { type: 'application/zip' });
   onProgress?.({ stage: 'hashing', percent: 0, message: 'Calculating file hash...' });
 
@@ -76,7 +74,6 @@ export async function uploadImzmlZipFileOSS({
       etaStr: p.etaStr,
     }),
   });
-  console.log('[OSS] Phase 2 hash done — MD5:', fileHash);
 
   // ================= Phase 3a: Preflight =================
   onProgress?.({ stage: 'preflight', percent: 100, message: 'Requesting upload token...' });
@@ -94,11 +91,8 @@ export async function uploadImzmlZipFileOSS({
     ...metadata,
     storage_type: 'oss',
   };
-  console.log('[OSS] Phase 3a preflight request:', JSON.stringify(preflightPayload, null, 2));
-
   const preflightRes = await auth_api.post('/files/preflight', preflightPayload, { signal });
   const preflightData = preflightRes.data || preflightRes;
-  console.log('[OSS] Phase 3a preflight response — status:', preflightRes.status, 'file_id:', preflightData.file_id);
   const fileId = preflightData.file_id;
 
   if (!fileId) {
@@ -112,27 +106,17 @@ export async function uploadImzmlZipFileOSS({
     filename: normalizedFilename,
     pre_file_id: String(fileId),
   });
-  console.log('[OSS] Phase 3b /files/upload request:', uploadPayload.toString());
-
-  const uploadRes = await auth_api.post('/files/upload', uploadPayload).catch((err: any) => {
-    console.error('[OSS] Phase 3b /files/upload FAILED — status:', err?.response?.status, 'detail:', JSON.stringify(err?.response?.data, null, 2));
-    throw err;
-  });
+  const uploadRes = await auth_api.post('/files/upload', uploadPayload);
   const ossData: OssUploadResponse = uploadRes.data || uploadRes;
-  console.log('[OSS] Phase 3b /files/upload response — status:', uploadRes.status, 'keys:', Object.keys(ossData));
 
   if (!ossData.oss_sts_token || !ossData.oss_bucket || !ossData.oss_path) {
-    console.error('[OSS] Phase 3b incomplete credentials — ossData:', JSON.stringify(ossData, null, 2));
     throw new Error('Backend did not return complete OSS credentials');
   }
-  console.log('[OSS] Phase 3b got credentials — bucket:', ossData.oss_bucket, 'path:', ossData.oss_path, 'region_id:', ossData.oss_region_id);
 
   // ================= Phase 4: OSS Upload =================
   onProgress?.({ stage: 'uploading', percent: 0, message: 'Uploading to OSS...' });
 
   const region = `oss-${ossData.oss_region_id}`;
-  console.log('[OSS] Phase 4 creating client — region:', region, 'bucket:', ossData.oss_bucket);
-
   const client = new OSS({
     region,
     accessKeyId: ossData.oss_sts_token.AccessKeyId,
@@ -146,16 +130,18 @@ export async function uploadImzmlZipFileOSS({
   const currentUsername = authStore.user?.username || 'unknown';
   const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
 
-  console.log('[OSS] Phase 4 preparing upload — path:', ossData.oss_path, 'callback URL:', `${backendUrl}/files/oss_upload_complete`, 'username:', currentUsername, 'fileId:', fileId);
-
-  // ================= Phase 4: OSS Upload =================
+  const tracker = new ProgressTracker();
   const putOptions: any = {
     async progress(percentage: number, cpt: any) {
       putOptions.checkpoint = cpt;
+      const loaded = percentage * zipFile.size;
+      const { speedStr, etaStr } = tracker.update(loaded, zipFile.size);
       onProgress?.({
         stage: 'uploading',
         percent: Math.round(percentage * 10000) / 100,
         message: 'Uploading to OSS...',
+        speedStr,
+        etaStr,
       });
     },
     callback: {
@@ -165,7 +151,7 @@ export async function uploadImzmlZipFileOSS({
       callbackSNI: true,
       customValue: {
         file_id: String(fileId),
-        current_username: currentUsername,
+        current_username: encodeURIComponent(currentUsername),
       },
     },
   };
@@ -179,13 +165,9 @@ export async function uploadImzmlZipFileOSS({
       if (i > 0) {
         putOptions.checkpoint = null;
       }
-      console.log(`[OSS] Phase 4 attempt ${i + 1} — multipartUpload ${ossData.oss_path} (${zipFile.size} bytes)`);
-      const ossResult = await client.multipartUpload(ossData.oss_path, zipFile, putOptions);
-      console.log('[OSS] Phase 4 upload successful — result:', JSON.stringify(ossResult, null, 2));
+      await client.multipartUpload(ossData.oss_path, zipFile, putOptions);
       break;
     } catch (e: any) {
-      console.error(`OSS upload attempt ${i + 1} failed:`, e);
-      console.error('Error details:', JSON.stringify({ message: e.message, name: e.name, code: e.code, status: e.status, stack: e.stack }, null, 2));
       if (i === maxRetries - 1) {
         throw new Error(`OSS upload failed after ${maxRetries} attempts: ${e.message}`);
       }

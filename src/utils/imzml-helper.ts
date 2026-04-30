@@ -688,8 +688,11 @@ export interface UploadImzmlConfig {
 }
 
 /**
- * Module 10: Direct upload ultimate wrapper
+ * Module 10: Direct upload ultimate wrapper (local storage path).
  * 1. ZIP Pack 2. Hash & Slice 3. Auth Token & Breakpoint Check 4. Block & Fire chunks
+ *
+ * Currently unused — OSS upload (imzml-helper-oss.ts) is the active pipeline.
+ * Kept as a fallback for local-storage upload scenarios.
  */
 export async function uploadImzmlZipFile({
   files,
