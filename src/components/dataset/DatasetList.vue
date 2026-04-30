@@ -16,7 +16,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'view-metadata', 'view-overview', 'download', 'delete', 'change-size', 'go-to-page'
+  'view-overview', 'download', 'delete', 'change-size', 'go-to-page'
 ]);
 
 const onChangeSize = (v: number) => emit('change-size', v);
@@ -55,7 +55,6 @@ const onGoToPage = (p: number) => emit('go-to-page', p);
           :dataset="dataset"
           :is-my-dataset="isMyDataset"
           :download-progress="downloadingMap[dataset.id]"
-          @view-metadata="$emit('view-metadata', $event)"
           @view-overview="$emit('view-overview', $event)"
           @download="$emit('download', $event)"
           @delete="$emit('delete', $event)"

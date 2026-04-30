@@ -140,7 +140,6 @@ const cancelDelete = () => {
   datasetToDelete.value = null;
 };
 
-const viewMetadata = (id: string) => console.log('View Metadata', id);
 const viewOverview = (id: string) => {
   router.push({ name: 'DatasetOverview', params: { id }, query: { from: 'my' } });
 };
@@ -166,7 +165,7 @@ const changeSize = (newSize: number) => {
 
 <template>
   <div class="min-h-screen bg-base-200 p-4 md:p-8">
-    <div class="max-w-screen-2xl mx-auto">
+    <div class="max-w-[1680px] mx-auto">
       <h1 class="text-3xl font-bold text-base-content mb-6">My Datasets</h1>
       
       <DatasetFilterBar 
@@ -217,7 +216,6 @@ const changeSize = (newSize: number) => {
           :downloadingMap="downloadingMap"
           :is-my-dataset="true"
           :deletingId="deletingId"
-          @view-metadata="viewMetadata"
           @view-overview="viewOverview"
           @download="handleDownload"
           @delete="handleDelete"

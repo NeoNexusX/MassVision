@@ -63,7 +63,11 @@
               <div>
                 <label class="label mb-0"><span class="label-text font-semibold">Position</span></label>
                 <div class="bold-select">
-                  <DropdownSelect v-model="formData.position" :options="positionOptions" placeholder="Select Position" />
+                  <AuthSelect
+                    v-model="formData.position"
+                    :options="positionOptions"
+                    placeholder="Select Position"
+                  />
                 </div>
               </div>
 
@@ -74,7 +78,11 @@
               <div>
                 <label class="label mb-0"><span class="label-text font-semibold">Region</span></label>
                 <div class="bold-select">
-                  <DropdownSelect v-model="regionLabel" :options="regionNames" placeholder="Select Region" />
+                  <AuthSelect
+                    v-model="regionLabel"
+                    :options="regionNames"
+                    placeholder="Select Region"
+                  />
                 </div>
               </div>
 
@@ -138,7 +146,7 @@ import { useAuthStore } from '../stores/auth';
 import countries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
 import BaseInput from '../components/BaseInput.vue';
-import DropdownSelect from '../components/BaseSelect.vue';
+import AuthSelect from '../components/AuthSelect.vue';
 
 countries.registerLocale(enLocale);
 
@@ -158,8 +166,8 @@ const regionNames = computed(() => countryList.map(c => c.name));
 
 const regionLabel = computed<string>({
   get() {
-    const found = countryList.find(c => c.code === formData.region);
-    return found ? found.name : '';
+    const found = countryList.find(c => c.code === formData.region || c.name === formData.region);
+    return found ? found.name : (typeof formData.region === 'string' ? formData.region : '');
   },
   set(val: string) {
     const found = countryList.find(c => c.name === val);
@@ -399,8 +407,7 @@ const handleLogout = async () => {
 </script>
 
 <style scoped>
-/* Make dropdown displayed value bold only on this page for elements wrapped in .bold-select */
-.bold-select ::v-deep .truncate {
+.bold-select :deep(.truncate) {
   font-weight: 600 !important;
 }
 </style>

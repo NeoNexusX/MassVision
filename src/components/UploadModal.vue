@@ -84,15 +84,15 @@
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Condition (Multi-select)</span></label>
-    <BaseSelect v-model="form.condition" :options="CONDITIONS" placeholder="Select condition..." :multiple="true" />
-    <input v-if="form.condition.includes('Other')" v-model="otherInputs.condition" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Condition  </span></label>
+    <BaseSelect v-model="form.condition" :options="CONDITIONS" placeholder="Select condition..." />
+    <input v-if="form.condition === 'Other'" v-model="otherInputs.condition" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Growth Conditions (Multi-select)</span></label>
-    <BaseSelect v-model="form.sample_growth_conditions" :options="SAMPLE_GROWTH_CONDITIONS" placeholder="Select growth..." :multiple="true" />
-    <input v-if="form.sample_growth_conditions.includes('Other')" v-model="otherInputs.sample_growth_conditions" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Growth Conditions  </span></label>
+    <BaseSelect v-model="form.sample_growth_conditions" :options="SAMPLE_GROWTH_CONDITIONS" placeholder="Select growth..." />
+    <input v-if="form.sample_growth_conditions === 'Other'" v-model="otherInputs.sample_growth_conditions" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
@@ -102,9 +102,9 @@
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Tissue Modification (Multi-select)</span></label>
-    <BaseSelect v-model="form.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Select modification..." :multiple="true" />
-    <input v-if="form.tissue_modification.includes('Other')" v-model="otherInputs.tissue_modification" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Tissue Modification  </span></label>
+    <BaseSelect v-model="form.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Select modification..." />
+    <input v-if="form.tissue_modification === 'Other'" v-model="otherInputs.tissue_modification" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 
   <div class="flex flex-col">
@@ -120,9 +120,9 @@
   </div>
 
   <div class="flex flex-col">
-    <label class="label"><span class="label-text font-medium text-base-content text-base">Solvent (Multi-select)</span></label>
-    <BaseSelect v-model="form.solvent" :options="SOLVENTS" placeholder="Select solvent..." :multiple="true" />
-    <input v-if="form.solvent.includes('Other')" v-model="otherInputs.solvent" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+    <label class="label"><span class="label-text font-medium text-base-content text-base">Solvent  </span></label>
+    <BaseSelect v-model="form.solvent" :options="SOLVENTS" placeholder="Select solvent..." />
+    <input v-if="form.solvent === 'Other'" v-model="otherInputs.solvent" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
   </div>
 </div>
 </div>
@@ -165,8 +165,9 @@
 import { ref, computed } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useRouter } from 'vue-router';
-import { uploadImzmlZipFile, type ImzmlFilePair, type UnifiedUploadProgress } from '@/utils/imzml-helper';
+import { uploadImzmlZipFileOSS } from '@/utils/imzml-helper-oss';
 import { parseImzMLMSSettings } from '@/utils/imzml-parser';
+import { type ImzmlFilePair, type UnifiedUploadProgress } from '@/utils/imzml-helper';
 import BaseSelect from './BaseSelect.vue';
 import {
   EXPERIMENT_TYPES,
@@ -211,13 +212,13 @@ const form = ref({
   resolving_power: '',
   organism: '',
   organism_part: '',
-  condition: [] as string[],
-  sample_growth_conditions: [] as string[],
+  condition: '',
+  sample_growth_conditions: '',
   sample_stabilization: '',
-  tissue_modification: [] as string[],
+  tissue_modification: '',
   maldi_matrix: '',
   maldi_matrix_application: '',
-  solvent: [] as string[],
+  solvent: '',
   is_public: false
 });
 
@@ -266,10 +267,10 @@ function resetAll() {
     resolving_power: '',
     organism: '',
     organism_part: '',
-    condition: [],
-    sample_growth_conditions: [],
+    condition: '',
+    sample_growth_conditions: '',
     sample_stabilization: '',
-    tissue_modification: [],
+    tissue_modification: '',
     maldi_matrix: '',
     maldi_matrix_application: '',
     solvent: []
@@ -359,12 +360,7 @@ try {
         Object.keys(form.value).forEach((key) => {
           const k = key as keyof typeof form.value;
           const val = (form.value as any)[k];
-          if (Array.isArray(val)) {
-            const others = val.includes('Other') ? [(otherInputs.value as any)[k]] : [];
-            payload[k] = val.filter((v: string) => v !== 'Other').concat(others).filter(Boolean).join(', ');
-          } else {
-            payload[k] = val === 'Other' ? (otherInputs.value as any)[k] : val;
-          }
+          payload[k] = val === 'Other' ? (otherInputs.value as any)[k] : val;
         });
 
         // Convert numeric fields (always, empty string → 0)
@@ -372,10 +368,10 @@ try {
         payload.pixel_size_vertical = Number(payload.pixel_size_vertical);
         payload.resolving_power = Number(payload.resolving_power);
 
-        await uploadImzmlZipFile({
+        await uploadImzmlZipFileOSS({
           files: selectedPair.value,
           datasetName: selectedPair.value.baseName,
-          metadata: { ...payload, file_type: 'zip', storage_type: 'local', is_public: form.value.is_public },
+          metadata: { ...payload, file_type: 'zip', is_public: form.value.is_public },
             signal: abortController.signal,
             onProgress: (p: UnifiedUploadProgress) => {
                 progress.value = p.percent;

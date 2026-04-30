@@ -52,6 +52,32 @@ const routes = [
     component: UserProfileView,
     meta: { requiresAuth: true }
   }
+  ,
+  {
+    path: '/workspace',
+    name: 'Workspace',
+    component: () => import('../views/workspace/WorkspacePage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/workspace/new',
+    name: 'NewAnalysis',
+    component: () => import('../views/workspace/NewAnalysis.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/workspace/results/:id',
+    name: 'WorkspaceResultDetail',
+    component: () => import('../views/workspace/ResultDetail.vue'),
+    meta: { requiresAuth: true }
+  }
+  ,
+  {
+    path: '/workspace/tasks/:id',
+    name: 'WorkspaceTaskDetail',
+    component: () => import('../views/workspace/TaskDetail.vue'),
+    meta: { requiresAuth: true }
+  },
 ]
 
 const router = createRouter({

@@ -88,7 +88,6 @@ const handleApplyFilters = (payload: Record<string, any>) => {
 };
 
 // Card actions
-const viewMetadata = (id: string) => console.log('View Metadata', id);
 const viewOverview = (id: string) => {
   router.push({ name: 'DatasetOverview', params: { id }, query: { from: 'public' } });
 };
@@ -115,7 +114,7 @@ const changeSize = (newSize: number) => {
 
 <template>
   <div class="min-h-screen bg-base-200 p-4 md:p-8">
-    <div class="max-w-screen-2xl mx-auto">
+    <div class="max-w-[1680px] mx-auto">
       <h1 class="text-3xl font-bold text-base-content mb-6">Public Datasets</h1>
       
       <DatasetFilterBar 
@@ -144,7 +143,6 @@ const changeSize = (newSize: number) => {
           :size="size"
           :pagination="pagination"
           :downloadingMap="downloadingMap"
-          @view-metadata="viewMetadata"
           @view-overview="viewOverview"
           @download="handleDownload"
           @change-size="changeSize"

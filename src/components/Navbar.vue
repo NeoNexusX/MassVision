@@ -65,14 +65,6 @@
             <span>Users</span>
           </router-link>
         </li>
-        <li>
-          <a @click.prevent="openSupport" class="flex items-center gap-6 py-4 px-3 text-xl">
-            <span class="w-8 h-8 flex justify-center items-center shrink-0">
-              <svg-icon type="question" class="w-8 h-8 text-base-content" />
-            </span>
-            <span>Support</span>
-          </a>
-        </li>
         <li v-if="!user">
           <router-link to="/login" class="flex items-center gap-6 py-4 px-3 text-xl">
             <span class="w-8 h-8 flex justify-center items-center shrink-0">
@@ -88,6 +80,14 @@
             </span>
             <span>Create account</span>
           </router-link>
+        </li>
+        <li>
+          <a @click.prevent="openSupport" class="flex items-center gap-6 py-4 px-3 text-xl">
+            <span class="w-8 h-8 flex justify-center items-center shrink-0">
+              <svg-icon type="question" class="w-8 h-8 text-base-content" />
+            </span>
+            <span>Support</span>
+          </a>
         </li>
       </ul>
     </div>

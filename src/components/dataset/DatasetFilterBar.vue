@@ -140,7 +140,7 @@ watch(sortValue, (val) => emit('sort', val));
       <!-- Left: Visibility or Add Filter -->
       <div class="flex items-center gap-2 w-full md:w-auto min-w-0">
         <!-- Visibility Filter (My Datasets) -->
-        <div v-if="showVisibilityFilter" class="relative group">
+        <div v-if="showVisibilityFilter" class="relative group shrink-0">
            <select 
             v-model="selectedVisibility"
             class="appearance-none bg-base-200 border border-base-300 text-base-content py-2 pl-4 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-sm font-medium"
@@ -155,18 +155,18 @@ watch(sortValue, (val) => emit('sort', val));
         <!-- Add Filter (Public Datasets) -- moved after search -->
 
         <!-- Search Box -->
-        <div class="relative flex-1 md:w-64 flex items-center gap-2 min-w-0">
+        <div class="relative md:w-80 flex items-center gap-2 min-w-0">
            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
              <SvgIcon type="search" class="h-4 w-4 text-slate-400" />
            </div>
-           <input 
+           <input
              v-model="searchQuery"
-             @keydown.enter.prevent="() => {}"
-             type="text" 
-             class="flex-1 min-w-0 bg-base-200 border border-base-300 text-base-content text-sm rounded-lg focus:ring-primary focus:border-primary block pl-10 p-2 placeholder:text-base-content/40" 
+             @keydown.enter.prevent="onSearchClick"
+             type="text"
+             class="w-full min-w-0 bg-base-200 border border-base-300 text-base-content text-sm rounded-lg focus:ring-primary focus:border-primary pl-10 p-2 placeholder:text-base-content/40"
              :placeholder="searchPlaceholder"
            />
-           <button @click="onSearchClick" class="btn btn-sm btn-primary ml-2 whitespace-nowrap">Search</button>
+           <button @click="onSearchClick" class="btn btn-sm btn-primary shrink-0">Search</button>
         </div>
 
         <!-- Add Filter (Public Datasets) - now to the right of search -->
@@ -222,7 +222,7 @@ watch(sortValue, (val) => emit('sort', val));
       </div>
 
       <!-- Right: Sort, Export, Upload -->
-      <div class="flex flex-row flex-nowrap items-center justify-start gap-2 w-full md:w-auto overflow-hidden">
+      <div class="flex flex-row flex-nowrap items-center gap-2 w-full md:w-auto shrink-0 overflow-hidden">
          <!-- Upload Button -->
          <button 
            v-if="showUpload"
