@@ -59,12 +59,6 @@ const placeholderSvg = computed(() => {
     <!-- Middle: Info -->
     <div class="relative z-10 flex-1 flex flex-col justify-center gap-2 min-w-0">
 
-      <!-- Private/Public Icon fixed at top-right -->
-      <div v-if="isMyDataset" class="absolute top-0 right-0" :title="dataset.isPublic ? 'Public' : 'Private'">
-        <SvgIcon v-if="dataset.isPublic" type="region" class="w-4 h-4 text-slate-400" />
-        <SvgIcon v-else type="password" class="w-4 h-4 text-slate-400" />
-      </div>
-
       <div class="flex items-center justify-between gap-2 w-full min-w-0 overflow-hidden">
         <h3
           class="text-xl md:text-2xl font-semibold text-base-content truncate cursor-pointer hover:text-primary dark:hover:text-indigo-400 transition-colors block"
@@ -110,6 +104,12 @@ const placeholderSvg = computed(() => {
 
     <!-- Right: Actions -->
     <div class="relative z-10 w-full md:w-[120px] shrink flex flex-row md:flex-col md:justify-evenly gap-2 md:border-l border-t md:border-t-0 border-base-300 pt-3 md:pt-0 md:pl-3 items-center cursor-default self-stretch" @click.stop>
+
+      <button v-if="isMyDataset" class="flex items-center gap-2 text-sm font-medium p-1 rounded" :class="dataset.isPublic ? 'text-slate-400' : 'text-slate-400'" :title="dataset.isPublic ? 'Public' : 'Private'">
+        <SvgIcon v-if="dataset.isPublic" type="region" class="w-4 h-4" />
+        <SvgIcon v-else type="password" class="w-4 h-4" />
+        <span>{{ dataset.isPublic ? 'Public' : 'Private' }}</span>
+      </button>
 
       <button class="flex items-center gap-2 text-sm font-medium text-base-content/80 hover:text-base-content transition-colors p-1 rounded" @click.stop="$emit('view-overview', dataset.name)">
         <SvgIcon type="link" class="w-4 h-4" />

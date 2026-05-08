@@ -8,6 +8,27 @@ import {
 } from './imzml-helper';
 import { auth_api } from './api';
 import { useAuthStore } from '@/stores/auth';
+import {
+  saveUploadSession,
+  saveZipToOPFS,
+  loadZipFromOPFS,
+  loadUploadSession,
+  cleanupResumable,
+} from './upload-resume';
+
+// Module-level refs for external abort
+let currentOssClient: OSS | null = null;
+let currentUploadId: string | null = null;
+let currentOssPath: string | null = null;
+
+/** Cancel the in-progress OSS upload and clean up uploaded parts on OSS. */
+export function cancelOssUpload() {
+  cleanupResumable();
+  if (!currentOssClient) return;
+  if (currentUploadId && currentOssPath) {
+    currentOssClient.abortMultipartUpload(currentOssPath, currentUploadId).catch(() => {});
+  }
+}
 
 // Response from POST /files/upload
 export interface OssUploadResponse {
@@ -23,11 +44,12 @@ export interface OssUploadResponse {
 }
 
 export interface UploadImzmlOssConfig {
-  files: ImzmlFilePair;
+  files?: ImzmlFilePair;
   datasetName?: string;
   metadata?: Record<string, any>;
   signal?: AbortSignal;
   onProgress?: (progress: UnifiedUploadProgress) => void;
+  resume?: boolean;
 }
 
 /**
@@ -44,77 +66,122 @@ export async function uploadImzmlZipFileOSS({
   metadata = {},
   signal,
   onProgress,
+  resume = false,
 }: UploadImzmlOssConfig) {
 
   if (signal?.aborted) throw new DOMException('User Aborted', 'AbortError');
 
-  // ================= Phase 1: Archiving =================
-  onProgress?.({ stage: 'packing', percent: 0, message: 'Building dataset archive...' });
-  const zipBlob = await packageFilesToZip(files, {
-    signal,
-    onProgress: p => onProgress?.({
-      stage: 'packing',
-      percent: p.percent,
-      message: `Compressing ${p.percent.toFixed(1)}%`,
-      speedStr: p.speedStr,
-      etaStr: p.etaStr,
-    }),
-  });
-  // Phase 1 ZIP done
-  const zipFile = new File([zipBlob], `${datasetName}.zip`, { type: 'application/zip' });
-  onProgress?.({ stage: 'hashing', percent: 0, message: 'Calculating file hash...' });
-
-  const fileHash = await calculateFileMD5(zipFile, {
-    signal,
-    onProgress: p => onProgress?.({
-      stage: 'hashing',
-      percent: p.percent,
-      message: `Hashing ${p.percent.toFixed(1)}%`,
-      speedStr: p.speedStr,
-      etaStr: p.etaStr,
-    }),
-  });
-
-  // ================= Phase 3a: Preflight =================
-  onProgress?.({ stage: 'preflight', percent: 100, message: 'Requesting upload token...' });
+  let zipFile: File;
+  let fileHash: string;
+  let fileId: string;
+  let ossData: OssUploadResponse;
 
   const normalizedFilename = datasetName && String(datasetName).toLowerCase().endsWith('.zip')
     ? String(datasetName).slice(0, -4)
     : String(datasetName);
 
-  const preflightPayload = {
-    filename: normalizedFilename,
-    size: zipFile.size,
-    file_verify_code: fileHash,
-    is_public: metadata.is_public ?? false,
-    total_parts: 1,
-    ...metadata,
-    storage_type: 'oss',
-  };
-  const preflightRes = await auth_api.post('/files/preflight', preflightPayload, { signal });
-  const preflightData = preflightRes.data || preflightRes;
-  const fileId = preflightData.file_id;
+  if (resume) {
+    // ---------- Resume path: restore from OPFS + localStorage ----------
+    const session = loadUploadSession();
+    if (!session) throw new Error('No pending upload session to resume');
 
-  if (!fileId) {
-    throw new Error('Preflight did not return file_id');
-  }
+    if (new Date(session.stsExpiration).getTime() <= Date.now()) {
+      cleanupResumable();
+      throw new Error('Upload session expired, please start a new upload');
+    }
 
-  // ================= Phase 3b: Get OSS credentials =================
-  onProgress?.({ stage: 'preflight', percent: 100, message: 'Fetching OSS credentials...' });
+    const storedZip = await loadZipFromOPFS();
+    if (!storedZip) {
+      cleanupResumable();
+      throw new Error('Cached file no longer available, please start a new upload');
+    }
+    zipFile = storedZip;
+    fileHash = session.fileHash;
+    fileId = session.fileId;
+    ossData = {
+      oss_sts_token: {
+        AccessKeyId: session.accessKeyId,
+        AccessKeySecret: session.accessKeySecret,
+        SecurityToken: session.stsToken,
+        Expiration: session.stsExpiration,
+      },
+      oss_bucket: session.ossBucket,
+      oss_path: session.ossPath,
+      oss_region_id: session.ossRegion,
+    };
+    onProgress?.({ stage: 'uploading', percent: 0, message: 'Resuming upload...' });
+  } else {
+    // ---------- Normal path: pack → hash → preflight ----------
+    if (!files) throw new Error('No files provided for upload');
 
-  const uploadPayload = new URLSearchParams({
-    filename: normalizedFilename,
-    pre_file_id: String(fileId),
-  });
-  const uploadRes = await auth_api.post('/files/upload', uploadPayload);
-  const ossData: OssUploadResponse = uploadRes.data || uploadRes;
+    // ================= Phase 1: Archiving =================
+    onProgress?.({ stage: 'packing', percent: 0, message: 'Building dataset archive...' });
+    const zipBlob = await packageFilesToZip(files, {
+      signal,
+      onProgress: p => onProgress?.({
+        stage: 'packing',
+        percent: p.percent,
+        message: `Compressing ${p.percent.toFixed(1)}%`,
+        speedStr: p.speedStr,
+        etaStr: p.etaStr,
+      }),
+    });
+    zipFile = new File([zipBlob], `${datasetName}.zip`, { type: 'application/zip' });
 
-  if (!ossData.oss_sts_token || !ossData.oss_bucket || !ossData.oss_path) {
-    throw new Error('Backend did not return complete OSS credentials');
+    // Persist zip to OPFS for cross-session resume
+    saveZipToOPFS(zipFile);
+
+    // ================= Phase 2: Hash =================
+    onProgress?.({ stage: 'hashing', percent: 0, message: 'Calculating file hash...' });
+
+    fileHash = await calculateFileMD5(zipFile, {
+      signal,
+      onProgress: p => onProgress?.({
+        stage: 'hashing',
+        percent: p.percent,
+        message: `Hashing ${p.percent.toFixed(1)}%`,
+        speedStr: p.speedStr,
+        etaStr: p.etaStr,
+      }),
+    });
+
+    // ================= Phase 3a: Preflight =================
+    onProgress?.({ stage: 'preflight', percent: 100, message: 'Requesting upload token...' });
+
+    const preflightPayload = {
+      filename: normalizedFilename,
+      size: zipFile.size,
+      file_verify_code: fileHash,
+      is_public: metadata.is_public ?? false,
+      total_parts: 1,
+      ...metadata,
+      storage_type: 'oss',
+    };
+    const preflightRes = await auth_api.post('/files/preflight', preflightPayload, { signal });
+    const preflightData = preflightRes.data || preflightRes;
+    fileId = preflightData.file_id;
+
+    if (!fileId) {
+      throw new Error('Preflight did not return file_id');
+    }
+
+    // ================= Phase 3b: Get OSS credentials =================
+    onProgress?.({ stage: 'preflight', percent: 100, message: 'Fetching upload credentials...' });
+
+    const uploadPayload = new URLSearchParams({
+      filename: normalizedFilename,
+      pre_file_id: String(fileId),
+    });
+    const uploadRes = await auth_api.post('/files/upload', uploadPayload);
+    ossData = uploadRes.data || uploadRes;
+
+    if (!ossData.oss_sts_token || !ossData.oss_bucket || !ossData.oss_path) {
+      throw new Error('Backend did not return complete OSS credentials');
+    }
   }
 
   // ================= Phase 4: OSS Upload =================
-  onProgress?.({ stage: 'uploading', percent: 0, message: 'Uploading to OSS...' });
+  onProgress?.({ stage: 'uploading', percent: 0, message: 'Uploading to server...' });
 
   const region = `oss-${ossData.oss_region_id}`;
   const client = new OSS({
@@ -124,22 +191,56 @@ export async function uploadImzmlZipFileOSS({
     stsToken: ossData.oss_sts_token.SecurityToken,
     authorizationV4: true,
     bucket: ossData.oss_bucket,
+    timeout: 30000,
   });
+  currentOssClient = client;
 
   const authStore = useAuthStore();
   const currentUsername = authStore.user?.username || 'unknown';
   const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
 
   const tracker = new ProgressTracker();
+  let lastPercent = 0;
+  let lastSaveTime = 0;
   const putOptions: any = {
     async progress(percentage: number, cpt: any) {
       putOptions.checkpoint = cpt;
+      if (cpt?.uploadId) {
+        currentUploadId = cpt.uploadId;
+        currentOssPath = ossData.oss_path;
+      }
       const loaded = percentage * zipFile.size;
       const { speedStr, etaStr } = tracker.update(loaded, zipFile.size);
+      lastPercent = Math.round(percentage * 10000) / 100;
+      // Persist checkpoint for cross-session resume (throttled to every 5s)
+      if (cpt?.uploadId && Date.now() - lastSaveTime > 5000) {
+        lastSaveTime = Date.now();
+        saveUploadSession({
+          datasetName: normalizedFilename,
+          fileName: zipFile.name,
+          fileSize: zipFile.size,
+          fileHash,
+          fileId,
+          ossPath: ossData.oss_path,
+          ossBucket: ossData.oss_bucket,
+          ossRegion: ossData.oss_region_id || '',
+          stsExpiration: ossData.oss_sts_token.Expiration,
+          accessKeyId: ossData.oss_sts_token.AccessKeyId,
+          accessKeySecret: ossData.oss_sts_token.AccessKeySecret,
+          stsToken: ossData.oss_sts_token.SecurityToken,
+          checkpoint: {
+            name: cpt.name,
+            fileSize: cpt.fileSize,
+            partSize: cpt.partSize,
+            uploadId: cpt.uploadId,
+            doneParts: cpt.doneParts || [],
+          },
+        });
+      }
       onProgress?.({
         stage: 'uploading',
-        percent: Math.round(percentage * 10000) / 100,
-        message: 'Uploading to OSS...',
+        percent: lastPercent,
+        message: 'Uploading to server...',
         speedStr,
         etaStr,
       });
@@ -156,25 +257,61 @@ export async function uploadImzmlZipFileOSS({
     },
   };
 
-  // Upload to OSS with up to 5 retries (checkpoint enables resume)
-  const maxRetries = 5;
-  for (let i = 0; i < maxRetries; i++) {
-    if (signal?.aborted) throw new DOMException('User Aborted', 'AbortError');
-    try {
-      // Reset checkpoint on retry to avoid resuming a stale multipart upload
-      if (i > 0) {
-        putOptions.checkpoint = null;
-      }
-      await client.multipartUpload(ossData.oss_path, zipFile, putOptions);
-      break;
-    } catch (e: any) {
-      if (i === maxRetries - 1) {
-        throw new Error(`OSS upload failed after ${maxRetries} attempts: ${e.message}`);
-      }
+  // Restore checkpoint for resume
+  if (resume) {
+    const session = loadUploadSession();
+    if (session?.checkpoint?.uploadId) {
+      putOptions.checkpoint = session.checkpoint;
     }
   }
 
-  onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete.' });
+  // Upload to OSS, retry once on failure
+  const maxRetries = 2;
+  try {
+    for (let i = 0; i < maxRetries; i++) {
+      if (signal?.aborted) throw new DOMException('User Aborted', 'AbortError');
+      try {
+        await client.multipartUpload(ossData.oss_path, zipFile, putOptions);
+        break;
+      } catch (e: any) {
+        if (signal?.aborted) throw e;
 
-  return { upload_id: String(fileId), fileHash, oss_path: ossData.oss_path };
+        // CompleteMultipartUpload may have failed due to callback timeout,
+        // but the file is already on OSS. Quick verification via HeadObject.
+        for (let a = 0; a < 3; a++) {
+          if (signal?.aborted) break;
+          if (a > 0) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+          try {
+            const headResult = await client.head(ossData.oss_path);
+            if (headResult?.res?.status === 200) {
+              onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete.' });
+              await cleanupResumable();
+              return { upload_id: String(fileId), fileHash, oss_path: ossData.oss_path };
+            }
+          } catch { /* head failed, continue polling */ }
+        }
+
+        if (i === maxRetries - 1) {
+          throw new Error(`OSS upload failed after ${maxRetries} attempts: ${e.message}`);
+        }
+        onProgress?.({
+          stage: 'uploading',
+          percent: lastPercent,
+          message: `Upload failed, Retrying... (${e.message?.slice(0, 60)})`,
+        });
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    }
+
+    onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete.' });
+
+    await cleanupResumable();
+    return { upload_id: String(fileId), fileHash, oss_path: ossData.oss_path };
+  } finally {
+    currentOssClient = null;
+    currentUploadId = null;
+    currentOssPath = null;
+  }
 }

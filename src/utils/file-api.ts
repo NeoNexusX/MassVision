@@ -31,7 +31,13 @@ export async function uploadSimpleFile(
   });
 }
 
-// 3. Download file
+// 3. Get download metadata (OSS download returns JSON with oss_download_url)
+// GET /files/{file_id}/download
+export async function getDownloadMetadata(fileId: string) {
+  return auth_api.get(`/files/${fileId}/download`);
+}
+
+// 4. Download file (legacy blob mode)
 // GET /files/{file_id}/download
 export async function downloadFile(fileId: string, onDownloadProgress?: (progressEvent: any) => void) {
   // Note: needs to assure fileId is a string
@@ -41,7 +47,7 @@ export async function downloadFile(fileId: string, onDownloadProgress?: (progres
   })
 }
 
-// 4. Delete file
+// 5. Delete file
 // DELETE /files/{file_id}
 export async function deleteFile(fileId: string | number) {
   return auth_api.delete(`/files/${fileId}`);

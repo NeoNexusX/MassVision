@@ -738,7 +738,10 @@ export async function uploadImzmlZipFile({
     file_verify_code: fileHash,
     is_public: metadata?.is_public ?? false,
     total_parts: chunkPlans.length,
-    ...metadata
+    file_type: 'zip',
+    experiment_type: 'imzML',
+    ...metadata,
+    storage_type: 'local',
   };
 
   // end preflight payload prepared

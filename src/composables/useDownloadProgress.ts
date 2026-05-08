@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import type { Ref } from 'vue';
-import { downloadAndSave } from '@/utils/download-helper';
+import { ossDownloadAndSave } from '@/utils/download-helper';
 import type { GetFallbackFilename } from '@/utils/download-helper';
 import type { File } from '@/types/file';
 import { useToast } from '@/composables/useToast';
@@ -19,7 +19,7 @@ export function useDownloadProgress(datasets?: Ref<File[] | undefined>) {
       downloadingMap.value[id] = 0;
       showToast('Download started, please wait...', 'info');
 
-      await downloadAndSave(id, {
+      await ossDownloadAndSave(id, {
         getFallbackFilename: options?.getFallbackFilename ?? (() => {
           const ds = datasets?.value?.find(d => d.id === id);
           return ds && ds.name ? (ds.name.toLowerCase().endsWith('.zip') ? ds.name : `${ds.name}.zip`) : undefined;

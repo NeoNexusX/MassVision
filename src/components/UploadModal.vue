@@ -5,6 +5,23 @@
 
 <!-- File selection & Metadata form -->
 <div v-if="stage === 'select'" class="flex flex-col gap-4">
+
+  <!-- Resume prompt -->
+  <div v-if="pendingResume" class="alert bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span class="font-medium text-blue-800">Incomplete upload detected</span>
+    </div>
+    <p class="text-sm text-blue-700 mb-3">
+      You have a pending upload of <strong>{{ pendingDatasetName }}</strong>. Resume from where it left off?
+    </p>
+    <div class="flex gap-2">
+      <button class="btn btn-sm bg-blue-600 text-white hover:bg-blue-700 border-none" @click="resumeUpload">Resume</button>
+      <button class="btn btn-sm btn-ghost text-blue-600" @click="discardResume">Discard</button>
+    </div>
+  </div>
 <label class="form-control w-full shrink-0">
 <div class="label">
 <span class="label-text">Select an .imzML and .ibd file pair</span>
@@ -33,6 +50,11 @@
     </div>
 
     <div class="divider text-sm text-base-content/50">Required</div>
+
+    <div v-if="parsingMetadata" class="flex items-center gap-2 text-sm text-base-content/60 bg-base-200/50 rounded-lg px-3 py-2 mb-2">
+      <span class="inline-block w-3.5 h-3.5 border-2 border-base-content/30 border-t-base-content/60 rounded-full animate-spin"></span>
+      <span>Reading metadata from imzML...</span>
+    </div>
 
     <!-- ===== Required Fields ===== -->
 
@@ -170,10 +192,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useRouter } from 'vue-router';
-import { uploadImzmlZipFileOSS } from '@/utils/imzml-helper-oss';
+import { uploadImzmlZipFileOSS, cancelOssUpload } from '@/utils/imzml-helper-oss';
+import { hasPendingUpload, loadUploadSession, cleanupResumable } from '@/utils/upload-resume';
 import { parseImzMLMSSettings } from '@/utils/imzml-parser';
 import { type ImzmlFilePair, type UnifiedUploadProgress } from '@/utils/imzml-helper';
 import BaseSelect from './BaseSelect.vue';
@@ -208,7 +231,18 @@ const progress = ref(0);
 const uploadMessage = ref('');
 const error = ref('');
 const stage = ref<'select' | 'uploading' | 'success'>('select');
+const parsingMetadata = ref(false);
+const pendingResume = ref(false);
+const pendingDatasetName = ref('');
 let abortController: AbortController | null = null;
+
+onMounted(() => {
+  if (hasPendingUpload()) {
+    pendingResume.value = true;
+    const session = loadUploadSession();
+    pendingDatasetName.value = session?.datasetName || '';
+  }
+});
 
 const form = ref({
   experiment_type: 'imzML',
@@ -297,6 +331,57 @@ const closeModal = () => {
     }, 300); // Wait for closing animation before resetting
 };
 
+const discardResume = () => {
+  cleanupResumable();
+  pendingResume.value = false;
+};
+
+const resumeUpload = async () => {
+  pendingResume.value = false;
+  uploading.value = true;
+  stage.value = 'uploading';
+  progress.value = 0;
+  uploadMessage.value = 'Resuming upload...';
+  error.value = '';
+
+  abortController = new AbortController();
+
+  try {
+    await uploadImzmlZipFileOSS({
+      datasetName: pendingDatasetName.value,
+      signal: abortController.signal,
+      resume: true,
+      onProgress: (p: UnifiedUploadProgress) => {
+        progress.value = p.percent;
+        uploadMessage.value = p.message || `Stage: ${p.stage}`;
+        speed.value = p.speedStr || '';
+        eta.value = p.etaStr || '';
+        if (p.message?.includes('Fail') || p.message?.includes('Retrying')) {
+          error.value = p.message;
+        }
+      },
+    });
+
+    showToast('Dataset pipeline successfully completed', 'success');
+    uploading.value = false;
+    emit('upload-success');
+    closeModal();
+  } catch (err: any) {
+    console.error('Resume upload failed', err);
+    if (err.name === 'AbortError' || err.name === 'cancel') {
+      showToast('Upload safely aborted', 'info');
+      error.value = 'User aborted upload';
+    } else {
+      error.value = err.message || 'Resume upload failed';
+      showToast(error.value, 'error');
+    }
+    stage.value = 'select';
+  } finally {
+    uploading.value = false;
+    abortController = null;
+  }
+};
+
 const onFileChange = (e: Event) => {
 const input = e.target as HTMLInputElement;
 const files = input.files;
@@ -324,6 +409,16 @@ const base2 = imzml.name.substring(0, imzml.name.lastIndexOf('.'));
     error.value = '';
     selectedPair.value = { ibd, imzml, baseName: base2 };
 
+    // Reset auto-filled fields before reading new file
+    form.value.polarity = '';
+    form.value.ionisation_source = '';
+    form.value.analyzer = '';
+    form.value.pixel_size_horizontal = '';
+    form.value.pixel_size_vertical = '';
+
+    // Show loading indicator immediately, parse will block UI for large files
+    parsingMetadata.value = true;
+
     // Auto-fill MS settings from imzML metadata
     parseImzMLMSSettings(imzml).then((settings) => {
       if (settings.polarity) {
@@ -342,10 +437,13 @@ const base2 = imzml.name.substring(0, imzml.name.lastIndexOf('.'));
       if (settings.pixelSizeY != null) {
         form.value.pixel_size_vertical = String(settings.pixelSizeY);
       }
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => {
+      parsingMetadata.value = false;
+    });
 };
 
 const abortUpload = () => {
+    cancelOssUpload();
     if (abortController) {
         abortController.abort();
         abortController = null;
@@ -425,7 +523,7 @@ emit('upload-success');
 closeModal();
 } catch (err: any) {
 console.error('Upload pipeline failed', err);
-        if (err.name === 'AbortError') {
+        if (err.name === 'AbortError' || err.name === 'cancel') {
             showToast('Upload safely aborted', 'info');
     error.value = 'User aborted upload';
         } else {

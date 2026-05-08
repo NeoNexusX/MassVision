@@ -112,57 +112,53 @@
       <!-- Right column: summary (sticky) -->
       <aside class="lg:col-span-1">
         <div class="sticky top-6">
-          <div class="rounded-lg border border-base-200 bg-white p-5 shadow-sm">
-            <!-- Header: title + small badge -->
-            <div class="flex items-center justify-between">
+          <div class="rounded-lg border border-base-200 bg-white shadow-sm overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 pt-5 pb-3">
               <div class="text-xl font-semibold">Analysis Summary</div>
               <span :class="statusBadge.cls + ' text-xs'">{{ statusBadge.text }}</span>
             </div>
 
-            <!-- Pipeline summary (weakly grouped inside the same card) -->
-            <div class="mt-4">
+            <!-- Preprocessing -->
+            <div class="border-t border-base-200/70 px-5 py-4">
+              <div class="text-sm font-medium text-base-content/60 mb-2">Preprocessing</div>
               <ul class="space-y-3">
-                <li v-for="p in pipelineSummary" :key="p.key" class="flex items-start justify-between gap-3">
-                  <div class="flex items-start gap-3">
-                    <span class="w-2 h-2 rounded-full mt-2" :class="p.present ? 'bg-blue-400' : 'bg-base-content/20'"></span>
-                    <div>
-                      <div class="text-sm font-medium">{{ p.title }}<span v-if="p.present">：{{ p.method }}</span></div>
-                      <div v-if="!p.present" class="text-xs text-base-content/50">Not configured</div>
-                    </div>
+                <li v-for="p in pipelineSummary" :key="p.key">
+                  <div class="text-sm font-medium text-base-content">{{ p.title }}</div>
+                  <div class="flex items-center justify-between mt-0.5 pl-3">
+                    <span class="text-sm text-base-content/60">{{ p.present ? p.method : '—' }}</span>
+                    <span v-if="p.present" class="text-xs text-blue-500">✓</span>
                   </div>
-                  <div v-if="p.present" class="text-xs badge badge-ghost">Selected</div>
                 </li>
               </ul>
             </div>
 
-            <!-- MS Settings summary -->
-            <div v-if="msSettingsList.length" class="border-t border-base-200/70 pt-4 mt-4">
-              <div class="text-sm font-medium text-base-content/60">MS Settings</div>
-              <ul class="mt-2 space-y-2">
-                <li v-for="s in msSettingsList" :key="s.key" class="flex items-start justify-between gap-3">
-                  <div>
-                    <div class="text-sm font-medium">{{ s.label }}</div>
-                  </div>
-                  <div class="text-sm text-base-content">{{ s.value }}</div>
+            <!-- Dataset Metadata -->
+            <div v-if="msSettingsList.length" class="border-t border-base-200/70 px-5 py-4">
+              <div class="text-sm font-medium text-base-content/60 mb-2">Dataset metadata</div>
+              <ul class="space-y-1.5">
+                <li v-for="s in msSettingsList" :key="s.key" class="flex items-baseline justify-between gap-3">
+                  <span class="text-sm font-medium text-base-content shrink-0">{{ s.label }}</span>
+                  <span class="text-sm text-base-content/60 text-right min-w-0 break-all">{{ s.value }}</span>
                 </li>
               </ul>
             </div>
 
-            <!-- Selected Dataset: info block, no outer card -->
-            <div class="border-t border-base-200/70 pt-4 mt-4">
-              <div class="text-sm font-medium text-base-content/60">Selected Dataset</div>
-              <div v-if="selectedDataset" class="mt-2">
-                <div class="text-base font-medium text-base-content">{{ selectedDataset.name }}</div>
-                <div class="text-sm text-gray-500 mt-1">{{ formatBytes(selectedDataset.sizeBytes) }}</div>
+            <!-- Selected Dataset -->
+            <div class="border-t border-base-200/70 px-5 py-4">
+              <div class="text-sm font-medium text-base-content/60 mb-2">Selected dataset</div>
+              <div v-if="selectedDataset">
+                <div class="text-sm font-medium text-base-content break-all leading-snug">{{ selectedDataset.name }}</div>
+                <div class="text-xs text-base-content/50 mt-1">{{ formatBytes(selectedDataset.sizeBytes) }}</div>
               </div>
-              <div v-else class="mt-2 text-sm text-base-content/50">No dataset selected</div>
+              <div v-else class="text-sm text-base-content/40">No dataset selected</div>
             </div>
 
-            <!-- Estimated Time: info block -->
-            <div class="border-t border-base-200/70 pt-4 mt-4">
-              <div class="text-sm font-medium text-base-content/60">Estimated Time</div>
-              <div class="mt-2 text-base font-medium text-base-content">{{ estimateTimeDisplay }}</div>
-              <div class="text-sm text-base-content/60 mt-3 space-y-1.5">
+            <!-- Estimated Time & Quota -->
+            <div class="border-t border-base-200/70 px-5 py-4">
+              <div class="text-sm font-medium text-base-content/60 mb-2">Est. time</div>
+              <div class="text-sm font-medium text-base-content">{{ estimateTimeDisplay }}</div>
+              <div class="text-xs text-base-content/50 mt-2 space-y-1">
                 <div class="flex items-center justify-between">
                   <span>Storage</span>
                   <span class="text-base-content font-medium">{{ quotaStorage }}</span>
@@ -174,8 +170,8 @@
               </div>
             </div>
 
-            <!-- Start button (bottom of unified card) -->
-            <div class="border-t border-base-200/70 pt-4 mt-4">
+            <!-- Start button -->
+            <div class="border-t border-base-200/70 px-5 py-4">
               <button
                 :class="['btn btn-primary w-full h-12 text-base font-semibold', !canSubmit ? 'opacity-60 cursor-not-allowed' : '']"
                 @click="submit"
@@ -183,7 +179,7 @@
               >
                 Start Analysis
               </button>
-              <div v-if="!canSubmit" class="text-xs text-base-content/60 mt-2">Complete setup first (select dataset and required methods)</div>
+              <div v-if="!canSubmit" class="text-xs text-base-content/50 mt-2 text-center">Select dataset and configure pipeline first</div>
             </div>
           </div>
         </div>
@@ -314,6 +310,18 @@ watch(analysisForm, (n, o) => {
 
 const methodGroups: Array<any> = [
   {
+    key: 'noise',
+    title: 'Noise Reduction',
+    modeLabel: 'Optional (multiple)',
+    multiple: true,
+    hint: 'Reduce noise while preserving peaks',
+    methods: [
+      { id: 'savgol', label: 'Savitzky–Golay' },
+      { id: 'gaussian', label: 'Gaussian' },
+      { id: 'ma', label: 'Moving Average' }
+    ]
+  },
+  {
     key: 'baseline',
     title: 'Baseline Correction',
     modeLabel: 'Select one',
@@ -321,22 +329,7 @@ const methodGroups: Array<any> = [
     hint: 'Remove baseline to correct background signal',
     methods: [
       { id: 'locmin', label: 'Local Minimum' },
-      { id: 'snip', label: 'SNIP' },
-      { id: 'asls', label: 'ASLS' }
-    ]
-  },
-  {
-    key: 'smooth',
-    title: 'Smoothing & Denoising',
-    modeLabel: 'Optional (multiple)',
-    multiple: true,
-    hint: 'Reduce noise while preserving peaks',
-    methods: [
-      { id: 'gauss', label: 'Gaussian Smoothing' },
-      { id: 'savitzky', label: 'Savitzky–Golay Smoothing' },
-      { id: 'wavelet', label: 'Wavelet Denoising' },
-      { id: 'loess', label: 'LOESS Smoothing' },
-      { id: 'spline', label: 'Spline Smoothing' }
+      { id: 'snip', label: 'SNIP' }
     ]
   },
   {
@@ -357,9 +350,9 @@ const methodGroups: Array<any> = [
     multiple: false,
     hint: 'Scale spectra to comparable intensities',
     methods: [
-      { id: 'tic', label: 'TIC Normalization' },
-      { id: 'rms', label: 'RMS Normalization' },
-      { id: 'median', label: 'Median Normalization' }
+      { id: 'tic', label: 'TIC' },
+      { id: 'rms', label: 'RMS' },
+      { id: 'ref', label: 'REF' }
     ]
   },
   {
@@ -502,15 +495,19 @@ const pipelineSummary = computed(() => {
 
 const msSettingsList = computed(() => {
   const list: Array<{ key: string, label: string, value: string }>=[]
-  if (analysisForm.polarity) list.push({ key: 'polarity', label: 'Ion Mode', value: analysisForm.polarity === 'positive' ? 'Positive' : 'Negative' })
-  if (analysisForm.ionSource) list.push({ key: 'source', label: 'Source', value: analysisForm.ionSource })
+  if (analysisForm.polarity) list.push({ key: 'polarity', label: 'Polarity', value: analysisForm.polarity === 'positive' ? 'Positive' : 'Negative' })
+  if (analysisForm.ionSource) list.push({ key: 'source', label: 'Ionisation Source', value: analysisForm.ionSource })
   if (analysisForm.analyzer) list.push({ key: 'analyzer', label: 'Analyzer', value: analysisForm.analyzer })
-  // m/z Range removed from UI; do not include it in MS settings list
   const px = (analysisForm.pixelSizeX || '')
   const py = (analysisForm.pixelSizeY || '')
   if (px && py) list.push({ key: 'pixel', label: 'Pixel', value: `${px}×${py} μm` })
   else if (px) list.push({ key: 'pixel', label: 'Pixel', value: `${px} μm` })
   else if (py) list.push({ key: 'pixel', label: 'Pixel', value: `${py} μm` })
+  // Dataset metadata from selected dataset
+  const ds = selectedDataset.value
+  if (ds?.organism) list.push({ key: 'organism', label: 'Organism', value: ds.organism })
+  if (ds?.organismPart) list.push({ key: 'organismPart', label: 'Organism Part', value: ds.organismPart })
+  if (ds?.condition) list.push({ key: 'condition', label: 'Condition', value: ds.condition })
   return list
 })
 
