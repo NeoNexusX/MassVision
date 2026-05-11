@@ -95,7 +95,9 @@ router.beforeEach(async (to, from, next) => {
   let loggedIn = secureStorage.getToken();
 
   // Redirect to Profile if already logged in and trying to access login/register pages
-  if (loggedIn && ['/login', '/register'].includes(to.path)) {
+  // But allow it if coming from an auth-required page (token may be stale / backend down)
+  const fromAuthRequired = from.matched.some(record => record.meta.requiresAuth);
+  if (loggedIn && !fromAuthRequired && ['/login', '/register'].includes(to.path)) {
     return next('/profile');
   }
 

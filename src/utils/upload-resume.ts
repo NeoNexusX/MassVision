@@ -21,6 +21,7 @@ export interface UploadSession {
     uploadId: string;
     doneParts: Array<{ number: number; etag: string }>;
   };
+  cancelled?: boolean;
 }
 
 export function saveUploadSession(session: UploadSession): void {
@@ -33,7 +34,7 @@ export function loadUploadSession(): UploadSession | null {
   try {
     const data = JSON.parse(raw);
     if (
-      !data.checkpoint?.uploadId ||
+      !data.fileId ||
       !data.ossPath ||
       !data.fileSize ||
       !data.fileHash
@@ -46,6 +47,15 @@ export function loadUploadSession(): UploadSession | null {
 
 export function clearUploadSession(): void {
   localStorage.removeItem(STORAGE_KEY);
+}
+
+/** Mark session as cancelled so resume starts a fresh multipart upload */
+export function markSessionCancelled(): void {
+  const session = loadUploadSession();
+  if (session) {
+    session.cancelled = true;
+    saveUploadSession(session);
+  }
 }
 
 export function hasPendingUpload(): boolean {
@@ -90,4 +100,33 @@ export async function deleteZipFromOPFS(): Promise<void> {
 export async function cleanupResumable(): Promise<void> {
   clearUploadSession();
   await deleteZipFromOPFS();
+}
+
+/** Reset checkpoint and cancelled flag so resume starts a fresh OSS multipart upload */
+export function resetSessionForReupload(): void {
+  const session = loadUploadSession();
+  if (session) {
+    session.checkpoint = { name: '', fileSize: 0, partSize: 0, uploadId: '', doneParts: [] };
+    session.cancelled = false;
+    saveUploadSession(session);
+  }
+}
+
+const PENDING_FILE_KEY = 'oss_pending_file';
+
+export function savePendingFile(fileId: string, fileName: string): void {
+  localStorage.setItem(PENDING_FILE_KEY, JSON.stringify({ fileId, fileName }));
+}
+
+export function loadPendingFile(): { fileId: string; fileName: string } | null {
+  try {
+    const raw = localStorage.getItem(PENDING_FILE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingFile(): void {
+  localStorage.removeItem(PENDING_FILE_KEY);
 }

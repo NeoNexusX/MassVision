@@ -1,6 +1,6 @@
-﻿import { Zip, ZipDeflate } from 'fflate';
-import { createMD5 } from 'hash-wasm';
+﻿import { createMD5 } from 'hash-wasm';
 import { auth_api, formatErrorMessage } from '@/utils/api';
+import ZipCompressWorker from '@/workers/zip-compress.worker?worker';
 
 export function formatSpeed(bytesPerSec: number): string {
   if (bytesPerSec < 1024) return `${bytesPerSec.toFixed(1)} B/s`;
@@ -87,48 +87,43 @@ export function validateImzmlFilePair(files: File[] | FileList): ImzmlFilePair {
 }
 
 /**
- * Module 2: Stream chunk processing on main thread to package ibd and imzml into ZIP
- * (Note: Compressing extremely large files may still block the main thread)
+ * Module 2: Compress imzML+ibd into ZIP using a Web Worker.
+ * Compression runs in a separate thread; main thread streams data in/out and writes to OPFS.
  */
 export async function packageFilesToZip(
   pair: ImzmlFilePair,
   options?: PackageZipOptions
 ): Promise<File> {
-  return new Promise((resolve, reject) => {
-    // Intercept already triggered cancel signals
-    if (options?.signal?.aborted) {
-      return reject(new DOMException('Aborted by user', 'AbortError'));
-    }
+  if (options?.signal?.aborted) {
+    throw new DOMException('Aborted by user', 'AbortError');
+  }
 
-    const zip = new Zip();
-    // Require explicit BlobPart array (BlobPart usually excludes SharedArrayBuffer underlying generics)
-    const chunks: BlobPart[] = [];
-    
-    // Pipe output listener
-    zip.ondata = (err, data, final) => {
-      if (err) {
-        reject(err);
-        return;
-      } else {
-        // Explicit deep copy: Completely disconnect buffers potentially reused by fflate to avoid TS SharedArrayBuffer type conflicts
-        const safeCopy = new Uint8Array(data.byteLength);
-        safeCopy.set(data);
-        chunks.push(safeCopy);
-        
-        if (final) {
-          const finalName = options?.outputFileName || `${pair.baseName}.zip`;
-          const file = new File(chunks, finalName, { type: 'application/zip' });
-          resolve(file);
+  const root = await navigator.storage.getDirectory();
+  const fileHandle = await root.getFileHandle('pending_upload.zip', { create: true });
+  const writable = await fileHandle.createWritable();  // Create a writable stream to the OPFS file, ask AI
+
+  const worker = new ZipCompressWorker(); // Instantiate the Web Worker for ZIP compression,看什么是web worker,为什么要用这个
+  const totalBytes = pair.ibd.size + pair.imzml.size;
+
+  const tracker = new ProgressTracker();
+  let lastReportTime = 0;
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const cleanup = () => {
+      if (!settled) {
+        settled = true;
+        worker.terminate();
+        if (options?.signal) {
+          options.signal.removeEventListener('abort', handleAbort);
         }
       }
     };
 
-    const totalBytes = pair.ibd.size + pair.imzml.size;
-    let loadedBytes = 0;
-
-    // Register active cancel callback
     const handleAbort = () => {
-      zip.terminate(); 
+      cleanup();
+      writable.close().catch(() => {});
       reject(new DOMException('Aborted by user', 'AbortError'));
     };
 
@@ -136,74 +131,87 @@ export async function packageFilesToZip(
       options.signal.addEventListener('abort', handleAbort, { once: true });
     }
 
-    let lastReportTime = 0;
-    const tracker = new ProgressTracker();
-    let lastYieldTime = Date.now();
-    const reportProgress = (force = false) => {
-      if (options?.onProgress) {
-        const now = Date.now();
-        if (force || now - lastReportTime > 100) {
-          const { speedStr, etaStr } = tracker.update(loadedBytes, totalBytes);
-          options.onProgress({
-            loadedBytes,
-            totalBytes,
-            percent: force ? 100 : Math.min(100, Math.round((loadedBytes / totalBytes) * 100)),
-            speedStr,
-            etaStr
-          });
-          lastReportTime = now;
-        }
-      }
-    };
+    worker.onmessage = (e: MessageEvent) => {
+      const msg = e.data;
+      switch (msg.type) {
+        case 'data':
+          writable.write(new Uint8Array(msg.data)).catch(reject);
+          break;
 
-    // Method to feed into stream
-    const addFileToZip = async (file: File) => {
-      // Compression level=1 balances speed, preventing large file calculation freezes
-      const deflate = new ZipDeflate(file.name, { level: 1 });
-      zip.add(deflate);
-
-      const stream = file.stream();
-      const reader = stream.getReader() as ReadableStreamDefaultReader<Uint8Array>;
-
-      try {
-        while (true) {
-          if (options?.signal?.aborted) {
-            await reader.cancel();
-            throw new DOMException('Aborted by user', 'AbortError');
-          }
-          const { done, value } = await reader.read();
-          if (done) {
-            deflate.push(new Uint8Array(0), true);
-            break;
-          }
-          if (value) {
-            deflate.push(value, false);
-            loadedBytes += value.byteLength;
-            reportProgress();
-            
-            if (Date.now() - lastYieldTime > 30) {
-              lastYieldTime = Date.now();
-              await new Promise(r => setTimeout(r, 0));
+        case 'progress':
+          if (options?.onProgress) {
+            const now = Date.now();
+            if (now - lastReportTime > 100) {
+              const { speedStr, etaStr } = tracker.update(msg.loaded, totalBytes);
+              options.onProgress({
+                loadedBytes: msg.loaded,
+                totalBytes,
+                percent: Math.min(100, Math.round((msg.loaded / totalBytes) * 100)),
+                speedStr,
+                etaStr,
+              });
+              lastReportTime = now;
             }
           }
-        }
-      } finally {
-        reader.releaseLock();
+          break;
+
+        case 'done':
+          cleanup();
+          writable.close()
+            .then(() => fileHandle.getFile())
+            .then(file => {
+              if (options?.onProgress) {
+                options.onProgress({ loadedBytes: totalBytes, totalBytes, percent: 100, speedStr: '', etaStr: '' });
+              }
+              resolve(file);
+            })
+            .catch(reject);
+          break;
+
+        case 'error':
+          cleanup();
+          writable.close().catch(() => {});
+          reject(new Error(msg.message));
+          break;
       }
     };
 
-    // Serial concurrency control to save memory
+    worker.onerror = () => {
+      cleanup();
+      writable.close().catch(() => {});
+      reject(new Error('Zip compression worker failed'));
+    };
+
+    // Stream files to worker
     (async () => {
       try {
-        await addFileToZip(pair.imzml);
-        await addFileToZip(pair.ibd);
-        reportProgress(true); // Ensure 100% progress when stream reading completes
-        zip.end();
+        for (const file of [pair.imzml, pair.ibd]) {
+          if (options?.signal?.aborted) return;
+          worker.postMessage({ type: 'start', name: file.name });
+
+          const reader = file.stream().getReader();
+          try {
+            while (true) {
+              if (options?.signal?.aborted) return;
+              const { done, value } = await reader.read();
+              if (done) break;
+              if (value) {
+                // Transfer the buffer to avoid copying
+                const buf = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+                worker.postMessage({ type: 'chunk', data: buf }, { transfer: [buf] });
+              }
+            }
+          } finally {
+            reader.releaseLock();
+          }
+          worker.postMessage({ type: 'end_file' });
+        }
+        worker.postMessage({ type: 'finish' });
       } catch (e) {
-        reject(e);
-      } finally {
-        if (options?.signal) {
-          options.signal.removeEventListener('abort', handleAbort);
+        if (!settled) {
+          cleanup();
+          writable.close().catch(() => {});
+          reject(e);
         }
       }
     })();

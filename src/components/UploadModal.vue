@@ -1,202 +1,265 @@
 ﻿<template>
-<dialog class="modal" :class="{ 'modal-open': isOpen }">
-<div class="modal-box rounded-lg w-11/12 max-w-2xl max-h-[90vh] flex flex-col text-base-content">
-<h3 class="font-bold text-lg mb-4 shrink-0">Upload New Dataset (imzML + ibd)</h3>
+  <dialog class="modal" :class="{ 'modal-open': isOpen }">
+    <div class="modal-box rounded-2xl w-11/12 max-w-2xl max-h-[90vh] flex flex-col text-base-content">
+      <h3 class="font-bold text-lg mb-4 shrink-0">Upload New Dataset (imzML + ibd)</h3>
 
-<!-- File selection & Metadata form -->
-<div v-if="stage === 'select'" class="flex flex-col gap-4">
+      <!-- File selection & Metadata form -->
+      <div v-if="stage === 'select'" class="flex flex-col flex-1 min-h-0">
+        <div class="flex-1 overflow-y-auto -mx-6 px-6 pt-4 pb-4 flex flex-col gap-4">
 
-  <!-- Resume prompt -->
-  <div v-if="pendingResume" class="alert bg-blue-50 border border-blue-200 rounded-lg p-4">
-    <div class="flex items-center gap-2 mb-2">
-      <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-      </svg>
-      <span class="font-medium text-blue-800">Incomplete upload detected</span>
-    </div>
-    <p class="text-sm text-blue-700 mb-3">
-      You have a pending upload of <strong>{{ pendingDatasetName }}</strong>. Resume from where it left off?
-    </p>
-    <div class="flex gap-2">
-      <button class="btn btn-sm bg-blue-600 text-white hover:bg-blue-700 border-none" @click="resumeUpload">Resume</button>
-      <button class="btn btn-sm btn-ghost text-blue-600" @click="discardResume">Discard</button>
-    </div>
-  </div>
-<label class="form-control w-full shrink-0">
-<div class="label">
-<span class="label-text">Select an .imzML and .ibd file pair</span>
-<span class="label-text-alt text-error" v-if="error">{{ error }}</span>
-</div>
-<div class="relative flex items-center justify-between border border-base-content/20 rounded-lg px-3 py-2 bg-base-100 hover:bg-base-200/50 transition-colors overflow-hidden h-12">
-<input type="file" multiple accept=".imzml,.ibd" @change="onFileChange" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" title="Select files" />
-<div class="flex items-center gap-3 w-full pointer-events-none">
-<div class="btn btn-sm btn-neutral no-animation shrink-0">Choose Files</div>  
-<span class="text-sm truncate w-full opacity-80" :class="{'opacity-50': !selectedPair}">{{ selectedPair ? `${selectedPair.imzml.name}, ${selectedPair.ibd.name}` : 'No file chosen' }}</span>
-</div>
-</div>
-<div class="label mt-1 text-sm">
-<span v-if="selectedPair" class="text-success">Ready: {{ selectedPair.baseName }} ({{ formattedSize }})</span>
-<span v-else class="text-base-content/60">No matched pair selected</span>
-</div>
-</label>
-
-  <!-- Metadata form — Required fields first, then optional -->
-  <div class="space-y-4">
-  <div class="flex flex-col gap-4 pb-4">
-
-    <div class="flex items-center gap-3">
-      <input type="checkbox" id="is_public" v-model="form.is_public" class="checkbox checkbox-sm" />
-      <label for="is_public" class="text-sm">Make dataset public (visible to others)</label>
-    </div>
-
-    <div class="divider text-sm text-base-content/50">Required</div>
-
-    <div v-if="parsingMetadata" class="flex items-center gap-2 text-sm text-base-content/60 bg-base-200/50 rounded-lg px-3 py-2 mb-2">
-      <span class="inline-block w-3.5 h-3.5 border-2 border-base-content/30 border-t-base-content/60 rounded-full animate-spin"></span>
-      <span>Reading metadata from imzML...</span>
-    </div>
-
-    <!-- ===== Required Fields ===== -->
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Polarity <span class="text-error">*</span></span></label>
-      <BaseSelect v-model="form.polarity" :options="['Positive', 'Negative']" placeholder="Select polarity..." />
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Ionisation Source <span class="text-error">*</span></span></label>
-      <BaseSelect v-model="form.ionisation_source" :options="['MALDI', 'DESI', 'SIMS', 'Other']" placeholder="Select source..." />
-      <input v-if="form.ionisation_source === 'Other'" v-model="otherInputs.ionisation_source" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Analyzer <span class="text-error">*</span></span></label>
-      <BaseSelect v-model="form.analyzer" :options="['Orbitrap', 'FTICR', 'TOF', 'Q-TOF', 'Other']" placeholder="Select analyzer..." />
-      <input v-if="form.analyzer === 'Other'" v-model="otherInputs.analyzer" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-    <div class="grid grid-cols-2 gap-3">
-      <div class="flex flex-col">
-        <label class="label"><span class="label-text font-medium text-base-content text-base">Pixel Size X (μm) <span class="text-error">*</span></span></label>
-        <input v-model="form.pixel_size_horizontal" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 50" />
-      </div>
-      <div class="flex flex-col">
-        <label class="label"><span class="label-text font-medium text-base-content text-base">Pixel Size Y (μm) <span class="text-error">*</span></span></label>
-        <input v-model="form.pixel_size_vertical" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 50" />
-      </div>
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Organism <span class="text-error">*</span></span></label>
-      <BaseSelect v-model="form.organism" :options="ORGANISMS" placeholder="Select organism..." />
-      <input v-if="form.organism === 'Other'" v-model="otherInputs.organism" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Organism Part <span class="text-error">*</span></span></label>
-      <BaseSelect v-model="form.organism_part" :options="ORGANISM_PARTS" placeholder="Select part..." />
-      <input v-if="form.organism_part === 'Other'" v-model="otherInputs.organism_part" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Condition <span class="text-error">*</span></span></label>
-      <BaseSelect v-model="form.condition" :options="CONDITIONS" placeholder="Select condition..." />
-      <input v-if="form.condition === 'Other'" v-model="otherInputs.condition" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Stabilization <span class="text-error">*</span></span></label>
-      <BaseSelect v-model="form.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Select stabilization..." />
-      <input v-if="form.sample_stabilization === 'Other'" v-model="otherInputs.sample_stabilization" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Solvent <span class="text-error">*</span></span></label>
-      <BaseSelect v-model="form.solvent" :options="SOLVENTS" placeholder="Select solvent..." />
-      <input v-if="form.solvent === 'Other'" v-model="otherInputs.solvent" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-    <div class="divider text-sm text-base-content/50">Optional</div>
-
-    <!-- ===== Optional Fields ===== -->
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Experiment Type</span></label>
-      <BaseSelect v-model="form.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Select type..." />
-      <input v-if="form.experiment_type === 'Other'" v-model="otherInputs.experiment_type" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Resolving Power</span></label>
-      <input v-model="form.resolving_power" type="text" inputmode="numeric" class="input input-bordered w-full" placeholder="e.g. 70000" />
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Growth Conditions</span></label>
-      <BaseSelect v-model="form.sample_growth_conditions" :options="SAMPLE_GROWTH_CONDITIONS" placeholder="Select growth..." />
-      <input v-if="form.sample_growth_conditions === 'Other'" v-model="otherInputs.sample_growth_conditions" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">Tissue Modification</span></label>
-      <BaseSelect v-model="form.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Select modification..." />
-      <input v-if="form.tissue_modification === 'Other'" v-model="otherInputs.tissue_modification" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI Matrix</span></label>
-      <BaseSelect v-model="form.maldi_matrix" :options="MALDI_MATRICES" placeholder="Select matrix..." />
-      <input v-if="form.maldi_matrix === 'Other'" v-model="otherInputs.maldi_matrix" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-    <div class="flex flex-col">
-      <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI Matrix Application</span></label>
-      <BaseSelect v-model="form.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Select application..." />
-      <input v-if="form.maldi_matrix_application === 'Other'" v-model="otherInputs.maldi_matrix_application" class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
-    </div>
-
-  </div>
-  </div>
-<div class="flex items-center gap-2 mt-4 pt-4 border-t border-base-200 shrink-0">
-<button class="btn bg-blue-600 text-white hover:bg-blue-700 border-none" @click="confirmAndUpload" :disabled="!selectedPair || uploading">Confirm & Upload</button>
-<button class="btn btn-ghost" @click="closeModal" :disabled="uploading">Cancel</button>
-</div>
-</div>
-
-<!-- Uploading progress pipeline -->
-<div v-if="stage === 'uploading'" class="flex flex-col items-center gap-4 py-8">
-<div class="w-full">
-<div class="flex justify-between text-sm mb-2 font-medium">
-<span class="text-base-content/80">{{ uploadMessage }}</span>
-<span class="text-primary">{{ progress }}%</span>
-</div>
-<progress class="progress progress-primary w-full h-3" :value="progress" max="100"></progress>
-      <!-- Additional Speed and ETA display -->
-      <div v-if="speed || eta" class="flex justify-between items-center w-full mt-2 text-xs text-base-content/60 bg-base-200/50 py-1.5 px-3 rounded">
-        <div v-if="speed" class="flex items-center">
-          ⚡ {{ speed }}
+        <!-- Resume prompt -->
+        <div v-if="pendingResume" class="alert bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="font-medium text-blue-800">Incomplete upload detected</span>
+          </div>
+          <p class="text-sm text-blue-700 mb-3">
+            You have a pending upload of <strong>{{ pendingDatasetName }}</strong>. Resume from where it left off?
+          </p>
+          <div class="flex gap-2">
+            <button class="btn btn-sm bg-blue-600 text-white hover:bg-blue-700 border-none"
+              @click="resumeUpload">Resume</button>
+            <button class="btn btn-sm btn-ghost text-blue-600" @click="discardResume">Discard</button>
+          </div>
         </div>
-        <div v-if="eta" class="flex items-center">
-          ⏱️ ETA: {{ eta }}
+        <label class="form-control w-full shrink-0">
+          <div class="label">
+            <span class="label-text">Select an .imzML and .ibd file pair</span>
+            <span class="label-text-alt text-error" v-if="error">{{ error }}</span>
+          </div>
+          <div
+            class="relative flex items-center justify-between border border-base-content/20 rounded-lg px-3 py-2 bg-base-100 hover:bg-base-200/50 transition-colors overflow-hidden h-12">
+            <input type="file" multiple accept=".imzml,.ibd" @change="onFileChange"
+              :disabled="pendingResume"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" title="Select files" />
+            <div class="flex items-center gap-3 w-full pointer-events-none">
+              <template v-if="pendingResume">
+                <div class="btn btn-sm btn-ghost no-animation shrink-0 opacity-50">Choose Files</div>
+                <span class="text-sm text-warning truncate">Please resolve the pending upload above first</span>
+              </template>
+              <template v-else>
+                <div class="btn btn-sm btn-neutral no-animation shrink-0">Choose Files</div>
+                <span class="text-sm truncate w-full opacity-80" :class="{ 'opacity-50': !selectedPair }">{{ selectedPair ?
+                  `${selectedPair.imzml.name}, ${selectedPair.ibd.name}` : 'No file chosen' }}</span>
+              </template>
+            </div>
+          </div>
+          <div class="label mt-1 text-sm">
+            <span v-if="selectedPair" class="text-success">Ready: {{ selectedPair.baseName }} ({{ formattedSize
+              }})</span>
+            <span v-else class="text-base-content/60">No matched pair selected</span>
+          </div>
+        </label>
+
+        <!-- Metadata form — Required fields first, then optional -->
+        <div class="space-y-4">
+          <div class="flex flex-col gap-4 pb-4">
+
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="is_public" v-model="form.is_public" class="checkbox checkbox-sm" />
+              <label for="is_public" class="text-sm">Make dataset public (visible to others)</label>
+            </div>
+
+            <div class="divider text-sm text-base-content/50">Required</div>
+
+            <div v-if="parsingMetadata"
+              class="flex items-center gap-2 text-sm text-base-content/60 bg-base-200/50 rounded-lg px-3 py-2 mb-2">
+              <span
+                class="inline-block w-3.5 h-3.5 border-2 border-base-content/30 border-t-base-content/60 rounded-full animate-spin"></span>
+              <span>Reading metadata from imzML...</span>
+            </div>
+
+            <!-- ===== Required Fields ===== -->
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Polarity <span
+                    class="text-error">*</span></span></label>
+              <BaseSelect v-model="form.polarity" :options="['Positive', 'Negative']"
+                placeholder="Select polarity..." />
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Ionisation Source
+                  <span class="text-error">*</span></span></label>
+              <BaseSelect v-model="form.ionisation_source" :options="['MALDI', 'DESI', 'SIMS', 'Other']"
+                placeholder="Select source..." />
+              <input v-if="form.ionisation_source === 'Other'" v-model="otherInputs.ionisation_source"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Analyzer <span
+                    class="text-error">*</span></span></label>
+              <BaseSelect v-model="form.analyzer" :options="['Orbitrap', 'FTICR', 'TOF', 'Q-TOF', 'Other']"
+                placeholder="Select analyzer..." />
+              <input v-if="form.analyzer === 'Other'" v-model="otherInputs.analyzer"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex flex-col">
+                <label class="label"><span class="label-text font-medium text-base-content text-base">Pixel Size X (μm)
+                    <span class="text-error">*</span></span></label>
+                <input v-model="form.pixel_size_horizontal" type="text" inputmode="numeric"
+                  class="input input-bordered w-full" placeholder="e.g. 50" />
+              </div>
+              <div class="flex flex-col">
+                <label class="label"><span class="label-text font-medium text-base-content text-base">Pixel Size Y (μm)
+                    <span class="text-error">*</span></span></label>
+                <input v-model="form.pixel_size_vertical" type="text" inputmode="numeric"
+                  class="input input-bordered w-full" placeholder="e.g. 50" />
+              </div>
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Organism <span
+                    class="text-error">*</span></span></label>
+              <BaseSelect v-model="form.organism" :options="ORGANISMS" placeholder="Select organism..." />
+              <input v-if="form.organism === 'Other'" v-model="otherInputs.organism"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Organism Part <span
+                    class="text-error">*</span></span></label>
+              <BaseSelect v-model="form.organism_part" :options="ORGANISM_PARTS" placeholder="Select part..." />
+              <input v-if="form.organism_part === 'Other'" v-model="otherInputs.organism_part"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Condition <span
+                    class="text-error">*</span></span></label>
+              <BaseSelect v-model="form.condition" :options="CONDITIONS" placeholder="Select condition..." />
+              <input v-if="form.condition === 'Other'" v-model="otherInputs.condition"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Stabilization
+                  <span class="text-error">*</span></span></label>
+              <BaseSelect v-model="form.sample_stabilization" :options="SAMPLE_STABILIZATIONS"
+                placeholder="Select stabilization..." />
+              <input v-if="form.sample_stabilization === 'Other'" v-model="otherInputs.sample_stabilization"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Solvent <span
+                    class="text-error">*</span></span></label>
+              <BaseSelect v-model="form.solvent" :options="SOLVENTS" placeholder="Select solvent..." />
+              <input v-if="form.solvent === 'Other'" v-model="otherInputs.solvent"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+            <div class="divider text-sm text-base-content/50">Optional</div>
+
+            <!-- ===== Optional Fields ===== -->
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Experiment
+                  Type</span></label>
+              <BaseSelect v-model="form.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Select type..." />
+              <input v-if="form.experiment_type === 'Other'" v-model="otherInputs.experiment_type"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Resolving
+                  Power</span></label>
+              <input v-model="form.resolving_power" type="text" inputmode="numeric" class="input input-bordered w-full"
+                placeholder="e.g. 70000" />
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Sample Growth
+                  Conditions</span></label>
+              <BaseSelect v-model="form.sample_growth_conditions" :options="SAMPLE_GROWTH_CONDITIONS"
+                placeholder="Select growth..." />
+              <input v-if="form.sample_growth_conditions === 'Other'" v-model="otherInputs.sample_growth_conditions"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">Tissue
+                  Modification</span></label>
+              <BaseSelect v-model="form.tissue_modification" :options="TISSUE_MODIFICATIONS"
+                placeholder="Select modification..." />
+              <input v-if="form.tissue_modification === 'Other'" v-model="otherInputs.tissue_modification"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI
+                  Matrix</span></label>
+              <BaseSelect v-model="form.maldi_matrix" :options="MALDI_MATRICES" placeholder="Select matrix..." />
+              <input v-if="form.maldi_matrix === 'Other'" v-model="otherInputs.maldi_matrix"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+            <div class="flex flex-col">
+              <label class="label"><span class="label-text font-medium text-base-content text-base">MALDI Matrix
+                  Application</span></label>
+              <BaseSelect v-model="form.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS"
+                placeholder="Select application..." />
+              <input v-if="form.maldi_matrix_application === 'Other'" v-model="otherInputs.maldi_matrix_application"
+                class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
+            </div>
+
+          </div>
+        </div>
+        </div>
+        <div class="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-base-200 shrink-0">
+          <button class="btn bg-blue-600 text-white hover:bg-blue-700 border-none" 
+          @click="confirmAndUpload"
+          :disabled="!selectedPair || uploading || pendingResume">Confirm & Upload</button>
+          <button class="btn btn-ghost" 
+          @click="closeModal" 
+          :disabled="uploading">Cancel</button>
         </div>
       </div>
-    </div>
-    <div class="w-full flex justify-end mt-4">
-<button class="btn btn-outline btn-error btn-sm" @click="abortUpload">Abort Upload</button>
-</div>
-</div>
 
-</div>
-<form method="dialog" class="modal-backdrop"><button @click="closeModal" :disabled="stage === 'uploading'">close</button></form>
-</dialog>
+      <!-- Uploading progress pipeline -->
+      <div v-if="stage === 'uploading'" class="flex flex-col items-center gap-4 py-8">
+        <div class="w-full">
+          <div class="flex justify-between text-sm mb-2 font-medium">
+            <span class="text-base-content/80">{{ uploadMessage }}</span>
+            <span class="text-primary">{{ progress }}%</span>
+          </div>
+          <progress class="progress progress-primary w-full h-3" :value="progress" max="100"></progress>
+          <!-- Additional Speed and ETA display -->
+          <div v-if="speed || eta"
+            class="flex justify-between items-center w-full mt-2 text-xs text-base-content/60 bg-base-200/50 py-1.5 px-3 rounded">
+            <div v-if="speed" class="flex items-center">
+              ⚡ {{ speed }}
+            </div>
+            <div v-if="eta" class="flex items-center">
+              ⏱️ ETA: {{ eta }}
+            </div>
+          </div>
+        </div>
+        <div class="w-full flex justify-end mt-4">
+          <button class="btn btn-outline btn-error btn-sm" @click="abortUpload">Abort Upload</button>
+        </div>
+      </div>
+
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button @click="closeModal" :disabled="stage === 'uploading'">close</button>
+    </form>
+  </dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useRouter } from 'vue-router';
-import { uploadImzmlZipFileOSS, cancelOssUpload } from '@/utils/imzml-helper-oss';
+import { uploadImzmlZipFileOSS, invalidateUploadGeneration, cancelOssUpload } from '@/utils/imzml-helper-oss';
 import { hasPendingUpload, loadUploadSession, cleanupResumable } from '@/utils/upload-resume';
+import { useUploadStatusStore } from '@/stores/uploadStatus';
 import { parseImzMLMSSettings } from '@/utils/imzml-parser';
 import { type ImzmlFilePair, type UnifiedUploadProgress } from '@/utils/imzml-helper';
 import BaseSelect from './BaseSelect.vue';
@@ -215,12 +278,15 @@ import {
 
 const props = defineProps<{ isOpen: boolean }>();
 const emit = defineEmits<{
-(e: 'close'): void;
-(e: 'upload-success'): void;
+  (e: 'close'): void;
+  (e: 'upload-success', datasetName: string): void;
+  (e: 'upload-start', datasetName: string): void;
+  (e: 'upload-failed', datasetName: string): void;
 }>();
 
 const { showToast } = useToast();
 const router = useRouter();
+const uploadStatusStore = useUploadStatusStore();
 
 const speed = ref('');
 const eta = ref('');
@@ -237,11 +303,7 @@ const pendingDatasetName = ref('');
 let abortController: AbortController | null = null;
 
 onMounted(() => {
-  if (hasPendingUpload()) {
-    pendingResume.value = true;
-    const session = loadUploadSession();
-    pendingDatasetName.value = session?.datasetName || '';
-  }
+  checkResume();
 });
 
 const form = ref({
@@ -280,13 +342,13 @@ const otherInputs = ref({
 });
 
 const formattedSize = computed(() => {
-if (!selectedPair.value) return '';
-const bytes = selectedPair.value.ibd.size + selectedPair.value.imzml.size;
-if (bytes === 0) return '0 B';
-const k = 1024;
-const sizes = ['B','KB','MB','GB','TB'];
-const i = Math.floor(Math.log(bytes) / Math.log(k));
-return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  if (!selectedPair.value) return '';
+  const bytes = selectedPair.value.ibd.size + selectedPair.value.imzml.size;
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 });
 
 function resetAll() {
@@ -324,16 +386,28 @@ function resetAll() {
 
 
 const closeModal = () => {
-    if (uploading.value) return;
-    emit('close');
-    setTimeout(() => {
-        resetAll();
-    }, 300); // Wait for closing animation before resetting
+  if (uploading.value) return;
+  emit('close');
+  setTimeout(() => {
+    resetAll();
+  }, 300); // Wait for closing animation before resetting
 };
 
 const discardResume = () => {
   cleanupResumable();
+  if (pendingDatasetName.value) {
+    uploadStatusStore.markCancelled(pendingDatasetName.value); // immediate store update
+    emit('upload-failed', pendingDatasetName.value);           // trigger fetchFiles in MyDatasets
+  }
   pendingResume.value = false;
+};
+
+const checkResume = () => {
+  if (hasPendingUpload()) {
+    pendingResume.value = true;
+    const session = loadUploadSession();
+    pendingDatasetName.value = session?.datasetName || '';
+  }
 };
 
 const resumeUpload = async () => {
@@ -343,6 +417,7 @@ const resumeUpload = async () => {
   progress.value = 0;
   uploadMessage.value = 'Resuming upload...';
   error.value = '';
+  emit('upload-start', pendingDatasetName.value);
 
   abortController = new AbortController();
 
@@ -364,7 +439,7 @@ const resumeUpload = async () => {
 
     showToast('Dataset pipeline successfully completed', 'success');
     uploading.value = false;
-    emit('upload-success');
+    emit('upload-success', pendingDatasetName.value);
     closeModal();
   } catch (err: any) {
     console.error('Resume upload failed', err);
@@ -374,8 +449,10 @@ const resumeUpload = async () => {
     } else {
       error.value = err.message || 'Resume upload failed';
       showToast(error.value, 'error');
+      emit('upload-start', pendingDatasetName.value);
     }
     stage.value = 'select';
+    checkResume();
   } finally {
     uploading.value = false;
     abortController = null;
@@ -383,71 +460,72 @@ const resumeUpload = async () => {
 };
 
 const onFileChange = (e: Event) => {
-const input = e.target as HTMLInputElement;
-const files = input.files;
-if (!files || files.length === 0) return;
+  const input = e.target as HTMLInputElement;
+  const files = input.files;
+  if (!files || files.length === 0) return;
 
-let ibd: File | undefined;
-let imzml: File | undefined;
+  let ibd: File | undefined;
+  let imzml: File | undefined;
 
-    for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        if (!f) continue;
-        if (f.name.toLowerCase().endsWith('.ibd')) ibd = f;
-        if (f.name.toLowerCase().endsWith('.imzml')) imzml = f;
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    if (!f) continue;
+    if (f.name.toLowerCase().endsWith('.ibd')) ibd = f;
+    if (f.name.toLowerCase().endsWith('.imzml')) imzml = f;
+  }
+
+  if (!ibd || !imzml) {
+    showToast('Please select BOTH an .ibd and .imzml file simultaneously.', 'error');
+    selectedPair.value = null;
+    input.value = '';
+    return;
+  }
+
+  const base2 = imzml.name.substring(0, imzml.name.lastIndexOf('.'));
+
+  error.value = '';
+  selectedPair.value = { ibd, imzml, baseName: base2 };
+
+  // Reset auto-filled fields before reading new file
+  form.value.polarity = '';
+  form.value.ionisation_source = '';
+  form.value.analyzer = '';
+  form.value.pixel_size_horizontal = '';
+  form.value.pixel_size_vertical = '';
+
+  // Show loading indicator immediately, parse will block UI for large files
+  parsingMetadata.value = true;
+
+  // Auto-fill MS settings from imzML metadata
+  parseImzMLMSSettings(imzml).then((settings) => {
+    if (settings.polarity) {
+      form.value.polarity = settings.polarity === 'negative' ? 'Negative' : 'Positive';
     }
-
-if (!ibd || !imzml) {
-showToast('Please select BOTH an .ibd and .imzml file simultaneously.', 'error');
-selectedPair.value = null;
-input.value = '';
-return;
-}
-
-const base2 = imzml.name.substring(0, imzml.name.lastIndexOf('.'));
-
-    error.value = '';
-    selectedPair.value = { ibd, imzml, baseName: base2 };
-
-    // Reset auto-filled fields before reading new file
-    form.value.polarity = '';
-    form.value.ionisation_source = '';
-    form.value.analyzer = '';
-    form.value.pixel_size_horizontal = '';
-    form.value.pixel_size_vertical = '';
-
-    // Show loading indicator immediately, parse will block UI for large files
-    parsingMetadata.value = true;
-
-    // Auto-fill MS settings from imzML metadata
-    parseImzMLMSSettings(imzml).then((settings) => {
-      if (settings.polarity) {
-        form.value.polarity = settings.polarity === 'negative' ? 'Negative' : 'Positive';
-      }
-      if (settings.ionSource && ['MALDI', 'DESI', 'SIMS'].includes(settings.ionSource)) {
-        form.value.ionisation_source = settings.ionSource;
-      }
-      if (settings.analyzer) {
-        const analyzers = ['Orbitrap', 'FTICR', 'TOF', 'Q-TOF'];
-        form.value.analyzer = analyzers.includes(settings.analyzer) ? settings.analyzer : '';
-      }
-      if (settings.pixelSizeX != null) {
-        form.value.pixel_size_horizontal = String(settings.pixelSizeX);
-      }
-      if (settings.pixelSizeY != null) {
-        form.value.pixel_size_vertical = String(settings.pixelSizeY);
-      }
-    }).catch(() => {}).finally(() => {
-      parsingMetadata.value = false;
-    });
+    if (settings.ionSource && ['MALDI', 'DESI', 'SIMS'].includes(settings.ionSource)) {
+      form.value.ionisation_source = settings.ionSource;
+    }
+    if (settings.analyzer) {
+      const analyzers = ['Orbitrap', 'FTICR', 'TOF', 'Q-TOF'];
+      form.value.analyzer = analyzers.includes(settings.analyzer) ? settings.analyzer : '';
+    }
+    if (settings.pixelSizeX != null) {
+      form.value.pixel_size_horizontal = String(settings.pixelSizeX);
+    }
+    if (settings.pixelSizeY != null) {
+      form.value.pixel_size_vertical = String(settings.pixelSizeY);
+    }
+  }).catch(() => { }).finally(() => {
+    parsingMetadata.value = false;
+  });
 };
 
 const abortUpload = () => {
-    cancelOssUpload();
-    if (abortController) {
-        abortController.abort();
-        abortController = null;
-    }
+  invalidateUploadGeneration();
+  cancelOssUpload(); // abort OSS multipart upload + reset checkpoint, keep ZIP and session for re-upload
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
 };
 
 const REQUIRED_FIELDS: { key: keyof typeof form.value; label: string }[] = [
@@ -464,76 +542,79 @@ const REQUIRED_FIELDS: { key: keyof typeof form.value; label: string }[] = [
 ];
 
 const confirmAndUpload = async () => {
-if (!selectedPair.value) return;
+  if (!selectedPair.value) return;
 
-for (const field of REQUIRED_FIELDS) {
-  const val = form.value[field.key];
-  if (!val || (typeof val === 'string' && !val.trim())) {
-    showToast(`${field.label} is required.`, 'error');
-    return;
+  for (const field of REQUIRED_FIELDS) {
+    const val = form.value[field.key];
+    if (!val || (typeof val === 'string' && !val.trim())) {
+      showToast(`${field.label} is required.`, 'error');
+      return;
+    }
+    if (val === 'Other' && !(otherInputs.value as any)[field.key]?.trim()) {
+      showToast(`Please specify custom value for ${field.label}.`, 'error');
+      return;
+    }
   }
-  if (val === 'Other' && !(otherInputs.value as any)[field.key]?.trim()) {
-    showToast(`Please specify custom value for ${field.label}.`, 'error');
-    return;
-  }
-}
 
-uploading.value = true;
-stage.value = 'uploading';
-progress.value = 0;
-uploadMessage.value = 'Initializing Pipeline...';
-error.value = '';
+  uploading.value = true;
+  stage.value = 'uploading';
+  progress.value = 0;
+  uploadMessage.value = 'Initializing Pipeline...';
+  error.value = '';
+  emit('upload-start', selectedPair.value!.baseName);
 
-abortController = new AbortController();
+  abortController = new AbortController();
 
-try {
-        const payload: Record<string, any> = {};
-        Object.keys(form.value).forEach((key) => {
-          const k = key as keyof typeof form.value;
-          const val = (form.value as any)[k];
-          payload[k] = val === 'Other' ? (otherInputs.value as any)[k] : val;
-        });
+  try {
+    const payload: Record<string, any> = {};
+    Object.keys(form.value).forEach((key) => {
+      const k = key as keyof typeof form.value;
+      const val = (form.value as any)[k];
+      payload[k] = val === 'Other' ? (otherInputs.value as any)[k] : val;
+    });
 
-        // Convert numeric fields (always, empty string → 0)
-        payload.pixel_size_horizontal = Number(payload.pixel_size_horizontal);
-        payload.pixel_size_vertical = Number(payload.pixel_size_vertical);
-        payload.resolving_power = Number(payload.resolving_power);
+    // Convert numeric fields (always, empty string → 0)
+    payload.pixel_size_horizontal = Number(payload.pixel_size_horizontal);
+    payload.pixel_size_vertical = Number(payload.pixel_size_vertical);
+    payload.resolving_power = Number(payload.resolving_power);
 
-        await uploadImzmlZipFileOSS({
-          files: selectedPair.value,
-          datasetName: selectedPair.value.baseName,
-          metadata: { ...payload, file_type: 'zip', is_public: form.value.is_public },
-            signal: abortController.signal,
-            onProgress: (p: UnifiedUploadProgress) => {
-                progress.value = p.percent;
-                uploadMessage.value = p.message || `Stage: ${p.stage}`;
-                speed.value = p.speedStr || '';
-                eta.value = p.etaStr || '';
+    await uploadImzmlZipFileOSS({
+      files: selectedPair.value,
+      datasetName: selectedPair.value.baseName,
+      metadata: { ...payload, file_type: 'zip', is_public: form.value.is_public },
+      signal: abortController.signal,
+      onProgress: (p: UnifiedUploadProgress) => {
+        progress.value = p.percent;
+        uploadMessage.value = p.message || `Stage: ${p.stage}`;
+        speed.value = p.speedStr || '';
+        eta.value = p.etaStr || '';
 
-                // Show underlying warnings/retries on the progress bar for the user
-                if (p.message?.includes('Fail') || p.message?.includes('Retrying')) {
-                     error.value = p.message;
-                }
-            }
-        });
-
-showToast('Dataset pipeline successfully completed', 'success');
-uploading.value = false; // Set this before closing so closeModal succeeds
-emit('upload-success');
-closeModal();
-} catch (err: any) {
-console.error('Upload pipeline failed', err);
-        if (err.name === 'AbortError' || err.name === 'cancel') {
-            showToast('Upload safely aborted', 'info');
-    error.value = 'User aborted upload';
-        } else {
-    error.value = err.message || 'Pipeline sequence failed';
-    showToast(error.value, 'error');
+        // Show underlying warnings/retries on the progress bar for the user
+        if (p.message?.includes('Fail') || p.message?.includes('Retrying')) {
+          error.value = p.message;
         }
-stage.value = 'select';
-} finally {
-uploading.value = false;
-        abortController = null;
-}
+      }
+    });
+
+    showToast('Dataset pipeline successfully completed', 'success');
+    uploading.value = false; // Set this before closing so closeModal succeeds
+    emit('upload-success', selectedPair.value!.baseName);
+    closeModal();
+  } catch (err: any) {
+    console.error('Upload pipeline failed', err);
+    if (err.name === 'AbortError' || err.name === 'cancel') {
+      showToast('Upload safely aborted', 'info');
+      error.value = 'User aborted upload';
+    } else {
+      error.value = err.message || 'Pipeline sequence failed';
+      showToast(error.value, 'error');
+      emit('upload-start', selectedPair.value!.baseName);
+    }
+    stage.value = 'select';
+    checkResume();
+  } finally {
+    uploading.value = false;
+    abortController = null;
+  }
 };
 </script>

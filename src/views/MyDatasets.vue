@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import DatasetList from '@/components/dataset/DatasetList.vue';
 import DatasetFilterBar from '@/components/dataset/DatasetFilterBar.vue';
@@ -7,6 +7,7 @@ import UploadModal from '@/components/UploadModal.vue';
 import { listUserFiles, deleteFile } from '@/utils/file-api';
 import { useDownloadProgress } from '@/composables/useDownloadProgress';
 import { useDatasets } from '@/composables/useDatasets';
+import { useUploadStatusStore } from '@/stores/uploadStatus';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast';
 
@@ -92,15 +93,32 @@ const handleStatusFilter = (statuses: string[]) => {
 // UI handlers used by the filter bar and cards
 const handleVisibilityFilter = (tab: string) => { /* placeholder: could toggle between My/Public */ };
 const isUploadOpen = ref(false);
-const onUploadSuccess = () => {
-  isUploadOpen.value = false;
-  // refresh list after upload
-  fetchFiles({ page: page.value, size: size.value });
-};
 const handleUpload = () => { isUploadOpen.value = true; };
 
 // Download progress handler (shared via composable)
 const { downloadingMap, handleDownload } = useDownloadProgress(datasets);
+
+// Upload status tracking
+const { statusMapFlat: uploadStatusFlat, markUploading, markSuccess, syncWithDatasets } = useUploadStatusStore();
+
+// Clean up orphaned upload statuses when dataset list changes
+watch(datasets, (list) => {
+  syncWithDatasets(list.map(d => d.name));
+});
+
+const handleUploadStart = (datasetName: string) => {
+  markUploading(datasetName);
+};
+const handleUploadSuccess = (datasetName: string) => {
+  isUploadOpen.value = false;
+  fetchFiles({ page: page.value, size: size.value }).then(() => {
+    markSuccess(datasetName);
+  });
+};
+const handleUploadFailed = (_datasetName: string) => {
+  isUploadOpen.value = false;
+  fetchFiles({ page: page.value, size: size.value });
+};
 
 const deletingId = ref<string | null>(null);
 const { showToast } = useToast();
@@ -180,7 +198,7 @@ const changeSize = (newSize: number) => {
         @sort="handleSort"
       />
 
-      <UploadModal :is-open="isUploadOpen" @close="isUploadOpen = false" @upload-success="onUploadSuccess" />
+      <UploadModal :is-open="isUploadOpen" @close="isUploadOpen = false" @upload-success="handleUploadSuccess" @upload-start="handleUploadStart" @upload-failed="handleUploadFailed" />
 
       <!-- Delete Confirmation Modal -->
       <dialog class="modal" :class="{ 'modal-open': isDeleteModalOpen }">
@@ -216,6 +234,7 @@ const changeSize = (newSize: number) => {
           :downloadingMap="downloadingMap"
           :is-my-dataset="true"
           :deletingId="deletingId"
+          :uploadStatusMap="uploadStatusFlat"
           @view-overview="viewOverview"
           @download="handleDownload"
           @delete="handleDelete"
