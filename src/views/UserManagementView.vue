@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast';
 
 interface User {
+  id: number;
   username: string;
   active: boolean;
   identity: string;
@@ -16,6 +17,8 @@ interface User {
   orcid: string;
   homepage: string;
   email: string;
+  total_file_size?: number;
+  file_count?: number;
 }
 
 // ---------------- State ----------------
@@ -150,10 +153,8 @@ const executeDeleteUser = async () => {
 
   loading.value = true;
   try {
-    await auth_api.delete('/user_delete', {
-      params: { username: selectedUser.value.username }
-    });
-    
+    await auth_api.delete(`/user_delete/${selectedUser.value.id}`);
+
     showToast('User deleted successfully', 'success');
     confirmModal.value?.close();
     closeDrawer();
@@ -409,13 +410,12 @@ const goToPage = (page: number) => { currentPage.value = page; fetchUsers(); };
           </div>
 
           <div class="space-y-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+            <div class="flex flex-wrap gap-4">
+              <div class="w-full sm:w-1/2">
                 <span class="text-xs font-semibold text-base-content/40 tracking-wider">Institution</span>
                 <p class="text-sm font-medium mt-1">{{ selectedUser.institution || '—' }}</p>
               </div>
-              
-              <div>
+              <div class="w-full sm:w-1/2">
                 <span class="text-xs font-semibold text-base-content/40 tracking-wider">Region</span>
                 <p class="text-sm font-medium mt-1">{{ selectedUser.region || '—' }}</p>
               </div>
@@ -423,13 +423,12 @@ const goToPage = (page: number) => { currentPage.value = page; fetchUsers(); };
 
             <hr class="border-base-200/60" />
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+            <div class="flex flex-wrap gap-4">
+              <div class="w-full sm:w-1/2">
                 <span class="text-xs font-semibold text-base-content/40 tracking-wider">Position</span>
                 <p class="text-sm font-medium mt-1">{{ selectedUser.position || '—' }}</p>
               </div>
-              
-              <div>
+              <div class="w-full sm:w-1/2">
                 <span class="text-xs font-semibold text-base-content/40 tracking-wider">Field</span>
                 <p class="text-sm font-medium mt-1">{{ selectedUser.research_field || '—' }}</p>
               </div>
@@ -464,6 +463,7 @@ const goToPage = (page: number) => { currentPage.value = page; fetchUsers(); };
             Edit
           </button>
           <button
+            v-if="selectedUser?.username !== authStore.user?.username"
             class="btn flex-1 rounded-xl shadow-sm text-white border-none font-medium bg-error hover:bg-error/80"
             @click="promptDeleteUser"
           >

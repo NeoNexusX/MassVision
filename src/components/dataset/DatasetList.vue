@@ -2,6 +2,7 @@
 import type { PropType } from 'vue';
 import DatasetCard from '@/components/dataset/DatasetCard.vue';
 import type { File } from '@/types/file';
+import type { UploadStatusType } from '@/stores/uploadStatus';
 
 const props = defineProps({
   datasets: { type: Array as PropType<File[]>, required: true },
@@ -12,11 +13,12 @@ const props = defineProps({
   pagination: { type: Array as PropType<(number | string)[]>, required: true },
   downloadingMap: { type: Object as PropType<Record<string, number>>, required: true },
   isMyDataset: { type: Boolean, required: false, default: false },
-  deletingId: { type: String as PropType<string | null>, required: false, default: null }
+  deletingId: { type: String as PropType<string | null>, required: false, default: null },
+  uploadStatusMap: { type: Object as PropType<Record<string, UploadStatusType>>, required: false, default: () => ({}) }
 });
 
 const emit = defineEmits([
-  'view-metadata', 'view-overview', 'download', 'delete', 'change-size', 'go-to-page'
+  'view-overview', 'download', 'delete', 'change-size', 'go-to-page', 'retry-upload', 'clear-upload-status'
 ]);
 
 const onChangeSize = (v: number) => emit('change-size', v);
@@ -43,7 +45,7 @@ const onGoToPage = (p: number) => emit('go-to-page', p);
       <slot name="empty">No datasets found matching your filters.</slot>
     </div>
 
-    <!-- Data grid -->
+    <!-- Data list -->
     <div v-else class="flex flex-wrap gap-6 justify-start">
       <div 
         v-for="dataset in datasets" 
@@ -51,14 +53,16 @@ const onGoToPage = (p: number) => emit('go-to-page', p);
         class="w-full md:w-[calc(50%-12px)] flex-shrink-0"
         :class="{ 'opacity-50 pointer-events-none': deletingId === dataset.id }"
       >
-        <DatasetCard 
+        <DatasetCard
           :dataset="dataset"
           :is-my-dataset="isMyDataset"
           :download-progress="downloadingMap[dataset.id]"
-          @view-metadata="$emit('view-metadata', $event)"
+          :upload-status="uploadStatusMap[dataset.name] || null"
           @view-overview="$emit('view-overview', $event)"
           @download="$emit('download', $event)"
           @delete="$emit('delete', $event)"
+          @retry-upload="$emit('retry-upload', $event)"
+          @clear-upload-status="$emit('clear-upload-status', $event)"
         />
       </div>
     </div>

@@ -1,64 +1,73 @@
 <template>
-  <div class="form-control">
-    <label class="label">
-      <span class="label-text font-semibold">{{ label }}</span>
-    </label>
-    <select
-      :value="modelValue"
-      @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value)"
-      class="select select-bordered w-full"
-    >
-      <option disabled value="">{{ placeholder }}</option>
-      <option
-        v-for="option in options"
-        :key="getKey(option)"
-        :value="getValue(option)"
-      >
-        {{ getLabel(option) }}
-      </option>
-    </select>
+  <div :class="['dropdown w-full', placement]">
+    <div tabindex="0" role="button" class="select select-bordered w-full flex items-center text-left h-auto py-2" :class="extraClass">
+      <span class="truncate text-sm flex-1 font-normal break-words whitespace-normal">
+        <template v-if="multiple">
+          {{ (modelValue as string[]).length ? (modelValue as string[]).join(', ') : placeholder }}
+        </template>
+        <template v-else>
+          {{ modelValue || placeholder }}
+        </template>
+      </span>
+    </div>
+    <ul tabindex="0" class="dropdown-content menu bg-base-100 border border-base-300 rounded-box z-[100] w-full p-2 shadow-xl max-h-64 overflow-y-auto mt-1">
+      <li v-for="opt in options" :key="opt">
+        <label class="cursor-pointer flex items-center gap-2">
+          <input 
+            v-if="multiple"
+            type="checkbox" 
+            class="checkbox checkbox-sm checkbox-primary" 
+            :value="opt" 
+            :checked="(modelValue as string[]).includes(opt)"
+            @change="toggleMultiple(opt)" 
+          />
+          <input 
+            v-else
+            type="radio" 
+            class="radio radio-sm radio-primary" 
+            :name="uniqueId" 
+            :value="opt" 
+            :checked="modelValue === opt"
+            @change="setSingle(opt)" 
+          />
+          <span class="text-sm">{{ opt }}</span>
+        </label>
+      </li>
+    </ul>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { PropType } from 'vue';
 
-type Option = string | { label?: string; name?: string; value?: string | number; code?: string | number };
-
-const props = defineProps({
-  label: {
-    type: String,
-    required: true
-  },
-  modelValue: {
-    type: [String, Number],
-    default: ''
-  },
-  options: {
-    type: Array as PropType<Option[]>,
-    default: () => []
-  },
-  placeholder: {
-    type: String,
-    default: 'Select an option'
-  }
+const props = withDefaults(defineProps<{
+  modelValue: string | string[];
+  options: string[];
+  multiple?: boolean;
+  placeholder?: string;
+  placement?: string;
+  extraClass?: string;
+}>(), {
+  placement: 'dropdown-bottom',
+  extraClass: ''
 });
 
-defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue']);
+const uniqueId = `dropdown_` + Math.random().toString(36).substr(2, 9);
 
-// Helpers to handle both string[] and object[] options
-const getKey = (option: Option) => {
-  if (typeof option === 'string') return option;
-  return option.value ?? option.code ?? option.name ?? JSON.stringify(option);
-};
+function toggleMultiple(opt: string) {
+  if (!Array.isArray(props.modelValue)) return;
+  const arr = [...props.modelValue];
+  const idx = arr.indexOf(opt);
+  if (idx !== -1) arr.splice(idx, 1);
+  else arr.push(opt);
+  emit('update:modelValue', arr);
+}
 
-const getValue = (option: Option) => {
-  if (typeof option === 'string') return option;
-  return option.value ?? option.name ?? option.code; // Prefer value, then name (for country obj), then code
-};
-
-const getLabel = (option: Option) => {
-  if (typeof option === 'string') return option;
-  return option.label ?? option.name ?? option.value;
-};
+function setSingle(opt: string) {
+  emit('update:modelValue', opt);
+  const elem = document.activeElement as HTMLElement;
+  if (elem) {
+    elem.blur();
+  }
+}
 </script>

@@ -11,7 +11,7 @@
       @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       :readonly="readonly"
       :placeholder="placeholder"
-      class="input input-bordered w-full"
+      class="input input-bordered w-full font-semibold"
       :class="{ 'bg-base-200': readonly }"
     />
   </div>
