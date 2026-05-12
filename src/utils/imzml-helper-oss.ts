@@ -1,11 +1,10 @@
 import OSS from 'ali-oss';
 import {
-  packageFilesToZip,
-  calculateFileMD5,
   ProgressTracker,
   type ImzmlFilePair,
   type UnifiedUploadProgress,
 } from './imzml-helper';
+import { compressImzmlToOPFS } from './imzml-compress';
 import { auth_api } from './api';
 import { useAuthStore } from '@/stores/auth';
 import {
@@ -126,9 +125,9 @@ export async function uploadImzmlZipFileOSS({
     // ================= Check storage quota =================
     await checkStorageQuota(files);
 
-    // ================= Phase 1: Archiving =================
+    // ================= Phase 1: Compress + Hash =================
     onProgress?.({ stage: 'packing', percent: 0, message: 'Building dataset archive...' });
-    const zipFileFromOPFS = await packageFilesToZip(files, {
+    const { file: zipFileFromOPFS, fileHash: hash } = await compressImzmlToOPFS(files, {
       signal,
       onProgress: p => onProgress?.({
         stage: 'packing',
@@ -139,22 +138,9 @@ export async function uploadImzmlZipFileOSS({
       }),
     });
     zipFile = zipFileFromOPFS;
+    fileHash = hash;
 
-    // ================= Phase 2: Hash =================
-    onProgress?.({ stage: 'hashing', percent: 0, message: 'Calculating file hash...' });
-
-    fileHash = await calculateFileMD5(zipFile, {
-      signal,
-      onProgress: p => onProgress?.({
-        stage: 'hashing',
-        percent: p.percent,
-        message: `Hashing ${p.percent.toFixed(1)}%`,
-        speedStr: p.speedStr,
-        etaStr: p.etaStr,
-      }),
-    });
-
-    // ================= Phase 3a: Preflight =================
+    // ================= Phase 2: Preflight =================
     onProgress?.({ stage: 'preflight', percent: 100, message: 'Requesting upload token...' });
 
     const preflightPayload = {
@@ -243,7 +229,14 @@ export async function uploadImzmlZipFileOSS({
   const tracker = new ProgressTracker();
   let lastPercent = 0;
   let lastSaveTime = 0;
+
+  // OSS part size: 1MB for files <1GB, otherwise fixed 1000 parts
+  const ossPartSize = zipFile.size < 1e9
+    ? 1 * 1024 * 1024
+    : Math.ceil(zipFile.size / 1000);
+
   const putOptions: any = {
+    partSize: ossPartSize,
     async progress(percentage: number, cpt: any) {
       if (gen !== uploadGeneration) return;
       putOptions.checkpoint = cpt;

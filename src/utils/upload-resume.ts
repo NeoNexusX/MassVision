@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'oss_upload_session';
-const OPFS_ZIP_NAME = 'pending_upload.zip';
+export const OPFS_ZIP_NAME = 'pending_upload.zip';
 
 export interface UploadSession {
   datasetName: string;
