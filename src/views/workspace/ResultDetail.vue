@@ -123,20 +123,21 @@ const ionMatrix = ref<number[][] | null>(null)
 // ─── Intensity histogram (mock, 32 bins) ───
 const intensityHistogram = computed(() => {
   // Approximate distribution for mock data: centered blob + noise
-  const bins = 32
+  const bins = 48
   const hist: number[] = new Array(bins).fill(0)
   const gMin = globalMin.value
   const gMax = globalMax.value
-  for (let r = 0; r < 150; r++) {
-    for (let c = 0; c < 200; c++) {
-      // Simplified intensity distribution matching the mock brain model
-      const cx = 100, cy = 69
-      const nx = (c - cx) / 84, ny = (r - cy) / 66
+  // Sample a representative subset of the 300×400 mock
+  const rows = 300, cols = 400
+  const cx = cols / 2, cy = rows * 0.46
+  const rx = cols * 0.42, ry = rows * 0.44
+  for (let r = 0; r < rows; r += 4) {
+    for (let c = 0; c < cols; c += 4) {
+      const nx = (c - cx) / rx, ny = (r - cy) / ry
       const d = Math.sqrt(nx * nx + ny * ny)
-      const wobble = 1 + Math.sin(c * 0.8) * Math.cos(r * 0.7) * 0.18
-      const mask = 1 / (1 + Math.exp((d * wobble - 0.92) * 14))
+      const mask = 1 / (1 + Math.exp((d - 0.92) * 20))
       const rim = Math.max(0, Math.exp(-((1 - d - 0.22) ** 2) / 0.008))
-      const val = (rim * 0.9 + 0.1) * mask * 1.2e6 + Math.random() * 2e4
+      const val = (rim * 0.9 + 0.1) * mask * 1.2e6 + Math.random() * 8e3
       const idx = Math.min(bins - 1, Math.max(0, Math.floor(((val - gMin) / (gMax - gMin)) * bins)))
       hist[idx] = (hist[idx] ?? 0) + 1
     }
@@ -145,7 +146,7 @@ const intensityHistogram = computed(() => {
 })
 
 const imageInfo = computed(() => ({
-  pixels: '150 × 200',
+  pixels: '300 × 400',
   nonZero: '53.2%',
   totalIon: '2.1e10',
   imzML: meta.datasetName?.slice(-20) ?? '',

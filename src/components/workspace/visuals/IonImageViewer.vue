@@ -120,14 +120,14 @@ const COLORMAP_TABLE: Record<string, [number, number, number][]> = {
 }
 
 function buildLUT(name: string): [number, number, number][] {
-  const stops = COLORMAP_TABLE[name] ?? COLORMAP_TABLE.viridis
+  const stops = (COLORMAP_TABLE[name] ?? COLORMAP_TABLE.viridis)!
   const lut: [number, number, number][] = new Array(256)
   for (let i = 0; i < 256; i++) {
     const t = i / 255
     const segment = t * (stops.length - 1)
     const idx = Math.min(Math.floor(segment), stops.length - 2)
     const frac = segment - idx
-    const a = stops[idx], b = stops[idx + 1]
+    const a = stops[idx]!, b = stops[idx + 1]!
     lut[i] = [
       Math.round(a[0] + (b[0] - a[0]) * frac),
       Math.round(a[1] + (b[1] - a[1]) * frac),
@@ -166,13 +166,10 @@ function generateMockMatrix(rows: number, cols: number): number[][] {
     const dBase = Math.sqrt(nx * nx + ny * ny)
     // Irregular boundary: wider at top, narrower at bottom, asymmetric
     const wobble = 1
-      + smoothNoise(c, r, 10, 0) * 0.18
-      + Math.sin(angle * 2 + 0.3) * 0.06
-      + Math.cos(angle * 3) * 0.04
-      + (ny > 0 ? ny * 0.15 : 0)  // slightly narrower at bottom
-    const dEff = dBase * wobble
-    // Soft tissue edge
-    return 1 / (1 + Math.exp((dEff - 0.92) * 14))
+      + smoothNoise(c, r, 10, 0) * 0.08
+      + Math.sin(angle * 2 + 0.3) * 0.04
+      const dEff = dBase * wobble
+      return 1 / (1 + Math.exp((dEff - 0.92) * 20))
   }
 
   // ── Cortex rim (outer ring, higher signal in this m/z) ──
@@ -259,8 +256,8 @@ function generateMockMatrix(rows: number, cols: number): number[][] {
       // Combine regions
       let signal = (ctx * 1.0 + hipp * 0.85 + stri * 0.45) * (1 - ccDip * 0.7) * (1 - vVoid * 0.85)
 
-      // Add diffuse background within tissue
-      signal += 0.08 * (0.5 + smoothNoise(c, r, 15, 50) * 0.5)
+      // Add diffuse background within tissue (barely perceptible)
+      signal += 0.03 * (0.5 + smoothNoise(c, r, 15, 50) * 0.5)
 
       // Clamp tissue signal
       signal = Math.max(0, signal)
@@ -269,28 +266,24 @@ function generateMockMatrix(rows: number, cols: number): number[][] {
       let intensity = signal * mask * BASE
 
       // ── MSI acquisition effects ──
-      // Salt-and-pepper noise (hot/cold pixels)
+      // Salt-and-pepper noise (rare hot/cold pixels)
       const spRoll = Math.random()
-      if (spRoll < 0.003 && mask > 0.5) {
-        intensity = BASE * (0.85 + Math.random() * 0.15) // sparse hot pixel
-      } else if (spRoll < 0.008 && mask > 0.3) {
-        intensity *= 0.3 + Math.random() * 0.3 // sparse cold pixel
+      if (spRoll < 0.0008 && mask > 0.5) {
+        intensity = BASE * (0.85 + Math.random() * 0.15)
+      } else if (spRoll < 0.003 && mask > 0.3) {
+        intensity *= 0.3 + Math.random() * 0.3
       }
 
-      // Gaussian acquisition noise
-      intensity += gaussRandom() * BASE * 0.012
+      // Subtle Gaussian acquisition noise
+      intensity += gaussRandom() * BASE * 0.004
 
-      // Background: very low signal with occasional cosmic ray
+      // Background: near-zero
       if (mask < 0.1) {
-        intensity = Math.random() < 0.002 ? Math.random() * BASE * 0.15 : Math.random() * BASE * 0.008
+        intensity = Math.random() < 0.0005 ? Math.random() * BASE * 0.05 : Math.random() * BASE * 0.003
       }
 
-      // Edge enhancement: slight rim at tissue boundary
-      const edge = Math.abs(mask - 0.5) < 0.35 ? (1 - Math.abs(mask - 0.5) / 0.35) : 0
-      intensity += edge * edge * BASE * 0.08
-
-      // Sparse hot pixels anywhere in tissue
-      if (Math.random() < 0.0015 && mask > 0.2) {
+      // Sparse hot pixels (cosmic ray spikes)
+      if (Math.random() < 0.0003 && mask > 0.5) {
         intensity = BASE * (0.8 + Math.random() * 0.2)
       }
 
@@ -340,7 +333,7 @@ function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
   const data = props.matrix ?? mockData
-  if (!data.length || !data[0].length) return
+  if (!data.length || !data[0]?.length) return
 
   const rows = data.length
   const cols = data[0].length
@@ -369,11 +362,14 @@ function render() {
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      let norm = (data[r][c] - dispMin) / range
+      const rowData = data[r]
+      if (!rowData) continue
+      const val = rowData[c] ?? dispMin
+      let norm = (val - dispMin) / range
       if (useLog) norm = Math.log1p(norm * 9) / Math.log1p(9) // log scaling
       norm = Math.max(0, Math.min(1, norm)) // clamp to [0,1] — below min → 0, above max → 1
       const idx = Math.round(norm * 255)
-      const [cr, cg, cb] = lut[idx]
+      const [cr, cg, cb] = lut[idx] ?? [0, 0, 0]
       ctx.fillStyle = `rgb(${cr},${cg},${cb})`
       ctx.fillRect(Math.floor(c * cellW), Math.floor(r * cellH), Math.ceil(cellW), Math.ceil(cellH))
     }
@@ -387,7 +383,7 @@ function onHover(e: MouseEvent) {
   const data = props.matrix ?? mockData
   if (!data.length) return
 
-  const rows = data.length, cols = data[0].length
+  const rows = data.length, cols = data[0]?.length ?? 0
   const cellW = rect.width / cols, cellH = rect.height / rows
   const col = Math.floor((e.clientX - rect.left) / cellW)
   const row = Math.floor((e.clientY - rect.top) / cellH)
@@ -397,7 +393,7 @@ function onHover(e: MouseEvent) {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
       row, col,
-      intensity: data[row][col],
+      intensity: data[row]![col]!,
     }
   } else {
     hoverPixel.value = null
@@ -406,7 +402,7 @@ function onHover(e: MouseEvent) {
 
 // --- Lifecycle ---
 onMounted(() => {
-  mockData = generateMockMatrix(150, 200)
+  mockData = generateMockMatrix(300, 400)
   render()
   ro = new ResizeObserver(() => render())
   if (containerRef.value) ro.observe(containerRef.value)
