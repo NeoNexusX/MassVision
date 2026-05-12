@@ -119,7 +119,7 @@ const placeholderSvg = computed(() => {
         <SvgIcon type="error" class="w-4 h-4" />
         <span>Upload Failed</span>
       </div>
-      <div v-else class="flex items-center gap-2 text-sm font-medium p-1 rounded" :class="{
+      <div v-else-if="uploadStatus" class="flex items-center gap-2 text-sm font-medium p-1 rounded" :class="{
         'text-info': uploadStatus === 'uploading',
         'text-success': uploadStatus !== 'uploading'
       }">

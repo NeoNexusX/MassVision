@@ -449,7 +449,7 @@ const resumeUpload = async () => {
     } else {
       error.value = err.message || 'Resume upload failed';
       showToast(error.value, 'error');
-      emit('upload-start', pendingDatasetName.value);
+      emit('upload-failed', pendingDatasetName.value);
     }
     stage.value = 'select';
     checkResume();
@@ -573,10 +573,15 @@ const confirmAndUpload = async () => {
       payload[k] = val === 'Other' ? (otherInputs.value as any)[k] : val;
     });
 
-    // Convert numeric fields (always, empty string → 0)
+    // Convert numeric fields
     payload.pixel_size_horizontal = Number(payload.pixel_size_horizontal);
     payload.pixel_size_vertical = Number(payload.pixel_size_vertical);
-    payload.resolving_power = Number(payload.resolving_power);
+    const rp = payload.resolving_power;
+    if (rp !== '' && rp !== undefined && isFinite(Number(rp))) {
+      payload.resolving_power = Number(rp);
+    } else {
+      delete payload.resolving_power;
+    }
 
     await uploadImzmlZipFileOSS({
       files: selectedPair.value,
@@ -608,7 +613,7 @@ const confirmAndUpload = async () => {
     } else {
       error.value = err.message || 'Pipeline sequence failed';
       showToast(error.value, 'error');
-      emit('upload-start', selectedPair.value!.baseName);
+      emit('upload-failed', selectedPair.value!.baseName);
     }
     stage.value = 'select';
     checkResume();

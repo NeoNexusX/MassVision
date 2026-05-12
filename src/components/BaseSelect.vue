@@ -10,7 +10,7 @@
         </template>
       </span>
     </div>
-    <ul ref="listRef" tabindex="0" class="dropdown-content menu bg-base-100 border border-base-300 rounded-box z-[100] w-full p-2 shadow-xl max-h-64 overflow-y-auto mt-1">
+    <ul tabindex="0" class="dropdown-content menu bg-base-100 border border-base-300 rounded-box z-[100] w-full p-2 shadow-xl max-h-64 overflow-y-auto mt-1">
       <li v-for="opt in options" :key="opt">
         <label class="cursor-pointer flex items-center gap-2">
           <input 

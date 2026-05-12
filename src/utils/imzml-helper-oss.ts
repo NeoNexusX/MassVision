@@ -47,7 +47,7 @@ export interface OssUploadResponse {
   };
   oss_bucket: string;
   oss_path: string;
-  oss_region_id?: string;
+  oss_region_id: string;
 }
 
 export interface UploadImzmlOssConfig {
@@ -227,6 +227,18 @@ export async function uploadImzmlZipFileOSS({
   const authStore = useAuthStore();
   const currentUsername = authStore.user?.username || 'unknown';
   const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+  const callbackConfig: any = backendUrl && /^https?:\/\//.test(backendUrl)
+    ? {
+        url: `${backendUrl}/files/oss_upload_complete`,
+        body: 'fc_request_id=${reqId}&file_id=${x:file_id}&current_username=${x:current_username}',
+        contentType: 'application/x-www-form-urlencoded',
+        callbackSNI: true,
+        customValue: {
+          file_id: String(fileId),
+          current_username: encodeURIComponent(currentUsername),
+        },
+      }
+    : undefined;
 
   const tracker = new ProgressTracker();
   let lastPercent = 0;
@@ -275,17 +287,9 @@ export async function uploadImzmlZipFileOSS({
         etaStr,
       });
     },
-    callback: {
-      url: `${backendUrl}/files/oss_upload_complete`,
-      body: 'fc_request_id=${reqId}&file_id=${x:file_id}&current_username=${x:current_username}',
-      contentType: 'application/x-www-form-urlencoded',
-      callbackSNI: true,
-      customValue: {
-        file_id: String(fileId),
-        current_username: encodeURIComponent(currentUsername),
-      },
-    },
   };
+
+  if (callbackConfig) putOptions.callback = callbackConfig;
 
   // Restore checkpoint for resume (skip if session was cancelled)
   if (resume) {
@@ -339,6 +343,11 @@ export async function uploadImzmlZipFileOSS({
     }
 
     onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete.' });
+
+    // Notify backend manually in case OSS callback didn't fire (e.g. relative URL)
+    if (!callbackConfig) {
+      await auth_api.post('/files/oss_upload_complete', `file_id=${fileId}&current_username=${currentUsername}`);
+    }
 
     await cleanupResumable();
     return { upload_id: String(fileId), fileHash, oss_path: ossData.oss_path };
