@@ -53,6 +53,14 @@ export async function deleteFile(fileId: string | number) {
   return auth_api.delete(`/files/${fileId}`);
 }
 
+// 6. Check imzML file processing status
+// GET /origins/imzml/{file_id}
+export async function checkImzmlStatus(fileId: string): Promise<{ status: string; ready: boolean }> {
+  const res = await auth_api.get(`/origins/imzml/${fileId}`);
+  const status = res.data?.status || 'unknown';
+  return { status, ready: status === 'completed' };
+}
+
 /**
  * Chunked Upload API
  * Recommended for larger files
@@ -99,4 +107,20 @@ export async function listUserFiles(filters: Record<string, any> = {}, page = 1,
   return auth_api.post('/files/list_user_files', filters, {
     params: { page, size }
   });
+}
+
+// Get user storage and processing quota
+// GET /users/quota
+export interface UserQuota {
+  max_file_size_gb: number
+  total_uploaded_size_bytes: number
+  file_count: number
+  max_files_per_user: number
+  max_processing_size_gb: number
+  total_processed_size_bytes: number
+}
+
+export async function getUserQuota(): Promise<UserQuota> {
+  const res = await auth_api.get('/users/quota')
+  return res.data
 }

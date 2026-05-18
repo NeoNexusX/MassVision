@@ -53,7 +53,7 @@ const chips = computed(() => {
   const items: { label: string; value: string }[] = []
   if (props.analyzer) items.push({ label: 'Analyzer', value: props.analyzer })
   if (props.ionSource) items.push({ label: 'Source', value: props.ionSource })
-  if (props.pixelSize) items.push({ label: 'Pixel', value: props.pixelSize })
+  if (props.pixelSize) items.push({ label: 'Pixel Size', value: props.pixelSize })
   return items
 })
 </script>

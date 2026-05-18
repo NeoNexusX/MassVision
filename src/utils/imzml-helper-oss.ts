@@ -1,13 +1,11 @@
 import OSS from 'ali-oss';
 import {
-  packageFilesToZip,
-  calculateFileMD5,
   ProgressTracker,
   type ImzmlFilePair,
   type UnifiedUploadProgress,
 } from './imzml-helper';
+import { compressImzmlToOPFS } from './imzml-compress';
 import { auth_api } from './api';
-import { useAuthStore } from '@/stores/auth';
 import {
   saveUploadSession,
   loadZipFromOPFS,
@@ -126,9 +124,9 @@ export async function uploadImzmlZipFileOSS({
     // ================= Check storage quota =================
     await checkStorageQuota(files);
 
-    // ================= Phase 1: Archiving =================
+    // ================= Phase 1: Compress + Hash =================
     onProgress?.({ stage: 'packing', percent: 0, message: 'Building dataset archive...' });
-    const zipFileFromOPFS = await packageFilesToZip(files, {
+    const { file: zipFileFromOPFS, fileHash: hash } = await compressImzmlToOPFS(files, {
       signal,
       onProgress: p => onProgress?.({
         stage: 'packing',
@@ -139,22 +137,9 @@ export async function uploadImzmlZipFileOSS({
       }),
     });
     zipFile = zipFileFromOPFS;
+    fileHash = hash;
 
-    // ================= Phase 2: Hash =================
-    onProgress?.({ stage: 'hashing', percent: 0, message: 'Calculating file hash...' });
-
-    fileHash = await calculateFileMD5(zipFile, {
-      signal,
-      onProgress: p => onProgress?.({
-        stage: 'hashing',
-        percent: p.percent,
-        message: `Hashing ${p.percent.toFixed(1)}%`,
-        speedStr: p.speedStr,
-        etaStr: p.etaStr,
-      }),
-    });
-
-    // ================= Phase 3a: Preflight =================
+    // ================= Phase 2: Preflight =================
     onProgress?.({ stage: 'preflight', percent: 100, message: 'Requesting upload token...' });
 
     const preflightPayload = {
@@ -224,26 +209,17 @@ export async function uploadImzmlZipFileOSS({
     });
   }
 
-  const authStore = useAuthStore();
-  const currentUsername = authStore.user?.username || 'unknown';
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
-  const callbackConfig: any = backendUrl && /^https?:\/\//.test(backendUrl)
-    ? {
-        url: `${backendUrl}/files/oss_upload_complete`,
-        body: 'fc_request_id=${reqId}&file_id=${x:file_id}&current_username=${x:current_username}',
-        contentType: 'application/x-www-form-urlencoded',
-        callbackSNI: true,
-        customValue: {
-          file_id: String(fileId),
-          current_username: encodeURIComponent(currentUsername),
-        },
-      }
-    : undefined;
-
   const tracker = new ProgressTracker();
   let lastPercent = 0;
   let lastSaveTime = 0;
+
+  // OSS part size: 1MB for files <1GB, otherwise fixed 1000 parts
+  const ossPartSize = zipFile.size < 1e9
+    ? 1 * 1024 * 1024
+    : Math.ceil(zipFile.size / 1000);
+
   const putOptions: any = {
+    partSize: ossPartSize,
     async progress(percentage: number, cpt: any) {
       if (gen !== uploadGeneration) return;
       putOptions.checkpoint = cpt;
@@ -289,8 +265,6 @@ export async function uploadImzmlZipFileOSS({
     },
   };
 
-  if (callbackConfig) putOptions.callback = callbackConfig;
-
   // Restore checkpoint for resume (skip if session was cancelled)
   if (resume) {
     const session = loadUploadSession();
@@ -319,17 +293,6 @@ export async function uploadImzmlZipFileOSS({
       } catch (e: any) {
         if (signal?.aborted) throw e;
 
-        // Callback may have failed (timeout within 5s), notify backend manually
-        onProgress?.({ stage: 'uploading', percent: lastPercent, message: 'Verifying upload...' });
-        try {
-          await auth_api.post('/files/oss_upload_complete', `file_id=${fileId}&current_username=${currentUsername}`);
-          onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete.' });
-          await cleanupResumable();
-          return { upload_id: String(fileId), fileHash, oss_path: ossData.oss_path };
-        } catch {
-          // Manual notification also failed, retry the entire upload
-        }
-
         if (i === maxRetries - 1) {
           throw new Error(`OSS upload failed after ${maxRetries} attempts: ${e.message}`);
         }
@@ -343,11 +306,6 @@ export async function uploadImzmlZipFileOSS({
     }
 
     onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete.' });
-
-    // Notify backend manually in case OSS callback didn't fire (e.g. relative URL)
-    if (!callbackConfig) {
-      await auth_api.post('/files/oss_upload_complete', `file_id=${fileId}&current_username=${currentUsername}`);
-    }
 
     await cleanupResumable();
     return { upload_id: String(fileId), fileHash, oss_path: ossData.oss_path };

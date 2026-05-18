@@ -114,6 +114,17 @@
               </div>
             </div>
 
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex flex-col">
+                <label class="label"><span class="label-text font-medium text-base-content text-base">Spectrum Mode <span class="text-error">*</span></span></label>
+                <BaseSelect v-model="form.spectrum_mode" :options="['profile', 'centroid']" placeholder="Select..." />
+              </div>
+              <div class="flex flex-col">
+                <label class="label"><span class="label-text font-medium text-base-content text-base">Storage Mode <span class="text-error">*</span></span></label>
+                <BaseSelect v-model="form.storage_mode" :options="['continuous', 'processed']" placeholder="Select..." />
+              </div>
+            </div>
+
             <div class="flex flex-col">
               <label class="label"><span class="label-text font-medium text-base-content text-base">Organism <span
                     class="text-error">*</span></span></label>
@@ -167,11 +178,17 @@
                 class="input input-bordered input-sm w-full mt-1" placeholder="Please specify..." />
             </div>
 
-            <div class="flex flex-col">
-              <label class="label"><span class="label-text font-medium text-base-content text-base">Resolving
-                  Power</span></label>
-              <input v-model="form.resolving_power" type="text" inputmode="numeric" class="input input-bordered w-full"
-                placeholder="e.g. 70000" />
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex flex-col">
+                <label class="label"><span class="label-text font-medium text-base-content text-base">m/z</span></label>
+                <input v-model="form.mz" type="text" inputmode="numeric" class="input input-bordered w-full"
+                  placeholder="e.g. 200" />
+              </div>
+              <div class="flex flex-col">
+                <label class="label"><span class="label-text font-medium text-base-content text-base">Resolving Power</span></label>
+                <input v-model="form.resolving_power" type="text" inputmode="numeric" class="input input-bordered w-full"
+                  placeholder="e.g. 140000" />
+              </div>
             </div>
 
             <div class="flex flex-col">
@@ -259,10 +276,12 @@ import { useToast } from '@/composables/useToast';
 import { useRouter } from 'vue-router';
 import { uploadImzmlZipFileOSS, invalidateUploadGeneration, cancelOssUpload } from '@/utils/imzml-helper-oss';
 import { hasPendingUpload, loadUploadSession, cleanupResumable } from '@/utils/upload-resume';
-import { useUploadStatusStore } from '@/stores/uploadStatus';
+import { deleteFile } from '@/utils/file-api';
 import { parseImzMLMSSettings } from '@/utils/imzml-parser';
 import { type ImzmlFilePair, type UnifiedUploadProgress } from '@/utils/imzml-helper';
 import BaseSelect from './BaseSelect.vue';
+
+const MIN_PUBLIC_IBD_SIZE = 10 * 1024 * 1024;
 import {
   EXPERIMENT_TYPES,
   ORGANISMS,
@@ -280,13 +299,10 @@ const props = defineProps<{ isOpen: boolean }>();
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'upload-success', datasetName: string): void;
-  (e: 'upload-start', datasetName: string): void;
-  (e: 'upload-failed', datasetName: string): void;
 }>();
 
 const { showToast } = useToast();
 const router = useRouter();
-const uploadStatusStore = useUploadStatusStore();
 
 const speed = ref('');
 const eta = ref('');
@@ -323,6 +339,9 @@ const form = ref({
   maldi_matrix: '',
   maldi_matrix_application: '',
   solvent: '',
+  spectrum_mode: '' as string,
+  storage_mode: '' as string,
+  mz: '',
   is_public: false
 });
 
@@ -377,7 +396,10 @@ function resetAll() {
     tissue_modification: '',
     maldi_matrix: '',
     maldi_matrix_application: '',
-    solvent: ''
+    solvent: '',
+    spectrum_mode: '' as string,
+    storage_mode: '' as string,
+    mz: '',
   });
   Object.keys(otherInputs.value).forEach(k => {
     (otherInputs.value as any)[k] = '';
@@ -393,11 +415,12 @@ const closeModal = () => {
   }, 300); // Wait for closing animation before resetting
 };
 
-const discardResume = () => {
+const discardResume = async () => {
+  const session = loadUploadSession();
+  const fileId = session?.fileId;
   cleanupResumable();
-  if (pendingDatasetName.value) {
-    uploadStatusStore.markCancelled(pendingDatasetName.value); // immediate store update
-    emit('upload-failed', pendingDatasetName.value);           // trigger fetchFiles in MyDatasets
+  if (fileId) {
+    await deleteFile(fileId).catch(() => {});
   }
   pendingResume.value = false;
 };
@@ -417,7 +440,6 @@ const resumeUpload = async () => {
   progress.value = 0;
   uploadMessage.value = 'Resuming upload...';
   error.value = '';
-  emit('upload-start', pendingDatasetName.value);
 
   abortController = new AbortController();
 
@@ -449,7 +471,6 @@ const resumeUpload = async () => {
     } else {
       error.value = err.message || 'Resume upload failed';
       showToast(error.value, 'error');
-      emit('upload-failed', pendingDatasetName.value);
     }
     stage.value = 'select';
     checkResume();
@@ -514,7 +535,15 @@ const onFileChange = (e: Event) => {
     if (settings.pixelSizeY != null) {
       form.value.pixel_size_vertical = String(settings.pixelSizeY);
     }
-  }).catch(() => { }).finally(() => {
+    if (settings.spectrum_mode) {
+      form.value.spectrum_mode = settings.spectrum_mode;
+    }
+    if (settings.storage_mode) {
+      form.value.storage_mode = settings.storage_mode;
+    }
+  }).catch((err: any) => {
+    showToast(err?.message || 'Failed to parse imzML metadata', 'error');
+  }).finally(() => {
     parsingMetadata.value = false;
   });
 };
@@ -539,6 +568,8 @@ const REQUIRED_FIELDS: { key: keyof typeof form.value; label: string }[] = [
   { key: 'condition', label: 'Condition' },
   { key: 'sample_stabilization', label: 'Sample Stabilization' },
   { key: 'solvent', label: 'Solvent' },
+  { key: 'spectrum_mode', label: 'Spectrum Mode' },
+  { key: 'storage_mode', label: 'Storage Mode' },
 ];
 
 const confirmAndUpload = async () => {
@@ -556,12 +587,18 @@ const confirmAndUpload = async () => {
     }
   }
 
+  // Block public uploads with small ibd files
+  if (form.value.is_public && selectedPair.value!.ibd.size < MIN_PUBLIC_IBD_SIZE) {
+    const minSizeMB = MIN_PUBLIC_IBD_SIZE / (1024 * 1024);
+    showToast(`IBD file must be at least ${minSizeMB} MB for public datasets.`, 'error');
+    return;
+  }
+
   uploading.value = true;
   stage.value = 'uploading';
   progress.value = 0;
   uploadMessage.value = 'Initializing Pipeline...';
   error.value = '';
-  emit('upload-start', selectedPair.value!.baseName);
 
   abortController = new AbortController();
 
@@ -581,6 +618,12 @@ const confirmAndUpload = async () => {
       payload.resolving_power = Number(rp);
     } else {
       delete payload.resolving_power;
+    }
+    const mz = payload.mz;
+    if (mz !== '' && mz !== undefined && isFinite(Number(mz))) {
+      payload.mz = Number(mz);
+    } else {
+      delete payload.mz;
     }
 
     await uploadImzmlZipFileOSS({
@@ -613,7 +656,6 @@ const confirmAndUpload = async () => {
     } else {
       error.value = err.message || 'Pipeline sequence failed';
       showToast(error.value, 'error');
-      emit('upload-failed', selectedPair.value!.baseName);
     }
     stage.value = 'select';
     checkResume();

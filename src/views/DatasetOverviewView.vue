@@ -234,7 +234,7 @@ onMounted(() => {
                     <svg-icon v-else type="download" class="w-4 h-4" />
                   {{ downloadProgress !== undefined ? `Downloading ${downloadProgress}%` : 'Download' }}
                 </button>
-                <div class="badge badge-soft shrink-0 border-0 font-medium px-3 py-3" :class="dataset.status === 'Finished' ? 'badge-success bg-success/10 text-success' : 'badge-neutral bg-base-200 text-base-content/70'">
+                <div class="badge badge-soft shrink-0 border-0 font-medium px-3 py-3" :class="dataset.status === 'completed' || dataset.status === 'Finished' ? 'badge-success bg-success/10 text-success' : 'badge-neutral bg-base-200 text-base-content/70'">
                   {{ dataset.status || 'Finished' }}
                 </div>
               </div>
@@ -254,8 +254,12 @@ onMounted(() => {
                   <span class="font-medium mt-1 text-base-content">{{ formatSize(dataset?.sizeBytes) }}</span>
                 </div>
                 <div class="flex flex-col">
-                  <span class="text-xs font-semibold tracking-wider text-base-content/40">Instrument</span>
-                  <span class="font-medium mt-1 text-base-content">{{ (dataset?.instrumentTypes && dataset.instrumentTypes.length) ? dataset.instrumentTypes.join(', ') : '—' }}</span>
+                  <span class="text-xs font-semibold tracking-wider text-base-content/40">Spectrum Mode</span>
+                  <span class="font-medium mt-1 text-base-content">{{ dataset?.spectrumMode || '—' }}</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs font-semibold tracking-wider text-base-content/40">Storage Mode</span>
+                  <span class="font-medium mt-1 text-base-content">{{ dataset?.storageMode || '—' }}</span>
                 </div>
             </div>
           </div>
@@ -353,7 +357,12 @@ onMounted(() => {
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">Resolving Power</span>
-              <span class="text-base-content break-words">{{ dataset?.resolvingPower != null ? dataset.resolvingPower : '—' }}</span>
+              <span class="text-base-content break-words">
+                <template v-if="dataset?.mz != null || dataset?.resolvingPower != null">
+                  at m/z {{ dataset?.mz ?? '—' }}, {{ dataset?.resolvingPower ?? '—' }}
+                </template>
+                <template v-else>—</template>
+              </span>
             </div>
           </div>
         </div>

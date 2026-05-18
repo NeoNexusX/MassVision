@@ -2,39 +2,18 @@
 import { computed } from 'vue';
 import type { File } from '@/types/file';
 import { getDatasetPlaceholderSvg } from '@/utils/dataset-placeholder';
-import type { UploadStatusType } from '@/stores/uploadStatus';
-import { useUploadStatusStore } from '@/stores/uploadStatus';
-
-const uploadStatusStore = useUploadStatusStore();
-
-function formatBytes(bytes?: number): string {
-  if (bytes == null || isNaN(bytes)) return '—';
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ['KB','MB','GB','TB'];
-  let value = bytes / 1024;
-  let i = 0;
-  while (value >= 1024 && i < units.length - 1) {
-    value /= 1024;
-    i++;
-  }
-  return `${value.toFixed(1)} ${units[i]}`;
-}
+import { formatBytes } from '@/utils/format';
 
 const props = defineProps<{
   dataset: File;
   isMyDataset?: boolean;
   downloadProgress?: number;
-  uploadStatus?: UploadStatusType | null;
 }>();
-
-const isUploadCancelled = computed(() => !!uploadStatusStore.cancelledMapFlat[props.dataset.name]);
 
 const emit = defineEmits<{
   (e: 'view-overview', id: string): void;
   (e: 'download', id: string): void;
   (e: 'delete', id: string): void;
-  (e: 'retry-upload', name: string): void;
-  (e: 'clear-upload-status', name: string): void;
 }>();
 
 const formattedSize = computed(() => formatBytes(props.dataset.sizeBytes));
@@ -115,17 +94,17 @@ const placeholderSvg = computed(() => {
     <div class="relative z-10 w-full md:w-[140px] shrink flex flex-row md:flex-col md:justify-evenly gap-2 md:border-l border-t md:border-t-0 border-base-300 pt-3 md:pt-0 md:pl-3 items-center cursor-default self-stretch" @click.stop>
 
       <!-- Upload Status -->
-      <div v-if="isUploadCancelled" class="flex items-center gap-1 text-sm font-medium p-1 rounded text-error" title="This upload was cancelled. Please delete this file before re-uploading.">
-        <SvgIcon type="error" class="w-4 h-4" />
-        <span>Upload Failed</span>
+      <div v-if="dataset.status === 'uploading'" class="flex items-center gap-2 text-sm font-medium p-1 rounded text-info">
+        <span class="loading loading-spinner loading-xs"></span>
+        <span>Uploading</span>
       </div>
-      <div v-else-if="uploadStatus" class="flex items-center gap-2 text-sm font-medium p-1 rounded" :class="{
-        'text-info': uploadStatus === 'uploading',
-        'text-success': uploadStatus !== 'uploading'
-      }">
-        <span v-if="uploadStatus === 'uploading'" class="loading loading-spinner loading-xs"></span>
-        <SvgIcon v-else type="success" class="w-4 h-4" />
-        <span>{{ uploadStatus === 'uploading' ? 'Uploading' : 'Uploaded' }}</span>
+      <div v-else-if="dataset.status === 'completed'" class="flex items-center gap-2 text-sm font-medium p-1 rounded text-success">
+        <SvgIcon type="success" class="w-4 h-4" />
+        <span>Uploaded</span>
+      </div>
+      <div v-else-if="dataset.status === 'failed'" class="flex items-center gap-2 text-sm font-medium p-1 rounded text-error">
+        <SvgIcon type="error" class="w-4 h-4" />
+        <span>Failed</span>
       </div>
 
       <button v-if="isMyDataset" class="flex items-center gap-2 text-sm font-medium p-1 rounded" :class="dataset.isPublic ? 'text-slate-400' : 'text-slate-400'" :title="dataset.isPublic ? 'Public' : 'Private'">

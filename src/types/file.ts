@@ -38,12 +38,17 @@ export interface File {
   pixelSizeVertical?: number;
   resolvingPower?: number | string;
 
+  // MS acquisition
+  spectrumMode?: string;  // 'profile' | 'centroid'
+  storageMode?: string;   // 'continuous' | 'processed'
+  mz?: number | string;   // target m/z for resolving power
+
   // Submission info
   submitTime: string; // ISO string
   submitter: string;
   institution?: string;
 
-  status: 'Processing' | 'Queued' | 'Finished';
+  status: string; // 'uploading' | 'completed' | 'failed' — from backend
   isPublic: boolean;
 
   // UI

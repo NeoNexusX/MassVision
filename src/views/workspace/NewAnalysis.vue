@@ -62,41 +62,67 @@
               <div>
                 <div class="flex items-center justify-between">
                   <div class="font-medium text-base">{{ group.title }}</div>
-                  <div class="text-sm text-base-content/50 shrink-0 ml-4">{{ group.modeLabel }}</div>
                 </div>
                 <div v-if="group.hint" class="text-xs text-base-content/60 mt-1">{{ group.hint }}</div>
               </div>
               <div class="mt-3 flex flex-wrap gap-3">
-                <label
-                  v-for="m in group.methods"
-                  :key="m.id"
-                  :class="[
-                    'flex items-center gap-2 h-10 px-4 rounded-md text-sm transition-colors cursor-pointer select-none',
-                    isSelected(group.key, m.id)
-                      ? 'bg-blue-50 border border-blue-200 text-blue-800'
-                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-                  ]"
-                  @click="group.multiple ? null : toggleSingle(group.key, m.id, $event)"
-                >
-                  <input
-                    v-if="group.multiple"
-                    type="checkbox"
-                    class="sr-only"
-                    :value="m.id"
-                    v-model="selectedMethods[group.key]"
-                  />
-                  <input
-                    v-else
-                    type="radio"
-                    class="sr-only"
-                    :name="group.key"
-                    :value="m.id"
-                    :checked="isSelected(group.key, m.id)"
-                  />
-                  <span v-if="isSelected(group.key, m.id)" class="text-blue-700">✔</span>
-                  <span class="truncate">{{ m.label }}</span>
-                  <span v-if="m.note" class="ml-2 text-xs text-base-content/50">{{ m.note }}</span>
-                </label>
+                <div v-for="m in group.methods" :key="m.id" class="flex flex-col">
+                  <label
+                    :class="[
+                      'flex items-center gap-2 h-10 px-4 rounded-md text-sm transition-colors cursor-pointer select-none',
+                      isSelected(group.key, m.id)
+                        ? 'bg-blue-50 border border-blue-200 text-blue-800'
+                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    ]"
+                    @click="toggleSingle(group.key, m.id, $event)"
+                  >
+                    <input
+                      type="radio"
+                      class="sr-only"
+                      :name="group.key"
+                      :value="m.id"
+                      :checked="isSelected(group.key, m.id)"
+                    />
+                    <span v-if="isSelected(group.key, m.id)" class="text-blue-700">✔</span>
+                    <span class="truncate">{{ m.label }}</span>
+                    <span v-if="m.note" class="ml-2 text-xs text-base-content/50">{{ m.note }}</span>
+                  </label>
+                  <!-- Parameter inputs (shown when selected) -->
+                  <div v-if="isSelected(group.key, m.id) && m.params?.length" class="mt-2 ml-4 grid grid-cols-2 gap-2">
+                    <div v-for="p in m.params" :key="p.key" class="flex items-center gap-2">
+                      <span class="text-xs text-base-content/60 w-20 shrink-0" :title="p.hint">{{ p.label }}</span>
+                      <template v-if="p.type === 'select'">
+                        <select
+                          class="select select-xs select-bordered flex-1 text-xs"
+                          :value="getParam(group.key, m.id, p.key)"
+                          @change="methodParams[buildParamKey(group.key, m.id, p.key)] = ($event.target as HTMLSelectElement).value"
+                        >
+                          <option v-for="o in p.options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </template>
+                      <template v-else-if="p.type === 'text'">
+                        <input
+                          class="input input-xs input-bordered flex-1 text-xs font-mono"
+                          type="text"
+                          :placeholder="String(p.default ?? '')"
+                          :value="getParam(group.key, m.id, p.key)"
+                          @input="methodParams[buildParamKey(group.key, m.id, p.key)] = ($event.target as HTMLInputElement).value"
+                        />
+                      </template>
+                      <template v-else>
+                        <input
+                          class="input input-xs input-bordered flex-1 text-xs font-mono"
+                          type="number"
+                          :placeholder="String(p.default ?? '')"
+                          :min="p.min"
+                          :step="p.step ?? 1"
+                          :value="getParam(group.key, m.id, p.key)"
+                          @input="methodParams[buildParamKey(group.key, m.id, p.key)] = +($event.target as HTMLInputElement).value"
+                        />
+                      </template>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -192,54 +218,50 @@
 import { ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 
-// local method group component
-const MethodGroup = {
-  props: ['title', 'methods', 'selectedMethods'],
-  emits: ['update:selectedMethods'],
-  template: `
-    <div class="border rounded p-3">
-      <div class="flex items-center justify-between mb-2">
-        <div class="font-medium">{{ title }}</div>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <div v-for="m in methods" :key="m" class="p-2 border rounded flex items-start gap-3">
-          <div>
-            <input type="checkbox" :value="m" v-model="localSelected" />
-          </div>
-          <div class="flex-1">
-            <div class="font-medium">{{ m }}</div>
-            <div class="text-xs text-base-content/60 mt-1">Parameters</div>
-            <div class="mt-2" v-if="localParams[m]">
-              <input v-model="localParams[m]" class="input input-sm input-bordered w-full" placeholder="parameter" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
-  data() {
-    return { localSelected: (this as any).selectedMethods || [], localParams: {} }
-  },
-  watch: {
-    localSelected(n: any) { (this as any).$emit && (this as any).$emit('update:selectedMethods', n) }
-  }
-}
-
 const router = useRouter()
 const authStore = useAuthStore()
 
 import { onMounted, watch } from 'vue'
 import { useDatasets } from '@/composables/useDatasets'
-import { listUserFiles } from '@/utils/file-api'
+import { listUserFiles, getUserQuota, type UserQuota } from '@/utils/file-api'
 import UploadModal from '@/components/UploadModal.vue'
 import { useAuthStore } from '@/stores/auth'
+import { formatBytes } from '@/utils/format'
 
 const activeTab = ref<'upload'|'my'>('my')
 const datasetQuery = ref('')
 const selectedDataset = ref<any>(null)
 // selected methods organized by group key
 // selected methods: for groups with multiple=true we store an array, otherwise a single string
-const selectedMethods = reactive<Record<string, any>>({})
+const selectedMethods = reactive<Record<string, string>>({})
+
+// method parameters stored flat: "groupKey.methodId.paramKey" → value
+const methodParams = reactive<Record<string, string | number>>({
+  'noise.savgol_numba.window': 5,
+  'noise.savgol_numba.polyorder': 3,
+  'noise.savgol_numba.deriv': 0,
+  'noise.savgol_numba.delta': 1.0,
+  'noise.gaussian_numba.window': 5,
+  'noise.gaussian_numba.sd': 2.0,
+  'noise.ma_numba.window': 5,
+  'norm.tic_numba.scale': 1.0,
+  'norm.rms_numba.scale': 1.0,
+  'norm.ref_numba.scale': 1.0,
+  'norm.ref_numba.ref': '' as string | number,
+  'norm.ref_numba.ref_tolerance': 0.1,
+  'pick.diff.method': 'diff',
+  'pick.diff.snr': 2.0,
+  'pick.diff.return_type': 'height',
+  'pick.diff.width': 5,
+  'align.align_py.tolerance': '' as string | number,
+  'align.align_py.units': 'ppm',
+  'align.align_py.binfun': 'median',
+  'align.align_py.binratio': 2.0,
+  'align.align_cardinal.tolerance': '' as string | number,
+  'align.align_cardinal.units': 'ppm',
+  'align.align_cardinal.binfun': 'median',
+  'align.align_cardinal.binratio': 2.0,
+})
 
 // MS Analysis form 
 const analysisForm = reactive({
@@ -308,73 +330,152 @@ watch(analysisForm, (n, o) => {
   })
 }, { deep: true })
 
+function buildParamKey(groupKey: string, methodId: string, paramKey: string) {
+  return `${groupKey}.${methodId}.${paramKey}`
+}
+
+function getParam(groupKey: string, methodId: string, paramKey: string): string | number | undefined {
+  return methodParams[buildParamKey(groupKey, methodId, paramKey)]
+}
+
 const methodGroups: Array<any> = [
   {
     key: 'noise',
     title: 'Noise Reduction',
-    modeLabel: 'Optional (multiple)',
-    multiple: true,
     hint: 'Reduce noise while preserving peaks',
     methods: [
-      { id: 'savgol', label: 'Savitzky–Golay' },
-      { id: 'gaussian', label: 'Gaussian' },
-      { id: 'ma', label: 'Moving Average' }
+      {
+        id: 'savgol_numba', label: 'Savitzky–Golay',
+        params: [
+          { key: 'window', label: 'Window', type: 'number', default: 5, min: 1, hint: 'Filter window size' },
+          { key: 'polyorder', label: 'Polyorder', type: 'number', default: 3, min: 0, hint: 'Polynomial order' },
+          { key: 'deriv', label: 'Derivative', type: 'number', default: 0, min: 0, hint: 'Derivative order (0=smooth)' },
+          { key: 'delta', label: 'Delta', type: 'float', default: 1.0, min: 0, step: 0.1, hint: 'Sample spacing' },
+        ]
+      },
+      {
+        id: 'gaussian_numba', label: 'Gaussian',
+        params: [
+          { key: 'window', label: 'Window', type: 'number', default: 5, min: 1 },
+          { key: 'sd', label: 'Sigma', type: 'float', default: 2.0, min: 0, step: 0.1, hint: 'Gaussian std deviation' },
+        ]
+      },
+      {
+        id: 'ma_numba', label: 'Moving Average',
+        params: [
+          { key: 'window', label: 'Window', type: 'number', default: 5, min: 1 },
+        ]
+      }
     ]
   },
   {
     key: 'baseline',
     title: 'Baseline Correction',
-    modeLabel: 'Select one',
-    multiple: false,
     hint: 'Remove baseline to correct background signal',
     methods: [
-      { id: 'locmin', label: 'Local Minimum' },
-      { id: 'snip', label: 'SNIP' }
-    ]
-  },
-  {
-    key: 'align',
-    title: 'Alignment Engine',
-    modeLabel: 'Select one',
-    multiple: false,
-    hint: 'Choose alignment backend implementation',
-    methods: [
-      { id: 'align_py', label: 'Python Backend' },
-      { id: 'align_cardinal', label: 'Cardinal Backend' }
+      { id: 'snip_numba', label: 'SNIP', params: [] },
+      { id: 'locmin_numba', label: 'Local Minimum', params: [] }
     ]
   },
   {
     key: 'norm',
     title: 'Normalization',
-    modeLabel: 'Select one',
-    multiple: false,
     hint: 'Scale spectra to comparable intensities',
     methods: [
-      { id: 'tic', label: 'TIC' },
-      { id: 'rms', label: 'RMS' },
-      { id: 'ref', label: 'REF' }
+      {
+        id: 'tic_numba', label: 'TIC',
+        params: [
+          { key: 'scale', label: 'Scale', type: 'float', default: 1.0, min: 0, step: 1, hint: 'Output scaling factor' },
+        ]
+      },
+      {
+        id: 'rms_numba', label: 'RMS',
+        params: [
+          { key: 'scale', label: 'Scale', type: 'float', default: 1.0, min: 0, step: 1, hint: 'Output scaling factor' },
+        ]
+      },
+      {
+        id: 'ref_numba', label: 'REF',
+        params: [
+          { key: 'scale', label: 'Scale', type: 'float', default: 1.0, min: 0, step: 1 },
+          { key: 'ref', label: 'Ref m/z', type: 'text', hint: 'Reference m/z (auto if empty)' },
+          { key: 'ref_tolerance', label: 'Ref Tolerance', type: 'float', default: 0.1, min: 0, step: 0.01 },
+        ]
+      }
     ]
   },
   {
     key: 'pick',
     title: 'Peak Picking',
-    modeLabel: 'Select one',
-    multiple: false,
-    hint: 'Detect peaks (powered by SciPy)',
+    hint: 'Detect peaks in spectra',
     methods: [
-      { id: 'std_peak', label: 'Standard Peak Detection', note: 'powered by SciPy' }
+      {
+        id: 'diff', label: 'Standard Peak Detection',
+        params: [
+          { key: 'method', label: 'Method', type: 'select', default: 'diff', options: [
+            { label: 'Differential (diff)', value: 'diff' },
+            { label: 'Std Dev (sd)', value: 'sd' },
+            { label: 'MAD', value: 'mad' },
+            { label: 'Quantile', value: 'quantile' },
+          ]},
+          { key: 'snr', label: 'SNR', type: 'float', default: 2.0, min: 0, step: 0.1, hint: 'Signal-to-noise threshold' },
+          { key: 'return_type', label: 'Return', type: 'select', default: 'height', options: [
+            { label: 'Height', value: 'height' },
+            { label: 'Area', value: 'area' },
+          ]},
+          { key: 'width', label: 'Width', type: 'number', default: 5, min: 1, hint: 'Peak width (data points)' },
+        ]
+      }
+    ]
+  },
+  {
+    key: 'align',
+    title: 'Peak Alignment',
+    hint: 'Align peaks across spectra',
+    methods: [
+      {
+        id: 'align_py', label: 'Python Backend',
+        params: [
+          { key: 'tolerance', label: 'Tolerance', type: 'text', hint: 'Positive number or empty=auto' },
+          { key: 'units', label: 'Units', type: 'select', default: 'ppm', options: [
+            { label: 'ppm', value: 'ppm' },
+            { label: 'Da', value: 'Da' },
+          ]},
+          { key: 'binfun', label: 'Bin Function', type: 'select', default: 'median', options: [
+            { label: 'Median', value: 'median' },
+            { label: 'Mean', value: 'mean' },
+            { label: 'Min', value: 'min' },
+            { label: 'Max', value: 'max' },
+          ]},
+          { key: 'binratio', label: 'Bin Ratio', type: 'float', default: 2.0, min: 0, step: 0.1 },
+        ]
+      },
+      {
+        id: 'align_cardinal', label: 'Cardinal Backend',
+        params: [
+          { key: 'tolerance', label: 'Tolerance', type: 'text', hint: 'Positive number or empty=auto' },
+          { key: 'units', label: 'Units', type: 'select', default: 'ppm', options: [
+            { label: 'ppm', value: 'ppm' },
+            { label: 'Da', value: 'Da' },
+          ]},
+          { key: 'binfun', label: 'Bin Function', type: 'select', default: 'median', options: [
+            { label: 'Median', value: 'median' },
+            { label: 'Mean', value: 'mean' },
+            { label: 'Min', value: 'min' },
+            { label: 'Max', value: 'max' },
+          ]},
+          { key: 'binratio', label: 'Bin Ratio', type: 'float', default: 2.0, min: 0, step: 0.1 },
+        ]
+      }
     ]
   }
 ]
 
 // initialize selectedMethods keys based on groups
-methodGroups.forEach(g => { selectedMethods[g.key] = g.multiple ? [] : '' })
+methodGroups.forEach(g => { selectedMethods[g.key] = '' })
 
 function isSelected(groupKey: string, methodId: string) {
-  const v = selectedMethods[groupKey]
-  if (!v) return false
-  if (Array.isArray(v)) return v.includes(methodId)
-  return v === methodId
+  return selectedMethods[groupKey] === methodId
 }
 
 function toggleSingle(groupKey: string, methodId: string, event?: MouseEvent) {
@@ -424,27 +525,13 @@ const onUploadClose = () => { uploadOpen.value = false }
 
 onMounted(() => {
   fetchFiles({ page: 1, size: 50 }).catch(() => {})
+  fetchQuota()
 })
-
-function formatBytes(bytes?: number): string {
-  if (bytes == null || Number.isNaN(bytes)) return '—'
-  if (bytes < 1024) return `${bytes} B`
-  const units = ['KB','MB','GB','TB']
-  let value = bytes / 1024
-  let i = 0
-  while (value >= 1024 && i < units.length - 1) {
-    value /= 1024
-    i++
-  }
-  return `${value.toFixed(1)} ${units[i]}`
-}
 
 const totalSelectedCount = computed(() => {
   let sum = 0
-  const obj = selectedMethods || {}
-  for (const v of Object.values(obj)) {
-    if (Array.isArray(v)) sum += v.length
-    else if (v) sum += 1
+  for (const v of Object.values(selectedMethods)) {
+    if (v) sum += 1
   }
   return sum
 })
@@ -454,12 +541,7 @@ const formattedPipeline = computed(() => {
   for (const g of methodGroups) {
     const sel = selectedMethods[g.key]
     if (!sel) continue
-    if (Array.isArray(sel) && sel.length) {
-      const methods = sel.map((s: string) => getMethodLabel(g.key, s)).join(' + ')
-      parts.push(`${g.title} (${methods})`)
-    } else if (typeof sel === 'string' && sel) {
-      parts.push(`${g.title} (${getMethodLabel(g.key, sel)})`)
-    }
+    parts.push(`${g.title} (${getMethodLabel(g.key, sel)})`)
   }
   return parts.length ? parts.join(' → ') : ''
 })
@@ -467,12 +549,25 @@ const estimateTime = computed(() => {
   if (totalSelectedCount.value === 0) return '—'
   return `${totalSelectedCount.value * 5} min (est.)`
 })
+const quota = ref<UserQuota | null>(null)
+const quotaLoading = ref(false)
+
+async function fetchQuota() {
+  quotaLoading.value = true
+  try {
+    quota.value = await getUserQuota()
+  } catch { /* ignore */ }
+  finally { quotaLoading.value = false }
+}
+
 const quotaStorage = computed(() => {
-  const used = authStore.user?.total_file_size
-  if (used == null) return '— / 50GB'
-  return `${formatBytes(used)} / 50GB`
+  if (!quota.value) return '—'
+  return `${formatBytes(quota.value.total_processed_size_bytes)} / ${quota.value.max_processing_size_gb} GB`
 })
-const quotaTasks = '1 / 3'
+const quotaTasks = computed(() => {
+  if (!quota.value) return '—'
+  return `${quota.value.file_count} / ${quota.value.max_files_per_user}`
+})
 
 const canSubmit = computed(() => {
   const hasDataset = !!selectedDataset.value
@@ -487,8 +582,7 @@ const pipelineSummary = computed(() => {
     const sel = selectedMethods[g.key]
     let methodLabel = ''
     let present = false
-    if (Array.isArray(sel) && sel.length) { methodLabel = sel.map((s: string) => getMethodLabel(g.key, s)).join(' + '); present = true }
-    else if (typeof sel === 'string' && sel) { methodLabel = getMethodLabel(g.key, sel); present = true }
+    if (typeof sel === 'string' && sel) { methodLabel = getMethodLabel(g.key, sel); present = true }
     return { key: g.key, title: g.title, method: methodLabel, present }
   })
 })
@@ -526,15 +620,62 @@ const estimateTimeDisplay = computed(() => {
 
 function submit() {
   if (!canSubmit.value) return
-  // build task payload (placeholder)
-  const methodsFlat: string[] = []
-  Object.values(selectedMethods).forEach(v => {
-    if (Array.isArray(v)) methodsFlat.push(...v)
-    else if (v) methodsFlat.push(v)
-  })
-  const payload = { id: 't' + Date.now(), name: `Analysis ${selectedDataset.value?.name || ''}`, dataset: selectedDataset.value.id, methods: methodsFlat, status: 'Queued', progress: 0, created: new Date().toISOString() }
+
+  // Build algorithms object matching backend API
+  const algorithms: Record<string, any> = {}
+
+  for (const g of methodGroups) {
+    const sel = selectedMethods[g.key]
+    if (!sel) continue
+    const selectedIds = [sel]
+
+    const backendKey: Record<string, string> = {
+      noise: 'noise_reduction',
+      baseline: 'baseline_correction',
+      norm: 'normalization',
+      pick: 'peak_pick',
+      align: 'peak_align',
+    }
+    const key = backendKey[g.key]
+    if (!key) continue
+    const mid = selectedIds[0]
+
+    if (g.key === 'baseline') {
+      algorithms[key] = { method: mid }
+      continue
+    }
+
+    // For non-baseline groups, use the first selected method's params
+    const method = g.methods.find((m: any) => m.id === mid)
+    if (!mid || !method) continue
+    const params: Record<string, any> = {}
+    params.method = mid
+
+    if (method?.params) {
+      for (const p of method.params) {
+        const val = getParam(g.key, mid, p.key)
+        // Empty optional values → null
+        if ((p.type === 'text' || p.type === 'float') && (val === '' || val === undefined)) {
+          params[p.key] = null
+        } else {
+          params[p.key] = val ?? p.default
+        }
+      }
+    }
+
+    // Auto-inject backend for peak_pick and peak_align
+    if (key === 'peak_pick' || key === 'peak_align') {
+      params.backend = 'python'
+    }
+
+    algorithms[key] = params
+  }
+
+  const payload = {
+    file_id: selectedDataset.value?.id ?? 0,
+    algorithms,
+  }
   console.log('Submit analysis', payload)
-  // navigate back to workspace for now
   router.push('/workspace')
 }
 </script>

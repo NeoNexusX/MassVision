@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import DatasetList from '@/components/dataset/DatasetList.vue';
 import DatasetFilterBar from '@/components/dataset/DatasetFilterBar.vue';
 import UploadModal from '@/components/UploadModal.vue';
-import { listUserFiles, deleteFile } from '@/utils/file-api';
+import { listUserFiles, deleteFile, getUserQuota, type UserQuota } from '@/utils/file-api';
 import { useDownloadProgress } from '@/composables/useDownloadProgress';
 import { useDatasets } from '@/composables/useDatasets';
-import { useUploadStatusStore } from '@/stores/uploadStatus';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast';
+import { formatBytes } from '@/utils/format';
 
 // Use composable for datasets (fetch/map/pagination/sort)
 const initialFilters = {
@@ -64,6 +64,7 @@ onMounted(() => {
   } else {
     fetchFiles({ page: page.value, size: size.value });
   }
+  fetchQuota();
 });
 
 // Handlers
@@ -95,30 +96,41 @@ const handleVisibilityFilter = (tab: string) => { /* placeholder: could toggle b
 const isUploadOpen = ref(false);
 const handleUpload = () => { isUploadOpen.value = true; };
 
+// Quota
+const quotaData = ref<UserQuota | null>(null)
+const quota = computed(() => {
+  const q = quotaData.value
+  if (!q) return null
+  const upPct = q.max_file_size_gb ? Math.min(100, (q.total_uploaded_size_bytes / (q.max_file_size_gb * 1024 ** 3)) * 100) : 0
+  const fPct = q.max_files_per_user ? Math.min(100, (q.file_count / q.max_files_per_user) * 100) : 0
+  const prPct = q.max_processing_size_gb ? Math.min(100, (q.total_processed_size_bytes / (q.max_processing_size_gb * 1024 ** 3)) * 100) : 0
+  return {
+    uploadUsed: formatBytes(q.total_uploaded_size_bytes), uploadMax: `${q.max_file_size_gb} GB`, uploadPct: upPct,
+    fileCount: String(q.file_count), maxFiles: String(q.max_files_per_user), filePct: fPct,
+    procUsed: formatBytes(q.total_processed_size_bytes), procMax: `${q.max_processing_size_gb} GB`, procPct: prPct,
+  }
+})
+
+async function fetchQuota() { try { quotaData.value = await getUserQuota() } catch { /* */ } }
+
 // Download progress handler (shared via composable)
 const { downloadingMap, handleDownload } = useDownloadProgress(datasets);
 
-// Upload status tracking
-const { statusMapFlat: uploadStatusFlat, markUploading, markSuccess, syncWithDatasets } = useUploadStatusStore();
-
-// Clean up orphaned upload statuses when dataset list changes
-watch(datasets, (list) => {
-  syncWithDatasets(list.map(d => d.name));
-});
-
-const handleUploadStart = (datasetName: string) => {
-  markUploading(datasetName);
-};
-const handleUploadSuccess = (datasetName: string) => {
-  isUploadOpen.value = false;
-  fetchFiles({ page: page.value, size: size.value }).then(() => {
-    markSuccess(datasetName);
-  });
-};
-const handleUploadFailed = (_datasetName: string) => {
+// Upload success: refresh list to get backend status
+const handleUploadSuccess = (_datasetName: string) => {
   isUploadOpen.value = false;
   fetchFiles({ page: page.value, size: size.value });
 };
+
+// Refresh file status: re-fetch current page from backend
+const checkingFiles = ref(false);
+
+async function refreshFileStatus() {
+  if (checkingFiles.value) return;
+  checkingFiles.value = true;
+  await fetchFiles({ page: page.value, size: size.value });
+  checkingFiles.value = false;
+}
 
 const deletingId = ref<string | null>(null);
 const { showToast } = useToast();
@@ -184,8 +196,25 @@ const changeSize = (newSize: number) => {
 <template>
   <div class="min-h-screen bg-base-200 p-4 md:p-8">
     <div class="max-w-[1680px] mx-auto">
-      <h1 class="text-3xl font-bold text-base-content mb-6">My Datasets</h1>
-      
+      <h1 class="text-3xl font-bold text-base-content mb-6">My Datasets
+          <button
+            class="btn btn-sm btn-ghost"
+            :class="{ 'loading': checkingFiles }"
+            :disabled="checkingFiles"
+            @click="refreshFileStatus"
+            title="Check file processing status"
+          >
+            <SvgIcon v-if="!checkingFiles" type="refresh" class="w-4 h-4" />
+            Refresh Status
+          </button>
+        </h1>
+
+      <div v-if="quota" class="flex items-center gap-6 mb-4 text-sm text-base-content/70">
+        <span>Storage <strong class="text-base-content">{{ quota.uploadUsed }} / {{ quota.uploadMax }}</strong></span>
+        <span>Files <strong class="text-base-content">{{ quota.fileCount }} / {{ quota.maxFiles }}</strong></span>
+        <span>Processing <strong class="text-base-content">{{ quota.procUsed }} / {{ quota.procMax }}</strong></span>
+      </div>
+
       <DatasetFilterBar 
         :show-add-filter="true"
         :show-upload="true"
@@ -198,7 +227,7 @@ const changeSize = (newSize: number) => {
         @sort="handleSort"
       />
 
-      <UploadModal :is-open="isUploadOpen" @close="isUploadOpen = false" @upload-success="handleUploadSuccess" @upload-start="handleUploadStart" @upload-failed="handleUploadFailed" />
+      <UploadModal :is-open="isUploadOpen" @close="isUploadOpen = false" @upload-success="handleUploadSuccess" />
 
       <!-- Delete Confirmation Modal -->
       <dialog class="modal" :class="{ 'modal-open': isDeleteModalOpen }">
@@ -234,7 +263,6 @@ const changeSize = (newSize: number) => {
           :downloadingMap="downloadingMap"
           :is-my-dataset="true"
           :deletingId="deletingId"
-          :uploadStatusMap="uploadStatusFlat"
           @view-overview="viewOverview"
           @download="handleDownload"
           @delete="handleDelete"
