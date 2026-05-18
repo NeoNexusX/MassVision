@@ -58,7 +58,7 @@ export async function deleteFile(fileId: string | number) {
 export async function checkImzmlStatus(fileId: string): Promise<{ status: string; ready: boolean }> {
   const res = await auth_api.get(`/origins/imzml/${fileId}`);
   const status = res.data?.status || 'unknown';
-  return { status, ready: status !== 'processing' };
+  return { status, ready: status === 'completed' };
 }
 
 /**

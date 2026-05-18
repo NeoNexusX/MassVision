@@ -9,6 +9,7 @@ import { useDownloadProgress } from '@/composables/useDownloadProgress';
 import { useDatasets } from '@/composables/useDatasets';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast';
+import { formatBytes } from '@/utils/format';
 
 // Use composable for datasets (fetch/map/pagination/sort)
 const initialFilters = {
@@ -95,23 +96,14 @@ const handleVisibilityFilter = (tab: string) => { /* placeholder: could toggle b
 const isUploadOpen = ref(false);
 const handleUpload = () => { isUploadOpen.value = true; };
 
-function formatBytes(bytes?: number): string {
-  if (bytes == null || Number.isNaN(bytes)) return '—'
-  if (bytes < 1024) return `${bytes} B`
-  const units = ['KB', 'MB', 'GB', 'TB']
-  let value = bytes / 1024, i = 0
-  while (value >= 1024 && i < units.length - 1) { value /= 1024; i++ }
-  return `${value.toFixed(1)} ${units[i]}`
-}
-
 // Quota
 const quotaData = ref<UserQuota | null>(null)
 const quota = computed(() => {
   const q = quotaData.value
   if (!q) return null
-  const upPct = q.max_file_size_gb ? Math.min(100, (q.total_uploaded_size_bytes / (q.max_file_size_gb * 1e9)) * 100) : 0
+  const upPct = q.max_file_size_gb ? Math.min(100, (q.total_uploaded_size_bytes / (q.max_file_size_gb * 1024 ** 3)) * 100) : 0
   const fPct = q.max_files_per_user ? Math.min(100, (q.file_count / q.max_files_per_user) * 100) : 0
-  const prPct = q.max_processing_size_gb ? Math.min(100, (q.total_processed_size_bytes / (q.max_processing_size_gb * 1e9)) * 100) : 0
+  const prPct = q.max_processing_size_gb ? Math.min(100, (q.total_processed_size_bytes / (q.max_processing_size_gb * 1024 ** 3)) * 100) : 0
   return {
     uploadUsed: formatBytes(q.total_uploaded_size_bytes), uploadMax: `${q.max_file_size_gb} GB`, uploadPct: upPct,
     fileCount: String(q.file_count), maxFiles: String(q.max_files_per_user), filePct: fPct,
@@ -130,7 +122,7 @@ const handleUploadSuccess = (_datasetName: string) => {
   fetchFiles({ page: page.value, size: size.value });
 };
 
-// Refresh file status: check files one by one, update when confirmed
+// Refresh file status: re-fetch current page from backend
 const checkingFiles = ref(false);
 
 async function refreshFileStatus() {

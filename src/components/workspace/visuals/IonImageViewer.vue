@@ -93,9 +93,6 @@ function buildLUT(name: string): [number, number, number][] {
   return lut
 }
 
-// --- Mock data ---
-// ... (unchanged - kept from existing file)
-
 // --- Mock data: simulated mouse brain coronal section ---
 function generateMockMatrix(rows: number, cols: number): number[][] {
   const H = rows, W = cols, cx = W / 2, cy = H * 0.46
@@ -154,13 +151,14 @@ function generateMockMatrix(rows: number, cols: number): number[][] {
     return total
   }
   const BASE = 1.2e6, matrix: number[][] = []
-  let gs = 0, gh = false
+  let gaussSpare = 0, gaussHasSpare = false
   function gaussR(): number {
-    if (gh) { gh = false; return gs }
+    if (gaussHasSpare) { gaussHasSpare = false; return gaussSpare }
     let u = 0, v = 0, s = 0
     while (s >= 1 || s === 0) { u = Math.random() * 2 - 1; v = Math.random() * 2 - 1; s = u * u + v * v }
-    gs = v * Math.sqrt(-2 * Math.log(s) / s); gh = true
-    return u * Math.sqrt(-2 * Math.log(s) / s)
+    const mag = Math.sqrt(-2 * Math.log(s) / s)
+    gaussSpare = v * mag; gaussHasSpare = true
+    return u * mag
   }
   for (let r = 0; r < H; r++) {
     const row: number[] = []
@@ -211,6 +209,27 @@ function applyMedian3(data: number[][]): number[][] {
 let mockData: number[][] = []
 let ro: ResizeObserver | null = null
 
+// Cache: only recompute when data reference changes
+let cachedData: number[][] | null = null
+let cachedFiltered: number[][] = []
+let cachedP1 = 0
+let cachedP99 = 1
+
+function updateCachedData(data: number[][]) {
+  if (cachedData === data) return
+  cachedData = data
+
+  // Percentile clipping P1–P99
+  const allVals: number[] = []
+  for (const row of data) for (const v of row) allVals.push(v)
+  allVals.sort((a, b) => a - b)
+  cachedP1 = allVals[Math.floor(allVals.length * 0.01)] ?? allVals[0] ?? 0
+  cachedP99 = allVals[Math.floor(allVals.length * 0.99)] ?? allVals[allVals.length - 1] ?? 1
+
+  // Median 3x3 denoise
+  cachedFiltered = applyMedian3(data)
+}
+
 function render() {
   const canvas = canvasRef.value
   const container = containerRef.value
@@ -232,23 +251,16 @@ function render() {
   const data = props.matrix ?? mockData
   if (!data.length || !data[0]?.length) return
 
+  updateCachedData(data)
+
   const rows = data.length
   const cols = data[0]!.length
 
   ctx.imageSmoothingEnabled = false
 
-  // ── Percentile clipping P1–P99 ──
-  const allVals: number[] = []
-  for (const row of data) for (const v of row) allVals.push(v)
-  allVals.sort((a, b) => a - b)
-  const p1 = allVals[Math.floor(allVals.length * 0.01)] ?? allVals[0] ?? 0
-  const p99 = allVals[Math.floor(allVals.length * 0.99)] ?? allVals[allVals.length - 1] ?? 1
-  const dispMin = props.displayMin ?? p1
-  const dispMax = props.displayMax ?? p99
+  const dispMin = props.displayMin ?? cachedP1
+  const dispMax = props.displayMax ?? cachedP99
   const range = dispMax - dispMin || 1
-
-  // ── Median 3x3 denoise ──
-  const filtered = applyMedian3(data)
 
   // ── Fit canvas to container preserving matrix aspect ratio ──
   const matrixW = cols, matrixH = rows
@@ -267,7 +279,7 @@ function render() {
   const cellH = drawH / matrixH
 
   for (let r = 0; r < rows; r++) {
-    const rowData = filtered[r]!
+    const rowData = cachedFiltered[r]!
     for (let c = 0; c < cols; c++) {
       const val = rowData[c] ?? dispMin
       let norm = (val - dispMin) / range

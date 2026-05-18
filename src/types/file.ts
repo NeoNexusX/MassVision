@@ -48,7 +48,7 @@ export interface File {
   submitter: string;
   institution?: string;
 
-  status: string; // 'processing' | 'completed' | 'failed' — from backend
+  status: string; // 'uploading' | 'completed' | 'failed' — from backend
   isPublic: boolean;
 
   // UI

@@ -69,8 +69,8 @@ export async function parseImzMLMetadata(file: File): Promise<ImzMLMSSettings> {
 export function extractParamsFromImzML(xmlText: string): ImzMLParam[] {
   const out: ImzMLParam[] = []
   try {
-    // Match self-closing cvParam tags: <cvParam accession="..." name="..." value="..."/>
-    const cvRe = /<cvParam\s+([^>]*?)\s*\/>/gi
+    // Match cvParam tags: self-closing (<cvParam .../>) or open-close (<cvParam ...></cvParam>)
+    const cvRe = /<cvParam\s+([^>]*?)\s*\/?>(?:\s*<\/cvParam>)?/gi
     let m: RegExpExecArray | null
     while ((m = cvRe.exec(xmlText)) !== null) {
       const attrs = m[1]!
@@ -79,8 +79,8 @@ export function extractParamsFromImzML(xmlText: string): ImzMLParam[] {
       const value = extractAttr(attrs, 'value')
       if (name) out.push({ tagName: 'cvParam', accession: acc || undefined, name, value })
     }
-    // Match self-closing userParam tags
-    const userRe = /<userParam\s+([^>]*?)\s*\/>/gi
+    // Match userParam tags: self-closing or open-close
+    const userRe = /<userParam\s+([^>]*?)\s*\/?>(?:\s*<\/userParam>)?/gi
     while ((m = userRe.exec(xmlText)) !== null) {
       const attrs = m[1]!
       const name = extractAttr(attrs, 'name')

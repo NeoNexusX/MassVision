@@ -280,6 +280,8 @@ import { deleteFile } from '@/utils/file-api';
 import { parseImzMLMSSettings } from '@/utils/imzml-parser';
 import { type ImzmlFilePair, type UnifiedUploadProgress } from '@/utils/imzml-helper';
 import BaseSelect from './BaseSelect.vue';
+
+const MIN_PUBLIC_IBD_SIZE = 10 * 1024 * 1024;
 import {
   EXPERIMENT_TYPES,
   ORGANISMS,
@@ -586,8 +588,9 @@ const confirmAndUpload = async () => {
   }
 
   // Block public uploads with small ibd files
-  if (form.value.is_public && selectedPair.value!.ibd.size < 10 * 1024 * 1024) {
-    showToast('IBD file must be at least 10 MB for public datasets.', 'error');
+  if (form.value.is_public && selectedPair.value!.ibd.size < MIN_PUBLIC_IBD_SIZE) {
+    const minSizeMB = MIN_PUBLIC_IBD_SIZE / (1024 * 1024);
+    showToast(`IBD file must be at least ${minSizeMB} MB for public datasets.`, 'error');
     return;
   }
 

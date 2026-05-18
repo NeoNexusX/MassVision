@@ -19,24 +19,25 @@ function readChunk(file: File, offset: number, size: number): Promise<ArrayBuffe
 
 self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
   const { imzml, ibd, chunkSize } = e.data;
-  let aborted = false;
 
   try {
     // ── 1. Create MD5 hasher ──
     const hasher = await createMD5();
 
-    // ── 2. Create ZIP ──
-    const zip = new Zip();
-    const compressedChunks: Uint8Array[] = [];
-    zip.ondata = (err, data, _final) => {
-      if (err) throw err;
-      compressedChunks.push(new Uint8Array(data));
-    };
-
-    // ── 3. Open OPFS writable ──
+    // ── 2. Open OPFS writable ──
     const root = await navigator.storage.getDirectory();
     const fileHandle = await root.getFileHandle('pending_upload.zip', { create: true });
     const writable = await fileHandle.createWritable();
+
+    // ── 3. Create ZIP with streaming write to OPFS ──
+    const zip = new Zip();
+    let totalCompressed = 0;
+    zip.ondata = (err, data, _final) => {
+      if (err) throw err;
+      const chunk = new Uint8Array(data);
+      totalCompressed += chunk.length;
+      writable.write(chunk);
+    };
 
     // ── 4. Process files: imzml → ibd ──
     const files = [imzml, ibd];
@@ -50,7 +51,6 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 
       let offset = 0;
       while (offset < file.size) {
-        if (aborted) return;
         const size = Math.min(chunkSize, file.size - offset);
         const buf = await readChunk(file, offset, size);
         const chunk = new Uint8Array(buf);
@@ -72,14 +72,10 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
     // ── 6. Finalize hash ──
     const hash = hasher.digest();
 
-    // ── 7. Write compressed data to OPFS ──
-    for (const chunk of compressedChunks) {
-      await writable.write(new Uint8Array(chunk));
-    }
+    // ── 7. Close OPFS writable ──
     await writable.close();
 
     // ── 8. Done ──
-    const totalCompressed = compressedChunks.reduce((sum, c) => sum + c.length, 0);
     self.postMessage({ type: 'done', hash, totalBytes: totalCompressed });
   } catch (err: any) {
     self.postMessage({ type: 'error', message: err?.message || String(err) });

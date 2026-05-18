@@ -167,16 +167,7 @@ import enLocale from "i18n-iso-countries/langs/en.json";
 import BaseInput from '../components/BaseInput.vue';
 import AuthSelect from '../components/AuthSelect.vue';
 import { getUserQuota, type UserQuota } from '@/utils/file-api';
-
-function formatBytes(bytes?: number): string {
-  if (bytes == null || Number.isNaN(bytes)) return '—'
-  if (bytes < 1024) return `${bytes} B`
-  const units = ['KB', 'MB', 'GB', 'TB']
-  let value = bytes / 1024
-  let i = 0
-  while (value >= 1024 && i < units.length - 1) { value /= 1024; i++ }
-  return `${value.toFixed(1)} ${units[i]}`
-}
+import { formatBytes } from '@/utils/format';
 
 countries.registerLocale(enLocale);
 
@@ -319,11 +310,11 @@ const quota = computed(() => {
   if (!q) return { uploadUsed: '—', uploadMax: '—', uploadPercent: 0, fileCount: '—', maxFiles: '—', filePercent: 0, procUsed: '—', procMax: '—', procPercent: 0 }
   const upUsed = formatBytes(q.total_uploaded_size_bytes)
   const upMax = `${q.max_file_size_gb} GB`
-  const upPct = q.max_file_size_gb ? Math.min(100, (q.total_uploaded_size_bytes / (q.max_file_size_gb * 1e9)) * 100) : 0
+  const upPct = q.max_file_size_gb ? Math.min(100, (q.total_uploaded_size_bytes / (q.max_file_size_gb * 1024 ** 3)) * 100) : 0
   const fPct = q.max_files_per_user ? Math.min(100, (q.file_count / q.max_files_per_user) * 100) : 0
   const prUsed = formatBytes(q.total_processed_size_bytes)
   const prMax = `${q.max_processing_size_gb} GB`
-  const prPct = q.max_processing_size_gb ? Math.min(100, (q.total_processed_size_bytes / (q.max_processing_size_gb * 1e9)) * 100) : 0
+  const prPct = q.max_processing_size_gb ? Math.min(100, (q.total_processed_size_bytes / (q.max_processing_size_gb * 1024 ** 3)) * 100) : 0
   return { uploadUsed: upUsed, uploadMax: upMax, uploadPercent: upPct, fileCount: String(q.file_count), maxFiles: String(q.max_files_per_user), filePercent: fPct, procUsed: prUsed, procMax: prMax, procPercent: prPct }
 })
 

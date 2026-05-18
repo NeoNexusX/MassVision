@@ -58,7 +58,7 @@ export function mapItemToDataset(item: any, index = 0): File {
     submitter: item.first_uploaded_by || '',
     institution: item.institution || '',
 
-    status: item.status || 'processing',
+    status: item.status || 'uploading',
     isPublic: !!item.is_public,
 
     spectrumMode: item.spectrum_mode || '',

@@ -226,6 +226,7 @@ import { useDatasets } from '@/composables/useDatasets'
 import { listUserFiles, getUserQuota, type UserQuota } from '@/utils/file-api'
 import UploadModal from '@/components/UploadModal.vue'
 import { useAuthStore } from '@/stores/auth'
+import { formatBytes } from '@/utils/format'
 
 const activeTab = ref<'upload'|'my'>('my')
 const datasetQuery = ref('')
@@ -328,17 +329,6 @@ watch(analysisForm, (n, o) => {
     if ((o as any)[k] && (n as any)[k] !== (o as any)[k]) (autoFilled as any)[k] = false
   })
 }, { deep: true })
-
-export interface ParamDef {
-  key: string;
-  label: string;
-  type: 'number' | 'select' | 'text' | 'float';
-  default?: any;
-  options?: { label: string; value: any }[];
-  min?: number;
-  step?: number;
-  hint?: string;
-}
 
 function buildParamKey(groupKey: string, methodId: string, paramKey: string) {
   return `${groupKey}.${methodId}.${paramKey}`
@@ -538,19 +528,6 @@ onMounted(() => {
   fetchQuota()
 })
 
-function formatBytes(bytes?: number): string {
-  if (bytes == null || Number.isNaN(bytes)) return '—'
-  if (bytes < 1024) return `${bytes} B`
-  const units = ['KB','MB','GB','TB']
-  let value = bytes / 1024
-  let i = 0
-  while (value >= 1024 && i < units.length - 1) {
-    value /= 1024
-    i++
-  }
-  return `${value.toFixed(1)} ${units[i]}`
-}
-
 const totalSelectedCount = computed(() => {
   let sum = 0
   for (const v of Object.values(selectedMethods)) {
@@ -672,10 +649,7 @@ function submit() {
     const method = g.methods.find((m: any) => m.id === mid)
     if (!mid || !method) continue
     const params: Record<string, any> = {}
-
-    if (g.key !== 'noise') {
-      params.method = mid
-    }
+    params.method = mid
 
     if (method?.params) {
       for (const p of method.params) {
@@ -692,11 +666,6 @@ function submit() {
     // Auto-inject backend for peak_pick and peak_align
     if (key === 'peak_pick' || key === 'peak_align') {
       params.backend = 'python'
-    }
-
-    // For noise_reduction, method is the selected method ID
-    if (g.key === 'noise') {
-      params.method = mid
     }
 
     algorithms[key] = params

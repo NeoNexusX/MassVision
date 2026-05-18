@@ -2,7 +2,6 @@ import ZipCompressWorker from '@/workers/zip-compress.worker?worker';
 import { ProgressTracker, type ImzmlFilePair } from './imzml-helper';
 import { loadZipFromOPFS } from './upload-resume';
 
-// Chunk size matches OSS part size: 1MB for <1GB, otherwise fixed 1000 chunks
 const MIN_CHUNK = 1 * 1024 * 1024;
 const FIXED_CHUNK_COUNT = 1000;
 
@@ -75,7 +74,7 @@ export async function compressImzmlToOPFS(
           if (options?.onProgress) {
             const now = Date.now();
             if (now - lastReportTime > 100) {
-              const { speedStr, etaStr } = tracker.update(msg.loaded, msg.total);
+              const { speedStr, etaStr } = tracker.update(msg.loaded, totalBytes);
               options.onProgress({
                 loadedBytes: msg.loaded,
                 totalBytes,

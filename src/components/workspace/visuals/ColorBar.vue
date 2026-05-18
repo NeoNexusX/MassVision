@@ -134,7 +134,7 @@ function markerLeft(v: number) { return ((v - props.globalMin) / range.value) * 
 
 const infoRows = computed(() => {
   const items: { label: string; value: string }[] = []
-  if (props.info.pixels) items.push({ label: 'Pixel Size', value: props.info.pixels })
+  if (props.info.pixels) items.push({ label: 'Pixels', value: props.info.pixels })
   if (props.info.nonZero) items.push({ label: 'Non-zero', value: props.info.nonZero })
   if (props.info.totalIon) items.push({ label: 'TIC', value: props.info.totalIon })
   if (props.info.imzML) items.push({ label: 'imzML', value: props.info.imzML })
