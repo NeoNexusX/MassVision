@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col select-none h-full overflow-y-auto" :style="{ minWidth: '210px', maxWidth: '260px' }">
     <!-- ─── Title ─── -->
-    <div class="text-sm font-semibold text-base-content/70 mb-2.5 tracking-wide">Intensity</div>
+    <div class="text-base font-semibold text-base-content/70 mb-2.5 tracking-wide">Intensity</div>
 
     <!-- ─── Color bar ─── -->
     <div class="flex items-stretch gap-3 flex-1 min-h-0 mb-3">
@@ -36,40 +36,40 @@
       </div>
 
       <!-- Value labels -->
-      <div class="flex flex-col justify-between text-[13px] font-mono text-base-content/80 py-0.5 leading-none w-14">
+      <div class="flex flex-col justify-between text-sm font-mono text-base-content/80 py-0.5 leading-none w-14">
         <span>{{ formatValue(localMax) }}</span>
         <span>{{ formatValue(localMin) }}</span>
       </div>
     </div>
 
     <!-- ─── Display Range ─── -->
-    <div class="text-xs font-semibold text-base-content/50 mb-2 uppercase tracking-wide">Display Range</div>
+    <div class="text-sm font-semibold text-base-content/50 mb-2 uppercase tracking-wide">Display Range</div>
     <div class="space-y-2 mb-3">
       <div class="flex items-center gap-2">
-        <span class="text-xs text-base-content/40 w-7 text-right">Max</span>
+        <span class="text-sm text-base-content/40 w-7 text-right">Max</span>
         <input
           type="text"
-          class="input input-sm input-bordered flex-1 text-xs font-mono"
+          class="input input-sm input-bordered flex-1 text-sm font-mono"
           :value="formatValue(localMax)"
           @change="onMaxInput($event)"
         />
-        <span class="text-[10px] text-base-content/40 w-10 text-right">{{ maxPercentile }}%</span>
+        <span class="text-xs text-base-content/60 w-10 text-right font-bold">{{ maxPercentile }}%</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-xs text-base-content/40 w-7 text-right">Min</span>
+        <span class="text-sm text-base-content/40 w-7 text-right">Min</span>
         <input
           type="text"
-          class="input input-sm input-bordered flex-1 text-xs font-mono"
+          class="input input-sm input-bordered flex-1 text-sm font-mono"
           :value="formatValue(localMin)"
           @change="onMinInput($event)"
         />
-        <span class="text-[10px] text-base-content/40 w-10 text-right">{{ minPercentile }}%</span>
+        <span class="text-xs text-base-content/60 w-10 text-right font-bold">{{ minPercentile }}%</span>
       </div>
     </div>
 
     <!-- ─── Intensity Histogram ─── -->
     <div class="mb-3">
-      <div class="text-xs font-semibold text-base-content/50 mb-1.5 uppercase tracking-wide">Distribution</div>
+      <div class="text-sm font-semibold text-base-content/50 mb-1.5 uppercase tracking-wide">Distribution</div>
       <div class="relative h-20 rounded border border-base-200 bg-base-50 overflow-hidden">
         <canvas ref="histCanvasRef" class="absolute inset-0 w-full h-full" />
         <div
@@ -84,14 +84,14 @@
     </div>
 
     <!-- ─── Info ─── -->
-    <div class="text-xs font-semibold text-base-content/50 mb-2 uppercase tracking-wide">Info</div>
-    <div class="space-y-1.5 text-xs text-base-content/60 mb-2">
+    <div class="text-sm font-semibold text-base-content/50 mb-2 uppercase tracking-wide">Info</div>
+    <div class="space-y-1.5 text-sm text-base-content/60 mb-2">
       <div v-for="row in infoRows" :key="row.label" class="flex justify-between">
         <span>{{ row.label }}</span>
         <span class="font-mono text-base-content/80">{{ row.value }}</span>
       </div>
     </div>
-    <div class="text-[11px] text-base-content/30 text-center mt-auto">{{ colormap }}</div>
+    <div class="text-xs text-base-content/30 text-center mt-auto">{{ colormap }}</div>
   </div>
 </template>
 
@@ -134,7 +134,7 @@ function markerLeft(v: number) { return ((v - props.globalMin) / range.value) * 
 
 const infoRows = computed(() => {
   const items: { label: string; value: string }[] = []
-  if (props.info.pixels) items.push({ label: 'Pixels', value: props.info.pixels })
+  if (props.info.pixels) items.push({ label: 'Pixel Size', value: props.info.pixels })
   if (props.info.nonZero) items.push({ label: 'Non-zero', value: props.info.nonZero })
   if (props.info.totalIon) items.push({ label: 'TIC', value: props.info.totalIon })
   if (props.info.imzML) items.push({ label: 'imzML', value: props.info.imzML })

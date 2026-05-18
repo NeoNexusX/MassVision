@@ -11,6 +11,8 @@ export type ImzMLMSSettings = {
   analyzer?: string
   pixelSizeX?: number
   pixelSizeY?: number
+  spectrum_mode?: 'profile' | 'centroid'
+  storage_mode?: 'continuous' | 'processed'
 }
 
 function safeNumber(v: any): number | undefined {
@@ -19,17 +21,38 @@ function safeNumber(v: any): number | undefined {
   return Number.isFinite(n) ? n : undefined
 }
 
+async function readHeadText(file: File): Promise<string> {
+  const sizes = [2 * 1024 * 1024, 5 * 1024 * 1024, 10 * 1024 * 1024]
+  for (const size of sizes) {
+    if (size >= file.size) return file.text()
+    const text = await file.slice(0, size).text()
+    if (text.includes('<cvParam') || text.includes('<userParam')) return text
+  }
+  // Even if tags not found in head, return the 10MB slice — string matching can use it
+  return file.slice(0, sizes[sizes.length - 1]).text()
+}
+
 export async function parseImzMLMSSettings(file: File): Promise<ImzMLMSSettings> {
   try {
-    const text = await file.text()
+    const text = await readHeadText(file)
+
+    // Validate: check for known imzML structural tags
+    const structuralTags = ['<mzML', '<fileDescription', '<run', '<spectrumList']
+    const hasStructure = structuralTags.some(tag => text.includes(tag))
+    if (!hasStructure) {
+      throw new Error('File does not appear to be a valid imzML')
+    }
+
     const params = extractParamsFromImzML(text)
-    const polarity = parsePolarity(params)
-    const ionSource = parseIonSource(params)
-    const analyzer = parseAnalyzer(params)
-    const { pixelSizeX, pixelSizeY } = parsePixelSize(params)
-    return { polarity, ionSource, analyzer, pixelSizeX, pixelSizeY }
-  } catch (e) {
-    // outermost handler: return empty result on failure to avoid throwing in UI
+    return {
+      polarity: parsePolarity(params),
+      ionSource: parseIonSource(params),
+      analyzer: parseAnalyzer(params),
+      ...parsePixelSize(params),
+      spectrum_mode: parseSpectrumMode(text),
+      storage_mode: parseStorageMode(text),
+    }
+  } catch {
     return {}
   }
 }
@@ -39,32 +62,42 @@ export async function parseImzMLMetadata(file: File): Promise<ImzMLMSSettings> {
   return parseImzMLMSSettings(file)
 }
 
+/**
+ * Extract cvParam and userParam from XML text using regex.
+ * Works with partial (truncated) XML — no DOMParser required.
+ */
 export function extractParamsFromImzML(xmlText: string): ImzMLParam[] {
+  const out: ImzMLParam[] = []
   try {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(xmlText, 'application/xml')
-    if (doc.querySelector('parsererror')) return []
-    const out: ImzMLParam[] = []
-    const cvNodes = Array.from(doc.getElementsByTagName('cvParam'))
-    for (const n of cvNodes) {
-      const acc = n.getAttribute('accession') ?? undefined
-      const name = (n.getAttribute('name') ?? '').trim()
-      const value = (n.getAttribute('value') ?? n.textContent ?? '').trim()
-      if (name) out.push({ tagName: 'cvParam', accession: acc, name, value })
+    // Match self-closing cvParam tags: <cvParam accession="..." name="..." value="..."/>
+    const cvRe = /<cvParam\s+([^>]*?)\s*\/>/gi
+    let m: RegExpExecArray | null
+    while ((m = cvRe.exec(xmlText)) !== null) {
+      const attrs = m[1]!
+      const acc = extractAttr(attrs, 'accession')
+      const name = extractAttr(attrs, 'name')
+      const value = extractAttr(attrs, 'value')
+      if (name) out.push({ tagName: 'cvParam', accession: acc || undefined, name, value })
     }
-    const userNodes = Array.from(doc.getElementsByTagName('userParam'))
-    for (const n of userNodes) {
-      const name = (n.getAttribute('name') ?? '').trim()
-      const value = (n.getAttribute('value') ?? n.textContent ?? '').trim()
+    // Match self-closing userParam tags
+    const userRe = /<userParam\s+([^>]*?)\s*\/>/gi
+    while ((m = userRe.exec(xmlText)) !== null) {
+      const attrs = m[1]!
+      const name = extractAttr(attrs, 'name')
+      const value = extractAttr(attrs, 'value')
       if (name) out.push({ tagName: 'userParam', name, value })
     }
-    return out
-  } catch {
-    return []
-  }
+  } catch { /* ignore */ }
+  return out
 }
 
-/* ---------- field parsers (stricted per request) ---------- */
+function extractAttr(attrs: string, name: string): string {
+  const re = new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i')
+  const m = attrs.match(re)
+  return m ? m[1]!.trim() : ''
+}
+
+/* ---------- field parsers (strict per request) ---------- */
 
 export function parsePolarity(params: ImzMLParam[]): 'positive' | 'negative' | undefined {
   // 1) accession priority
@@ -161,4 +194,16 @@ function extractFirstNumber(p: ImzMLParam): string | undefined {
 export function findAllNumbers(s: string): string[] {
   const m = s.match(/(\d+(?:\.\d+)?)/g)
   return m ?? []
+}
+
+export function parseSpectrumMode(text: string): 'profile' | 'centroid' | undefined {
+  if (text.includes('MS:1000127')) return 'centroid'
+  if (text.includes('MS:1000128')) return 'profile'
+  return undefined
+}
+
+export function parseStorageMode(text: string): 'continuous' | 'processed' | undefined {
+  if (text.includes('IMS:1000030')) return 'continuous'
+  if (text.includes('IMS:1000031')) return 'processed'
+  return undefined
 }

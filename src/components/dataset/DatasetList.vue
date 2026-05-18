@@ -2,7 +2,6 @@
 import type { PropType } from 'vue';
 import DatasetCard from '@/components/dataset/DatasetCard.vue';
 import type { File } from '@/types/file';
-import type { UploadStatusType } from '@/stores/uploadStatus';
 
 const props = defineProps({
   datasets: { type: Array as PropType<File[]>, required: true },
@@ -14,11 +13,10 @@ const props = defineProps({
   downloadingMap: { type: Object as PropType<Record<string, number>>, required: true },
   isMyDataset: { type: Boolean, required: false, default: false },
   deletingId: { type: String as PropType<string | null>, required: false, default: null },
-  uploadStatusMap: { type: Object as PropType<Record<string, UploadStatusType>>, required: false, default: () => ({}) }
 });
 
 const emit = defineEmits([
-  'view-overview', 'download', 'delete', 'change-size', 'go-to-page', 'retry-upload', 'clear-upload-status'
+  'view-overview', 'download', 'delete', 'change-size', 'go-to-page'
 ]);
 
 const onChangeSize = (v: number) => emit('change-size', v);
@@ -57,12 +55,9 @@ const onGoToPage = (p: number) => emit('go-to-page', p);
           :dataset="dataset"
           :is-my-dataset="isMyDataset"
           :download-progress="downloadingMap[dataset.id]"
-          :upload-status="uploadStatusMap[dataset.name] || null"
           @view-overview="$emit('view-overview', $event)"
           @download="$emit('download', $event)"
           @delete="$emit('delete', $event)"
-          @retry-upload="$emit('retry-upload', $event)"
-          @clear-upload-status="$emit('clear-upload-status', $event)"
         />
       </div>
     </div>

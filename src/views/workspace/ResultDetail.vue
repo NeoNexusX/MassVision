@@ -146,7 +146,7 @@ const intensityHistogram = computed(() => {
 })
 
 const imageInfo = computed(() => ({
-  pixels: '300 × 400',
+  pixels: '600 × 800',
   nonZero: '53.2%',
   totalIon: '2.1e10',
   imzML: meta.datasetName?.slice(-20) ?? '',

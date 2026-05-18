@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue';
-import BaseSelect from '../BaseSelect.vue';
+import { ref, watch, onMounted, onUnmounted, reactive } from 'vue';
+import AuthSelect from '../AuthSelect.vue';
 import {
   EXPERIMENT_TYPES,
   ORGANISMS,
@@ -70,13 +70,32 @@ const filters = ref<Record<string, any>>({
   solvent: ''
 });
 
+const otherValues = reactive<Record<string, string>>({
+  experiment_type: '',
+  organism: '',
+  organism_part: '',
+  condition: '',
+  sample_stabilization: '',
+  tissue_modification: '',
+  maldi_matrix: '',
+  maldi_matrix_application: '',
+  solvent: ''
+});
+
 const applyFilters = () => {
-  emit('apply-filters', { ...filters.value });
+  const payload = { ...filters.value };
+  for (const key of Object.keys(otherValues)) {
+    if (payload[key] === 'Other' && otherValues[key]?.trim()) {
+      payload[key] = otherValues[key]!.trim();
+    }
+  }
+  emit('apply-filters', payload);
   showFilterPanel.value = false;
 };
 
 const resetFilters = () => {
   Object.keys(filters.value).forEach(k => (filters.value[k] = ''));
+  Object.keys(otherValues).forEach(k => (otherValues[k] = ''));
   emit('apply-filters', { ...filters.value });
   showFilterPanel.value = false;
 };
@@ -181,35 +200,44 @@ watch(sortValue, (val) => emit('sort', val));
                <div class="text-xs text-base-content/60 flex flex-col">Filename
                  <input v-model="filters.filename" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Filename" />
                </div>
-               <div class="text-xs text-base-content/60 flex flex-col">Experiment Type      
-                 <BaseSelect v-model="filters.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Any" class="mt-1" />
+               <div class="text-xs text-base-content/60 flex flex-col">Experiment Type
+                 <AuthSelect v-model="filters.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Any" />
+                 <input v-if="filters.experiment_type === 'Other'" v-model="otherValues.experiment_type" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify experiment type" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Username
                  <input v-model="filters.username" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Submitter username" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Organism
-                 <BaseSelect v-model="filters.organism" :options="ORGANISMS" placeholder="Any" class="mt-1" />
+                 <AuthSelect v-model="filters.organism" :options="ORGANISMS" placeholder="Any" />
+                 <input v-if="filters.organism === 'Other'" v-model="otherValues.organism" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify organism" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Organism Part
-                 <BaseSelect v-model="filters.organism_part" :options="ORGANISM_PARTS" placeholder="Any" class="mt-1" />
+                 <AuthSelect v-model="filters.organism_part" :options="ORGANISM_PARTS" placeholder="Any" />
+                 <input v-if="filters.organism_part === 'Other'" v-model="otherValues.organism_part" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify organism part" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Condition
-                 <BaseSelect v-model="filters.condition" :options="CONDITIONS" placeholder="Any" class="mt-1" />
+                 <AuthSelect v-model="filters.condition" :options="CONDITIONS" placeholder="Any" />
+                 <input v-if="filters.condition === 'Other'" v-model="otherValues.condition" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify condition" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Sample Stabilization
-                 <BaseSelect v-model="filters.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Any" class="mt-1" />
+                 <AuthSelect v-model="filters.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Any" />
+                 <input v-if="filters.sample_stabilization === 'Other'" v-model="otherValues.sample_stabilization" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify stabilization" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Tissue Modification
-                 <BaseSelect v-model="filters.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Any" class="mt-1" />
+                 <AuthSelect v-model="filters.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Any" />
+                 <input v-if="filters.tissue_modification === 'Other'" v-model="otherValues.tissue_modification" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify modification" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">MALDI Matrix
-                 <BaseSelect v-model="filters.maldi_matrix" :options="MALDI_MATRICES" placeholder="Any" class="mt-1" />
+                 <AuthSelect v-model="filters.maldi_matrix" :options="MALDI_MATRICES" placeholder="Any" />
+                 <input v-if="filters.maldi_matrix === 'Other'" v-model="otherValues.maldi_matrix" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify matrix" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Matrix Application
-                 <BaseSelect v-model="filters.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Any" class="mt-1" />
+                 <AuthSelect v-model="filters.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Any" />
+                 <input v-if="filters.maldi_matrix_application === 'Other'" v-model="otherValues.maldi_matrix_application" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify application" />
                </div>
                <div class="text-xs text-base-content/60 flex flex-col">Solvent
-                 <BaseSelect v-model="filters.solvent" :options="SOLVENTS" placeholder="Any" placement="dropdown-top dropdown-end" class="mt-1" />
+                 <AuthSelect v-model="filters.solvent" :options="SOLVENTS" placeholder="Any" />
+                 <input v-if="filters.solvent === 'Other'" v-model="otherValues.solvent" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify solvent" />
                </div>
              </div>
              <div class="mt-3 flex justify-end gap-2">

@@ -51,6 +51,25 @@
             </div>
           </div>
 
+          <div class="divider">Quota Usage</div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-base-200 rounded-lg p-4">
+              <div class="text-xs text-base-content/60 mb-1">Storage Upload</div>
+              <div class="text-lg font-semibold">{{ quota.uploadUsed }} / {{ quota.uploadMax }}</div>
+              <progress class="progress progress-primary w-full mt-2" :value="quota.uploadPercent" max="100"></progress>
+            </div>
+            <div class="bg-base-200 rounded-lg p-4">
+              <div class="text-xs text-base-content/60 mb-1">Files</div>
+              <div class="text-lg font-semibold">{{ quota.fileCount }} / {{ quota.maxFiles }}</div>
+              <progress class="progress progress-secondary w-full mt-2" :value="quota.filePercent" max="100"></progress>
+            </div>
+            <div class="bg-base-200 rounded-lg p-4">
+              <div class="text-xs text-base-content/60 mb-1">Processing</div>
+              <div class="text-lg font-semibold">{{ quota.procUsed }} / {{ quota.procMax }}</div>
+              <progress class="progress progress-accent w-full mt-2" :value="quota.procPercent" max="100"></progress>
+            </div>
+          </div>
+
           <div class="divider">Academic Profile</div>
 
           <!-- Edit Form -->
@@ -147,6 +166,17 @@ import countries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
 import BaseInput from '../components/BaseInput.vue';
 import AuthSelect from '../components/AuthSelect.vue';
+import { getUserQuota, type UserQuota } from '@/utils/file-api';
+
+function formatBytes(bytes?: number): string {
+  if (bytes == null || Number.isNaN(bytes)) return '—'
+  if (bytes < 1024) return `${bytes} B`
+  const units = ['KB', 'MB', 'GB', 'TB']
+  let value = bytes / 1024
+  let i = 0
+  while (value >= 1024 && i < units.length - 1) { value /= 1024; i++ }
+  return `${value.toFixed(1)} ${units[i]}`
+}
 
 countries.registerLocale(enLocale);
 
@@ -282,9 +312,29 @@ const submitEmailChange = async () => {
   }
 };
 
+// Quota
+const quotaData = ref<UserQuota | null>(null)
+const quota = computed(() => {
+  const q = quotaData.value
+  if (!q) return { uploadUsed: '—', uploadMax: '—', uploadPercent: 0, fileCount: '—', maxFiles: '—', filePercent: 0, procUsed: '—', procMax: '—', procPercent: 0 }
+  const upUsed = formatBytes(q.total_uploaded_size_bytes)
+  const upMax = `${q.max_file_size_gb} GB`
+  const upPct = q.max_file_size_gb ? Math.min(100, (q.total_uploaded_size_bytes / (q.max_file_size_gb * 1e9)) * 100) : 0
+  const fPct = q.max_files_per_user ? Math.min(100, (q.file_count / q.max_files_per_user) * 100) : 0
+  const prUsed = formatBytes(q.total_processed_size_bytes)
+  const prMax = `${q.max_processing_size_gb} GB`
+  const prPct = q.max_processing_size_gb ? Math.min(100, (q.total_processed_size_bytes / (q.max_processing_size_gb * 1e9)) * 100) : 0
+  return { uploadUsed: upUsed, uploadMax: upMax, uploadPercent: upPct, fileCount: String(q.file_count), maxFiles: String(q.max_files_per_user), filePercent: fPct, procUsed: prUsed, procMax: prMax, procPercent: prPct }
+})
+
+async function fetchQuota() {
+  try { quotaData.value = await getUserQuota() } catch { /* ignore */ }
+}
+
 // 3. Fetch Current User
 onMounted(async () => {
     loading.value = true;
+    fetchQuota()
     try {
         const res = await getCurrentUser();
     const data = res.data || {};
