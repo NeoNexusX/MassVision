@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import {
+import { PaperClipIcon,
 	UserIcon,
 	UserCircleIcon,
 	ArrowRightEndOnRectangleIcon,
@@ -95,6 +95,7 @@ const ICON_MAP: Record<string, any> = {
 	bars3: Bars3Icon,
 	sun: SunIcon,
 	moon: MoonIcon,
+    'paper-clip': PaperClipIcon,
 
 };
 

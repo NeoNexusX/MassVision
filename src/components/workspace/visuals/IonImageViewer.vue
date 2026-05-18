@@ -6,6 +6,11 @@
         <h3 class="text-sm font-semibold">Ion Image</h3>
         <p class="text-[11px] text-base-content/50">Per-pixel ion intensity heatmap</p>
       </div>
+      <div v-if="metaInfo" class="hidden sm:flex items-center gap-3 text-xs text-base-content/60 ml-2">
+        <span v-if="metaInfo.analyzer">Analyzer <strong class="text-base-content">{{ metaInfo.analyzer }}</strong></span>
+        <span v-if="metaInfo.ionSource">Source <strong class="text-base-content">{{ metaInfo.ionSource }}</strong></span>
+        <span v-if="metaInfo.pixelSize">Pixel <strong class="text-base-content">{{ metaInfo.pixelSize }}</strong></span>
+      </div>
       <div class="ml-auto flex flex-wrap items-center gap-2">
         <div class="bg-base-200 rounded-lg px-3 py-1.5 text-xs">
           <span class="text-base-content/50">m/z&nbsp;</span>
@@ -58,6 +63,7 @@ const props = defineProps({
   displayMin: { type: Number, default: undefined },
   displayMax: { type: Number, default: undefined },
   matrix: { type: Array as PropType<number[][] | null>, default: null },
+  metaInfo: { type: Object as PropType<{ analyzer?: string; ionSource?: string; pixelSize?: string } | null>, default: null },
 })
 
 defineEmits<{
@@ -310,14 +316,20 @@ function onHover(e: MouseEvent) {
   }
 }
 
+let renderRaf = 0
+function scheduleRender() {
+  if (renderRaf) return
+  renderRaf = requestAnimationFrame(() => { renderRaf = 0; render() })
+}
+
 // --- Lifecycle ---
 onMounted(() => {
   mockData = generateMockMatrix(600, 800)
   render()
-  ro = new ResizeObserver(() => render())
+  ro = new ResizeObserver(() => scheduleRender())
   if (containerRef.value) ro.observe(containerRef.value)
 })
 onBeforeUnmount(() => ro?.disconnect())
 watch(() => [props.colormap, props.intensityScale, props.matrix, props.selectedMz, props.displayMin, props.displayMax],
-  () => render(), { deep: true })
+  () => scheduleRender(), { deep: true })
 </script>
