@@ -7,6 +7,7 @@ export function estimateZipSize(pair: ImzmlFilePair): number {
 
 export async function checkStorageQuota(pair: ImzmlFilePair): Promise<void> {
   const estimated = estimateZipSize(pair);
+  if (!navigator.storage?.estimate) return
   const { quota, usage } = await navigator.storage.estimate();
   const available = (quota ?? 0) - (usage ?? 0);
 

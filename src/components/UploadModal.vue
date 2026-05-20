@@ -32,7 +32,7 @@
           </div>
           <div
             class="relative flex items-center justify-between border border-base-content/20 rounded-lg px-3 py-2 bg-base-100 hover:bg-base-200/50 transition-colors overflow-hidden h-12">
-            <input type="file" multiple accept=".imzml,.ibd" @change="onFileChange"
+            <input ref="fileInputRef" type="file" multiple accept=".imzml,.ibd" @change="onFileChange"
               :disabled="pendingResume"
               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" title="Select files" />
             <div class="flex items-center gap-3 w-full pointer-events-none">
@@ -304,6 +304,7 @@ const emit = defineEmits<{
 const { showToast } = useToast();
 const router = useRouter();
 
+const fileInputRef = ref<HTMLInputElement | null>(null)
 const speed = ref('');
 const eta = ref('');
 
@@ -404,6 +405,7 @@ function resetAll() {
   Object.keys(otherInputs.value).forEach(k => {
     (otherInputs.value as any)[k] = '';
   });
+  if (fileInputRef.value) fileInputRef.value.value = '';
 }
 
 

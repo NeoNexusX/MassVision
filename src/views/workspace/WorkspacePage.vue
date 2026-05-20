@@ -41,35 +41,123 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import TaskTable from '@/components/workspace/TaskTable.vue'
 import ResultTable from '@/components/workspace/ResultTable.vue'
 import CreateTaskModal from '@/components/workspace/CreateTaskModal.vue'
 import SummaryCard from '@/components/workspace/SummaryCard.vue'
 import ActivityList from '@/components/workspace/ActivityList.vue'
+import { listMyProcesses } from '@/utils/file-api'
+import { listUserFiles } from '@/utils/file-api'
 
-// demo data - replace with real composable/api
-const tasks = ref([
-  { id: 't1', name: 'Preprocessing A', dataset: 'DS1', methods: ['TIC Normalization','Gaussian Smoothing'], status: 'Running', progress: 42, created: '2026-04-10 11:22' },
-  { id: 't2', name: 'Preprocessing B', dataset: 'DS2', methods: ['RMS Normalization'], status: 'Queued', progress: 0, created: '2026-04-12 09:10' }
-])
+interface ProcessItem {
+  id: number
+  status: string
+  params_json: string
+  source_file_id: number
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+  error_message: string | null
+}
 
-const results = ref([
-  { id: 'r1', name: 'Result A', dataset: 'DS1', methods: ['TIC Normalization','Gaussian Smoothing'], status: 'OK', created: '2026-04-11' },
-  { id: 'r2', name: 'Result B', dataset: 'DS2', methods: ['RMS Normalization','Median Normalization'], status: 'Error', created: '2026-04-09' }
-])
+const processes = ref<ProcessItem[]>([])
+const fileNames = ref<Record<number, string>>({})
+const loading = ref(false)
+
+async function fetchProcesses() {
+  loading.value = true
+  try {
+    const [procData, filesRes] = await Promise.all([
+      listMyProcesses(),
+      listUserFiles({}, 1, 100),
+    ])
+    processes.value = procData
+    const nameMap: Record<number, string> = {}
+    for (const f of filesRes.data || filesRes) {
+      nameMap[f.file_id || f.id] = (f.filename || f.name || '').replace(/\.[^.]+$/, '')
+    }
+    fileNames.value = nameMap
+  } catch (e) {
+    console.error('Failed to fetch processes:', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => fetchProcesses())
+
+function parseAlgorithms(paramsJson: string): string[] {
+  try {
+    const params = JSON.parse(paramsJson)
+    const algos = params.algorithms || params
+    const labelMap: Record<string, string> = {
+      noise_reduction: 'Noise Reduction',
+      baseline_correction: 'Baseline Correction',
+      normalization: 'Normalization',
+      peak_pick: 'Peak Picking',
+      peak_align: 'Peak Alignment',
+    }
+    return Object.entries(algos)
+      .filter(([_, v]) => v != null)
+      .map(([k]) => labelMap[k] || k)
+  } catch {
+    return []
+  }
+}
+
+function getFileName(fileId: number): string {
+  return fileNames.value[fileId] || `File ${fileId}`
+}
+
+function mapStatus(s: string): string {
+  if (s === 'processing') return 'Running'
+  if (s === 'completed') return 'Completed'
+  if (s === 'failed') return 'Failed'
+  if (s === 'queued') return 'Queued'
+  return s
+}
+
+const tasks = computed(() =>
+  processes.value
+    .filter(p => ['processing', 'queued'].includes(p.status))
+    .map(p => ({
+      id: String(p.id),
+      name: `Process #${p.id}`,
+      dataset: getFileName(p.source_file_id),
+      methods: parseAlgorithms(p.params_json),
+      status: mapStatus(p.status),
+      progress: p.status === 'processing' ? 50 : 0,
+      created: new Date(p.created_at).toLocaleString(),
+    }))
+)
+
+const results = computed(() =>
+  processes.value
+    .filter(p => ['completed', 'failed'].includes(p.status))
+    .map(p => ({
+      id: String(p.id),
+      name: `Process #${p.id}`,
+      dataset: getFileName(p.source_file_id),
+      methods: parseAlgorithms(p.params_json),
+      status: p.status === 'completed' ? 'OK' : 'Error',
+      created: new Date(p.finished_at || p.created_at).toLocaleDateString(),
+    }))
+)
 
 const createOpen = ref(false)
 
-const openCreate = () => createOpen.value = true
-const onCreated = (payload: any) => {
-  // push new task and close
-  tasks.value.unshift(payload)
+const onCreated = () => {
   createOpen.value = false
+  fetchProcesses()
 }
 
-const runningTasks = computed(() => tasks.value.filter((t: any) => ['Running','Queued'].includes(t.status)))
+const runningTasks = computed(() => tasks.value)
 const recentResults = computed(() => results.value.slice(0, 10))
 
-const summary = computed(() => ({ running: runningTasks.value.length, completed: results.value.filter((r: any) => r.status === 'OK').length, failed: results.value.filter((r: any) => r.status !== 'OK').length }))
+const summary = computed(() => ({
+  running: tasks.value.length,
+  completed: results.value.filter((r: any) => r.status === 'OK').length,
+  failed: results.value.filter((r: any) => r.status !== 'OK').length,
+}))
 </script>

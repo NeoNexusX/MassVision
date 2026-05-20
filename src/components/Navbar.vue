@@ -57,6 +57,14 @@
             <span>Workspace</span>
           </router-link>
         </li>
+        <li v-if="user">
+          <router-link to="/profile" @click="sidebarOpen = false" class="flex items-center gap-6 py-4 px-3 text-xl">
+            <span class="w-8 h-8 flex justify-center items-center shrink-0">
+              <svg-icon type="user-circle" class="w-8 h-8 text-base-content" />
+            </span>
+            <span>Profile</span>
+          </router-link>
+        </li>
         <li v-if="authStore.isAdmin">
           <router-link to="/users" @click="sidebarOpen = false" class="flex items-center gap-6 py-4 px-3 text-xl">
             <span class="w-8 h-8 flex justify-center items-center shrink-0">
@@ -126,8 +134,8 @@
               <svg-icon v-else type="moon" class="w-6 h-6 text-indigo-300" />
             </button>
 
-            <button class="btn btn-circle btn-lg child-btn" @click="goProfile" title="Profile">
-              <svg-icon type="user-circle" class="w-5 h-5" />
+            <button class="btn btn-circle btn-lg child-btn" @click="toggleAI" title="AI Assistant">
+              <svg-icon type="sparkles" class="w-5 h-5" />
             </button>
 
             <button class="btn btn-circle btn-lg child-btn btn-error" @click="logout" title="Sign out">
@@ -153,6 +161,8 @@
           </template>
     </div>
   </div>
+
+  <FloatingAIAssistant v-model:show="showAI" />
 </template>
 
 <script setup>
@@ -160,6 +170,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { storeToRefs } from 'pinia';
+import FloatingAIAssistant from './FloatingAIAssistant.vue';
 // Icons are consumed via SvgIcon global component; individual Heroicons imports removed.
 
 const router = useRouter();
@@ -169,6 +180,7 @@ const { user } = storeToRefs(authStore);
 const fabOpen = ref(false);
 const sidebarOpen = ref(false);
 const isDark = ref(false);
+const showAI = ref(false);
 
 const toggleFab = () => {
   fabOpen.value = !fabOpen.value;
@@ -196,8 +208,9 @@ const logout = async () => {
   router.push('/login');
 };
 
-const goProfile = () => {
-  router.push('/profile');
+const toggleAI = () => {
+  showAI.value = !showAI.value;
+  fabOpen.value = false;
 };
 
 const openSupport = () => {

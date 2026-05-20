@@ -35,13 +35,13 @@ const placeholderSvg = computed(() => {
     <!-- Left: Image -->
     <div class="relative z-10 flex-none w-full md:w-[200px] h-48 md:h-[200px] rounded-lg overflow-hidden bg-base-200 flex items-center justify-center border border-base-300">
       <img
-        v-if="dataset.thumbnailUrl"
-        :src="dataset.thumbnailUrl"
+        :src="`/api/files/${dataset.id}/tic`"
         :alt="dataset.name"
-        class="w-full h-full object-cover"
+        class="w-full h-full object-contain"
         loading="lazy"
+        @error="($event.target as HTMLImageElement).style.display = 'none'; ($event.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden')"
       />
-      <div v-else class="w-full h-full text-base-content" v-html="placeholderSvg"></div>
+      <div class="w-full h-full text-base-content hidden" v-html="placeholderSvg"></div>
     </div>
 
     <!-- Middle: Info -->

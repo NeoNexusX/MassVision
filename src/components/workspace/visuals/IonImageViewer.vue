@@ -3,21 +3,26 @@
     <!-- Toolbar -->
     <div class="flex flex-wrap items-center gap-3 mb-3">
       <div>
-        <h3 class="text-sm font-semibold">Ion Image</h3>
-        <p class="text-[11px] text-base-content/50">Per-pixel ion intensity heatmap</p>
+        <h3 class="text-lg font-semibold">Ion Image</h3>
+        <p class="text-sm text-base-content/50">Per-pixel ion intensity heatmap</p>
+      </div>
+      <div v-if="metaInfo" class="hidden sm:flex items-center gap-3 text-base text-base-content/60 ml-2">
+        <span v-if="metaInfo.analyzer">Analyzer <strong class="text-base-content">{{ metaInfo.analyzer }}</strong></span>
+        <span v-if="metaInfo.ionSource">Source <strong class="text-base-content">{{ metaInfo.ionSource }}</strong></span>
+        <span v-if="metaInfo.pixelSize">Pixel <strong class="text-base-content">{{ metaInfo.pixelSize }}</strong></span>
       </div>
       <div class="ml-auto flex flex-wrap items-center gap-2">
-        <div class="bg-base-200 rounded-lg px-3 py-1.5 text-xs">
+        <div class="bg-base-200 rounded-lg px-3 py-1.5 text-base">
           <span class="text-base-content/50">m/z&nbsp;</span>
           <span class="font-mono font-semibold">{{ selectedMz.toFixed(3) }}</span>
         </div>
-        <div class="flex items-center gap-1 text-xs">
+        <div class="flex items-center gap-1 text-base">
           <span class="text-base-content/50">&plusmn;</span>
-          <input type="number" class="input input-xs input-bordered w-16 font-mono text-xs"
+          <input type="number" class="input input-sm input-bordered w-16 font-mono text-base"
             :value="mzTolerance" step="0.001" min="0.001"
             @input="$emit('update:mzTolerance', +($event.target as HTMLInputElement).value)" />
         </div>
-        <select class="select select-xs select-bordered w-24 text-xs"
+        <select class="select select-sm select-bordered w-24 text-base"
           :value="colormap"
           @change="$emit('update:colormap', ($event.target as HTMLSelectElement).value)">
           <option value="viridis">Viridis</option>
@@ -25,23 +30,33 @@
           <option value="plasma">Plasma</option>
           <option value="gray">Gray</option>
         </select>
-        <select class="select select-xs select-bordered w-24 text-xs"
+        <select class="select select-sm select-bordered w-24 text-base"
           :value="intensityScale"
           @change="$emit('update:intensityScale', ($event.target as HTMLSelectElement).value)">
           <option value="linear">Linear</option>
           <option value="log">Log</option>
         </select>
-        <button class="btn btn-xs btn-ghost" @click="$emit('reset')">Reset</button>
+        <button class="btn btn-sm btn-ghost" @click="$emit('reset')">Reset</button>
       </div>
     </div>
     <div ref="containerRef"
-      class="relative flex-1 min-h-0 bg-base-200 rounded-lg border border-base-300 overflow-hidden cursor-crosshair"
+      class="relative flex-1 min-h-0 bg-base-200 rounded-lg border border-base-300 overflow-hidden"
+      :class="drawMode ? 'cursor-default' : zoom > 1 ? 'cursor-grab' : 'cursor-crosshair'"
+      @mousedown="onPanStart"
       @mousemove="onHover" @mouseleave="hoverPixel = null">
-      <canvas ref="canvasRef" class="absolute inset-0 w-full h-full" />
+      <canvas ref="canvasRef" class="absolute inset-0" style="image-rendering: pixelated;"
+        :style="{ transform: `translate(${panX}px,${panY}px) scale(${zoom})`, transformOrigin: '0 0', width: containerW + 'px', height: containerH + 'px' }"
+        @wheel.prevent="onWheel" />
       <div v-if="hoverPixel"
-        class="absolute pointer-events-none bg-base-100/90 backdrop-blur-sm text-[10px] px-2 py-1 rounded shadow border border-base-300 font-mono"
+        class="absolute pointer-events-none bg-base-100/90 backdrop-blur-sm text-sm px-2 py-1 rounded shadow border border-base-300 font-mono"
         :style="{ left: hoverPixel.x + 12 + 'px', top: hoverPixel.y + 12 + 'px' }">
         ({{ hoverPixel.col }}, {{ hoverPixel.row }}) — {{ hoverPixel.intensity.toExponential(2) }}
+      </div>
+      <div class="absolute bottom-2 right-2 flex items-center gap-1 bg-base-100/80 backdrop-blur-sm rounded-lg px-1.5 py-1 border border-base-300">
+        <button class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70 text-lg font-bold" title="Zoom out" @click="zoomOut">−</button>
+        <span class="text-xs font-mono w-10 text-center text-base-content/60">{{ zoom.toFixed(1) }}x</span>
+        <button class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70 text-lg font-bold" title="Zoom in" @click="zoomIn">+</button>
+        <button v-if="zoom > 1" class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/50 text-xs ml-0.5" title="Reset zoom" @click="resetZoom">1:1</button>
       </div>
     </div>
   </div>
@@ -58,6 +73,8 @@ const props = defineProps({
   displayMin: { type: Number, default: undefined },
   displayMax: { type: Number, default: undefined },
   matrix: { type: Array as PropType<number[][] | null>, default: null },
+  metaInfo: { type: Object as PropType<{ analyzer?: string; ionSource?: string; pixelSize?: string } | null>, default: null },
+  drawMode: { type: Boolean, default: false },
 })
 
 defineEmits<{
@@ -70,11 +87,80 @@ defineEmits<{
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
 const hoverPixel = ref<{ x: number; y: number; row: number; col: number; intensity: number } | null>(null)
+const containerW = ref(0)
+const containerH = ref(0)
+
+// --- Zoom & Pan ---
+const zoom = ref(2)
+const panX = ref(0)
+const panY = ref(0)
+
+function resetZoom() {
+  zoom.value = 1
+  panX.value = 0
+  panY.value = 0
+  scheduleRender()
+}
+
+function zoomIn() {
+  setZoom(zoom.value * 1.5)
+}
+
+function zoomOut() {
+  setZoom(zoom.value / 1.5)
+}
+
+function setZoom(newZoom: number) {
+  const clamped = Math.max(1, Math.min(40, newZoom))
+  if (clamped === zoom.value) return
+  const cx = containerW.value / 2
+  const cy = containerH.value / 2
+  const scale = clamped / zoom.value
+  panX.value = cx - scale * (cx - panX.value)
+  panY.value = cy - scale * (cy - panY.value)
+  zoom.value = clamped
+  if (zoom.value === 1) { panX.value = 0; panY.value = 0 }
+  scheduleRender()
+}
+
+function onWheel(e: WheelEvent) {
+  if (props.drawMode) return
+  const rect = containerRef.value?.getBoundingClientRect()
+  if (!rect) return
+  const mx = e.clientX - rect.left
+  const my = e.clientY - rect.top
+  const factor = e.deltaY < 0 ? 1.2 : 1 / 1.2
+  const newZoom = Math.max(1, Math.min(40, zoom.value * factor))
+  const scale = newZoom / zoom.value
+  panX.value = mx - scale * (mx - panX.value)
+  panY.value = my - scale * (my - panY.value)
+  zoom.value = newZoom
+  if (zoom.value === 1) { panX.value = 0; panY.value = 0 }
+  scheduleRender()
+}
+
+function onPanStart(e: MouseEvent) {
+  if (props.drawMode || zoom.value <= 1 || e.button !== 0) return
+  e.preventDefault()
+  const startX = e.clientX - panX.value
+  const startY = e.clientY - panY.value
+  const onMove = (ev: MouseEvent) => {
+    panX.value = ev.clientX - startX
+    panY.value = ev.clientY - startY
+    scheduleRender()
+  }
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onUp)
+  }
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', onUp)
+}
 
 // --- Colormap LUT ---
 const COLORMAP_TABLE: Record<string, [number, number, number][]> = {
   viridis: [[68,1,84],[72,35,116],[64,74,138],[49,104,142],[38,130,142],[31,157,137],[108,206,89],[254,231,37]],
-  inferno: [[0,0,4],[27,12,65],[74,12,107],[120,28,109],[165,44,96],[207,68,70],[237,105,37],[249,215,28]],
+  inferno: [[0,0,4],[40,11,84],[101,21,110],[159,42,99],[212,72,66],[245,125,21],[250,193,39],[252,255,164]],
   plasma: [[13,8,135],[70,3,159],[114,1,168],[156,23,158],[189,55,134],[216,87,107],[237,121,83],[253,180,47]],
   gray: [[0,0,0],[255,255,255]],
 }
@@ -180,38 +266,12 @@ function generateMockMatrix(rows: number, cols: number): number[][] {
   return matrix
 }
 
-// --- Median 3x3 spatial filter ---
-function applyMedian3(data: number[][]): number[][] {
-  const rows = data.length
-  if (!rows) return data
-  const cols = data[0]?.length ?? 0
-  if (!cols) return data
-  const result: number[][] = []
-  for (let r = 0; r < rows; r++) {
-    const row: number[] = []
-    for (let c = 0; c < cols; c++) {
-      const n: number[] = []
-      for (let dr = -1; dr <= 1; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
-          const rr = r + dr, cc = c + dc
-          if (rr >= 0 && rr < rows && cc >= 0 && cc < cols) n.push(data[rr]![cc] ?? 0)
-        }
-      }
-      n.sort((a, b) => a - b)
-      row.push(n[Math.floor(n.length / 2)]!)
-    }
-    result.push(row)
-  }
-  return result
-}
-
 // --- Render ---
 let mockData: number[][] = []
 let ro: ResizeObserver | null = null
 
 // Cache: only recompute when data reference changes
 let cachedData: number[][] | null = null
-let cachedFiltered: number[][] = []
 let cachedP1 = 0
 let cachedP99 = 1
 
@@ -225,20 +285,16 @@ function updateCachedData(data: number[][]) {
   allVals.sort((a, b) => a - b)
   cachedP1 = allVals[Math.floor(allVals.length * 0.01)] ?? allVals[0] ?? 0
   cachedP99 = allVals[Math.floor(allVals.length * 0.99)] ?? allVals[allVals.length - 1] ?? 1
-
-  // Median 3x3 denoise
-  cachedFiltered = applyMedian3(data)
 }
 
 function render() {
   const canvas = canvasRef.value
-  const container = containerRef.value
-  if (!canvas || !container) return
+  if (!canvas) return
 
-  const rect = container.getBoundingClientRect()
+  const W = containerW.value
+  const H = containerH.value
+  if (!W || !H) return
   const dpr = window.devicePixelRatio || 1
-  const W = Math.floor(rect.width)
-  const H = Math.floor(rect.height)
   canvas.width = W * dpr
   canvas.height = H * dpr
   canvas.style.width = W + 'px'
@@ -265,24 +321,29 @@ function render() {
   // ── Fit canvas to container preserving matrix aspect ratio ──
   const matrixW = cols, matrixH = rows
   const scale = Math.min(W / matrixW, H / matrixH)
-  const drawW = Math.floor(matrixW * scale)
-  const drawH = Math.floor(matrixH * scale)
+  // Snap to integer cell size for crisp pixels
+  const cellW = Math.max(1, Math.floor(scale))
+  const cellH = Math.max(1, Math.floor(scale))
+  const drawW = matrixW * cellW
+  const drawH = matrixH * cellH
   const ox = Math.floor((W - drawW) / 2)
   const oy = Math.floor((H - drawH) / 2)
   ctx.clearRect(0, 0, W, H)
-  ctx.fillStyle = '#1a0533'
+  ctx.fillStyle = '#0a0a0f'
   ctx.fillRect(0, 0, W, H)
 
   const lut = buildLUT(props.colormap)
   const useLog = props.intensityScale === 'log'
-  const cellW = drawW / matrixW
-  const cellH = drawH / matrixH
 
   for (let r = 0; r < rows; r++) {
-    const rowData = cachedFiltered[r]!
     for (let c = 0; c < cols; c++) {
-      const val = rowData[c] ?? dispMin
+      // Zero intensity → transparent (show background)
+      const rawVal = data[r]![c] ?? 0
+      if (rawVal === 0) continue
+
+      const val = data[r]![c] ?? dispMin
       let norm = (val - dispMin) / range
+      norm = Math.pow(Math.max(0, norm), 0.45) // gamma: brighten dark areas
       if (useLog) norm = Math.log1p(norm * 9) / Math.log1p(9)
       norm = Math.max(0, Math.min(1, norm))
       const idx = Math.round(norm * 255)
@@ -300,24 +361,55 @@ function onHover(e: MouseEvent) {
   const data = props.matrix ?? mockData
   if (!data.length) return
   const rows = data.length, cols = data[0]?.length ?? 0
-  const cellW = rect.width / cols, cellH = rect.height / rows
-  const col = Math.floor((e.clientX - rect.left) / cellW)
-  const row = Math.floor((e.clientY - rect.top) / cellH)
+  const W = rect.width, H = rect.height
+  const scale = Math.min(W / cols, H / rows)
+  const cellW = Math.max(1, Math.floor(scale))
+  const cellH = Math.max(1, Math.floor(scale))
+  const drawW = cols * cellW
+  const drawH = rows * cellH
+  const ox = Math.floor((W - drawW) / 2)
+  const oy = Math.floor((H - drawH) / 2)
+  const mx = e.clientX - rect.left
+  const my = e.clientY - rect.top
+  const cx = (mx - panX.value) / zoom.value
+  const cy = (my - panY.value) / zoom.value
+  const col = Math.floor((cx - ox) / cellW)
+  const row = Math.floor((cy - oy) / cellH)
   if (row >= 0 && row < rows && col >= 0 && col < cols) {
-    hoverPixel.value = { x: e.clientX - rect.left, y: e.clientY - rect.top, row, col, intensity: data[row]![col]! }
+    hoverPixel.value = { x: mx, y: my, row, col, intensity: data[row]![col]! }
   } else {
     hoverPixel.value = null
   }
 }
 
+let renderRaf = 0
+function scheduleRender() {
+  if (renderRaf) return
+  renderRaf = requestAnimationFrame(() => { renderRaf = 0; render() })
+}
+
 // --- Lifecycle ---
 onMounted(() => {
   mockData = generateMockMatrix(600, 800)
+  if (containerRef.value) {
+    const rect = containerRef.value.getBoundingClientRect()
+    containerW.value = Math.floor(rect.width)
+    containerH.value = Math.floor(rect.height)
+    panX.value = containerW.value * (1 - zoom.value) / 2
+    panY.value = containerH.value * (1 - zoom.value) / 2
+    ro = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) {
+        containerW.value = Math.floor(entry.contentRect.width)
+        containerH.value = Math.floor(entry.contentRect.height)
+        scheduleRender()
+      }
+    })
+    ro.observe(containerRef.value)
+  }
   render()
-  ro = new ResizeObserver(() => render())
-  if (containerRef.value) ro.observe(containerRef.value)
 })
 onBeforeUnmount(() => ro?.disconnect())
 watch(() => [props.colormap, props.intensityScale, props.matrix, props.selectedMz, props.displayMin, props.displayMax],
-  () => render(), { deep: true })
+  () => scheduleRender(), { deep: true })
 </script>

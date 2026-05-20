@@ -115,7 +115,7 @@ const changeSize = (newSize: number) => {
 <template>
   <div class="min-h-screen bg-base-200 p-4 md:p-8">
     <div class="max-w-[1680px] mx-auto">
-      <h1 class="text-3xl font-bold text-base-content mb-6">Public Datasets</h1>
+      <h1 class="text-4xl font-bold text-base-content mb-6">Public Datasets</h1>
       
       <DatasetFilterBar 
         :show-add-filter="true"

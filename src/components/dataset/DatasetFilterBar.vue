@@ -162,7 +162,7 @@ watch(sortValue, (val) => emit('sort', val));
         <div v-if="showVisibilityFilter" class="relative group shrink-0">
            <select 
             v-model="selectedVisibility"
-            class="appearance-none bg-base-200 border border-base-300 text-base-content py-2 pl-4 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-sm font-medium"
+            class="appearance-none bg-base-200 border border-base-300 text-base-content py-2 pl-4 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-lg font-medium"
           >
             <option v-for="opt in visibilityOptions" :key="opt" :value="opt">{{ opt }}</option>
           </select>
@@ -182,7 +182,7 @@ watch(sortValue, (val) => emit('sort', val));
              v-model="searchQuery"
              @keydown.enter.prevent="onSearchClick"
              type="text"
-             class="w-full min-w-0 bg-base-200 border border-base-300 text-base-content text-sm rounded-lg focus:ring-primary focus:border-primary pl-10 p-2 placeholder:text-base-content/40"
+             class="w-full min-w-0 bg-base-200 border border-base-300 text-base-content text-lg rounded-lg focus:ring-primary focus:border-primary pl-10 p-2 placeholder:text-base-content/40"
              :placeholder="searchPlaceholder"
            />
            <button @click="onSearchClick" class="btn btn-sm btn-primary shrink-0">Search</button>
@@ -190,54 +190,54 @@ watch(sortValue, (val) => emit('sort', val));
 
         <!-- Add Filter (Public Datasets) - now to the right of search -->
         <div v-if="showAddFilter" class="relative group">
-          <button ref="filterBtn" @click="toggleFilterPanel" class="flex items-center gap-2 bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content py-2 px-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium">
+          <button ref="filterBtn" @click="toggleFilterPanel" class="flex items-center gap-2 bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content py-2 px-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-lg font-medium">
              <SvgIcon type="plus" class="w-4 h-4" />
              Add filter
            </button>
           <teleport to="body">
             <div v-if="showFilterPanel" ref="filterPanelRef" :style="panelStyle" class="bg-base-100 dark:bg-slate-800 border border-base-300 rounded-lg p-5 shadow-2xl">
              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-               <div class="text-xs text-base-content/60 flex flex-col">Filename
-                 <input v-model="filters.filename" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Filename" />
+               <div class="text-base text-base-content/60 flex flex-col">Filename
+                 <input v-model="filters.filename" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base" placeholder="Filename" />
                </div>
-               <div class="text-xs text-base-content/60 flex flex-col">Experiment Type
+               <div class="text-base text-base-content/60 flex flex-col">Experiment Type
                  <AuthSelect v-model="filters.experiment_type" :options="EXPERIMENT_TYPES" placeholder="Any" />
-                 <input v-if="filters.experiment_type === 'Other'" v-model="otherValues.experiment_type" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify experiment type" />
+                 <input v-if="filters.experiment_type === 'Other'" v-model="otherValues.experiment_type" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base" placeholder="Specify experiment type" />
                </div>
-               <div class="text-xs text-base-content/60 flex flex-col">Username
-                 <input v-model="filters.username" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Submitter username" />
+               <div class="text-base text-base-content/60 flex flex-col">Username
+                 <input v-model="filters.username" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base" placeholder="Submitter username" />
                </div>
-               <div class="text-xs text-base-content/60 flex flex-col">Organism
+               <div class="text-base text-base-content/60 flex flex-col">Organism
                  <AuthSelect v-model="filters.organism" :options="ORGANISMS" placeholder="Any" />
-                 <input v-if="filters.organism === 'Other'" v-model="otherValues.organism" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify organism" />
+                 <input v-if="filters.organism === 'Other'" v-model="otherValues.organism" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base" placeholder="Specify organism" />
                </div>
-               <div class="text-xs text-base-content/60 flex flex-col">Organism Part
+               <div class="text-base text-base-content/60 flex flex-col">Organism Part
                  <AuthSelect v-model="filters.organism_part" :options="ORGANISM_PARTS" placeholder="Any" />
-                 <input v-if="filters.organism_part === 'Other'" v-model="otherValues.organism_part" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify organism part" />
+                 <input v-if="filters.organism_part === 'Other'" v-model="otherValues.organism_part" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base" placeholder="Specify organism part" />
                </div>
-               <div class="text-xs text-base-content/60 flex flex-col">Condition
+               <div class="text-base text-base-content/60 flex flex-col">Condition
                  <AuthSelect v-model="filters.condition" :options="CONDITIONS" placeholder="Any" />
-                 <input v-if="filters.condition === 'Other'" v-model="otherValues.condition" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify condition" />
+                 <input v-if="filters.condition === 'Other'" v-model="otherValues.condition" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base" placeholder="Specify condition" />
                </div>
-               <div class="text-xs text-base-content/60 flex flex-col">Sample Stabilization
+               <div class="text-base text-base-content/60 flex flex-col">Sample Stabilization
                  <AuthSelect v-model="filters.sample_stabilization" :options="SAMPLE_STABILIZATIONS" placeholder="Any" />
-                 <input v-if="filters.sample_stabilization === 'Other'" v-model="otherValues.sample_stabilization" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify stabilization" />
+                 <input v-if="filters.sample_stabilization === 'Other'" v-model="otherValues.sample_stabilization" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base" placeholder="Specify stabilization" />
                </div>
-               <div class="text-xs text-base-content/60 flex flex-col">Tissue Modification
+               <div class="text-base text-base-content/60 flex flex-col">Tissue Modification
                  <AuthSelect v-model="filters.tissue_modification" :options="TISSUE_MODIFICATIONS" placeholder="Any" />
-                 <input v-if="filters.tissue_modification === 'Other'" v-model="otherValues.tissue_modification" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify modification" />
+                 <input v-if="filters.tissue_modification === 'Other'" v-model="otherValues.tissue_modification" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base" placeholder="Specify modification" />
                </div>
-               <div class="text-xs text-base-content/60 flex flex-col">MALDI Matrix
+               <div class="text-base text-base-content/60 flex flex-col">MALDI Matrix
                  <AuthSelect v-model="filters.maldi_matrix" :options="MALDI_MATRICES" placeholder="Any" />
-                 <input v-if="filters.maldi_matrix === 'Other'" v-model="otherValues.maldi_matrix" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify matrix" />
+                 <input v-if="filters.maldi_matrix === 'Other'" v-model="otherValues.maldi_matrix" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base" placeholder="Specify matrix" />
                </div>
-               <div class="text-xs text-base-content/60 flex flex-col">Matrix Application
+               <div class="text-base text-base-content/60 flex flex-col">Matrix Application
                  <AuthSelect v-model="filters.maldi_matrix_application" :options="MALDI_MATRIX_APPLICATIONS" placeholder="Any" />
-                 <input v-if="filters.maldi_matrix_application === 'Other'" v-model="otherValues.maldi_matrix_application" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify application" />
+                 <input v-if="filters.maldi_matrix_application === 'Other'" v-model="otherValues.maldi_matrix_application" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base" placeholder="Specify application" />
                </div>
-               <div class="text-xs text-base-content/60 flex flex-col">Solvent
+               <div class="text-base text-base-content/60 flex flex-col">Solvent
                  <AuthSelect v-model="filters.solvent" :options="SOLVENTS" placeholder="Any" />
-                 <input v-if="filters.solvent === 'Other'" v-model="otherValues.solvent" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-sm" placeholder="Specify solvent" />
+                 <input v-if="filters.solvent === 'Other'" v-model="otherValues.solvent" class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base" placeholder="Specify solvent" />
                </div>
              </div>
              <div class="mt-3 flex justify-end gap-2">
@@ -255,7 +255,7 @@ watch(sortValue, (val) => emit('sort', val));
          <button 
            v-if="showUpload"
            @click="$emit('upload')"
-           class="flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-none rounded-lg shadow-sm transition-all transform active:scale-95 text-sm font-medium py-2 px-4 min-w-0 overflow-hidden"
+           class="flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-none rounded-lg shadow-sm transition-all transform active:scale-95 text-lg font-medium py-2 px-4 min-w-0 overflow-hidden"
          >
             <SvgIcon type="upload" class="w-4 h-4 shrink-0" />
            <span class="truncate">Upload New Dataset</span>
@@ -265,7 +265,7 @@ watch(sortValue, (val) => emit('sort', val));
          <div class="relative w-full sm:w-auto">
             <select 
              v-model="sortValue"
-             class="appearance-none w-full bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-sm truncate"
+             class="appearance-none w-full bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-lg truncate"
             >
               <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             </select>
