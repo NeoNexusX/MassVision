@@ -52,8 +52,6 @@ export interface File {
   isPublic: boolean;
 
   // UI
-  thumbnailUrl?: string;
-
   // Keep raw backend object if needed
   raw?: any;
 }

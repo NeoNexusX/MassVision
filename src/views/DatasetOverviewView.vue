@@ -221,8 +221,13 @@ onMounted(() => {
         <!-- 2. Primary Info Card -->
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6 flex flex-col md:flex-row gap-6">
           <div class="w-20 h-20 md:w-24 md:h-24 bg-base-200/60 rounded-2xl flex items-center justify-center flex-shrink-0 text-base-content/50 border border-base-200 overflow-hidden">
-            <img v-if="dataset.thumbnailUrl" :src="dataset.thumbnailUrl" :alt="dataset.filename" class="w-full h-full object-cover" />
-            <div v-else class="w-full h-full" v-html="placeholderSvg"></div>
+            <img
+              :src="`/api/files/${dataset.id}/tic`"
+              :alt="dataset.filename"
+              class="w-full h-full object-cover"
+              @error="($event.target as HTMLImageElement).style.display = 'none'; ($event.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden')"
+            />
+            <div class="w-full h-full hidden" v-html="placeholderSvg"></div>
           </div>
           
           <div class="flex-1 w-full min-w-0">

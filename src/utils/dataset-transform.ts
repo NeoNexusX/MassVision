@@ -65,8 +65,6 @@ export function mapItemToDataset(item: any, index = 0): File {
     storageMode: item.storage_mode || '',
     mz: item.mz,
 
-    thumbnailUrl: item.thumbnail_url || item.thumbnail || '',
-
     // preserve raw backend object for details/debugging
     raw: item
   } as File;

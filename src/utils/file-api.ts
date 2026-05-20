@@ -124,3 +124,19 @@ export async function getUserQuota(): Promise<UserQuota> {
   const res = await auth_api.get('/users/quota')
   return res.data
 }
+
+// POST /processes — Create Process
+export async function createProcess(payload: {
+  file_id: number
+  algorithms: Record<string, any>
+  is_public?: boolean
+}) {
+  const res = await auth_api.post('/processes', payload)
+  return res.data
+}
+
+// GET /processes/mine — List my processes
+export async function listMyProcesses() {
+  const res = await auth_api.get('/processes/mine')
+  return res.data
+}

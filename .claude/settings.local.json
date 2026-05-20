@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vue-tsc *)",
+      "Bash(npx vite *)",
+      "Bash(cd d:/Users/lyk/MassVision && mkdir -p src/workers)",
+      "Bash(cd \"/d/Users/lyk/MassVision\" && grep -n \"ArrowTrayUp\\\\|MinusIcon\\\\|PaperAirplane\" src/components/SvgIcon.vue)",
+      "Read(//d/d/Users/lyk/MassVision/src/components/**)"
+    ],
+    "additionalDirectories": [
+      "d:\\Users\\lyk\\MassVision\\src"
+    ]
+  }
+}

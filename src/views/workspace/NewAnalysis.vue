@@ -92,13 +92,13 @@
                     <div v-for="p in m.params" :key="p.key" class="flex items-center gap-2">
                       <span class="text-xs text-base-content/60 w-20 shrink-0" :title="p.hint">{{ p.label }}</span>
                       <template v-if="p.type === 'select'">
-                        <select
-                          class="select select-xs select-bordered flex-1 text-xs"
-                          :value="getParam(group.key, m.id, p.key)"
-                          @change="methodParams[buildParamKey(group.key, m.id, p.key)] = ($event.target as HTMLSelectElement).value"
-                        >
-                          <option v-for="o in p.options" :key="o.value" :value="o.value">{{ o.label }}</option>
-                        </select>
+                        <BaseSelect
+                          class="flex-1"
+                          :model-value="String(getParam(group.key, m.id, p.key) ?? '')"
+                          :options="p.options!.map((o: any) => o.value)"
+                          :placeholder="String(p.default ?? '')"
+                          @update:model-value="methodParams[buildParamKey(group.key, m.id, p.key)] = $event"
+                        />
                       </template>
                       <template v-else-if="p.type === 'text'">
                         <input
@@ -109,15 +109,26 @@
                           @input="methodParams[buildParamKey(group.key, m.id, p.key)] = ($event.target as HTMLInputElement).value"
                         />
                       </template>
-                      <template v-else>
+                      <template v-else-if="p.type === 'number'">
                         <input
                           class="input input-xs input-bordered flex-1 text-xs font-mono"
-                          type="number"
+                          type="text"
+                          inputmode="numeric"
                           :placeholder="String(p.default ?? '')"
-                          :min="p.min"
-                          :step="p.step ?? 1"
                           :value="getParam(group.key, m.id, p.key)"
-                          @input="methodParams[buildParamKey(group.key, m.id, p.key)] = +($event.target as HTMLInputElement).value"
+                          @input="onIntInput(group.key, m.id, p.key, $event)"
+                          @blur="onNumBlur(group.key, m.id, p.key, 'int')"
+                        />
+                      </template>
+                      <template v-else-if="p.type === 'float'">
+                        <input
+                          class="input input-xs input-bordered flex-1 text-xs font-mono"
+                          type="text"
+                          inputmode="decimal"
+                          :placeholder="String(p.default ?? '')"
+                          :value="getParam(group.key, m.id, p.key)"
+                          @input="onFloatInput(group.key, m.id, p.key, $event)"
+                          @blur="onNumBlur(group.key, m.id, p.key, 'float')"
                         />
                       </template>
                     </div>
@@ -199,11 +210,12 @@
             <!-- Start button -->
             <div class="border-t border-base-200/70 px-5 py-4">
               <button
-                :class="['btn btn-primary w-full h-12 text-base font-semibold', !canSubmit ? 'opacity-60 cursor-not-allowed' : '']"
+                :class="['btn btn-primary w-full h-12 text-base font-semibold', (!canSubmit || submitting) ? 'opacity-60 cursor-not-allowed' : '']"
                 @click="submit"
-                :disabled="!canSubmit"
+                :disabled="!canSubmit || submitting"
               >
-                Start Analysis
+                <span v-if="submitting" class="loading loading-spinner loading-sm"></span>
+                {{ submitting ? 'Starting...' : 'Start Analysis' }}
               </button>
               <div v-if="!canSubmit" class="text-xs text-base-content/50 mt-2 text-center">Select dataset and configure pipeline first</div>
             </div>
@@ -223,8 +235,9 @@ const authStore = useAuthStore()
 
 import { onMounted, watch } from 'vue'
 import { useDatasets } from '@/composables/useDatasets'
-import { listUserFiles, getUserQuota, type UserQuota } from '@/utils/file-api'
+import { listUserFiles, getUserQuota, createProcess, type UserQuota } from '@/utils/file-api'
 import UploadModal from '@/components/UploadModal.vue'
+import BaseSelect from '@/components/BaseSelect.vue'
 import { useAuthStore } from '@/stores/auth'
 import { formatBytes } from '@/utils/format'
 
@@ -253,14 +266,10 @@ const methodParams = reactive<Record<string, string | number>>({
   'pick.diff.snr': 2.0,
   'pick.diff.return_type': 'height',
   'pick.diff.width': 5,
-  'align.align_py.tolerance': '' as string | number,
+  'align.align_py.tolerance': 'none',
   'align.align_py.units': 'ppm',
   'align.align_py.binfun': 'median',
   'align.align_py.binratio': 2.0,
-  'align.align_cardinal.tolerance': '' as string | number,
-  'align.align_cardinal.units': 'ppm',
-  'align.align_cardinal.binfun': 'median',
-  'align.align_cardinal.binratio': 2.0,
 })
 
 // MS Analysis form 
@@ -336,6 +345,27 @@ function buildParamKey(groupKey: string, methodId: string, paramKey: string) {
 
 function getParam(groupKey: string, methodId: string, paramKey: string): string | number | undefined {
   return methodParams[buildParamKey(groupKey, methodId, paramKey)]
+}
+
+function setParam(groupKey: string, methodId: string, paramKey: string, value: string | number) {
+  methodParams[buildParamKey(groupKey, methodId, paramKey)] = value
+}
+
+function onIntInput(groupKey: string, methodId: string, paramKey: string, e: Event) {
+  const raw = (e.target as HTMLInputElement).value
+  setParam(groupKey, methodId, paramKey, raw.replace(/[^0-9]/g, ''))
+}
+
+function onFloatInput(groupKey: string, methodId: string, paramKey: string, e: Event) {
+  const raw = (e.target as HTMLInputElement).value
+  setParam(groupKey, methodId, paramKey, raw.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))
+}
+
+function onNumBlur(groupKey: string, methodId: string, paramKey: string, kind: 'int' | 'float') {
+  const raw = methodParams[buildParamKey(groupKey, methodId, paramKey)]
+  if (raw === '' || raw === undefined) return
+  const n = kind === 'int' ? parseInt(String(raw), 10) : parseFloat(String(raw))
+  if (!isNaN(n)) setParam(groupKey, methodId, paramKey, n)
 }
 
 const methodGroups: Array<any> = [
@@ -450,23 +480,6 @@ const methodGroups: Array<any> = [
           { key: 'binratio', label: 'Bin Ratio', type: 'float', default: 2.0, min: 0, step: 0.1 },
         ]
       },
-      {
-        id: 'align_cardinal', label: 'Cardinal Backend',
-        params: [
-          { key: 'tolerance', label: 'Tolerance', type: 'text', hint: 'Positive number or empty=auto' },
-          { key: 'units', label: 'Units', type: 'select', default: 'ppm', options: [
-            { label: 'ppm', value: 'ppm' },
-            { label: 'Da', value: 'Da' },
-          ]},
-          { key: 'binfun', label: 'Bin Function', type: 'select', default: 'median', options: [
-            { label: 'Median', value: 'median' },
-            { label: 'Mean', value: 'mean' },
-            { label: 'Min', value: 'min' },
-            { label: 'Max', value: 'max' },
-          ]},
-          { key: 'binratio', label: 'Bin Ratio', type: 'float', default: 2.0, min: 0, step: 0.1 },
-        ]
-      }
     ]
   }
 ]
@@ -618,8 +631,11 @@ const estimateTimeDisplay = computed(() => {
   return `${totalSelectedCount.value * 3}–${totalSelectedCount.value * 5} min`
 })
 
-function submit() {
-  if (!canSubmit.value) return
+const submitting = ref(false)
+
+async function submit() {
+  if (!canSubmit.value || submitting.value) return
+  submitting.value = true
 
   // Build algorithms object matching backend API
   const algorithms: Record<string, any> = {}
@@ -654,12 +670,11 @@ function submit() {
     if (method?.params) {
       for (const p of method.params) {
         const val = getParam(g.key, mid, p.key)
-        // Empty optional values → null
-        if ((p.type === 'text' || p.type === 'float') && (val === '' || val === undefined)) {
-          params[p.key] = null
-        } else {
-          params[p.key] = val ?? p.default
+        // Skip empty optional values entirely
+        if ((p.type === 'text' || p.type === 'float') && (val === '' || val === undefined || val === 'none')) {
+          continue
         }
+        params[p.key] = val ?? p.default
       }
     }
 
@@ -672,10 +687,20 @@ function submit() {
   }
 
   const payload = {
-    file_id: selectedDataset.value?.id ?? 0,
+    file_id: Number(selectedDataset.value?.id) ?? 0,
     algorithms,
+    is_public: false,
   }
-  console.log('Submit analysis', payload)
-  router.push('/workspace')
+
+  try {
+    const result = await createProcess(payload)
+    console.log('Process created:', result)
+    router.push('/workspace')
+  } catch (e: any) {
+    console.error('Failed to create process:', e)
+    alert(e?.response?.data?.detail || e.message || 'Failed to start analysis')
+  } finally {
+    submitting.value = false
+  }
 }
 </script>

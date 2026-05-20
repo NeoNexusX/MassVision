@@ -1,35 +1,35 @@
 <template>
   <div class="flex flex-col select-none h-full overflow-y-auto overflow-x-hidden">
     <!-- ─── Display Range ─── -->
-    <div class="text-sm font-semibold text-base-content/50 mb-2 tracking-wide">Display Range</div>
+    <div class="text-lg font-semibold text-base-content/50 mb-2 tracking-wide">Display Range</div>
     <div class="space-y-2 mb-3">
       <div class="flex items-center gap-2">
-        <span class="text-sm text-base-content/40 w-7 text-right">Max</span>
-        <input type="text" class="input input-sm input-bordered flex-1 text-sm font-mono"
+        <span class="text-lg text-base-content/40 w-7 text-right">Max</span>
+        <input type="text" class="input input-sm input-bordered flex-1 text-lg font-mono"
           :value="formatValue(localMax)" @change="onMaxInput($event)" />
-        <span class="text-xs text-base-content/60 w-10 text-right font-bold">{{ maxPercentile }}%</span>
+        <span class="text-base text-base-content/60 w-14 text-right font-bold">{{ pctLabel(displayMax) }}</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-sm text-base-content/40 w-7 text-right">Min</span>
-        <input type="text" class="input input-sm input-bordered flex-1 text-sm font-mono"
+        <span class="text-lg text-base-content/40 w-7 text-right">Min</span>
+        <input type="text" class="input input-sm input-bordered flex-1 text-lg font-mono"
           :value="formatValue(localMin)" @change="onMinInput($event)" />
-        <span class="text-xs text-base-content/60 w-10 text-right font-bold">{{ minPercentile }}%</span>
+        <span class="text-base text-base-content/60 w-14 text-right font-bold">{{ pctLabel(displayMin) }}</span>
       </div>
     </div>
 
     <!-- ─── Histogram ─── -->
     <div class="mb-3">
-      <div class="text-sm font-semibold text-base-content/50 mb-1.5 tracking-wide">Distribution</div>
+      <div class="text-lg font-semibold text-base-content/50 mb-1.5 tracking-wide">Distribution</div>
       <div class="relative h-20 rounded border border-base-200 bg-base-50 overflow-hidden">
         <canvas ref="histCanvasRef" class="absolute inset-0 w-full h-full" />
-        <div class="absolute top-0 bottom-0 w-px bg-red-500/80 z-10" :style="{ left: markerLeft(displayMin) + '%' }" />
-        <div class="absolute top-0 bottom-0 w-px bg-red-500/80 z-10" :style="{ left: markerLeft(displayMax) + '%' }" />
+        <div class="absolute top-0 bottom-0 w-[2px] bg-red-500/80 z-10" :style="{ left: markerLeft(displayMin) + '%' }" />
+        <div class="absolute top-0 bottom-0 w-[2px] bg-red-500/80 z-10" :style="{ left: markerLeft(displayMax) + '%' }" />
       </div>
     </div>
 
     <!-- ─── Info ─── -->
-    <div class="text-sm font-semibold text-base-content/50 mb-2 tracking-wide">Info</div>
-    <div class="space-y-1.5 text-sm text-base-content/60 mb-2">
+    <div class="text-lg font-semibold text-base-content/50 mb-2 tracking-wide">Info</div>
+    <div class="space-y-1.5 text-lg text-base-content/60 mb-2">
       <div v-for="row in infoRows" :key="row.label" class="flex justify-between">
         <span>{{ row.label }}</span>
         <span class="font-mono text-base-content/80">{{ row.value }}</span>
@@ -38,14 +38,16 @@
 
     <!-- ─── Preprocessing ─── -->
     <div v-if="methods.length">
-      <div class="text-sm font-semibold text-base-content/50 mb-2 tracking-wide">Preprocessing</div>
+      <div class="text-lg font-semibold text-base-content/50 mb-2 tracking-wide">Preprocessing</div>
       <div class="space-y-1">
-        <div v-for="m in methods" :key="m" class="text-sm text-base-content/70 flex items-center gap-1.5">
+        <div v-for="m in methods" :key="m" class="text-lg text-base-content/70 flex items-center gap-1.5">
           <span class="w-1 h-1 rounded-full bg-blue-400"></span>
           {{ m }}
         </div>
       </div>
     </div>
+
+    <slot name="actions" />
   </div>
 </template>
 
@@ -61,6 +63,7 @@ const props = defineProps({
   histogram: { type: Array as PropType<number[]>, default: () => [] },
   info: { type: Object as PropType<{ pixels?: string; nonZero?: string; totalIon?: string; polarity?: string }>, default: () => ({}) },
   methods: { type: Array as PropType<string[]>, default: () => [] },
+  sortedValues: { type: Array as PropType<number[]>, default: () => [] },
 })
 
 const emit = defineEmits<{
@@ -71,15 +74,22 @@ const emit = defineEmits<{
 const localMin = computed(() => props.displayMin)
 const localMax = computed(() => props.displayMax)
 const range = computed(() => props.globalMax - props.globalMin || 1)
-const thumbMinPct = computed(() => ((props.displayMin - props.globalMin) / range.value) * 100)
-const thumbMaxPct = computed(() => ((props.displayMax - props.globalMin) / range.value) * 100)
-const minPercentile = computed(() => thumbMinPct.value.toFixed(1))
-const maxPercentile = computed(() => thumbMaxPct.value.toFixed(1))
 function markerLeft(v: number) { return ((v - props.globalMin) / range.value) * 100 }
+
+function pctLabel(v: number): string {
+  const arr = props.sortedValues
+  if (!arr.length) return '0.0%'
+  let lo = 0, hi = arr.length
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1
+    if (arr[mid]! <= v) lo = mid + 1; else hi = mid
+  }
+  return ((lo / arr.length) * 100).toFixed(1) + '%'
+}
 
 const infoRows = computed(() => {
   const items: { label: string; value: string }[] = []
-  if (props.info.pixels) items.push({ label: 'Image Dimensions (pixels)', value: props.info.pixels })
+  if (props.info.pixels) items.push({ label: 'Dimensions', value: props.info.pixels })
   if (props.info.nonZero) items.push({ label: 'Non-zero', value: props.info.nonZero })
   if (props.info.totalIon) items.push({ label: 'TIC', value: props.info.totalIon })
   if (props.info.polarity) items.push({ label: 'Polarity', value: props.info.polarity })

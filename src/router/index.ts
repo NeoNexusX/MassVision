@@ -109,6 +109,20 @@ router.beforeEach(async (to, from, next) => {
     });
   }
 
+  // If auth is required and we have a token, verify it's still valid
+  if (authRequired && loggedIn) {
+    const auth = useAuthStore();
+    if (!auth.user) {
+      try {
+        await auth.fetchUser();
+      } catch {
+        // Token expired/invalid — clear and redirect to login
+        secureStorage.clearAuthData();
+        return next({ path: '/login', query: { redirect: to.fullPath } });
+      }
+    }
+  }
+
   // If route requires admin, ensure the current user is an admin
   if (adminRequired) {
     const auth = useAuthStore();

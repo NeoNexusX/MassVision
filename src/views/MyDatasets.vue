@@ -120,6 +120,7 @@ const { downloadingMap, handleDownload } = useDownloadProgress(datasets);
 const handleUploadSuccess = (_datasetName: string) => {
   isUploadOpen.value = false;
   fetchFiles({ page: page.value, size: size.value });
+  fetchQuota();
 };
 
 // Refresh file status: re-fetch current page from backend
@@ -129,6 +130,7 @@ async function refreshFileStatus() {
   if (checkingFiles.value) return;
   checkingFiles.value = true;
   await fetchFiles({ page: page.value, size: size.value });
+  fetchQuota();
   checkingFiles.value = false;
 }
 
@@ -156,6 +158,7 @@ const confirmDelete = async () => {
     showToast('Dataset deleted successfully', 'success');
     // Refresh current page after deletion
     fetchFiles({ page: page.value, size: size.value });
+    fetchQuota();
   } catch (err: any) {
     showToast(err.message || 'Failed to delete dataset', 'error');
     console.error('Delete failed:', err);
@@ -196,9 +199,9 @@ const changeSize = (newSize: number) => {
 <template>
   <div class="min-h-screen bg-base-200 p-4 md:p-8">
     <div class="max-w-[1680px] mx-auto">
-      <h1 class="text-3xl font-bold text-base-content mb-6">My Datasets
+      <h1 class="text-4xl font-bold text-base-content mb-6">My Datasets
           <button
-            class="btn btn-sm btn-ghost"
+            class="btn btn-sm btn-ghost text-lg"
             :class="{ 'loading': checkingFiles }"
             :disabled="checkingFiles"
             @click="refreshFileStatus"
@@ -209,7 +212,7 @@ const changeSize = (newSize: number) => {
           </button>
         </h1>
 
-      <div v-if="quota" class="flex items-center gap-6 mb-4 text-sm text-base-content/70">
+      <div v-if="quota" class="flex items-center gap-6 mb-4 text-lg text-base-content/70">
         <span>Storage <strong class="text-base-content">{{ quota.uploadUsed }} / {{ quota.uploadMax }}</strong></span>
         <span>Files <strong class="text-base-content">{{ quota.fileCount }} / {{ quota.maxFiles }}</strong></span>
         <span>Processing <strong class="text-base-content">{{ quota.procUsed }} / {{ quota.procMax }}</strong></span>
