@@ -30,5 +30,50 @@ export default defineConfigWithVueTs(
     ...pluginPlaywright.configs['flat/recommended'],
     files: ['e2e/**/*.{test,spec}.{js,ts,jsx,tsx}'],
   },
+
+  {
+    name: 'app/architecture-boundaries',
+    files: ['src/**/*.{ts,mts,tsx,vue}'],
+    rules: {
+      '@typescript-eslint/no-empty-object-type': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@/components/*',
+                '@/components/**',
+                '@/composables/*',
+                '@/composables/**',
+                '@/utils/*',
+                '@/utils/**',
+                '@/stores/*',
+                '@/stores/**',
+                '@/types/*',
+                '@/types/**',
+                '@/constants/*',
+                '@/constants/**',
+              ],
+              message:
+                'Root-level frontend folders are deprecated. Import from @/shared/* or the owning @/features/* module instead.',
+            },
+          ],
+        },
+      ],
+      'vue/block-lang': 'warn',
+      'vue/multi-word-component-names': 'warn',
+      'vue/no-mutating-props': 'warn',
+    },
+  },
   skipFormatting,
 )

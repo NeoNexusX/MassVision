@@ -10,6 +10,6 @@
 </template>
 
 <script setup lang="ts">
-import Navbar from './components/Navbar.vue'
-import ToastContainer from './components/ToastContainer.vue';
+import Navbar from './app/components/Navbar.vue'
+import ToastContainer from './shared/components/ToastContainer.vue'
 </script>

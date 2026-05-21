@@ -1,31 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import DatasetList from '@/components/dataset/DatasetList.vue';
-import DatasetFilterBar from '@/components/dataset/DatasetFilterBar.vue';
-import UploadModal from '@/components/UploadModal.vue';
-import { listUserFiles, deleteFile, getUserQuota, type UserQuota } from '@/utils/file-api';
-import { useDownloadProgress } from '@/composables/useDownloadProgress';
-import { useDatasets } from '@/composables/useDatasets';
-import { useAuthStore } from '@/stores/auth';
-import { useToast } from '@/composables/useToast';
-import { formatBytes } from '@/utils/format';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import DatasetList from '@/features/datasets/components/DatasetList.vue'
+import DatasetFilterBar from '@/features/datasets/components/DatasetFilterBar.vue'
+import UploadModal from '@/features/upload/components/UploadModal.vue'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import { listUserFiles, deleteFile } from '@/features/datasets/api/datasetApi'
+import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
+import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
+import { useDatasetListRouteState } from '@/features/datasets/composables/useDatasetListRouteState'
+import { useAuthStore } from '@/features/auth/stores/authStore'
+import { useToast } from '@/shared/composables/useToast'
+import { useUserQuota } from '@/shared/composables/useUserQuota'
+import { createDefaultDatasetFilters } from '@/features/datasets/constants/datasetMetadata'
 
 // Use composable for datasets (fetch/map/pagination/sort)
-const initialFilters = {
-  filename: '',
-  experiment_type: '',
-  username: '',
-  organism: '',
-  organism_part: '',
-  condition: '',
-  sample_stabilization: '',
-  tissue_modification: '',
-  maldi_matrix: '',
-  maldi_matrix_application: '',
-  solvent: '',
-  status: [] as string[]
-}
+const initialFilters = createDefaultDatasetFilters()
 
 const fetcher = async (f: Record<string, any>, p: number, s: number) => {
   // ensure username is set for MyDatasets
@@ -46,179 +36,148 @@ const {
   handleSort,
   goToPage: dsGoToPage,
   changeSize: dsChangeSize,
-  pagination
-} = useDatasets(fetcher, { defaultFilters: initialFilters, initialSort: 'submission_time', initialDesc: true })
+  pagination,
+} = useDatasetList(fetcher, {
+  defaultFilters: initialFilters,
+  initialSort: 'submission_time',
+  initialDesc: true,
+})
 
-const route = useRoute();
-const router = useRouter();
-const auth = useAuthStore();
-
-onMounted(() => {
-  const qp = Number(route.query.page || 1);
-  const qs = Number(route.query.size || size.value);
-  page.value = qp > 0 ? qp : 1;
-  size.value = qs > 0 ? qs : size.value;
-  // Try to fetch user first if not present
-  if (!auth.user && auth.token) {
-    auth.fetchUser().finally(() => fetchFiles({ page: page.value, size: size.value }));
-  } else {
-    fetchFiles({ page: page.value, size: size.value });
-  }
-  fetchQuota();
-});
-
-// Handlers
-const handleSearch = (query: string) => {
-  applyFilters({ filename: query || '' });
-  page.value = 1;
-  router.replace({ query: { ...route.query, page: String(page.value) } });
-  fetchFiles({ page: page.value, size: size.value });
-};
-
-const handleApplyFilters = (payload: Record<string, any>) => {
-  applyFilters(payload);
-  page.value = 1;
-  router.replace({ query: { ...route.query, page: String(page.value) } });
-  fetchFiles({ page: page.value, size: size.value });
-};
-
-const handleStatusFilter = (statuses: string[]) => {
-  applyFilters({ status: statuses });
-  page.value = 1;
-  router.replace({ query: { ...route.query, page: String(page.value) } });
-  fetchFiles({ page: page.value, size: size.value });
-};
+const router = useRouter()
+const auth = useAuthStore()
 
 // `handleSort` is provided by the composable and used directly in the template.
 
 // UI handlers used by the filter bar and cards
-const handleVisibilityFilter = () => { /* placeholder: could toggle between My/Public */ };
-const isUploadOpen = ref(false);
-const handleUpload = () => { isUploadOpen.value = true; };
+const handleVisibilityFilter = () => {
+  /* placeholder: could toggle between My/Public */
+}
+const isUploadOpen = ref(false)
+const handleUpload = () => {
+  isUploadOpen.value = true
+}
 
 // Quota
-const quotaData = ref<UserQuota | null>(null)
-const quota = computed(() => {
-  const q = quotaData.value
-  if (!q) return null
-  const upPct = q.max_file_size_gb ? Math.min(100, (q.total_uploaded_size_bytes / (q.max_file_size_gb * 1024 ** 3)) * 100) : 0
-  const fPct = q.max_files_per_user ? Math.min(100, (q.file_count / q.max_files_per_user) * 100) : 0
-  const prPct = q.max_processing_size_gb ? Math.min(100, (q.total_processed_size_bytes / (q.max_processing_size_gb * 1024 ** 3)) * 100) : 0
-  return {
-    uploadUsed: formatBytes(q.total_uploaded_size_bytes), uploadMax: `${q.max_file_size_gb} GB`, uploadPct: upPct,
-    fileCount: String(q.file_count), maxFiles: String(q.max_files_per_user), filePct: fPct,
-    procUsed: formatBytes(q.total_processed_size_bytes), procMax: `${q.max_processing_size_gb} GB`, procPct: prPct,
-  }
-})
-
-async function fetchQuota() { try { quotaData.value = await getUserQuota() } catch { /* */ } }
+const { quota, fetchQuota } = useUserQuota()
 
 // Download progress handler (shared via composable)
-const { handleDownload } = useDownloadProgress();
+const { handleDownload } = useDownloadProgress()
 
 // Upload success: refresh list to get backend status
 const handleUploadSuccess = (_datasetName: string) => {
-  isUploadOpen.value = false;
-  fetchFiles({ page: page.value, size: size.value });
-  fetchQuota();
-};
-
-// Refresh file status: re-fetch current page from backend
-const checkingFiles = ref(false);
-
-async function refreshFileStatus() {
-  if (checkingFiles.value) return;
-  checkingFiles.value = true;
-  await fetchFiles({ page: page.value, size: size.value });
-  fetchQuota();
-  checkingFiles.value = false;
+  isUploadOpen.value = false
+  fetchFiles({ page: page.value, size: size.value })
+  fetchQuota()
 }
 
-const deletingId = ref<string | null>(null);
-const { showToast } = useToast();
+// Refresh file status: re-fetch current page from backend
+const checkingFiles = ref(false)
 
-const isDeleteModalOpen = ref(false);
-const datasetToDelete = ref<string | null>(null);
+async function refreshFileStatus() {
+  if (checkingFiles.value) return
+  checkingFiles.value = true
+  await fetchFiles({ page: page.value, size: size.value })
+  fetchQuota()
+  checkingFiles.value = false
+}
 
-const handleDelete = async (id?: string) => { 
-  if (!id) return;
-  datasetToDelete.value = id;
-  isDeleteModalOpen.value = true;
-};
+const deletingId = ref<string | null>(null)
+const { showToast } = useToast()
+
+const isDeleteModalOpen = ref(false)
+const datasetToDelete = ref<string | null>(null)
+
+const handleDelete = async (id?: string) => {
+  if (!id) return
+  datasetToDelete.value = id
+  isDeleteModalOpen.value = true
+}
 
 const confirmDelete = async () => {
-  if (!datasetToDelete.value) return;
-  
-  const id = datasetToDelete.value;
-  isDeleteModalOpen.value = false;
-  deletingId.value = id;
-  
+  if (!datasetToDelete.value) return
+
+  const id = datasetToDelete.value
+  isDeleteModalOpen.value = false
+  deletingId.value = id
+
   try {
-    await deleteFile(id);
-    showToast('Dataset deleted successfully', 'success');
+    await deleteFile(id)
+    showToast('Dataset deleted successfully', 'success')
     // Refresh current page after deletion
-    fetchFiles({ page: page.value, size: size.value });
-    fetchQuota();
+    fetchFiles({ page: page.value, size: size.value })
+    fetchQuota()
   } catch (err: any) {
-    showToast(err.message || 'Failed to delete dataset', 'error');
-    console.error('Delete failed:', err);
+    showToast(err.message || 'Failed to delete dataset', 'error')
+    console.error('Delete failed:', err)
   } finally {
-    deletingId.value = null;
-    datasetToDelete.value = null;
+    deletingId.value = null
+    datasetToDelete.value = null
   }
-};
+}
 
 const cancelDelete = () => {
-  isDeleteModalOpen.value = false;
-  datasetToDelete.value = null;
-};
+  isDeleteModalOpen.value = false
+  datasetToDelete.value = null
+}
 
 const viewOverview = (id: string) => {
-  router.push({ name: 'DatasetOverview', params: { id }, query: { from: 'my' } });
-};
+  router.push({ name: 'DatasetOverview', params: { id }, query: { from: 'my' } })
+}
 
-const goToPage = (np: number) => {
-  if (np < 1) np = 1;
-  if (np > (meta.total_pages || 1)) np = meta.total_pages || 1;
-  page.value = np;
-  meta.current_page = np;
-  router.replace({ query: { ...route.query, page: String(np) } });
-  dsGoToPage(np);
-};
-
-// pagination is provided by the `useDatasets` composable (already destructured above)
-
-const changeSize = (newSize: number) => {
-  size.value = newSize;
-  page.value = 1;
-  router.replace({ query: { ...route.query, page: String(1), size: String(newSize) } });
-  dsChangeSize(newSize);
-};
+// pagination is provided by the `useDatasetList` composable (already destructured above)
+const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSize } =
+  useDatasetListRouteState({
+    page,
+    size,
+    meta,
+    auth,
+    fetchFiles,
+    applyFilters,
+    goToPage: dsGoToPage,
+    changeSize: dsChangeSize,
+    onMountedReady: fetchQuota,
+  })
 </script>
 
 <template>
   <div class="min-h-screen bg-base-200 p-4 md:p-8">
     <div class="max-w-[1680px] mx-auto">
-      <h1 class="text-4xl font-bold text-base-content mb-6">My Datasets
-          <button
-            class="btn btn-sm btn-ghost text-lg"
-            :class="{ 'loading': checkingFiles }"
-            :disabled="checkingFiles"
-            @click="refreshFileStatus"
-            title="Check file processing status"
-          >
-            <SvgIcon v-if="!checkingFiles" type="refresh" class="w-4 h-4" />
-            Refresh Status
-          </button>
-        </h1>
+      <h1 class="text-4xl font-bold text-base-content mb-6">
+        My Datasets
+        <button
+          class="btn btn-sm btn-ghost text-lg"
+          :class="{ loading: checkingFiles }"
+          :disabled="checkingFiles"
+          @click="refreshFileStatus"
+          title="Check file processing status"
+        >
+          <SvgIcon v-if="!checkingFiles" type="refresh" class="w-4 h-4" />
+          Refresh Status
+        </button>
+      </h1>
 
       <div v-if="quota" class="flex items-center gap-6 mb-4 text-lg text-base-content/70">
-        <span>Storage <strong class="text-base-content">{{ quota.uploadUsed }} / {{ quota.uploadMax }}</strong></span>
-        <span>Files <strong class="text-base-content">{{ quota.fileCount }} / {{ quota.maxFiles }}</strong></span>
-        <span>Processing <strong class="text-base-content">{{ quota.procUsed }} / {{ quota.procMax }}</strong></span>
+        <span
+          >Storage
+          <strong class="text-base-content"
+            >{{ quota.uploadUsed }} / {{ quota.uploadMax }}</strong
+          ></span
+        >
+        <span
+          >Files
+          <strong class="text-base-content"
+            >{{ quota.fileCount }} / {{ quota.maxFiles }}</strong
+          ></span
+        >
+        <span
+          >Processing
+          <strong class="text-base-content"
+            >{{ quota.procUsed }} / {{ quota.procMax }}</strong
+          ></span
+        >
       </div>
 
-      <DatasetFilterBar 
+      <DatasetFilterBar
         :show-add-filter="true"
         :show-upload="true"
         search-placeholder="Search my datasets"
@@ -230,32 +189,24 @@ const changeSize = (newSize: number) => {
         @sort="handleSort"
       />
 
-      <UploadModal :is-open="isUploadOpen" @close="isUploadOpen = false" @upload-success="handleUploadSuccess" />
+      <UploadModal
+        :is-open="isUploadOpen"
+        @close="isUploadOpen = false"
+        @upload-success="handleUploadSuccess"
+      />
 
       <!-- Delete Confirmation Modal -->
-      <dialog class="modal" :class="{ 'modal-open': isDeleteModalOpen }">
-        <div class="modal-box">
-          <h3 class="text-lg font-bold">Delete Dataset</h3>
-          <p class="py-4">Are you sure you want to delete this dataset? This action cannot be undone.</p>
-          <div class="modal-action">
-            <button class="btn" @click="cancelDelete">Cancel</button>
-            <button class="btn btn-error" @click="confirmDelete">Delete</button>
-          </div>
-        </div>
-        <div class="modal-backdrop" @click="cancelDelete">
-          <button>close</button>
-        </div>
-      </dialog>
+      <ConfirmDialog
+        :open="isDeleteModalOpen"
+        title="Delete Dataset"
+        message="Are you sure you want to delete this dataset? This action cannot be undone."
+        confirm-label="Delete"
+        :danger="true"
+        @confirm="confirmDelete"
+        @cancel="cancelDelete"
+      />
 
       <div>
-        <!-- Loading state -->
-        <div v-if="loading" class="flex flex-col gap-3">
-          <div class="animate-pulse flex flex-col gap-4">
-            <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
-            <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
-          </div>
-        </div>
-
         <DatasetList
           :datasets="datasets"
           :loading="loading"

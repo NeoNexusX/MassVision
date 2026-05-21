@@ -6,7 +6,7 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
-import SvgIcon from './components/SvgIcon.vue'
+import SvgIcon from './shared/components/SvgIcon.vue'
 
 // Initialize theme: prefer saved value in localStorage, otherwise match system preference.
 ;(function initTheme() {
@@ -16,7 +16,8 @@ import SvgIcon from './components/SvgIcon.vue'
       document.documentElement.setAttribute('data-theme', saved)
       return
     }
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    const prefersDark =
+      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
     document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light')
 
     // If user hasn't saved a preference, listen to system changes and switch automatically

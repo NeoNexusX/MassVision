@@ -1,9 +1,9 @@
 /* daisyUI generated light theme */
 @plugin "daisyui/theme" {
-  name: "light";
+  name: 'light';
   default: true;
   prefersdark: false;
-  color-scheme: "light";
+  color-scheme: 'light';
   --color-base-100: oklch(98% 0.001 106.423);
   --color-base-200: oklch(97% 0.001 106.424);
   --color-base-300: oklch(92% 0.003 48.717);
@@ -37,10 +37,10 @@
 /* TODO: add the dark theme block here when provided */
 /* daisyUI generated dark theme */
 @plugin "daisyui/theme" {
-  name: "dark";
+  name: 'dark';
   default: false;
   prefersdark: true;
-  color-scheme: "dark";
+  color-scheme: 'dark';
   --color-base-100: oklch(25.33% 0.016 252.42);
   --color-base-200: oklch(23.26% 0.014 253.1);
   --color-base-300: oklch(21.15% 0.012 254.09);

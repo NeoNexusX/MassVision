@@ -1,0 +1,98 @@
+<script setup lang="ts">
+import ROIPanel from '@/features/workspace/results/components/visuals/ROIPanel.vue'
+import type { OverlayMode } from '@/features/workspace/results/composables/useOverlayData'
+
+defineProps<{
+  overlayMode: OverlayMode
+  overlayLoading: boolean
+  overlayAlpha: number
+  roiTool: string | null
+  draftReady: boolean
+  viewingRoi: boolean
+  confirmedRois: any[]
+}>()
+
+const emit = defineEmits<{
+  (e: 'toggle-overlay', mode: OverlayMode): void
+  (e: 'update:overlayAlpha', value: number): void
+  (e: 'update:roiTool', value: string | null): void
+  (e: 'roi-confirm'): void
+  (e: 'roi-cancel'): void
+  (e: 'roi-delete', id: string): void
+  (e: 'roi-clear-all'): void
+  (e: 'roi-reset'): void
+}>()
+</script>
+
+<template>
+  <div class="mt-3 pt-3 border-t border-base-200">
+    <div class="text-xs font-semibold text-base-content/50 mb-2">Statistical Visualization</div>
+    <div class="flex gap-2">
+      <button
+        class="btn btn-sm flex-1 bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200 rounded-lg"
+      >
+        TIC
+      </button>
+      <button
+        class="btn btn-sm flex-1 bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 rounded-lg"
+      >
+        PCA
+      </button>
+      <button
+        class="btn btn-sm flex-1 rounded-lg transition-colors"
+        :class="
+          overlayMode === 'umap'
+            ? 'bg-teal-500 text-white border-teal-500'
+            : 'bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-200'
+        "
+        :disabled="overlayLoading"
+        @click="emit('toggle-overlay', 'umap')"
+      >
+        UMAP
+      </button>
+      <button
+        class="btn btn-sm flex-1 rounded-lg transition-colors"
+        :class="
+          overlayMode === 'kmeans'
+            ? 'bg-rose-500 text-white border-rose-500'
+            : 'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200'
+        "
+        :disabled="overlayLoading"
+        @click="emit('toggle-overlay', 'kmeans')"
+      >
+        KMeans
+      </button>
+    </div>
+  </div>
+
+  <div class="mt-3 pt-3 border-t border-base-200">
+    <div class="flex items-center justify-between text-xs font-semibold text-base-content/50 mb-2">
+      <span>Overlay opacity</span>
+      <span class="font-mono font-normal">{{ Math.round(overlayAlpha / 2.55) }}%</span>
+    </div>
+    <input
+      type="range"
+      :min="0"
+      :max="255"
+      :value="overlayAlpha"
+      class="range range-sm w-full [--range-fill:0] [--range-thumb:bg-sky-400] [--range-bg:#dbeafe]"
+      @input="emit('update:overlayAlpha', Number(($event.target as HTMLInputElement).value))"
+    />
+  </div>
+
+  <div class="mt-3 pt-3 border-t border-base-200">
+    <div class="text-xs font-semibold text-base-content/50 mb-2">Region of interest</div>
+    <ROIPanel
+      :selected-tool="roiTool"
+      :draft-ready="draftReady"
+      :show-reset="viewingRoi"
+      :rois="confirmedRois as any"
+      @update:selected-tool="emit('update:roiTool', $event)"
+      @confirm="emit('roi-confirm')"
+      @cancel="emit('roi-cancel')"
+      @delete="emit('roi-delete', $event)"
+      @clear-all="emit('roi-clear-all')"
+      @reset="emit('roi-reset')"
+    />
+  </div>
+</template>

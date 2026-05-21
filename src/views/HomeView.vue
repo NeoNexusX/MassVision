@@ -8,15 +8,15 @@
 
     <!-- Stats Section -->
     <StatsSection />
-    
+
     <!-- Footer Section -->
     <FooterSection />
   </div>
 </template>
 
 <script setup lang="ts">
-import HeroSection from '../components/home/HeroSection.vue';
-import FeatureCards from '../components/home/FeatureCards.vue';
-import StatsSection from '../components/home/StatsSection.vue';
-import FooterSection from '../components/home/FooterSection.vue';
+import HeroSection from '@/features/home/components/HeroSection.vue'
+import FeatureCards from '@/features/home/components/FeatureCards.vue'
+import StatsSection from '@/features/home/components/StatsSection.vue'
+import FooterSection from '@/features/home/components/FooterSection.vue'
 </script>

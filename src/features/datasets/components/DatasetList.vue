@@ -1,0 +1,114 @@
+<script setup lang="ts">
+import type { PropType } from 'vue'
+import DatasetCard from '@/features/datasets/components/DatasetCard.vue'
+import PaginationBar from '@/shared/components/PaginationBar.vue'
+import type { File } from '@/features/datasets/types/dataset'
+
+const props = defineProps({
+  datasets: { type: Array as PropType<File[]>, required: true },
+  loading: { type: Boolean, required: true },
+  error: { type: String, required: true },
+  meta: { type: Object as PropType<Record<string, any>>, required: true },
+  size: { type: Number, required: true },
+  pagination: { type: Array as PropType<(number | string)[]>, required: true },
+  isMyDataset: { type: Boolean, required: false, default: false },
+  deletingId: { type: String as PropType<string | null>, required: false, default: null },
+})
+
+const emit = defineEmits(['view-overview', 'download', 'delete', 'change-size', 'go-to-page'])
+
+const onChangeSize = (v: number) => emit('change-size', v)
+const onGoToPage = (p: number) => emit('go-to-page', p)
+</script>
+
+<template>
+  <div>
+    <!-- Loading state -->
+    <div v-if="loading" class="flex flex-col gap-3">
+      <div class="animate-pulse flex flex-col gap-4">
+        <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
+        <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div
+      v-else-if="error"
+      class="p-4 bg-error/10 dark:bg-error/10/30 rounded mb-4 border border-error/20 text-error"
+    >
+      {{ error }}
+    </div>
+
+    <!-- Empty state -->
+    <div
+      v-else-if="!datasets.length"
+      class="p-6 bg-base-100 dark:bg-slate-800 rounded-xl text-base-content mb-4"
+    >
+      <slot name="empty">No datasets found matching your filters.</slot>
+    </div>
+
+    <!-- Data list -->
+    <div v-else class="flex flex-wrap gap-6 justify-start">
+      <div
+        v-for="dataset in datasets"
+        :key="dataset.id"
+        class="w-full md:w-[calc(50%-12px)] flex-shrink-0"
+        :class="{ 'opacity-50 pointer-events-none': deletingId === dataset.id }"
+      >
+        <DatasetCard
+          :dataset="dataset"
+          :is-my-dataset="isMyDataset"
+          @view-overview="$emit('view-overview', $event)"
+          @download="$emit('download', $event)"
+          @delete="$emit('delete', $event)"
+        />
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div
+      v-if="datasets.length"
+      class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4"
+    >
+      <div class="text-sm text-base-content text-center sm:text-left">
+        Page <span class="font-medium">{{ meta.current_page }}</span> of
+        <span class="font-medium">{{ meta.total_pages }}</span> —
+        <span class="font-medium">{{ meta.total_records }}</span> records
+      </div>
+      <div class="flex flex-wrap items-center gap-4">
+        <div class="flex items-center gap-2">
+          <label class="whitespace-nowrap text-sm text-base-content/60">Per page</label>
+          <select
+            :value="size"
+            @change="(e) => onChangeSize(Number((e.target as HTMLSelectElement).value))"
+            class="select select-sm select-bordered"
+          >
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+          </select>
+        </div>
+
+        <PaginationBar
+          :current-page="meta.current_page"
+          :total-pages="meta.total_pages"
+          :total-items="meta.total_records"
+          :from="(meta.current_page - 1) * size + 1"
+          :to="Math.min(meta.current_page * size, meta.total_records)"
+          :page-range="pagination"
+          class="!justify-center"
+          @prev-page="() => onGoToPage(meta.current_page - 1)"
+          @next-page="() => onGoToPage(meta.current_page + 1)"
+          @go-to-page="onGoToPage"
+        >
+          <template #info>
+            <span class="hidden">-</span>
+          </template>
+        </PaginationBar>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+/* Styles handled by Tailwind/daisyUI */
+</style>

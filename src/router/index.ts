@@ -4,151 +4,148 @@ import Home from '../views/HomeView.vue'
 import UserProfileView from '../views/UserProfileView.vue'
 import PublicDatasets from '../views/PublicDatasets.vue'
 import MyDatasets from '../views/MyDatasets.vue'
-import { secureStorage } from '../utils/auth'
-import { useAuthStore } from '../stores/auth'
+import { secureStorage } from '@/features/auth/services/authStorage'
+import { useAuthStore } from '@/features/auth/stores/authStore'
 
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home
+    component: Home,
   },
   {
     path: '/datasets',
     name: 'PublicDatasets',
-    component: PublicDatasets
+    component: PublicDatasets,
   },
   {
     path: '/my-datasets',
     name: 'MyDatasets',
     component: MyDatasets,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: '/datasets/:id',
     name: 'DatasetOverview',
     component: () => import('../views/DatasetOverviewView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: '/login',
     name: 'Login',
-    component: Login
+    component: Login,
   },
   {
     path: '/register',
     name: 'Register',
-    component: () => import('../views/RegisterView.vue')
+    component: () => import('../views/RegisterView.vue'),
   },
   {
     path: '/users',
     name: 'UserManagement',
     component: () => import('../views/UserManagementView.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
     path: '/profile',
     name: 'Profile',
     component: UserProfileView,
-    meta: { requiresAuth: true }
-  }
-  ,
+    meta: { requiresAuth: true },
+  },
   {
     path: '/workspace',
     name: 'Workspace',
     component: () => import('../views/workspace/WorkspacePage.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: '/workspace/new',
     name: 'NewAnalysis',
     component: () => import('../views/workspace/NewAnalysis.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: '/workspace/results/:id',
     name: 'WorkspaceResultDetail',
     component: () => import('../views/workspace/ResultDetail.vue'),
-    meta: { requiresAuth: true }
-  }
-  ,
+    meta: { requiresAuth: true },
+  },
   {
     path: '/workspace/tasks/:id',
     name: 'WorkspaceTaskDetail',
     component: () => import('../views/workspace/TaskDetail.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
 ]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes
+  routes,
 })
-
 
 router.beforeEach(async (to, from, next) => {
   // Check meta fields
-  const authRequired = to.matched.some(record => record.meta.requiresAuth);
-  const adminRequired = to.matched.some(record => record.meta.requiresAdmin);
+  const authRequired = to.matched.some((record) => record.meta.requiresAuth)
+  const adminRequired = to.matched.some((record) => record.meta.requiresAdmin)
   // Retrieve token using the secure storage utility
   // Use `let` so we can re-check after attempting to fetch user (fetchUser may clear token on 401)
-  let loggedIn = secureStorage.getToken();
+  let loggedIn = secureStorage.getToken()
 
   // Redirect to Profile if already logged in and trying to access login/register pages
   // But allow it if coming from an auth-required page (token may be stale / backend down)
-  const fromAuthRequired = from.matched.some(record => record.meta.requiresAuth);
+  const fromAuthRequired = from.matched.some((record) => record.meta.requiresAuth)
   if (loggedIn && !fromAuthRequired && ['/login', '/register'].includes(to.path)) {
-    return next('/profile');
+    return next('/profile')
   }
 
   // Redirect to login page if authentication is required but user is not logged in
   if (authRequired && !loggedIn) {
     return next({
       path: '/login',
-      query: { redirect: to.fullPath }
-    });
+      query: { redirect: to.fullPath },
+    })
   }
 
   // If auth is required and we have a token, verify it's still valid
   if (authRequired && loggedIn) {
-    const auth = useAuthStore();
+    const auth = useAuthStore()
     if (!auth.user) {
       try {
-        await auth.fetchUser();
+        await auth.fetchUser()
       } catch {
         // Token expired/invalid — clear and redirect to login
-        secureStorage.clearAuthData();
-        return next({ path: '/login', query: { redirect: to.fullPath } });
+        secureStorage.clearAuthData()
+        return next({ path: '/login', query: { redirect: to.fullPath } })
       }
     }
   }
 
   // If route requires admin, ensure the current user is an admin
   if (adminRequired) {
-    const auth = useAuthStore();
+    const auth = useAuthStore()
     // If we have a token but no user loaded, try to fetch the user profile first
     if (loggedIn && !auth.user) {
       try {
-        await auth.fetchUser();
+        await auth.fetchUser()
       } catch (err) {
         // ignore - fetchUser will handle logout on 401
       }
       // Re-check token after fetchUser because it may have triggered logout and cleared the token
-      loggedIn = secureStorage.getToken();
+      loggedIn = secureStorage.getToken()
     }
 
     // If user is not admin, block access
     if (!auth.isAdmin) {
       // If not authenticated, redirect to login; otherwise redirect to profile/home
       if (!loggedIn) {
-        return next({ path: '/login', query: { redirect: to.fullPath } });
+        return next({ path: '/login', query: { redirect: to.fullPath } })
       }
-      return next({ path: '/profile' });
+      return next({ path: '/profile' })
     }
   }
 
   // Proceed with navigation
-  return next();
-});
+  return next()
+})
 
 export default router

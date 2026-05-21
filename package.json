@@ -11,11 +11,15 @@
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
+    "test:unit:run": "vitest run --passWithNoTests",
     "test:e2e": "playwright test",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "lint:check": "eslint . --cache --quiet",
+    "format": "prettier --write --experimental-cli src/",
+    "format:check": "prettier --check src/",
+    "check": "run-p type-check lint:check test:unit:run"
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
