@@ -48,6 +48,7 @@ import CreateTaskModal from '@/components/workspace/CreateTaskModal.vue'
 import SummaryCard from '@/components/workspace/SummaryCard.vue'
 import ActivityList from '@/components/workspace/ActivityList.vue'
 import { listMyProcesses } from '@/utils/file-api'
+import { parseAlgorithms } from '@/utils/methods-normalize'
 import { listUserFiles } from '@/utils/file-api'
 
 interface ProcessItem {
@@ -86,25 +87,6 @@ async function fetchProcesses() {
 }
 
 onMounted(() => fetchProcesses())
-
-function parseAlgorithms(paramsJson: string): string[] {
-  try {
-    const params = JSON.parse(paramsJson)
-    const algos = params.algorithms || params
-    const labelMap: Record<string, string> = {
-      noise_reduction: 'Noise Reduction',
-      baseline_correction: 'Baseline Correction',
-      normalization: 'Normalization',
-      peak_pick: 'Peak Picking',
-      peak_align: 'Peak Alignment',
-    }
-    return Object.entries(algos)
-      .filter(([_, v]) => v != null)
-      .map(([k]) => labelMap[k] || k)
-  } catch {
-    return []
-  }
-}
 
 function getFileName(fileId: number): string {
   return fileNames.value[fileId] || `File ${fileId}`

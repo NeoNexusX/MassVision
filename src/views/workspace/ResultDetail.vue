@@ -13,11 +13,11 @@
         <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-4">
           <!-- Ion Image row: card + gradient strip -->
           <div class="flex-1 min-h-0 flex gap-2">
-            <div class="flex-1 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col">
+            <div class="flex-1 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col overflow-hidden">
               <div v-if="!ionMatrix" class="flex-1 flex items-center justify-center text-base-content/40 text-lg">
                 Loading ion image...
               </div>
-              <div v-else class="flex-1 min-h-0 relative">
+              <div v-else class="flex-1 min-h-0 relative overflow-hidden">
                 <IonImageViewer
                   :selected-mz="selectedMz"
                   :mz-tolerance="mzTolerance"
@@ -28,6 +28,9 @@
                   :matrix="displayMatrix"
                   :meta-info="{ analyzer: meta.analyzer, ionSource: meta.ionSource, pixelSize: meta.pixelSize }"
                   :draw-mode="!!roiTool"
+                  :overlay-data="overlayData"
+                  :overlay-width="ionCols"
+                  :overlay-height="ionRows"
                   @update:mz-tolerance="mzTolerance = $event"
                   @update:colormap="colormap = $event"
                   @update:intensity-scale="intensityScale = $event"
@@ -104,12 +107,44 @@
           @update:display-max="onDisplayMaxChange"
         >
           <template #actions>
-            <div class="flex gap-2 mt-3 pt-3 border-t border-base-200">
-              <button class="btn btn-sm flex-1 bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200 rounded-lg">TIC</button>
-              <button class="btn btn-sm flex-1 bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 rounded-lg">PCA</button>
-              <button class="btn btn-sm flex-1 bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-200 rounded-lg">UMAP</button>
-            </div>
+            <!-- Statistical Visualization -->
             <div class="mt-3 pt-3 border-t border-base-200">
+              <div class="text-xs font-semibold text-base-content/50 mb-2">Statistical Visualization</div>
+              <div class="flex gap-2">
+                <button class="btn btn-sm flex-1 bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200 rounded-lg">TIC</button>
+                <button class="btn btn-sm flex-1 bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 rounded-lg">PCA</button>
+                <button
+                  class="btn btn-sm flex-1 rounded-lg transition-colors"
+                  :class="overlayMode === 'umap' ? 'bg-teal-500 text-white border-teal-500' : 'bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-200'"
+                  :disabled="overlayLoading"
+                  @click="toggleOverlay('umap')"
+                >UMAP</button>
+                <button
+                  class="btn btn-sm flex-1 rounded-lg transition-colors"
+                  :class="overlayMode === 'kmeans' ? 'bg-rose-500 text-white border-rose-500' : 'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200'"
+                  :disabled="overlayLoading"
+                  @click="toggleOverlay('kmeans')"
+                >KMeans</button>
+              </div>
+            </div>
+            <!-- Overlay Opacity -->
+            <div class="mt-3 pt-3 border-t border-base-200">
+              <div class="flex items-center justify-between text-xs font-semibold text-base-content/50 mb-2">
+                <span>Overlay opacity</span>
+                <span class="font-mono font-normal">{{ Math.round(overlayAlpha / 2.55) }}%</span>
+              </div>
+              <input
+                type="range"
+                :min="0"
+                :max="255"
+                :value="overlayAlpha"
+                class="range range-sm w-full [--range-fill:0] [--range-thumb:bg-sky-400] [--range-bg:#dbeafe]"
+                @input="overlayAlpha = Number(($event.target as HTMLInputElement).value)"
+              />
+            </div>
+            <!-- ROI -->
+            <div class="mt-3 pt-3 border-t border-base-200">
+              <div class="text-xs font-semibold text-base-content/50 mb-2">Region of interest</div>
               <ROIPanel
                 :selected-tool="roiTool"
                 :draft-ready="draftReady"
@@ -131,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted } from 'vue'
+import { reactive, ref, computed, watch, onMounted } from 'vue'
 import { FetchStore, open, get } from 'zarrita'
 import IonImageViewer from '@/components/workspace/visuals/IonImageViewer.vue'
 import ColorBar from '@/components/workspace/visuals/ColorBar.vue'
@@ -140,6 +175,7 @@ import ROIOverlay from '@/components/workspace/visuals/ROIOverlay.vue'
 import ROIPanel from '@/components/workspace/visuals/ROIPanel.vue'
 import { useROI } from '@/composables/useROI'
 import type { ROIType, DraftROI, ConfirmedROI } from '@/composables/useROI'
+import { loadNpy } from '@/utils/npy-parser'
 
 // ─── Zarr data ───
 let _zarrIonArray: any = null
@@ -414,6 +450,163 @@ function roiReset() {
   roiSelectTool(null)
   viewingROI.value = false
 }
+
+// ─── Overlay (UMAP / KMeans) ───
+type OverlayMode = 'none' | 'umap' | 'kmeans'
+const overlayMode = ref<OverlayMode>('none')
+
+// Lazy-loaded numpy data
+let coordsCache: Int32Array | null = null
+let umapEmbeddingsCache: Float32Array | null = null
+let kmeansLabelsCache: Int32Array | null = null
+
+// tab20 colormap (matplotlib standard)
+const TAB20 = [
+  [31,119,180],[174,199,232],[255,127,14],[255,187,120],
+  [44,160,44],[152,223,138],[214,39,40],[255,152,150],
+  [148,103,189],[197,176,213],[140,86,75],[196,156,148],
+  [227,119,194],[247,182,210],[127,127,127],[199,199,199],
+  [188,189,34],[219,219,141],[23,190,207],[158,218,229],
+]
+
+const overlayData = ref<Uint8ClampedArray | null>(null)
+const overlayLoading = ref(false)
+const overlayAlpha = ref(77)
+
+function zeroBasedXY(coords: Int32Array): { x: Int32Array; y: Int32Array } {
+  const n = coords.length / 2
+  const x = new Int32Array(n)
+  const y = new Int32Array(n)
+  let hasZero = false
+  for (let i = 0; i < n; i++) {
+    if (coords[i * 2] === 0 || coords[i * 2 + 1] === 0) { hasZero = true; break }
+  }
+  for (let i = 0; i < n; i++) {
+    x[i] = coords[i * 2]! - (hasZero ? 0 : 1)
+    y[i] = coords[i * 2 + 1]! - (hasZero ? 0 : 1)
+  }
+  return { x, y }
+}
+
+async function ensureOverlayData() {
+  if (coordsCache) return
+  overlayLoading.value = true
+  try {
+    const [coordsNpy, umapNpy, kmeansNpy] = await Promise.all([
+      loadNpy('/umap_kmeans/coordinates.npy'),
+      loadNpy('/umap_kmeans/umap_result/umap_embeddings.npy'),
+      loadNpy('/umap_kmeans/5_kmeans_result/kmeans_labels_k5.npy'),
+    ])
+    // Convert BigInt64Array to Int32Array if needed
+    if (coordsNpy.data instanceof BigInt64Array) {
+      const arr = new Int32Array(coordsNpy.data.length)
+      for (let i = 0; i < arr.length; i++) arr[i] = Number(coordsNpy.data[i])
+      coordsCache = arr
+    } else {
+      coordsCache = coordsNpy.data as Int32Array
+    }
+    umapEmbeddingsCache = umapNpy.data as Float32Array
+    if (kmeansNpy.data instanceof BigInt64Array) {
+      const arr = new Int32Array(kmeansNpy.data.length)
+      for (let i = 0; i < arr.length; i++) arr[i] = Number(kmeansNpy.data[i])
+      kmeansLabelsCache = arr
+    } else {
+      kmeansLabelsCache = kmeansNpy.data as Int32Array
+    }
+  } catch (e) {
+    console.error('Failed to load overlay data:', e)
+  } finally {
+    overlayLoading.value = false
+  }
+}
+
+function computeUmapOverlay(): Uint8ClampedArray | null {
+  if (!coordsCache || !umapEmbeddingsCache) return null
+  const h = ionRows.value
+  const w = ionCols.value
+  if (!h || !w) return null
+  const n = coordsCache.length / 2
+  const { x, y } = zeroBasedXY(coordsCache)
+
+  // Normalize UMAP embeddings to [0, 255]
+  let eMin = Infinity, eMax = -Infinity
+  for (let i = 0; i < umapEmbeddingsCache.length; i++) {
+    const v = umapEmbeddingsCache[i]!
+    if (v < eMin) eMin = v
+    if (v > eMax) eMax = v
+  }
+  const eRange = eMax - eMin || 1
+
+  const rgba = new Uint8ClampedArray(h * w * 4)
+  for (let i = 0; i < n; i++) {
+    const px = x[i]!, py = y[i]!
+    if (px < 0 || px >= w || py < 0 || py >= h) continue
+    const off = (py * w + px) * 4
+    rgba[off]     = ((umapEmbeddingsCache[i * 3]! - eMin) / eRange) * 255
+    rgba[off + 1] = ((umapEmbeddingsCache[i * 3 + 1]! - eMin) / eRange) * 255
+    rgba[off + 2] = ((umapEmbeddingsCache[i * 3 + 2]! - eMin) / eRange) * 255
+    rgba[off + 3] = overlayAlpha.value
+  }
+  return rgba
+}
+
+function computeKmeansOverlay(): Uint8ClampedArray | null {
+  if (!coordsCache || !kmeansLabelsCache) return null
+  const h = ionRows.value
+  const w = ionCols.value
+  if (!h || !w) return null
+  const n = coordsCache.length / 2
+  const { x, y } = zeroBasedXY(coordsCache)
+
+  const rgba = new Uint8ClampedArray(h * w * 4)
+  // Find min/max labels for normalization (match matplotlib imshow behavior)
+  let lMin = Infinity, lMax = -Infinity
+  for (let i = 0; i < n; i++) {
+    const l = kmeansLabelsCache[i]!
+    if (l < lMin) lMin = l
+    if (l > lMax) lMax = l
+  }
+  const lRange = lMax - lMin || 1
+
+  for (let i = 0; i < n; i++) {
+    const px = x[i]!, py = y[i]!
+    if (px < 0 || px >= w || py < 0 || py >= h) continue
+    const label = kmeansLabelsCache[i]!
+    // Normalize to [0, 1] then map to tab20 (match matplotlib imshow)
+    const norm = (label - lMin) / lRange
+    const idx = Math.min(TAB20.length - 1, Math.round(norm * (TAB20.length - 1)))
+    const color = TAB20[idx]!
+    const off = (py * w + px) * 4
+    rgba[off]     = color[0]!
+    rgba[off + 1] = color[1]!
+    rgba[off + 2] = color[2]!
+    rgba[off + 3] = overlayAlpha.value
+  }
+  return rgba
+}
+
+async function toggleOverlay(mode: OverlayMode) {
+  if (overlayMode.value === mode) {
+    overlayMode.value = 'none'
+    overlayData.value = null
+    return
+  }
+  overlayMode.value = mode
+  await ensureOverlayData()
+  recomputeOverlay()
+}
+
+function recomputeOverlay() {
+  if (overlayMode.value === 'umap') {
+    overlayData.value = computeUmapOverlay()
+  } else if (overlayMode.value === 'kmeans') {
+    overlayData.value = computeKmeansOverlay()
+  }
+}
+
+watch(overlayAlpha, () => {
+  if (overlayMode.value !== 'none' && coordsCache) recomputeOverlay()
+})
 
 // ─── Compute display range ───
 function computeRange(matrix: number[][]) {

@@ -75,6 +75,9 @@ const props = defineProps({
   matrix: { type: Array as PropType<number[][] | null>, default: null },
   metaInfo: { type: Object as PropType<{ analyzer?: string; ionSource?: string; pixelSize?: string } | null>, default: null },
   drawMode: { type: Boolean, default: false },
+  overlayData: { type: Object as PropType<Uint8ClampedArray | null>, default: null },
+  overlayWidth: { type: Number, default: 0 },
+  overlayHeight: { type: Number, default: 0 },
 })
 
 defineEmits<{
@@ -352,6 +355,21 @@ function render() {
       ctx.fillRect(ox + Math.floor(c * cellW), oy + Math.floor(r * cellH), Math.ceil(cellW), Math.ceil(cellH))
     }
   }
+
+  // ── Draw overlay (UMAP / KMeans) on same canvas ──
+  if (props.overlayData && props.overlayWidth && props.overlayHeight) {
+    const ow = props.overlayWidth, oh = props.overlayHeight
+    const src = props.overlayData
+    for (let r = 0; r < oh; r++) {
+      for (let c = 0; c < ow; c++) {
+        const off = (r * ow + c) * 4
+        const a = src[off + 3]!
+        if (a === 0) continue
+        ctx.fillStyle = `rgba(${src[off]!},${src[off+1]!},${src[off+2]!},${(a / 255).toFixed(2)})`
+        ctx.fillRect(ox + Math.floor(c * cellW), oy + Math.floor(r * cellH), Math.ceil(cellW), Math.ceil(cellH))
+      }
+    }
+  }
 }
 
 function onHover(e: MouseEvent) {
@@ -410,6 +428,6 @@ onMounted(() => {
   render()
 })
 onBeforeUnmount(() => ro?.disconnect())
-watch(() => [props.colormap, props.intensityScale, props.matrix, props.selectedMz, props.displayMin, props.displayMax],
+watch(() => [props.colormap, props.intensityScale, props.matrix, props.selectedMz, props.displayMin, props.displayMax, props.overlayData],
   () => scheduleRender(), { deep: true })
 </script>
