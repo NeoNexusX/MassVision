@@ -1,4 +1,4 @@
-import { ref, onBeforeUnmount, type Ref } from 'vue'
+import { onBeforeUnmount, type Ref } from 'vue'
 import { buildLUT } from '../utils/colormapLut'
 
 interface CanvasRendererOptions {
@@ -18,13 +18,19 @@ interface CanvasRendererOptions {
   overlayHeight: Ref<number>
 }
 
-export function useCanvasRenderer(opts: CanvasRendererOptions) {
-  // Cache: only recompute when data reference changes
+export function useCanvasRenderer(
+  // Arguments
+  opts: CanvasRendererOptions,
+) {
+  // State (module-internal cache, not exposed)
   let cachedData: number[][] | null = null
   let cachedP1 = 0
   let cachedP99 = 1
   let mockData: number[][] = []
+  let renderRaf = 0
+  let ro: ResizeObserver | null = null
 
+  // Methods
   function setMockData(data: number[][]) {
     mockData = data
   }
@@ -108,7 +114,6 @@ export function useCanvasRenderer(opts: CanvasRendererOptions) {
       }
     }
 
-    // Draw overlay (UMAP / KMeans)
     const overlay = opts.overlayData.value
     const ow = opts.overlayWidth.value
     const oh = opts.overlayHeight.value
@@ -130,7 +135,6 @@ export function useCanvasRenderer(opts: CanvasRendererOptions) {
     }
   }
 
-  let renderRaf = 0
   function scheduleRender() {
     if (renderRaf) return
     renderRaf = requestAnimationFrame(() => {
@@ -138,8 +142,6 @@ export function useCanvasRenderer(opts: CanvasRendererOptions) {
       render()
     })
   }
-
-  let ro: ResizeObserver | null = null
 
   function observeContainer(containerRef: HTMLElement) {
     const rect = containerRef.getBoundingClientRect()
@@ -156,6 +158,7 @@ export function useCanvasRenderer(opts: CanvasRendererOptions) {
     ro.observe(containerRef)
   }
 
+  // Lifecycle
   onBeforeUnmount(() => ro?.disconnect())
 
   return { render, scheduleRender, observeContainer, setMockData }

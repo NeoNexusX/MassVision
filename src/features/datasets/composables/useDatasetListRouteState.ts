@@ -18,9 +18,11 @@ interface DatasetRouteStateOptions {
 }
 
 export function useDatasetListRouteState(options: DatasetRouteStateOptions) {
+  // External composables
   const route = useRoute()
   const router = useRouter()
 
+  // Methods
   const fetchCurrentPage = () =>
     options.fetchFiles({ page: options.page.value, size: options.size.value })
 
@@ -78,6 +80,7 @@ export function useDatasetListRouteState(options: DatasetRouteStateOptions) {
     options.changeSize(newSize)
   }
 
+  // Lifecycle
   onMounted(initializeFromRoute)
 
   return {

@@ -1,22 +1,20 @@
 import { ref } from 'vue'
 
-export function useZoomPan(containerW: () => number, containerH: () => number) {
+export function useZoomPan(
+  // Arguments
+  containerW: () => number,
+  containerH: () => number,
+) {
+  // State
   const zoom = ref(2)
   const panX = ref(0)
   const panY = ref(0)
 
+  // Methods
   function resetZoom() {
     zoom.value = 1
     panX.value = 0
     panY.value = 0
-  }
-
-  function zoomIn() {
-    setZoom(zoom.value * 1.5)
-  }
-
-  function zoomOut() {
-    setZoom(zoom.value / 1.5)
   }
 
   function setZoom(newZoom: number) {
@@ -32,6 +30,14 @@ export function useZoomPan(containerW: () => number, containerH: () => number) {
       panX.value = 0
       panY.value = 0
     }
+  }
+
+  function zoomIn() {
+    setZoom(zoom.value * 1.5)
+  }
+
+  function zoomOut() {
+    setZoom(zoom.value / 1.5)
   }
 
   function onWheel(e: WheelEvent, containerRef: HTMLElement | null) {

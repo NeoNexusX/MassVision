@@ -252,12 +252,6 @@ export const allMethodGroups: MethodGroup[] = [
   },
 ]
 
-/**
- * Allowed group keys per (spectrum_mode, storage_mode) combination.
- * Centroid data has already undergone peak picking and does not benefit from
- * baseline correction or noise reduction, so only Normalization and Peak Alignment
- * remain available.
- */
 const methodRulesByMode: Record<string, string[]> = {
   profile_continuous: ['noise', 'baseline', 'norm', 'pick', 'align'],
   profile_processed: ['noise', 'baseline', 'norm', 'pick', 'align'],
@@ -271,7 +265,12 @@ function resolveModeKey(spectrumMode: string, storageMode: string): string {
   return `${s}_${t}`
 }
 
-export function usePreprocessingMethods(spectrumMode: Ref<string>, storageMode: Ref<string>) {
+export function usePreprocessingMethods(
+  // Arguments
+  spectrumMode: Ref<string>,
+  storageMode: Ref<string>,
+) {
+  // Computed
   const modeKey = computed(() => resolveModeKey(spectrumMode.value, storageMode.value))
 
   const isFiltered = computed(() => {

@@ -1,11 +1,10 @@
-import { ref, computed, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
-// ─── Types ───
 export type ROIType = 'rectangle' | 'freehand'
 
 export interface ROIPoint {
-  x: number // matrix coordinate (column)
-  y: number // matrix coordinate (row)
+  x: number
+  y: number
 }
 
 export interface ROIStats {
@@ -22,20 +21,23 @@ export interface ConfirmedROI {
   type: ROIType
   label: string
   color: string
-  mask: boolean[][] // shape: [rows, cols], true = inside ROI
+  mask: boolean[][]
   stats: ROIStats | null
   spectrum: { mz: number; intensity: number }[] | null
 }
 
-// ─── Draft ROI (in matrix coordinates) ───
 export interface DraftROI {
   type: ROIType
-  rect: { x0: number; y0: number; x1: number; y1: number } | null // for rectangle
-  path: ROIPoint[] // for freehand
+  rect: { x0: number; y0: number; x1: number; y1: number } | null
+  path: ROIPoint[]
 }
 
-// ─── Composable ───
-export function useROI(imageWidth: Ref<number>, imageHeight: Ref<number>) {
+export function useROI(
+  // Arguments
+  imageWidth: Ref<number>,
+  imageHeight: Ref<number>,
+) {
+  // State
   const selectedTool = ref<ROIType | null>(null)
   const draft = ref<DraftROI | null>(null)
   const confirmedROIs = ref<ConfirmedROI[]>([])
@@ -44,7 +46,7 @@ export function useROI(imageWidth: Ref<number>, imageHeight: Ref<number>) {
   let nextColorIdx = 0
   const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
 
-  // ─── Tool management ───
+  // Methods
   function selectTool(type: ROIType | null) {
     selectedTool.value = type
     draft.value = type ? { type, rect: null, path: [] } : null
@@ -55,7 +57,6 @@ export function useROI(imageWidth: Ref<number>, imageHeight: Ref<number>) {
     selectedTool.value = null
   }
 
-  // ─── Mask generation from draft ───
   function generateMask(draftROI: DraftROI, w: number, h: number): boolean[][] {
     const mask: boolean[][] = []
     for (let r = 0; r < h; r++) {
@@ -77,7 +78,6 @@ export function useROI(imageWidth: Ref<number>, imageHeight: Ref<number>) {
 
     if (draftROI.type === 'freehand' && draftROI.path.length > 2) {
       const path = draftROI.path
-      // Use Canvas API for reliable even-odd polygon rasterization
       const canvas = document.createElement('canvas')
       canvas.width = w
       canvas.height = h
@@ -104,7 +104,6 @@ export function useROI(imageWidth: Ref<number>, imageHeight: Ref<number>) {
     return mask
   }
 
-  // ─── Compute statistics from intensity matrix ───
   function computeStats(matrix: number[][], mask: boolean[][]): ROIStats | null {
     const h = matrix.length
     const w = matrix[0]?.length ?? 0
@@ -148,7 +147,6 @@ export function useROI(imageWidth: Ref<number>, imageHeight: Ref<number>) {
     }
   }
 
-  // ─── Confirm ROI ───
   function confirmROI(matrix: number[][], draftROI: DraftROI, label?: string): ConfirmedROI | null {
     const w = matrix[0]?.length ?? 0
     const h = matrix.length

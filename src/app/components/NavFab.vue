@@ -26,48 +26,29 @@
         </template>
       </button>
 
-      <!-- Logged-in children -->
-      <template v-if="user">
-        <button class="btn btn-circle btn-lg child-btn" @click="$emit('toggle-drawer')" title="Menu">
-          <SvgIcon type="bars3" class="w-5 h-5" />
-        </button>
+      <template v-for="(a, i) in actions" :key="i">
         <button
-          class="btn btn-circle btn-lg child-btn"
-          @click="$emit('toggle-theme')"
-          :title="isDark ? 'Switch to light' : 'Switch to dark'"
-        >
-          <SvgIcon v-if="!isDark" type="sun" class="w-6 h-6 text-yellow-400" />
-          <SvgIcon v-else type="moon" class="w-6 h-6 text-indigo-300" />
-        </button>
-        <button class="btn btn-circle btn-lg child-btn" @click="$emit('toggle-ai')" title="AI Assistant">
-          <SvgIcon type="sparkles" class="w-5 h-5" />
-        </button>
-        <button class="btn btn-circle btn-lg child-btn btn-error" @click="$emit('logout')" title="Sign out">
-          <SvgIcon type="signin" class="w-5 h-5" />
-        </button>
-      </template>
-
-      <!-- Not-logged-in children -->
-      <template v-else>
-        <button
+          v-if="a.kind === 'spacer'"
           class="btn btn-circle btn-lg child-btn invisible pointer-events-none"
           aria-hidden="true"
         ></button>
-        <button class="btn btn-circle btn-lg child-btn" @click="$emit('toggle-drawer')" title="Menu">
-          <SvgIcon type="bars3" class="w-6 h-6" />
-        </button>
         <button
+          v-else-if="a.kind === 'theme'"
           class="btn btn-circle btn-lg child-btn"
-          @click="$emit('toggle-theme')"
+          @click="emit('toggle-theme')"
           :title="isDark ? 'Switch to light' : 'Switch to dark'"
         >
           <SvgIcon v-if="!isDark" type="sun" class="w-6 h-6 text-yellow-400" />
           <SvgIcon v-else type="moon" class="w-6 h-6 text-indigo-300" />
         </button>
         <button
-          class="btn btn-circle btn-lg child-btn invisible pointer-events-none"
-          aria-hidden="true"
-        ></button>
+          v-else
+          :class="['btn btn-circle btn-lg child-btn', a.btnClass]"
+          @click="a.onClick"
+          :title="a.title"
+        >
+          <SvgIcon :type="a.icon" :class="a.iconClass" />
+        </button>
       </template>
     </div>
   </div>
@@ -82,7 +63,7 @@ const props = defineProps<{
   isDark: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'toggle-drawer'): void
   (e: 'toggle-theme'): void
   (e: 'toggle-ai'): void
@@ -92,4 +73,48 @@ defineEmits<{
 const fabOpen = ref(false)
 
 const userInitial = computed(() => props.user?.username?.charAt(0).toUpperCase() ?? '')
+
+type FabAction =
+  | { kind: 'spacer' }
+  | { kind: 'theme' }
+  | {
+      kind: 'btn'
+      icon: string
+      iconClass: string
+      onClick: () => void
+      title: string
+      btnClass?: string
+    }
+
+const drawerBtn = (iconClass: string): FabAction => ({
+  kind: 'btn',
+  icon: 'bars3',
+  iconClass,
+  onClick: () => emit('toggle-drawer'),
+  title: 'Menu',
+})
+
+const actions = computed<FabAction[]>(() =>
+  props.user
+    ? [
+        drawerBtn('w-5 h-5'),
+        { kind: 'theme' },
+        {
+          kind: 'btn',
+          icon: 'sparkles',
+          iconClass: 'w-5 h-5',
+          onClick: () => emit('toggle-ai'),
+          title: 'AI Assistant',
+        },
+        {
+          kind: 'btn',
+          icon: 'signin',
+          iconClass: 'w-5 h-5',
+          onClick: () => emit('logout'),
+          title: 'Sign out',
+          btnClass: 'btn-error',
+        },
+      ]
+    : [{ kind: 'spacer' }, drawerBtn('w-6 h-6'), { kind: 'theme' }, { kind: 'spacer' }],
+)
 </script>

@@ -1,30 +1,40 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import RegisterAccountForm from '@/features/auth/components/RegisterAccountForm.vue'
 import RegisterProfileForm from '@/features/auth/components/RegisterProfileForm.vue'
 import { useRegisterForm } from '@/features/auth/composables/useRegisterForm'
 
-const {
-  form,
-  errors,
-  patterns,
-  loading,
-  regionOptions,
-  positionOptions,
-  researchFieldOptions,
-  isOtherResearchField,
-  customResearchField,
-  countdown,
-  isCountdownActive,
-  isExhausted,
-  passwordScore,
-  progressBarClass,
-  validateField,
-  validatePasswordStrength,
-  clearError,
-  handleResearchFieldChange,
-  sendVerificationCode,
-  register,
-} = useRegisterForm()
+const registerForm = useRegisterForm()
+const customResearchField = registerForm.customResearchField
+
+const accountFormProps = computed(() => ({
+  form: registerForm.form,
+  errors: registerForm.errors,
+  patterns: registerForm.patterns,
+  loading: registerForm.loading,
+  passwordScore: registerForm.passwordScore.value,
+  progressBarClass: registerForm.progressBarClass.value,
+  countdown: registerForm.countdown.value,
+  isCountdownActive: registerForm.isCountdownActive.value,
+  isExhausted: registerForm.isExhausted.value,
+  validateField: registerForm.validateField,
+  clearError: registerForm.clearError,
+  sendVerificationCode: registerForm.sendVerificationCode,
+}))
+
+const profileFormProps = computed(() => ({
+  form: registerForm.form,
+  errors: registerForm.errors,
+  loading: registerForm.loading,
+  positionOptions: registerForm.positionOptions,
+  regionOptions: registerForm.regionOptions,
+  researchFieldOptions: registerForm.researchFieldOptions,
+  isOtherResearchField: registerForm.isOtherResearchField.value,
+  validateField: registerForm.validateField,
+  clearError: registerForm.clearError,
+  handleResearchFieldChange: registerForm.handleResearchFieldChange,
+  register: registerForm.register,
+}))
 </script>
 
 <template>
@@ -34,34 +44,12 @@ const {
     >
       <div class="flex flex-col lg:flex-row relative items-stretch">
         <RegisterAccountForm
-          :form="form"
-          :errors="errors"
-          :patterns="patterns"
-          :loading="loading"
-          :password-score="passwordScore"
-          :progress-bar-class="progressBarClass"
-          :countdown="countdown"
-          :is-countdown-active="isCountdownActive"
-          :is-exhausted="isExhausted"
-          :validate-field="validateField"
-          :validate-password-strength="validatePasswordStrength"
-          :clear-error="clearError"
-          :send-verification-code="sendVerificationCode"
+          v-bind="accountFormProps"
         />
 
         <RegisterProfileForm
+          v-bind="profileFormProps"
           v-model:custom-research-field="customResearchField"
-          :form="form"
-          :errors="errors"
-          :loading="loading"
-          :position-options="positionOptions"
-          :region-options="regionOptions"
-          :research-field-options="researchFieldOptions"
-          :is-other-research-field="isOtherResearchField"
-          :validate-field="validateField"
-          :clear-error="clearError"
-          :handle-research-field-change="handleResearchFieldChange"
-          :register="register"
         />
       </div>
     </div>

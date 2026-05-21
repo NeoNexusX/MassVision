@@ -6,14 +6,17 @@ import { extractBackendError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
 
 export function useLoginForm() {
+  // External composables
   const { showToast } = useToast()
   const router = useRouter()
   const authStore = useAuthStore()
 
+  // State
   const username = ref('')
   const password = ref('')
   const isLoading = ref(false)
 
+  // Methods
   const login = async () => {
     if (!username.value || !password.value) {
       showToast('Please enter both username and password.', 'warning')

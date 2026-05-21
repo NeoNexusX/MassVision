@@ -7,15 +7,12 @@ import {
 } from '@/features/workspace/results/composables/useROI'
 
 export function useResultROI(
+  // Arguments
   ionMatrix: Ref<number[][] | null>,
   ionCols: Ref<number>,
   ionRows: Ref<number>,
 ) {
-  const roiOverlayRef = ref<InstanceType<typeof ROIOverlay> | null>(null)
-  const currentDraft = ref<DraftROI | null>(null)
-  const draftReady = computed(() => currentDraft.value !== null)
-  const viewingROI = ref(false)
-
+  // External composables
   const {
     selectedTool: roiTool,
     confirmedROIs,
@@ -24,6 +21,14 @@ export function useResultROI(
     deleteROI: roiDelete,
     clearAllROIs,
   } = useROI(ionCols, ionRows)
+
+  // State
+  const roiOverlayRef = ref<InstanceType<typeof ROIOverlay> | null>(null)
+  const currentDraft = ref<DraftROI | null>(null)
+  const viewingROI = ref(false)
+
+  // Computed
+  const draftReady = computed(() => currentDraft.value !== null)
 
   const displayMatrix = computed(() => {
     const matrix = ionMatrix.value
@@ -55,6 +60,7 @@ export function useResultROI(
     return filtered
   })
 
+  // Methods
   const onDraftUpdated = (draft: DraftROI) => {
     currentDraft.value = draft
   }

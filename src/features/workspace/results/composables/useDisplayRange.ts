@@ -25,7 +25,12 @@ export function formatIonValue(value: number): string {
   return value.toFixed(1)
 }
 
-export function useDisplayRange(ionMatrix: Ref<number[][] | null>, colormap: Ref<string>) {
+export function useDisplayRange(
+  // Arguments
+  ionMatrix: Ref<number[][] | null>,
+  colormap: Ref<string>,
+) {
+  // State
   const globalMin = ref(0)
   const globalMax = ref(1)
   const dataMax = ref(1)
@@ -35,19 +40,7 @@ export function useDisplayRange(ionMatrix: Ref<number[][] | null>, colormap: Ref
   const stripRef = ref<HTMLElement | null>(null)
   let stripDragDir: 'min' | 'max' | null = null
 
-  const applyRange = (range: ReturnType<typeof computeRange>) => {
-    globalMin.value = range.displayMin
-    globalMax.value = range.dataMax
-    dataMax.value = range.dataMax
-    sortedNonZero.value = range.sorted
-    displayMin.value = range.displayMin
-    displayMax.value = range.displayMax
-  }
-
-  const resetRange = () => {
-    if (ionMatrix.value) applyRange(computeRange(ionMatrix.value))
-  }
-
+  // Computed
   const stripRange = computed(() => globalMax.value - globalMin.value || 1)
 
   const gradientCSS = computed(() => {
@@ -65,6 +58,58 @@ export function useDisplayRange(ionMatrix: Ref<number[][] | null>, colormap: Ref
       .join(', ')
     return `linear-gradient(to top, ${darkest} 0%, ${darkest} ${lo}%, ${inner}, ${brightest} ${hi}%, ${brightest} 100%)`
   })
+
+  const intensityHistogram = computed(() => {
+    const bins = 10
+    const hist: number[] = new Array(bins).fill(0)
+    const matrix = ionMatrix.value
+    if (!matrix) return hist
+    const range = dataMax.value || 1
+    for (const row of matrix) {
+      for (const value of row) {
+        const index = Math.min(bins - 1, Math.max(0, Math.floor((value / range) * bins)))
+        hist[index] = (hist[index] ?? 0) + 1
+      }
+    }
+    return hist
+  })
+
+  const imageInfo = computed(() => {
+    const matrix = ionMatrix.value
+    if (!matrix || !matrix.length) {
+      return { pixels: '--', nonZero: '--', totalIon: '--', polarity: 'Negative' }
+    }
+    const rows = matrix.length
+    const cols = matrix[0]!.length
+    let nonZero = 0
+    let total = 0
+    for (const row of matrix) {
+      for (const value of row) {
+        if (value > 0) nonZero++
+        total += value
+      }
+    }
+    return {
+      pixels: `${cols} × ${rows}`,
+      nonZero: ((nonZero / (rows * cols)) * 100).toFixed(1) + '%',
+      totalIon: total.toExponential(2),
+      polarity: 'Positive',
+    }
+  })
+
+  // Methods
+  const applyRange = (range: ReturnType<typeof computeRange>) => {
+    globalMin.value = range.displayMin
+    globalMax.value = range.dataMax
+    dataMax.value = range.dataMax
+    sortedNonZero.value = range.sorted
+    displayMin.value = range.displayMin
+    displayMax.value = range.displayMax
+  }
+
+  const resetRange = () => {
+    if (ionMatrix.value) applyRange(computeRange(ionMatrix.value))
+  }
 
   const calcHandleTop = (value: number) => ((globalMax.value - value) / stripRange.value) * 100
   const clampPct = (value: number) => Math.max(0, Math.min(100, value))
@@ -106,44 +151,6 @@ export function useDisplayRange(ionMatrix: Ref<number[][] | null>, colormap: Ref
     document.addEventListener('mouseup', onUp)
   }
 
-  const intensityHistogram = computed(() => {
-    const bins = 10
-    const hist: number[] = new Array(bins).fill(0)
-    const matrix = ionMatrix.value
-    if (!matrix) return hist
-    const range = dataMax.value || 1
-    for (const row of matrix) {
-      for (const value of row) {
-        const index = Math.min(bins - 1, Math.max(0, Math.floor((value / range) * bins)))
-        hist[index] = (hist[index] ?? 0) + 1
-      }
-    }
-    return hist
-  })
-
-  const imageInfo = computed(() => {
-    const matrix = ionMatrix.value
-    if (!matrix || !matrix.length) {
-      return { pixels: '--', nonZero: '--', totalIon: '--', polarity: 'Negative' }
-    }
-    const rows = matrix.length
-    const cols = matrix[0]!.length
-    let nonZero = 0
-    let total = 0
-    for (const row of matrix) {
-      for (const value of row) {
-        if (value > 0) nonZero++
-        total += value
-      }
-    }
-    return {
-      pixels: `${cols} × ${rows}`,
-      nonZero: ((nonZero / (rows * cols)) * 100).toFixed(1) + '%',
-      totalIon: total.toExponential(2),
-      polarity: 'Positive',
-    }
-  })
-
   const getIntensityRange = () => {
     const matrix = ionMatrix.value
     if (!matrix) return '--'
@@ -162,6 +169,7 @@ export function useDisplayRange(ionMatrix: Ref<number[][] | null>, colormap: Ref
     )}`
   }
 
+  // Watchers
   watch(
     ionMatrix,
     (matrix) => {

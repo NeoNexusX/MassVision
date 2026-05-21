@@ -11,12 +11,16 @@ import {
 } from '@/features/users/api/userAdminApi'
 
 export function useUserManagement() {
-  const users = ref<AdminUser[]>([])
-  const loading = ref(true)
-  const error = ref('')
+  // External composables
   const authStore = useAuthStore()
   const router = useRouter()
   const { showToast } = useToast()
+  const pagination = usePagination(() => fetchUsers())
+
+  // State
+  const users = ref<AdminUser[]>([])
+  const loading = ref(true)
+  const error = ref('')
   const isConfirmOpen = ref(false)
 
   const filters = ref<UserListFilters>({
@@ -29,8 +33,16 @@ export function useUserManagement() {
   const isDrawerOpen = ref(false)
   const selectedUser = ref<AdminUser | null>(null)
 
-  const pagination = usePagination(() => fetchUsers())
+  // Computed
+  const stats = computed(() => {
+    const total = pagination.totalItems.value
+    const active = users.value.filter((user) => user.active).length
+    const inactive = users.value.length - active
+    const instCount = new Set(users.value.map((user) => user.institution).filter(Boolean)).size
+    return { total, active, inactive, instCount }
+  })
 
+  // Methods
   const fetchUsers = async () => {
     loading.value = true
     error.value = ''
@@ -49,36 +61,6 @@ export function useUserManagement() {
       loading.value = false
     }
   }
-
-  watchEffect(() => {
-    if (authStore.user !== null && !authStore.isAdmin) {
-      router.replace('/')
-    }
-  })
-
-  onMounted(async () => {
-    if (authStore.user) {
-      if (authStore.isAdmin) fetchUsers()
-      return
-    }
-
-    if (authStore.token) {
-      try {
-        await authStore.fetchUser()
-        if (authStore.isAdmin) fetchUsers()
-      } catch {
-        /* fetchUser handles invalid auth */
-      }
-    }
-  })
-
-  const stats = computed(() => {
-    const total = pagination.totalItems.value
-    const active = users.value.filter((user) => user.active).length
-    const inactive = users.value.length - active
-    const instCount = new Set(users.value.map((user) => user.institution).filter(Boolean)).size
-    return { total, active, inactive, instCount }
-  })
 
   const resetFilters = () => {
     filters.value = { username: '', status: 'Active', institution: '', region: '' }
@@ -127,6 +109,30 @@ export function useUserManagement() {
       loading.value = false
     }
   }
+
+  // Watchers
+  watchEffect(() => {
+    if (authStore.user !== null && !authStore.isAdmin) {
+      router.replace('/')
+    }
+  })
+
+  // Lifecycle
+  onMounted(async () => {
+    if (authStore.user) {
+      if (authStore.isAdmin) fetchUsers()
+      return
+    }
+
+    if (authStore.token) {
+      try {
+        await authStore.fetchUser()
+        if (authStore.isAdmin) fetchUsers()
+      } catch {
+        /* fetchUser handles invalid auth */
+      }
+    }
+  })
 
   return {
     users,

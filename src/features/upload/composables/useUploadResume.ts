@@ -7,9 +7,11 @@ import {
 } from '@/features/upload/utils/uploadResume'
 
 export function useUploadResume() {
+  // State
   const pendingResume = ref(false)
   const pendingDatasetName = ref('')
 
+  // Methods
   const checkResume = () => {
     if (hasPendingUpload()) {
       pendingResume.value = true

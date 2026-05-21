@@ -20,10 +20,12 @@ interface UseUploadFlowOptions {
 }
 
 export function useUploadFlow(options: UseUploadFlowOptions) {
+  // External composables
   const { showToast } = useToast()
   const metadataForm = useUploadMetadataForm()
   const resumeState = useUploadResume()
 
+  // State
   const selectedPair = ref<ImzmlFilePair | null>(null)
   const uploading = ref(false)
   const progress = ref(0)
@@ -36,11 +38,13 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   const pickerResetKey = ref(0)
   let abortController: AbortController | null = null
 
+  // Computed
   const formattedSize = computed(() => {
     if (!selectedPair.value) return ''
     return formatBytes(selectedPair.value.ibd.size + selectedPair.value.imzml.size)
   })
 
+  // Methods
   const handleProgress = (progressInfo: UnifiedUploadProgress) => {
     progress.value = progressInfo.percent
     uploadMessage.value = progressInfo.message || `Stage: ${progressInfo.stage}`
@@ -185,6 +189,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     }
   }
 
+  // Lifecycle
   onMounted(resumeState.checkResume)
 
   return {

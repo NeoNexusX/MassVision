@@ -53,14 +53,17 @@ async function loadIonSliceSum(indices: number[]): Promise<number[][]> {
 }
 
 export function useZarrIonImage() {
+  // State
   const selectedMz = ref(900.5)
   const mzTolerance = ref(0.05)
   const ionMatrix = ref<number[][] | null>(null)
 
+  // Computed
   const ionCols = computed(() => ionMatrix.value?.[0]?.length ?? 0)
   const ionRows = computed(() => ionMatrix.value?.length ?? 0)
   const totalPeaks = computed(() => (zarrMzData ? zarrMzData.length.toLocaleString() : '--'))
 
+  // Methods
   const onSpectrumClick = async (mz: number) => {
     if (!zarrMzData) return
     selectedMz.value = mz
@@ -68,6 +71,7 @@ export function useZarrIonImage() {
     ionMatrix.value = await loadIonSliceSum(indices)
   }
 
+  // Lifecycle
   onMounted(async () => {
     await initZarr()
     if (!zarrMzData) return

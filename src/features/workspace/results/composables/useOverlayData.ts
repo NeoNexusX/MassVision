@@ -53,7 +53,12 @@ function toInt32Array(data: unknown) {
   return data as Int32Array
 }
 
-export function useOverlayData(ionRows: Ref<number>, ionCols: Ref<number>) {
+export function useOverlayData(
+  // Arguments
+  ionRows: Ref<number>,
+  ionCols: Ref<number>,
+) {
+  // State
   const overlayMode = ref<OverlayMode>('none')
   const overlayData = ref<Uint8ClampedArray | null>(null)
   const overlayLoading = ref(false)
@@ -63,6 +68,7 @@ export function useOverlayData(ionRows: Ref<number>, ionCols: Ref<number>) {
   let umapEmbeddingsCache: Float32Array | null = null
   let kmeansLabelsCache: Int32Array | null = null
 
+  // Methods
   const ensureOverlayData = async () => {
     if (coordsCache) return
     overlayLoading.value = true
@@ -163,6 +169,7 @@ export function useOverlayData(ionRows: Ref<number>, ionCols: Ref<number>) {
     recomputeOverlay()
   }
 
+  // Watchers
   watch(overlayAlpha, () => {
     if (overlayMode.value !== 'none' && coordsCache) recomputeOverlay()
   })

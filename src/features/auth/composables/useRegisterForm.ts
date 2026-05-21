@@ -9,12 +9,108 @@ import { getRegionOptions } from '@/shared/utils/regionOptions'
 
 const regionOptions = getRegionOptions()
 
+const patterns = {
+  username: '^[A-Za-z0-9_\\-]{3,30}$',
+  email: '^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$',
+  password: '^(?=.*[a-zA-Z])(?=.*\\d).{8,25}$',
+  verify_code: '^[0-9]{6}$',
+  url:
+    '^(https?:\\/\\/)?' +
+    '((([a-z\\d]([a-z\\d\\-]*[a-z\\d])*)\\.)+[a-z]{2,}|' +
+    '((\\d{1,3}\\.){3}\\d{1,3}))' +
+    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' +
+    '(\\?[;&a-z\\d%_.~+=-]*)?' +
+    '(\\#[-a-z\\d_]*)?$',
+  orcid: '^\\d{4}-\\d{4}-\\d{4}-\\d{3}[0-9X]$',
+}
+
+type RegField =
+  | 'username'
+  | 'email'
+  | 'password'
+  | 'confirm_password'
+  | 'verify_code'
+  | 'institution'
+  | 'position'
+  | 'research_field'
+  | 'region'
+  | 'orcid'
+  | 'homepage'
+
+type Rule = {
+  required?: string
+  test?: { re: RegExp; msg: string }
+  custom?: (value: string, form: Record<RegField, string>) => string
+}
+
+const rules: Record<RegField, Rule> = {
+  username: {
+    required: 'Username is required',
+    test: {
+      re: new RegExp(patterns.username),
+      msg: 'Invalid username (3-30 chars, letters/numbers)',
+    },
+  },
+  email: {
+    required: 'Email is required',
+    test: {
+      re: new RegExp(patterns.email),
+      msg: 'Invalid email address'
+    },
+  },
+  password: {
+    required: 'Password is required',
+    test: {
+      re: new RegExp(patterns.password),
+      msg: 'Min 8 chars, letters & numbers required'
+    },
+  },
+  confirm_password: {
+    required: 'Confirm password is required',
+    custom: (value, form) => (value !== form.password ? 'Passwords do not match' : ''),
+  },
+  verify_code: {
+    required: 'Code is required',
+    test: { re: new RegExp(patterns.verify_code), msg: 'Must be 6 digits' },
+  },
+  institution: {
+    required: 'Institution is required'
+  },
+  position: {
+    required: 'Please select a position'
+  },
+  research_field: {
+    required: 'Research field is required'
+  },
+  region: {
+    required: 'Please select a region'
+  },
+  orcid: {
+    test: {
+      re: new RegExp(patterns.orcid),
+      msg: 'Invalid ORCID format (e.g. 0000-0000-0000-0000)',
+    },
+  },
+  homepage: {
+    test: {
+      re: new RegExp(patterns.url, 'i'),
+      msg: 'Invalid URL format'
+    },
+  },
+}
+
 export function useRegisterForm() {
+  // External composables
   const router = useRouter()
   const { showToast } = useToast()
+  const {
+    count: countdown,
+    isActive: isCountdownActive,
+    isExhausted,
+    start: startCountdown,
+  } = useCountdown(60, 'register_code_attempts', 3)
 
-  const regionOpts = computed(() => regionOptions)
-
+  // State
   const form = reactive({
     username: '',
     email: '',
@@ -27,13 +123,6 @@ export function useRegisterForm() {
     region: '',
     orcid: '',
     homepage: '',
-  })
-
-  const isOtherResearchField = ref(false)
-  const customResearchField = ref('')
-
-  watch(customResearchField, (newVal) => {
-    if (isOtherResearchField.value) form.research_field = newVal
   })
 
   const errors = reactive({
@@ -50,30 +139,33 @@ export function useRegisterForm() {
     homepage: '',
   })
 
-  const patterns = {
-    username: '^[A-Za-z0-9_\\-]{3,30}$',
-    email: '^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$',
-    password: '^(?=.*[a-zA-Z])(?=.*\\d).{8,25}$',
-    verify_code: '^[0-9]{6}$',
-    url:
-      '^(https?:\\/\\/)?' +
-      '((([a-z\\d]([a-z\\d\\-]*[a-z\\d])*)\\.)+[a-z]{2,}|' +
-      '((\\d{1,3}\\.){3}\\d{1,3}))' +
-      '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' +
-      '(\\?[;&a-z\\d%_.~+=-]*)?' +
-      '(\\#[-a-z\\d_]*)?$',
-    orcid: '^\\d{4}-\\d{4}-\\d{4}-\\d{3}[0-9X]$',
-  }
-
+  const isOtherResearchField = ref(false)
   const loading = reactive({ register: false, sendCode: false })
-  const {
-    count: countdown,
-    isActive: isCountdownActive,
-    isExhausted,
-    start: startCountdown,
-  } = useCountdown(60, 'register_code_attempts', 3)
 
-  const passwordScore = ref(0)
+  // Computed
+  const customResearchField = computed({
+    get: () => (isOtherResearchField.value ? form.research_field : ''),
+    set: (newVal: string) => {
+      if (isOtherResearchField.value) {
+        form.research_field = newVal
+      }
+    },
+  })
+
+  const passwordScore = computed(() => {
+    const p = form.password
+    if (!p) return 0
+
+    const checks = [
+      p.length >= 8,
+      p.length >= 12,
+      /[A-Z]/.test(p),
+      /[0-9]/.test(p),
+      /[^a-zA-Z0-9]/.test(p),
+    ]
+    return checks.filter(Boolean).length
+  })
+
   const progressBarClass = computed(() => {
     const classes = [
       'progress-error',
@@ -85,86 +177,22 @@ export function useRegisterForm() {
     return classes[passwordScore.value - 1] || 'progress-error'
   })
 
-  const validatePasswordStrength = () => {
-    const password = form.password
-    if (!password) {
-      passwordScore.value = 0
-      return
-    }
-    let score = 0
-    if (password.length >= 8) score++
-    if (password.length >= 12) score++
-    if (/[A-Z]/.test(password)) score++
-    if (/[0-9]/.test(password)) score++
-    if (/[^a-zA-Z0-9]/.test(password)) score++
-    passwordScore.value = Math.min(score, 5)
-  }
-
-  const clearError = (field: keyof typeof errors) => {
+  // Methods
+  const clearError = (field: RegField) => {
     errors[field] = ''
   }
 
-  const validateField = (field: keyof typeof errors) => {
+  const validateField = (field: RegField) => {
     const value = form[field]
-    switch (field) {
-      case 'username':
-        errors.username = !value
-          ? 'Username is required'
-          : !new RegExp(patterns.username).test(value)
-            ? 'Invalid username (3-30 chars, letters/numbers)'
-            : ''
-        break
-      case 'email':
-        errors.email = !value
-          ? 'Email is required'
-          : !new RegExp(patterns.email).test(value)
-            ? 'Invalid email address'
-            : ''
-        break
-      case 'password':
-        errors.password = !value
-          ? 'Password is required'
-          : !new RegExp(patterns.password).test(value)
-            ? 'Min 8 chars, letters & numbers required'
-            : ''
-        validatePasswordStrength()
-        break
-      case 'confirm_password':
-        errors.confirm_password = !value
-          ? 'Confirm password is required'
-          : value !== form.password
-            ? 'Passwords do not match'
-            : ''
-        break
-      case 'verify_code':
-        errors.verify_code = !value
-          ? 'Code is required'
-          : !new RegExp(patterns.verify_code).test(value)
-            ? 'Must be 6 digits'
-            : ''
-        break
-      case 'institution':
-        errors.institution = !value ? 'Institution is required' : ''
-        break
-      case 'position':
-        errors.position = !value ? 'Please select a position' : ''
-        break
-      case 'research_field':
-        errors.research_field = !value ? 'Research field is required' : ''
-        break
-      case 'region':
-        errors.region = !value ? 'Please select a region' : ''
-        break
-      case 'orcid':
-        errors.orcid =
-          value && !new RegExp(patterns.orcid).test(value)
-            ? 'Invalid ORCID format (e.g. 0000-0000-0000-0000)'
-            : ''
-        break
-      case 'homepage':
-        errors.homepage =
-          value && !new RegExp(patterns.url, 'i').test(value) ? 'Invalid URL format' : ''
-        break
+    const rule = rules[field]
+    if (!value) {
+      errors[field] = rule.required ?? ''
+    } else if (rule.test && !rule.test.re.test(value)) {
+      errors[field] = rule.test.msg
+    } else if (rule.custom) {
+      errors[field] = rule.custom(value, form)
+    } else {
+      errors[field] = ''
     }
   }
 
@@ -210,20 +238,9 @@ export function useRegisterForm() {
   }
 
   const register = async () => {
-    ;(Object.keys(form) as Array<keyof typeof errors>).forEach((key) => validateField(key))
+    ; (Object.keys(form) as RegField[]).forEach((key) => validateField(key))
     if (Object.values(errors).some((error) => !!error)) {
       showToast('Please fix errors in the form', 'error')
-      return
-    }
-    if (
-      !form.username ||
-      !form.email ||
-      !form.password ||
-      !form.institution ||
-      !form.position ||
-      !form.region
-    ) {
-      showToast('Please fill in all required fields', 'error')
       return
     }
 
@@ -255,6 +272,7 @@ export function useRegisterForm() {
     }
   }
 
+  // Watchers
   watch(
     () => form.password,
     () => {
@@ -267,7 +285,7 @@ export function useRegisterForm() {
     errors,
     patterns,
     loading,
-    regionOptions: regionOpts,
+    regionOptions,
     positionOptions,
     researchFieldOptions,
     isOtherResearchField,
@@ -278,7 +296,6 @@ export function useRegisterForm() {
     passwordScore,
     progressBarClass,
     validateField,
-    validatePasswordStrength,
     clearError,
     handleResearchFieldChange,
     sendVerificationCode,

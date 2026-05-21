@@ -1,13 +1,16 @@
-import { ref, onUnmounted, computed } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 
 export function useCountdown(
   initialCount = 60,
   storageKey = 'countdown_attempts',
   maxAttempts = 3,
 ) {
+  // State
   const count = ref(initialCount)
   const isActive = ref(false)
   const attempts = ref(0)
+
+  let timer: ReturnType<typeof setInterval> | null = null
 
   if (storageKey) {
     const savedAttempts = sessionStorage.getItem(storageKey)
@@ -16,7 +19,18 @@ export function useCountdown(
     }
   }
 
-  let timer: ReturnType<typeof setInterval> | null = null
+  // Computed
+  const isExhausted = computed(() => attempts.value >= maxAttempts)
+
+  // Methods
+  const stop = () => {
+    isActive.value = false
+    count.value = initialCount
+    if (timer) {
+      clearInterval(timer)
+      timer = null
+    }
+  }
 
   const cstart = () => {
     if (isActive.value || attempts.value >= maxAttempts) return
@@ -37,23 +51,7 @@ export function useCountdown(
     }, 1000)
   }
 
-  const stop = () => {
-    isActive.value = false
-    count.value = initialCount
-    if (timer) {
-      clearInterval(timer)
-      timer = null
-    }
-  }
-
-  const resetAttempts = () => {
-    attempts.value = 0
-    if (storageKey) {
-      sessionStorage.removeItem(storageKey)
-    }
-  }
-
-  // Automatically clear the interval on component unmount to prevent memory leaks
+  // Lifecycle
   onUnmounted(() => {
     stop()
   })
@@ -63,9 +61,8 @@ export function useCountdown(
     isActive,
     attempts,
     maxAttempts,
-    isExhausted: computed(() => attempts.value >= maxAttempts),
+    isExhausted,
     start: cstart,
     stop,
-    resetAttempts,
   }
 }

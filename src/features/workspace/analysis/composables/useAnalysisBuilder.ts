@@ -8,9 +8,14 @@ import { createProcess, getUserQuota, type UserQuota } from '@/features/datasets
 import { formatBytes } from '@/shared/utils/format'
 import { buildProcessPayload } from '@/features/workspace/analysis/services/buildProcessPayload'
 
-export function useAnalysisBuilder(selectedDataset: Ref<any>) {
+export function useAnalysisBuilder(
+  // Arguments
+  selectedDataset: Ref<any>,
+) {
+  // External composables
   const router = useRouter()
 
+  // State
   const spectrumMode = ref('')
   const storageMode = ref('')
   const { availableMethods, isFiltered, modeNotice } = usePreprocessingMethods(
@@ -66,6 +71,99 @@ export function useAnalysisBuilder(selectedDataset: Ref<any>) {
     selectedMethods[group.key] = ''
   })
 
+  // Computed
+  const totalSelectedCount = computed(() => {
+    let sum = 0
+    for (const value of Object.values(selectedMethods)) {
+      if (value) sum += 1
+    }
+    return sum
+  })
+
+  const canSubmit = computed(() => {
+    return !!selectedDataset.value && totalSelectedCount.value > 0 && !!analysisForm.polarity
+  })
+
+  const pipelineSummary = computed(() => {
+    return availableMethods.value.map((group: any) => {
+      const selected = selectedMethods[group.key]
+      return {
+        key: group.key,
+        title: group.title,
+        method: selected ? getMethodLabel(group.key, selected) : '',
+        present: !!selected,
+      }
+    })
+  })
+
+  const msSettingsList = computed(() => {
+    const list: Array<{ key: string; label: string; value: string }> = []
+    if (analysisForm.polarity) {
+      list.push({
+        key: 'polarity',
+        label: 'Polarity',
+        value: analysisForm.polarity === 'positive' ? 'Positive' : 'Negative',
+      })
+    }
+    if (analysisForm.ionSource) {
+      list.push({ key: 'source', label: 'Ionisation Source', value: analysisForm.ionSource })
+    }
+    if (analysisForm.analyzer) {
+      list.push({ key: 'analyzer', label: 'Analyzer', value: analysisForm.analyzer })
+    }
+
+    const px = analysisForm.pixelSizeX || ''
+    const py = analysisForm.pixelSizeY || ''
+    if (px && py) list.push({ key: 'pixel', label: 'Pixel', value: `${px}×${py} μm` })
+    else if (px) list.push({ key: 'pixel', label: 'Pixel', value: `${px} μm` })
+    else if (py) list.push({ key: 'pixel', label: 'Pixel', value: `${py} μm` })
+
+    const dataset = selectedDataset.value
+    if (dataset?.organism)
+      list.push({ key: 'organism', label: 'Organism', value: dataset.organism })
+    if (dataset?.organismPart) {
+      list.push({ key: 'organismPart', label: 'Organism Part', value: dataset.organismPart })
+    }
+    if (dataset?.condition)
+      list.push({ key: 'condition', label: 'Condition', value: dataset.condition })
+    if (spectrumMode.value) {
+      list.push({ key: 'spectrumMode', label: 'Spectrum Mode', value: spectrumMode.value })
+    }
+    if (storageMode.value) {
+      list.push({ key: 'storageMode', label: 'Storage Mode', value: storageMode.value })
+    }
+    return list
+  })
+
+  const summaryReady = computed(() => {
+    return (
+      !!selectedDataset.value &&
+      pipelineSummary.value.every((item: any) => item.present) &&
+      !!analysisForm.polarity
+    )
+  })
+
+  const statusBadge = computed(() => ({
+    text: summaryReady.value ? 'Ready' : 'Incomplete',
+    cls: summaryReady.value ? 'badge badge-success' : 'badge badge-warning',
+  }))
+
+  const estimateTimeDisplay = computed(() => {
+    if (totalSelectedCount.value === 0) return 'Waiting for configuration'
+    return `${totalSelectedCount.value * 3}–${totalSelectedCount.value * 5} min`
+  })
+
+  const quotaStorage = computed(() => {
+    if (!quota.value) return '—'
+    return `${formatBytes(quota.value.total_processed_size_bytes)} / ${quota.value.max_processing_size_gb} GB`
+  })
+
+  const quotaTasks = computed(() => {
+    if (!quota.value) return '—'
+    return `${quota.value.file_count} / ${quota.value.max_files_per_user}`
+  })
+
+  // Methods
   const buildParamKey = (groupKey: string, methodId: string, paramKey: string) =>
     `${groupKey}.${methodId}.${paramKey}`
 
@@ -165,103 +263,6 @@ export function useAnalysisBuilder(selectedDataset: Ref<any>) {
     }
   }
 
-  watch(selectedDataset, (dataset) => {
-    spectrumMode.value = dataset?.spectrumMode || ''
-    storageMode.value = dataset?.storageMode || ''
-    tryAutoFill()
-  })
-
-  const totalSelectedCount = computed(() => {
-    let sum = 0
-    for (const value of Object.values(selectedMethods)) {
-      if (value) sum += 1
-    }
-    return sum
-  })
-
-  const canSubmit = computed(() => {
-    return !!selectedDataset.value && totalSelectedCount.value > 0 && !!analysisForm.polarity
-  })
-
-  const pipelineSummary = computed(() => {
-    return availableMethods.value.map((group: any) => {
-      const selected = selectedMethods[group.key]
-      return {
-        key: group.key,
-        title: group.title,
-        method: selected ? getMethodLabel(group.key, selected) : '',
-        present: !!selected,
-      }
-    })
-  })
-
-  const msSettingsList = computed(() => {
-    const list: Array<{ key: string; label: string; value: string }> = []
-    if (analysisForm.polarity) {
-      list.push({
-        key: 'polarity',
-        label: 'Polarity',
-        value: analysisForm.polarity === 'positive' ? 'Positive' : 'Negative',
-      })
-    }
-    if (analysisForm.ionSource) {
-      list.push({ key: 'source', label: 'Ionisation Source', value: analysisForm.ionSource })
-    }
-    if (analysisForm.analyzer) {
-      list.push({ key: 'analyzer', label: 'Analyzer', value: analysisForm.analyzer })
-    }
-
-    const px = analysisForm.pixelSizeX || ''
-    const py = analysisForm.pixelSizeY || ''
-    if (px && py) list.push({ key: 'pixel', label: 'Pixel', value: `${px}×${py} μm` })
-    else if (px) list.push({ key: 'pixel', label: 'Pixel', value: `${px} μm` })
-    else if (py) list.push({ key: 'pixel', label: 'Pixel', value: `${py} μm` })
-
-    const dataset = selectedDataset.value
-    if (dataset?.organism)
-      list.push({ key: 'organism', label: 'Organism', value: dataset.organism })
-    if (dataset?.organismPart) {
-      list.push({ key: 'organismPart', label: 'Organism Part', value: dataset.organismPart })
-    }
-    if (dataset?.condition)
-      list.push({ key: 'condition', label: 'Condition', value: dataset.condition })
-    if (spectrumMode.value) {
-      list.push({ key: 'spectrumMode', label: 'Spectrum Mode', value: spectrumMode.value })
-    }
-    if (storageMode.value) {
-      list.push({ key: 'storageMode', label: 'Storage Mode', value: storageMode.value })
-    }
-    return list
-  })
-
-  const summaryReady = computed(() => {
-    return (
-      !!selectedDataset.value &&
-      pipelineSummary.value.every((item: any) => item.present) &&
-      !!analysisForm.polarity
-    )
-  })
-
-  const statusBadge = computed(() => ({
-    text: summaryReady.value ? 'Ready' : 'Incomplete',
-    cls: summaryReady.value ? 'badge badge-success' : 'badge badge-warning',
-  }))
-
-  const estimateTimeDisplay = computed(() => {
-    if (totalSelectedCount.value === 0) return 'Waiting for configuration'
-    return `${totalSelectedCount.value * 3}–${totalSelectedCount.value * 5} min`
-  })
-
-  const quotaStorage = computed(() => {
-    if (!quota.value) return '—'
-    return `${formatBytes(quota.value.total_processed_size_bytes)} / ${quota.value.max_processing_size_gb} GB`
-  })
-
-  const quotaTasks = computed(() => {
-    if (!quota.value) return '—'
-    return `${quota.value.file_count} / ${quota.value.max_files_per_user}`
-  })
-
   const fetchQuota = async () => {
     quotaLoading.value = true
     try {
@@ -295,6 +296,14 @@ export function useAnalysisBuilder(selectedDataset: Ref<any>) {
     }
   }
 
+  // Watchers
+  watch(selectedDataset, (dataset) => {
+    spectrumMode.value = dataset?.spectrumMode || ''
+    storageMode.value = dataset?.storageMode || ''
+    tryAutoFill()
+  })
+
+  // Lifecycle
   onMounted(fetchQuota)
 
   return {

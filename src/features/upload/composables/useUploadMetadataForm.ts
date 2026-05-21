@@ -102,9 +102,11 @@ function createOtherInputs(): UploadMetadataOtherInputs {
 }
 
 export function useUploadMetadataForm() {
+  // State
   const form = ref(createForm())
   const otherInputs = ref(createOtherInputs())
 
+  // Methods
   const resetForm = () => {
     Object.assign(form.value, createForm())
     Object.assign(otherInputs.value, createOtherInputs())
@@ -171,18 +173,13 @@ export function useUploadMetadataForm() {
     payload.pixel_size_horizontal = Number(payload.pixel_size_horizontal)
     payload.pixel_size_vertical = Number(payload.pixel_size_vertical)
 
-    const resolvingPower = payload.resolving_power
-    if (resolvingPower !== '' && resolvingPower !== undefined && isFinite(Number(resolvingPower))) {
-      payload.resolving_power = Number(resolvingPower)
-    } else {
-      delete payload.resolving_power
-    }
-
-    const mz = payload.mz
-    if (mz !== '' && mz !== undefined && isFinite(Number(mz))) {
-      payload.mz = Number(mz)
-    } else {
-      delete payload.mz
+    for (const key of ['resolving_power', 'mz'] as const) {
+      const v = payload[key]
+      if (v !== '' && v !== undefined && isFinite(Number(v))) {
+        payload[key] = Number(v)
+      } else {
+        delete payload[key]
+      }
     }
 
     return payload

@@ -8,14 +8,17 @@ import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlace
 import { formatBytes } from '@/shared/utils/format'
 
 export function useDatasetDetail() {
+  // External composables
   const route = useRoute()
   const router = useRouter()
+  const { handleDownload } = useDownloadProgress()
 
+  // State
   const dataset = ref<File | null>(null)
   const loading = ref(true)
   const isCopied = ref(false)
-  const { handleDownload } = useDownloadProgress()
 
+  // Computed
   const placeholderSvg = computed(() => {
     const targetId = (route.params.id as string) || (dataset.value?.filename as string)
     return getDatasetPlaceholderSvg({
@@ -24,6 +27,7 @@ export function useDatasetDetail() {
     })
   })
 
+  // Methods
   const formatString = (val?: string) => {
     if (!val) return '—'
     return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
@@ -100,6 +104,7 @@ export function useDatasetDetail() {
     }
   }
 
+  // Lifecycle
   onMounted(fetchDatasetDetails)
 
   return {

@@ -1,10 +1,11 @@
-import { ref, reactive, computed } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
 import type { File } from '@/features/datasets/types/dataset'
 
 type Fetcher = (filters: Record<string, any>, page: number, size: number) => Promise<any>
 
 export function useDatasetList(
+  // Arguments
   fetcher: Fetcher,
   opts?: { defaultFilters?: Record<string, any>; initialSort?: string; initialDesc?: boolean },
 ) {
@@ -12,6 +13,7 @@ export function useDatasetList(
   const initialSort = opts?.initialSort || 'submission_time'
   const initialDesc = opts?.initialDesc ?? true
 
+  // State
   const datasets = ref<File[]>([])
   const loading = ref(false)
   const error = ref('')
@@ -25,6 +27,41 @@ export function useDatasetList(
   const currentSort = ref<string>(initialSort)
   const sortDesc = ref<boolean>(initialDesc)
 
+  // Computed
+  const pagination = computed<(number | string)[]>(() => {
+    const total = Number(meta.total_pages || 1)
+    const current = Number(meta.current_page || 1)
+    const pages: (number | string)[] = []
+    const maxButtons = 7
+
+    if (total <= maxButtons) {
+      for (let i = 1; i <= total; i++) pages.push(i)
+      return pages
+    }
+
+    pages.push(1)
+
+    let left = Math.max(current - 1, 2)
+    let right = Math.min(current + 1, total - 1)
+
+    if (current <= 3) {
+      left = 2
+      right = 4
+    }
+    if (current >= total - 2) {
+      left = total - 3
+      right = total - 1
+    }
+
+    if (left > 2) pages.push('...')
+    for (let i = left; i <= right; i++) pages.push(i)
+    if (right < total - 1) pages.push('...')
+
+    pages.push(total)
+    return pages
+  })
+
+  // Methods
   const applyClientSort = (arr: File[]) => {
     return arr.sort((a, b) => {
       if (currentSort.value === 'size_bytes') {
@@ -111,39 +148,6 @@ export function useDatasetList(
     page.value = 1
     fetchFiles({ page: 1, size: newSize })
   }
-
-  const pagination = computed<(number | string)[]>(() => {
-    const total = Number(meta.total_pages || 1)
-    const current = Number(meta.current_page || 1)
-    const pages: (number | string)[] = []
-    const maxButtons = 7
-
-    if (total <= maxButtons) {
-      for (let i = 1; i <= total; i++) pages.push(i)
-      return pages
-    }
-
-    pages.push(1)
-
-    let left = Math.max(current - 1, 2)
-    let right = Math.min(current + 1, total - 1)
-
-    if (current <= 3) {
-      left = 2
-      right = 4
-    }
-    if (current >= total - 2) {
-      left = total - 3
-      right = total - 1
-    }
-
-    if (left > 2) pages.push('...')
-    for (let i = left; i <= right; i++) pages.push(i)
-    if (right < total - 1) pages.push('...')
-
-    pages.push(total)
-    return pages
-  })
 
   return {
     datasets,

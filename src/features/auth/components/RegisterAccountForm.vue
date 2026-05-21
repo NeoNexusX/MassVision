@@ -13,7 +13,6 @@ defineProps<{
   isExhausted: boolean
   validateField: (field: any) => void
   clearError: (field: any) => void
-  validatePasswordStrength: () => void
   sendVerificationCode: () => void
 }>()
 </script>
@@ -66,7 +65,6 @@ defineProps<{
           required
           placeholder="Password"
           :error="errors.password"
-          @input="validatePasswordStrength"
           @focus="clearError('password')"
           @blur="validateField('password')"
         />

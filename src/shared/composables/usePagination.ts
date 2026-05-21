@@ -1,10 +1,12 @@
 import { computed, ref } from 'vue'
 
 export function usePagination(fetchFn: (page: number) => void) {
+  // State
   const currentPage = ref(1)
   const pageSize = ref(10)
   const totalItems = ref(0)
 
+  // Computed
   const totalPages = computed(() => Math.ceil(totalItems.value / pageSize.value) || 1)
 
   const pageRange = computed(() => {
@@ -21,6 +23,10 @@ export function usePagination(fetchFn: (page: number) => void) {
     return pages
   })
 
+  const from = computed(() => (totalItems.value ? (currentPage.value - 1) * pageSize.value + 1 : 0))
+  const to = computed(() => Math.min(currentPage.value * pageSize.value, totalItems.value))
+
+  // Methods
   const goToPage = (page: number) => {
     const clamped = Math.max(1, Math.min(totalPages.value, page))
     if (clamped === currentPage.value) return
@@ -36,9 +42,6 @@ export function usePagination(fetchFn: (page: number) => void) {
     currentPage.value = 1
     fetchFn(1)
   }
-
-  const from = computed(() => (totalItems.value ? (currentPage.value - 1) * pageSize.value + 1 : 0))
-  const to = computed(() => Math.min(currentPage.value * pageSize.value, totalItems.value))
 
   return {
     currentPage,

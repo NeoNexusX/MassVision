@@ -12,14 +12,20 @@ import { getRegionOptions } from '@/shared/utils/regionOptions'
 const countryList = getRegionOptions()
 
 export function useUserProfileForm() {
+  // External composables
   const router = useRouter()
   const { showToast } = useToast()
   const authStore = useAuthStore()
+  const { quota, fetchQuota } = useUserQuota()
+  const {
+    count: codeCooldown,
+    isActive: isCooldownActive,
+    start: startCodeCooldown,
+    stop: stopCodeCooldown,
+  } = useCountdown(60, 'profile_email_code', 10)
+
+  // State
   const loading = ref(false)
-
-  const regionOptions = computed(() => countryList)
-  const regionNames = computed(() => countryList.map((country) => country.name))
-
   const formData = reactive({
     username: '',
     email: '',
@@ -32,6 +38,14 @@ export function useUserProfileForm() {
     orcid: '',
     homepage: '',
   })
+
+  const isEmailModalOpen = ref(false)
+  const newEmail = ref('')
+  const emailCode = ref('')
+  const sendingCode = ref(false)
+
+  // Computed
+  const regionNames = computed(() => countryList.map((country) => country.name))
 
   const regionLabel = computed<string>({
     get() {
@@ -46,16 +60,24 @@ export function useUserProfileForm() {
     },
   })
 
-  const isEmailModalOpen = ref(false)
-  const newEmail = ref('')
-  const emailCode = ref('')
-  const sendingCode = ref(false)
-  const {
-    count: codeCooldown,
-    isActive: isCooldownActive,
-    start: startCodeCooldown,
-    stop: stopCodeCooldown,
-  } = useCountdown(60, 'profile_email_code', 10)
+  // Methods
+  const applyUserData = (data: any) => {
+    formData.username = data.username || ''
+    formData.email = data.email || ''
+    formData.identity = data.identity || ''
+    formData.institution = data.institution || ''
+    formData.position = data.position || ''
+    formData.research_field = data.research_field || ''
+    formData.region = data.region || ''
+    formData.orcid = data.orcid || ''
+    formData.homepage = data.homepage || ''
+    formData.password = ''
+  }
+
+  const handleLogout = async () => {
+    await authStore.logout()
+    router.push('/login')
+  }
 
   const openEmailModal = () => {
     newEmail.value = ''
@@ -113,26 +135,6 @@ export function useUserProfileForm() {
     } finally {
       loading.value = false
     }
-  }
-
-  const { quota, fetchQuota } = useUserQuota()
-
-  const applyUserData = (data: any) => {
-    formData.username = data.username || ''
-    formData.email = data.email || ''
-    formData.identity = data.identity || ''
-    formData.institution = data.institution || ''
-    formData.position = data.position || ''
-    formData.research_field = data.research_field || ''
-    formData.region = data.region || ''
-    formData.orcid = data.orcid || ''
-    formData.homepage = data.homepage || ''
-    formData.password = ''
-  }
-
-  const handleLogout = async () => {
-    await authStore.logout()
-    router.push('/login')
   }
 
   const loadProfile = async () => {
@@ -203,12 +205,12 @@ export function useUserProfileForm() {
     loading.value = false
   }
 
+  // Lifecycle
   onMounted(loadProfile)
 
   return {
     loading,
     positionOptions,
-    regionOptions,
     regionNames,
     regionLabel,
     formData,
