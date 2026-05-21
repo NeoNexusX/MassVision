@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted} from 'vue';
+import { onMounted} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import DatasetList from '@/components/dataset/DatasetList.vue';
 import DatasetFilterBar from '@/components/dataset/DatasetFilterBar.vue';
@@ -49,7 +49,7 @@ const router = useRouter();
 const auth = useAuthStore();
 
 // shared download progress composable
-const { downloadingMap, handleDownload } = useDownloadProgress(datasets);
+const { handleDownload } = useDownloadProgress();
 
 // React to route page query param
 onMounted(() => {
@@ -142,7 +142,6 @@ const changeSize = (newSize: number) => {
           :meta="meta"
           :size="size"
           :pagination="pagination"
-          :downloadingMap="downloadingMap"
           @view-overview="viewOverview"
           @download="handleDownload"
           @change-size="changeSize"

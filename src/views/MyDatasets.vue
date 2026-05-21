@@ -92,7 +92,7 @@ const handleStatusFilter = (statuses: string[]) => {
 // `handleSort` is provided by the composable and used directly in the template.
 
 // UI handlers used by the filter bar and cards
-const handleVisibilityFilter = (tab: string) => { /* placeholder: could toggle between My/Public */ };
+const handleVisibilityFilter = () => { /* placeholder: could toggle between My/Public */ };
 const isUploadOpen = ref(false);
 const handleUpload = () => { isUploadOpen.value = true; };
 
@@ -114,7 +114,7 @@ const quota = computed(() => {
 async function fetchQuota() { try { quotaData.value = await getUserQuota() } catch { /* */ } }
 
 // Download progress handler (shared via composable)
-const { downloadingMap, handleDownload } = useDownloadProgress(datasets);
+const { handleDownload } = useDownloadProgress();
 
 // Upload success: refresh list to get backend status
 const handleUploadSuccess = (_datasetName: string) => {
@@ -263,7 +263,6 @@ const changeSize = (newSize: number) => {
           :meta="meta"
           :size="size"
           :pagination="pagination"
-          :downloadingMap="downloadingMap"
           :is-my-dataset="true"
           :deletingId="deletingId"
           @view-overview="viewOverview"

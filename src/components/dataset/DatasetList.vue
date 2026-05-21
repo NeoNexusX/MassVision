@@ -10,7 +10,6 @@ const props = defineProps({
   meta: { type: Object as PropType<Record<string, any>>, required: true },
   size: { type: Number, required: true },
   pagination: { type: Array as PropType<(number | string)[]>, required: true },
-  downloadingMap: { type: Object as PropType<Record<string, number>>, required: true },
   isMyDataset: { type: Boolean, required: false, default: false },
   deletingId: { type: String as PropType<string | null>, required: false, default: null },
 });
@@ -54,7 +53,6 @@ const onGoToPage = (p: number) => emit('go-to-page', p);
         <DatasetCard
           :dataset="dataset"
           :is-my-dataset="isMyDataset"
-          :download-progress="downloadingMap[dataset.id]"
           @view-overview="$emit('view-overview', $event)"
           @download="$emit('download', $event)"
           @delete="$emit('delete', $event)"
@@ -112,22 +110,6 @@ const onGoToPage = (p: number) => emit('go-to-page', p);
       </div>
     </div>
 
-    <!-- Active Downloads Overlay Widgets -->
-    <div v-if="Object.keys(downloadingMap).length > 0" class="fixed bottom-6 right-20 z-50 flex flex-col gap-3 pointer-events-none">
-      <div 
-        v-for="(progress, id) in downloadingMap" 
-        :key="id"
-        class="card bg-base-100 shadow-2xl border border-base-200 p-4 w-72 pointer-events-auto rounded-xl animate-fade-in-up"
-      >
-        <div class="flex items-center justify-between mb-3 text-sm">
-          <span class="font-bold truncate pr-3 text-base-content" :title="datasets.find(d => d.id === id)?.name || String(id)">
-            Downloading: {{ datasets.find(d => d.id === id)?.name || 'Dataset' }}
-          </span>
-          <span class="font-black text-black whitespace-nowrap">{{ progress }}%</span>
-        </div>
-        <progress class="progress progress-primary w-full h-2" :value="progress" max="100"></progress>
-      </div>
-    </div>
   </div>
 </template>
 

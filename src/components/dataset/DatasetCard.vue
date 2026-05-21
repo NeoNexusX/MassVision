@@ -7,7 +7,6 @@ import { formatBytes } from '@/utils/format';
 const props = defineProps<{
   dataset: File;
   isMyDataset?: boolean;
-  downloadProgress?: number;
 }>();
 
 const emit = defineEmits<{
@@ -119,13 +118,11 @@ const placeholderSvg = computed(() => {
       </button>
 
       <button
-        class="flex items-center gap-2 text-sm font-medium transition-colors p-1 rounded"
-        :class="downloadProgress !== undefined ? 'text-primary pointer-events-none' : 'text-base-content/80 hover:text-base-content'"
+        class="flex items-center gap-2 text-sm font-medium text-base-content/80 hover:text-base-content transition-colors p-1 rounded"
         @click.stop="$emit('download', dataset.id)"
       >
-        <span v-if="downloadProgress !== undefined" class="loading loading-spinner loading-xs"></span>
-        <SvgIcon v-else type="download" class="w-4 h-4" />
-        <span>{{ downloadProgress !== undefined ? `${downloadProgress}%` : 'Download' }}</span>
+        <SvgIcon type="download" class="w-4 h-4" />
+        <span>Download</span>
       </button>
 
       <button v-if="isMyDataset" class="flex items-center gap-2 text-sm text-error hover:text-error transition-colors p-1 rounded" @click.stop="$emit('delete', dataset.id)">

@@ -16,28 +16,7 @@ const isCopied = ref(false);
 // keep URL as original filename; do not replace with numeric id
 
 // reuse shared download progress composable (overview uses explicit fallback filename)
-const { downloadingMap, handleDownload } = useDownloadProgress();
-
-const downloadProgress = computed(() => {
-  const idKey = dataset.value?.id ? String(dataset.value.id) : String(route.params.id);
-  return downloadingMap.value[idKey];
-});
-
-const getDownloadLabel = (id: string) => {
-  // Prefer the dataset filename/name when the id corresponds to current dataset
-  try {
-    if (dataset.value) {
-      const ds = dataset.value;
-      if (String(ds.id) === String(id)) return ds.filename || ds.name || String(id);
-      if (ds.filename === id || ds.name === id) return ds.filename || ds.name || String(id);
-    }
-  } catch (e) {
-    // ignore and fallback
-  }
-  // If route param equals id and dataset exists, use dataset filename
-  if (String(route.params.id) === String(id) && dataset.value) return dataset.value.filename || dataset.value.name || String(id);
-  return String(id);
-}
+const { handleDownload } = useDownloadProgress();
 
 // Format bytes to MB/GB
 const formatSize = (bytes?: number) => {
@@ -234,10 +213,9 @@ onMounted(() => {
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <h2 class="text-2xl md:text-3xl font-bold text-base-content truncate">{{ dataset.filename }}</h2>
               <div class="flex items-center gap-2 shrink-0">
-                <button @click="downloadCurrent" class="btn btn-sm btn-primary" :disabled="downloadProgress !== undefined">
-                  <span v-if="downloadProgress !== undefined" class="loading loading-spinner loading-xs"></span>
-                    <svg-icon v-else type="download" class="w-4 h-4" />
-                  {{ downloadProgress !== undefined ? `Downloading ${downloadProgress}%` : 'Download' }}
+                <button @click="downloadCurrent" class="btn btn-sm btn-primary">
+                  <svg-icon type="download" class="w-4 h-4" />
+                  Download
                 </button>
                 <div class="badge badge-soft shrink-0 border-0 font-medium px-3 py-3" :class="dataset.status === 'completed' || dataset.status === 'Finished' ? 'badge-success bg-success/10 text-success' : 'badge-neutral bg-base-200 text-base-content/70'">
                   {{ dataset.status || 'Finished' }}
@@ -407,23 +385,6 @@ onMounted(() => {
 
       </template>
 
-    </div>
-
-    <!-- Active Downloads Overlay Widgets -->
-    <div v-if="Object.keys(downloadingMap).length > 0" class="fixed bottom-6 right-20 z-50 flex flex-col gap-3 pointer-events-none">
-      <div 
-        v-for="(progress, id) in downloadingMap" 
-        :key="id"
-        class="card bg-base-100 shadow-2xl border border-base-200 p-4 w-72 pointer-events-auto rounded-xl animate-fade-in-up"
-      >
-        <div class="flex items-center justify-between mb-3 text-sm">
-          <span class="font-bold truncate pr-3 text-base-content" :title="getDownloadLabel(id)">
-            Downloading: {{ getDownloadLabel(id) }}
-          </span>
-          <span class="font-black text-black whitespace-nowrap">{{ progress }}%</span>
-        </div>
-        <progress class="progress progress-primary w-full h-2" :value="progress" max="100"></progress>
-      </div>
     </div>
 
   </div>

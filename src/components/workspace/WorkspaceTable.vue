@@ -24,7 +24,7 @@
           <tr v-for="r in rows" :key="r.id" class="hover:bg-base-200 transition-colors" :style="{ cursor: rowCursor }">
             <td class="font-medium pl-6 min-w-0">{{ r.name }}</td>
             <td class="min-w-0">{{ r.dataset }}</td>
-            <td class="break-words whitespace-normal">{{ formatMethods(r.methods) }}</td>
+            <td class="break-words whitespace-normal">{{ r.methods?.join(' + ') }}</td>
             <td class="min-w-0">
               <span :class="statusClass(r.status)">
                 {{ statusLabel(r) }}
@@ -54,7 +54,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { formatMethods as formatMethodsUtil } from '@/utils/methods-normalize'
 
 const props = defineProps<{
   title?: string
@@ -68,8 +67,6 @@ const router = useRouter()
 const rows = computed(() => props.rows || [])
 const type = computed(() => props.type || 'results')
 const rowCursor = computed(() => props.cursor || 'pointer')
-
-const formatMethods = (m: any) => formatMethodsUtil(m)
 
 const statusClass = (s: string) => {
   if (!s) return 'badge'
