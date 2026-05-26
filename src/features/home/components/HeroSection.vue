@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import { APP_NAME } from '@/shared/config/app'
+</script>
+
 <template>
   <div
     class="relative overflow-hidden bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 pt-32 pb-20 sm:pt-40 sm:pb-24 transition-colors duration-300"
@@ -106,7 +110,7 @@
           <h1
             class="text-5xl sm:text-6xl font-bold tracking-tight text-slate-900 dark:text-white mb-6 leading-tight"
           >
-            MassFlow
+            {{ APP_NAME }}
           </h1>
           <p
             class="text-xl sm:text-2xl text-slate-600 dark:text-base-content/40 font-light mb-8 max-w-2xl mx-auto lg:mx-0"

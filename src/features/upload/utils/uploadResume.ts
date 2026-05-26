@@ -1,7 +1,7 @@
 const STORAGE_KEY = 'oss_upload_session'
-export const OPFS_ZIP_NAME = 'pending_upload.zip'
+const OPFS_ZIP_NAME = 'pending_upload.zip'
 
-export interface UploadSession {
+interface UploadSession {
   datasetName: string
   fileName: string
   fileSize: number
@@ -40,17 +40,8 @@ export function loadUploadSession(): UploadSession | null {
   }
 }
 
-export function clearUploadSession(): void {
+function clearUploadSession(): void {
   localStorage.removeItem(STORAGE_KEY)
-}
-
-/** Mark session as cancelled so resume starts a fresh multipart upload */
-export function markSessionCancelled(): void {
-  const session = loadUploadSession()
-  if (session) {
-    session.cancelled = true
-    saveUploadSession(session)
-  }
 }
 
 export function hasPendingUpload(): boolean {
@@ -63,18 +54,6 @@ export function hasPendingUpload(): boolean {
   return true
 }
 
-export async function saveZipToOPFS(file: File): Promise<void> {
-  try {
-    const root = await navigator.storage.getDirectory()
-    const handle = await root.getFileHandle(OPFS_ZIP_NAME, { create: true })
-    const writable = await handle.createWritable()
-    await writable.write(file)
-    await writable.close()
-  } catch (e) {
-    console.warn('[OPFS] Failed to save zip file, resume across reloads will not be available:', e)
-  }
-}
-
 export async function loadZipFromOPFS(): Promise<File | null> {
   try {
     const root = await navigator.storage.getDirectory()
@@ -85,7 +64,7 @@ export async function loadZipFromOPFS(): Promise<File | null> {
   }
 }
 
-export async function deleteZipFromOPFS(): Promise<void> {
+async function deleteZipFromOPFS(): Promise<void> {
   try {
     const root = await navigator.storage.getDirectory()
     await root.removeEntry(OPFS_ZIP_NAME)
@@ -107,23 +86,4 @@ export function resetSessionForReupload(): void {
     session.cancelled = false
     saveUploadSession(session)
   }
-}
-
-const PENDING_FILE_KEY = 'oss_pending_file'
-
-export function savePendingFile(fileId: string, fileName: string): void {
-  localStorage.setItem(PENDING_FILE_KEY, JSON.stringify({ fileId, fileName }))
-}
-
-export function loadPendingFile(): { fileId: string; fileName: string } | null {
-  try {
-    const raw = localStorage.getItem(PENDING_FILE_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
-export function clearPendingFile(): void {
-  localStorage.removeItem(PENDING_FILE_KEY)
 }

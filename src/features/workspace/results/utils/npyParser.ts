@@ -123,5 +123,3 @@ export async function loadNpy(url: string): Promise<NpyResult> {
   const buffer = await resp.arrayBuffer()
   return parseNpy(buffer)
 }
-
-export type { NpyResult }

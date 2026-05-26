@@ -17,7 +17,7 @@ function computeRange(matrix: number[][]) {
   return { displayMin: 0, displayMax: p95, dataMax, sorted: nonZero }
 }
 
-export function formatIonValue(value: number): string {
+function formatIonValue(value: number): string {
   if (value === 0) return '0'
   if (Math.abs(value) >= 1e6) return (value / 1e6).toFixed(1) + 'e6'
   if (Math.abs(value) >= 1e3) return (value / 1e3).toFixed(1) + 'e3'

@@ -7,7 +7,7 @@ export interface ROIPoint {
   y: number
 }
 
-export interface ROIStats {
+interface ROIStats {
   pixelCount: number
   mean: number
   std: number

@@ -1,11 +1,11 @@
-export type ImzMLParam = {
+type ImzMLParam = {
   tagName: 'cvParam' | 'userParam'
   accession?: string
   name: string
   value: string
 }
 
-export type ImzMLMSSettings = {
+type ImzMLMSSettings = {
   polarity?: 'positive' | 'negative'
   ionSource?: string
   analyzer?: string
@@ -57,16 +57,7 @@ export async function parseImzMLMSSettings(file: File): Promise<ImzMLMSSettings>
   }
 }
 
-// Backwards-compatible wrapper: older code imports `parseImzMLMetadata`.
-export async function parseImzMLMetadata(file: File): Promise<ImzMLMSSettings> {
-  return parseImzMLMSSettings(file)
-}
-
-/**
- * Extract cvParam and userParam from XML text using regex.
- * Works with partial (truncated) XML — no DOMParser required.
- */
-export function extractParamsFromImzML(xmlText: string): ImzMLParam[] {
+function extractParamsFromImzML(xmlText: string): ImzMLParam[] {
   const out: ImzMLParam[] = []
   try {
     // Match cvParam tags: self-closing (<cvParam .../>) or open-close (<cvParam ...></cvParam>)
@@ -101,7 +92,7 @@ function extractAttr(attrs: string, name: string): string {
 
 /* ---------- field parsers (strict per request) ---------- */
 
-export function parsePolarity(params: ImzMLParam[]): 'positive' | 'negative' | undefined {
+function parsePolarity(params: ImzMLParam[]): 'positive' | 'negative' | undefined {
   // 1) accession priority
   for (const p of params) {
     const acc = (p.accession || '').toUpperCase()
@@ -117,7 +108,7 @@ export function parsePolarity(params: ImzMLParam[]): 'positive' | 'negative' | u
   return undefined
 }
 
-export function parseIonSource(params: ImzMLParam[]): string | undefined {
+function parseIonSource(params: ImzMLParam[]): string | undefined {
   // 1) accession priority
   for (const p of params) {
     const acc = (p.accession || '').toUpperCase()
@@ -141,7 +132,7 @@ export function parseIonSource(params: ImzMLParam[]): string | undefined {
   return undefined
 }
 
-export function parseAnalyzer(params: ImzMLParam[]): string | undefined {
+function parseAnalyzer(params: ImzMLParam[]): string | undefined {
   // 1) accession priority
   for (const p of params) {
     const acc = (p.accession || '').toUpperCase()
@@ -166,7 +157,7 @@ export function parseAnalyzer(params: ImzMLParam[]): string | undefined {
 
 /* m/z range parsing removed — not needed in current UI */
 
-export function parsePixelSize(params: ImzMLParam[]): { pixelSizeX?: number; pixelSizeY?: number } {
+function parsePixelSize(params: ImzMLParam[]): { pixelSizeX?: number; pixelSizeY?: number } {
   let x: number | undefined
   let y: number | undefined
 
@@ -193,18 +184,13 @@ function extractFirstNumber(p: ImzMLParam): string | undefined {
   return m ? m[1] : undefined
 }
 
-export function findAllNumbers(s: string): string[] {
-  const m = s.match(/(\d+(?:\.\d+)?)/g)
-  return m ?? []
-}
-
-export function parseSpectrumMode(text: string): 'profile' | 'centroid' | undefined {
+function parseSpectrumMode(text: string): 'profile' | 'centroid' | undefined {
   if (text.includes('MS:1000127')) return 'centroid'
   if (text.includes('MS:1000128')) return 'profile'
   return undefined
 }
 
-export function parseStorageMode(text: string): 'continuous' | 'processed' | undefined {
+function parseStorageMode(text: string): 'continuous' | 'processed' | undefined {
   if (text.includes('IMS:1000030')) return 'continuous'
   if (text.includes('IMS:1000031')) return 'processed'
   return undefined

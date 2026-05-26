@@ -5,7 +5,6 @@ import RegisterProfileForm from '@/features/auth/components/RegisterProfileForm.
 import { useRegisterForm } from '@/features/auth/composables/useRegisterForm'
 
 const registerForm = useRegisterForm()
-const customResearchField = registerForm.customResearchField
 
 const accountFormProps = computed(() => ({
   form: registerForm.form,
@@ -49,7 +48,6 @@ const profileFormProps = computed(() => ({
 
         <RegisterProfileForm
           v-bind="profileFormProps"
-          v-model:custom-research-field="customResearchField"
         />
       </div>
     </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import IconInput from '@/shared/components/IconInput.vue'
+import { APP_NAME } from '@/shared/config/app'
 
 defineProps<{
   username: string
@@ -48,7 +49,7 @@ const emit = defineEmits<{
     </div>
 
     <div class="text-center">
-      <span class="text-sm opacity-75">New to MassFlow? </span>
+      <span class="text-sm opacity-75">New to {{ APP_NAME }}? </span>
       <router-link to="/register" class="link link-hover text-primary text-sm font-semibold">
         Create an account
       </router-link>

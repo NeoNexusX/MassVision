@@ -3,7 +3,7 @@ import { computed, onUnmounted, ref } from 'vue'
 export function useCountdown(
   initialCount = 60,
   storageKey = 'countdown_attempts',
-  maxAttempts = 3,
+  maxAttempts = 10,
 ) {
   // State
   const count = ref(initialCount)

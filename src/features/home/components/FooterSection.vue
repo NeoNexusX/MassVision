@@ -7,7 +7,7 @@
         <div class="lg:col-span-2">
           <h3 class="text-xl font-bold mb-4 tracking-tight">About Us</h3>
           <p class="text-base-content/50 text-sm leading-relaxed max-w-2xl">
-            MassFlow is a next-generation cloud platform dedicated to advancing spatial metabolomics
+            {{ APP_NAME }} is a next-generation cloud platform dedicated to advancing spatial metabolomics
             research. Developed by the Laboratory of Data Intelligence in Biomedicine, Xiamen
             University (Prof. Jiyang Dong's Team), our mission is to democratize access to
             high-performance computing for biological data analysis. We empower researchers
@@ -90,7 +90,7 @@
       <div
         class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row justify-between items-center text-xs text-base-content/60"
       >
-        <p>&copy; 2025 MassFlow. All rights reserved.</p>
+        <p>&copy; 2025 {{ APP_NAME }}. All rights reserved.</p>
         <div class="flex flex-wrap justify-center gap-6 mt-4 sm:mt-0">
           <a href="#" class="hover:text-base-content/40 transition-colors">Terms of Service</a>
           <a href="#" class="hover:text-base-content/40 transition-colors">Privacy Policy</a>
@@ -101,5 +101,5 @@
 </template>
 
 <script setup lang="ts">
-// Static footer
+import { APP_NAME } from '@/shared/config/app'
 </script>

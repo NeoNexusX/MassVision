@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import IconInput from '@/shared/components/IconInput.vue'
+import { APP_NAME } from '@/shared/config/app'
 
 defineProps<{
   form: Record<string, any>
@@ -23,11 +24,11 @@ defineProps<{
   >
     <div class="min-h-[72px] mb-4">
       <h2
-        class="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
+        class="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
       >
-        Create Account
-      </h2>
-      <p class="text-base-content/60 mt-2 text-sm">Join MassFlow for scientific data analysis</p>
+      Create Account
+     </h2>
+      <p class="text-base-content/70 mt-5  mb-5 text-lg ">Join {{ APP_NAME }} for scientific data analysis</p>
     </div>
 
     <div class="flex flex-col gap-5">
@@ -57,7 +58,7 @@ defineProps<{
           @focus="clearError('email')"
         />
       </div>
-      <div class="min-h-[56px]">
+      <div class="min-h-[56px flex flex-col justify-center]">
         <IconInput
           v-model="form.password"
           icon-type="password"
@@ -68,21 +69,19 @@ defineProps<{
           @focus="clearError('password')"
           @blur="validateField('password')"
         />
-      </div>
-      <div class="min-h-[56px] flex flex-col justify-center">
         <div class="w-full">
-          <div class="flex justify-between text-xs mb-2 opacity-70">
-            <span>Strength</span>
-            <span>{{
-              ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][passwordScore - 1] || 'None'
-            }}</span>
-          </div>
           <progress
             :value="passwordScore"
             class="progress w-full h-2"
             :class="progressBarClass"
             max="5"
           ></progress>
+          <div class="flex justify-between text-xs mb-2 opacity-70">
+            <span>Strength</span>
+            <span>{{
+              ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][passwordScore - 1] || 'Please Input'
+            }}</span>
+          </div>
         </div>
       </div>
       <div class="min-h-[56px]">

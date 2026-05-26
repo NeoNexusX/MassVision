@@ -9,7 +9,7 @@ type PlaceholderOptions = {
 }
 
 // 12 sets of elegant preset color schemes, each including primary, secondary, tertiary, and line colors
-export const COLOR_SCHEMES = [
+const COLOR_SCHEMES = [
   // 1. Blue (Classic)
   { primary: '#3F51B5', secondary: '#90CAF9', tertiary: '#C5CAE9', line: '#3F51B5' },
   // 2. Purple (Elegant)

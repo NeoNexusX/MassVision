@@ -10,15 +10,10 @@ defineProps<{
   regionOptions: Array<{ code: string; name: string }>
   researchFieldOptions: string[]
   isOtherResearchField: boolean
-  customResearchField: string
   validateField: (field: any) => void
   clearError: (field: any) => void
   handleResearchFieldChange: (value: any) => void
   register: () => void
-}>()
-
-defineEmits<{
-  (e: 'update:customResearchField', value: string): void
 }>()
 </script>
 
@@ -27,11 +22,10 @@ defineEmits<{
     class="w-full lg:w-1/2 p-8 md:p-10 pb-8 flex flex-col flex-1 min-h-0 bg-base-50/50 dark:bg-base-200/20"
   >
     <div class="min-h-[72px] mb-4">
-      <h3 class="text-xl font-bold flex items-center gap-2">
-        <svg-icon type="user" class="h-5 w-5 text-primary" />
+      <h3 class="text-2xl font-bold flex items-center gap-2">
         Researcher Profile
       </h3>
-      <p class="text-base-content/60 text-sm mt-1">Complete your professional details</p>
+      <p class="text-base-content/60 text-base mt-3">Complete your professional details</p>
     </div>
 
     <div class="flex flex-col gap-5">
@@ -82,10 +76,9 @@ defineEmits<{
           <input
             v-if="isOtherResearchField"
             type="text"
-            :value="customResearchField"
+            v-model="form.research_field"
             class="input input-bordered w-full mt-3 input-sm"
             placeholder="Specify your field"
-            @input="$emit('update:customResearchField', ($event.target as HTMLInputElement).value)"
             @blur="validateField('research_field')"
           />
         </IconSelect>

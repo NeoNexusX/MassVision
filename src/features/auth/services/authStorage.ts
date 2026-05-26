@@ -5,14 +5,8 @@ export const secureStorage = {
     return CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex)
   },
 
-  storeAuthData(token: string, user: any) {
-    window.localStorage.setItem('access_token', token)
-    window.localStorage.setItem('user', JSON.stringify(user))
-  },
-
   clearAuthData() {
     window.localStorage.removeItem('access_token')
-    window.localStorage.removeItem('user')
     window.localStorage.removeItem('user_details')
   },
 

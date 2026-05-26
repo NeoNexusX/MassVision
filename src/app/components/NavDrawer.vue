@@ -13,7 +13,7 @@
       >
         <li class="menu-title mb-8 flex items-center gap-5">
           <SvgIcon type="home" class="w-10 h-10 text-blue-600" />
-          <span class="text-2xl md:text-3xl font-semibold">MassFlow</span>
+          <span class="text-2xl md:text-3xl font-semibold">{{ APP_NAME }}</span>
         </li>
 
         <template v-for="item in items" :key="item.kind === 'group' ? item.label : item.to">
@@ -58,6 +58,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { User } from '@/features/auth/types/auth'
+import { APP_NAME } from '@/shared/config/app'
 
 const props = defineProps<{
   user: User | null

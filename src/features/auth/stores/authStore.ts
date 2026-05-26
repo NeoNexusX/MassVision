@@ -41,7 +41,6 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = accessToken
     // Update local storage
     localStorage.setItem('access_token', accessToken)
-    // secureStorage.storeAuthData(accessToken, user.value);
 
     // Fetch user immediately to update UI
     await fetchUser()

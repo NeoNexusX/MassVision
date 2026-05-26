@@ -1,6 +1,6 @@
 import { computed, type Ref } from 'vue'
 
-export interface MethodParam {
+interface MethodParam {
   key: string
   label: string
   type: 'number' | 'float' | 'text' | 'select'
@@ -12,7 +12,7 @@ export interface MethodParam {
   options?: Array<{ label: string; value: string }>
 }
 
-export interface MethodItem {
+interface MethodItem {
   id: string
   label: string
   note?: string

@@ -37,12 +37,12 @@ const onBlur = (e: Event) => {
 
 <template>
   <div>
-    <label class="input validator w-full flex items-center gap-2">
-      <SvgIcon :type="iconType" class="w-5 h-5 mr-3 flex-shrink-0" aria-hidden="true" />
+    <label class="input validator w-full flex items-center gap-2 fluid-input">
+      <SvgIcon :type="iconType" class="icon-fluid mr-2 ml-2 flex-shrink-0" aria-hidden="true" />
       <!-- v-model two-way binding -->
       <input
         v-model="value"
-        class="flex-1 bg-transparent outline-none h-full py-2"
+        class="flex-1 bg-transparent outline-none h-full py-2 text-[0.9em]"
         :type="type"
         :required="required"
         :placeholder="placeholder"

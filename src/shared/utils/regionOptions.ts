@@ -12,7 +12,7 @@ const COUNTRY_OVERRIDES: Record<string, string> = {
   KP: 'North Korea',
 }
 
-export interface RegionOption {
+interface RegionOption {
   code: string
   name: string
 }

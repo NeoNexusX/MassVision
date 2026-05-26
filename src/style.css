@@ -14,3 +14,15 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* 全局统一的流体输入框排版 */
+.fluid-input {
+  font-size: clamp(0.7rem, 0.7rem + 0.4vw, 1.2rem);
+}
+
+/* 供流体输入框使用的图标大小 */
+.icon-fluid {
+  width: 1.5em;
+  height: 1.5em;
+}
+

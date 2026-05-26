@@ -108,7 +108,7 @@ export function useRegisterForm() {
     isActive: isCountdownActive,
     isExhausted,
     start: startCountdown,
-  } = useCountdown(60, 'register_code_attempts', 3)
+  } = useCountdown(60, 'register_code_attempts', Number(import.meta.env.APP_MAXATTEMPTS) || 10)
 
   // State
   const form = reactive({
@@ -141,16 +141,6 @@ export function useRegisterForm() {
 
   const isOtherResearchField = ref(false)
   const loading = reactive({ register: false, sendCode: false })
-
-  // Computed
-  const customResearchField = computed({
-    get: () => (isOtherResearchField.value ? form.research_field : ''),
-    set: (newVal: string) => {
-      if (isOtherResearchField.value) {
-        form.research_field = newVal
-      }
-    },
-  })
 
   const passwordScore = computed(() => {
     const p = form.password
@@ -197,18 +187,13 @@ export function useRegisterForm() {
   }
 
   const handleResearchFieldChange = (value: string | number | Event) => {
-    const nextValue =
-      typeof value === 'object' && 'target' in value
-        ? (value.target as HTMLSelectElement).value
-        : String(value)
+    const nextValue = String(value)
     if (nextValue === 'Other') {
       isOtherResearchField.value = true
-      form.research_field = customResearchField.value
     } else {
       isOtherResearchField.value = false
-      form.research_field = nextValue
+      validateField('research_field')
     }
-    validateField('research_field')
   }
 
   const sendVerificationCode = async () => {
@@ -219,11 +204,15 @@ export function useRegisterForm() {
       )
       return
     }
-    validateField('email')
-    if (errors.email) {
-      showToast(errors.email, 'error')
+    
+    const accountFields: RegField[] = ['username', 'email', 'password', 'confirm_password']
+    accountFields.forEach((field) => validateField(field))
+    
+    if (accountFields.some((field) => errors[field])) {
+      showToast('Please complete the account information correctly before sending the code', 'error')
       return
     }
+    
     loading.sendCode = true
     try {
       await sendEmailCode(form.email)
@@ -289,7 +278,6 @@ export function useRegisterForm() {
     positionOptions,
     researchFieldOptions,
     isOtherResearchField,
-    customResearchField,
     countdown,
     isCountdownActive,
     isExhausted,

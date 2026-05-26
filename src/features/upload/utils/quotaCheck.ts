@@ -1,7 +1,7 @@
 import type { ImzmlFilePair } from './imzmlHelper'
 
 /** Conservative estimate: ibd binary data compresses poorly, imzml XML compresses well */
-export function estimateZipSize(pair: ImzmlFilePair): number {
+function estimateZipSize(pair: ImzmlFilePair): number {
   return pair.ibd.size * 0.9 + pair.imzml.size * 0.15 + 2048
 }
 

@@ -1,60 +1,33 @@
 <template>
-  <div class="form-control w-full" ref="containerRef">
-    <div class="relative">
-      <!-- Clickable input-like trigger -->
-      <label
-        class="input validator w-full flex items-center gap-2 cursor-pointer select-none"
-        @click="toggleOpen"
+  <div class="form-control w-full">
+    <label class="select validator w-full flex items-center gap-2 fluid-input">
+      <SvgIcon
+        v-if="iconType"
+        :type="iconType"
+        class="mr-2 ml-2 flex-shrink-0 icon-fluid"
+        aria-hidden="true"
+      />
+      <select
+        class="grow 
+              focus:outline-none 
+              w-full 
+              appearance-none
+              opacity-80
+              text-[1em]"
+        :value="modelValue"
+        @change="onChange"
+        @focus="emit('focus')"
       >
-        <SvgIcon
-          v-if="iconType"
-          :type="iconType"
-          class="w-5 h-5 mr-3 flex-shrink-0"
-          aria-hidden="true"
-        />
-
-        <span
-          class="grow font-normal min-w-0 py-2 truncate"
-          :class="{ 'text-base-content/50': !modelValue }"
+        <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>
+        <option
+          v-for="option in options"
+          :key="getValue(option)"
+          :value="getValue(option)"
         >
-          {{ displayLabel || placeholder }}
-        </span>
-
-        <SvgIcon
-          type="chevron_down"
-          class="w-4 h-4 flex-shrink-0 opacity-50 transition-transform"
-          :class="{ 'rotate-180': open }"
-        />
-      </label>
-
-      <!-- Dropdown menu -->
-      <ul
-        v-show="open"
-        class="absolute top-full left-0 right-0 z-50 mt-1 bg-base-100 border border-base-300 rounded-md shadow-lg max-h-60 overflow-y-auto flex flex-col py-1"
-      >
-        <!-- Placeholder option when nothing selected -->
-        <li v-if="placeholder">
-          <button
-            class="w-full text-left px-4 py-2 text-base-content/50 text-sm hover:bg-base-200"
-            :class="{ hidden: !modelValue }"
-            type="button"
-            @click="selectOption('')"
-          >
-            {{ placeholder }}
-          </button>
-        </li>
-        <li v-for="option in options" :key="typeof option === 'object' ? option.value : option">
-          <button
-            class="w-full text-left px-4 py-2 text-sm hover:bg-base-200"
-            :class="{ 'bg-primary/10 text-primary font-medium': isSelected(option) }"
-            type="button"
-            @click="selectOption(typeof option === 'object' ? option.value : option)"
-          >
-            {{ typeof option === 'object' ? option.label : option }}
-          </button>
-        </li>
-      </ul>
-    </div>
+          {{ getLabel(option) }}
+        </option>
+      </select>
+    </label>
 
     <slot></slot>
 
@@ -65,8 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, type PropType } from 'vue'
-import { useClickOutside } from '@/shared/composables/useClickOutside'
+import type { PropType } from 'vue'
 
 interface OptionItem {
   label: string
@@ -96,42 +68,19 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:modelValue', 'change', 'focus', 'blur'])
+const emit = defineEmits(['update:modelValue', 'change', 'focus'])
 
-const open = ref(false)
-const containerRef = ref<HTMLElement | null>(null)
+const getValue = (option: string | OptionItem) =>
+  typeof option === 'object' ? option.value : option
 
-useClickOutside(containerRef, () => {
-  open.value = false
-  emit('blur')
-})
+const getLabel = (option: string | OptionItem) =>
+  typeof option === 'object' ? option.label : option
 
-const displayLabel = computed(() => {
-  if (!props.modelValue && props.modelValue !== 0) return ''
-  const found = props.options.find(
-    (o) => (typeof o === 'object' ? o.value : o) === props.modelValue,
-  )
-  return found && typeof found === 'object' ? found.label : String(props.modelValue)
-})
-
-const isSelected = (option: string | OptionItem) => {
-  const val = typeof option === 'object' ? option.value : option
-  return val === props.modelValue
-}
-
-const selectOption = (value: string | number) => {
-  open.value = false
-  emit('blur')
-  emit('update:modelValue', value)
-  emit('change', value)
-}
-
-const toggleOpen = () => {
-  open.value = !open.value
-  if (open.value) {
-    emit('focus')
-  } else {
-    emit('blur')
-  }
+const onChange = (e: Event) => {
+  const value = (e.target as HTMLSelectElement).value
+  const matched = props.options.find((o) => String(getValue(o)) === value)
+  const finalValue = matched !== undefined ? getValue(matched) : value
+  emit('update:modelValue', finalValue)
+  emit('change', finalValue)
 }
 </script>
