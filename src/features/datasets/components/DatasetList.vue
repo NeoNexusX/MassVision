@@ -22,7 +22,7 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
 </script>
 
 <template>
-  <div>
+  <div class="text-[clamp(1.0rem,2.5vw,1.3rem)]">
     <!-- Loading state -->
     <div v-if="loading" class="flex flex-col gap-3">
       <div class="animate-pulse flex flex-col gap-4">
@@ -70,18 +70,19 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
       v-if="datasets.length"
       class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4"
     >
-      <div class="text-sm text-base-content text-center sm:text-left">
+      <div class="text-[1.1em] text-base-content text-center sm:text-left ml-2">
         Page <span class="font-medium">{{ meta.current_page }}</span> of
         <span class="font-medium">{{ meta.total_pages }}</span> —
         <span class="font-medium">{{ meta.total_records }}</span> records
       </div>
-      <div class="flex flex-wrap items-center gap-4">
+      
+      <div class="flex flex-wrap items-center gap-4 mr-2">
         <div class="flex items-center gap-2">
-          <label class="whitespace-nowrap text-sm text-base-content/60">Per page</label>
+          <label class="whitespace-nowrap text-[1.1em] text-base-content/60">Per page</label>
           <select
             :value="size"
             @change="(e) => onChangeSize(Number((e.target as HTMLSelectElement).value))"
-            class="select select-sm select-bordered"
+            class="select select-sm select-bordered text-[1.1em] pl-3 pr-8"
           >
             <option :value="10">10</option>
             <option :value="20">20</option>

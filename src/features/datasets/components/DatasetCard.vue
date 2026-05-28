@@ -28,7 +28,7 @@
     </div>
 
     <!-- Middle: Info -->
-    <div class="relative z-10 flex flex-1 flex-col justify-center gap-2 min-w-0 max-w-full text-base text-base-content text-[clamp(1.0rem,2.5vw,1.3rem)]">
+    <div class="relative z-10 flex flex-1 flex-col justify-center gap-2 min-w-0 max-w-full text-base-content">
         <h3
           class="block truncate cursor-pointer min-w-0 mb-1
             font-bold text-base-content text-[1.1em]
@@ -43,7 +43,7 @@
       <p
         v-for="field in metaFields"
         :key="field.label"
-        class="truncate text-[1em] "
+        class="truncate text-[0.95em] "
         :title="field.value ?? ''"
       >
         <span>{{ field.label }}</span>
@@ -64,20 +64,20 @@
       <template v-for="item in actionItems" :key="item.id">
         <button
           v-if="item.onClick"
-          class="flex items-center gap-2 text-[1.2em] font-medium p-1 rounded"
+          class="flex items-center gap-2 text-[1.0em] font-medium p-1 rounded"
           :class="item.colorClass"
           @click.stop="item.onClick"
         >
-          <SvgIcon v-if="item.icon" :type="item.icon" class="w-[1.3em] h-[1.3em]" />
+          <SvgIcon v-if="item.icon" :type="item.icon" class="w-[1.1em] h-[1.1em]" />
           <span>{{ item.label }}</span>
         </button>
         <div
           v-else
-          class="flex items-center gap-2 text-[1.2em] font-medium p-1 rounded"
+          class="flex items-center gap-2 text-[1.0em] font-medium p-1 rounded"
           :class="item.colorClass"
         >
           <span v-if="item.spinner" class="loading loading-spinner loading-xs"></span>
-          <SvgIcon v-else-if="item.icon" :type="item.icon" class="w-[1.3em] h-[1.3em]" />
+          <SvgIcon v-else-if="item.icon" :type="item.icon" class="w-[1.1em] h-[1.1em]" />
           <span>{{ item.label }}</span>
         </div>
       </template>
