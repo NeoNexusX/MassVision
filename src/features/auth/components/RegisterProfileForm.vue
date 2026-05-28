@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import IconInput from '@/shared/components/IconInput.vue'
 import IconSelect from '@/shared/components/IconSelect.vue'
+import SelectWithOther from '@/shared/components/SelectWithOther.vue'
 
 defineProps<{
   form: Record<string, any>
   errors: Record<string, string>
+  patterns: Record<string, string>
   loading: { register: boolean; sendCode: boolean }
   positionOptions: string[]
-  regionOptions: Array<{ code: string; name: string }>
+  regionOptions: Record<string, string>
   researchFieldOptions: string[]
-  isOtherResearchField: boolean
   validateField: (field: any) => void
   clearError: (field: any) => void
-  handleResearchFieldChange: (value: any) => void
   register: () => void
 }>()
 </script>
@@ -35,7 +35,9 @@ defineProps<{
           icon-type="institution"
           type="text"
           required
+          validator
           placeholder="Institution / University"
+          :pattern="patterns.institution"
           :error="errors.institution"
           @blur="validateField('institution')"
           @focus="clearError('institution')"
@@ -55,7 +57,7 @@ defineProps<{
       <div class="min-h-[56px]">
         <IconSelect
           v-model="form.region"
-          :options="regionOptions.map((country) => ({ label: country.name, value: country.name }))"
+          :options="regionOptions"
           icon-type="region"
           placeholder="Region"
           :error="errors.region"
@@ -64,31 +66,28 @@ defineProps<{
         />
       </div>
       <div class="min-h-[56px]">
-        <IconSelect
+        <SelectWithOther
           v-model="form.research_field"
           :options="researchFieldOptions"
           icon-type="research"
+          required
+          validator
           placeholder="Research Field"
           :error="errors.research_field"
-          @change="handleResearchFieldChange"
+          other-placeholder="Specify your field"
+          @change="validateField('research_field')"
           @focus="clearError('research_field')"
-        >
-          <input
-            v-if="isOtherResearchField"
-            type="text"
-            v-model="form.research_field"
-            class="input input-bordered w-full mt-3 input-sm"
-            placeholder="Specify your field"
-            @blur="validateField('research_field')"
-          />
-        </IconSelect>
+          @blur="validateField('research_field')"
+        />
       </div>
       <div class="min-h-[56px]">
         <IconInput
           v-model="form.orcid"
           icon-type="id-card"
           type="text"
+          validator
           placeholder="ORCID (Optional)"
+          :pattern="patterns.orcid"
           :error="errors.orcid"
           @blur="validateField('orcid')"
           @focus="clearError('orcid')"
@@ -99,7 +98,9 @@ defineProps<{
           v-model="form.homepage"
           icon-type="link"
           type="text"
+          validator
           placeholder="Homepage URL (Optional)"
+          :pattern="patterns.url"
           :error="errors.homepage"
           @blur="validateField('homepage')"
           @focus="clearError('homepage')"

@@ -1,4 +1,4 @@
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCountdown } from '@/shared/composables/useCountdown'
 import { usrSignupApi, sendEmailCode } from '@/features/auth/api/authApi'
@@ -22,6 +22,7 @@ const patterns = {
     '(\\?[;&a-z\\d%_.~+=-]*)?' +
     '(\\#[-a-z\\d_]*)?$',
   orcid: '^\\d{4}-\\d{4}-\\d{4}-\\d{3}[0-9X]$',
+  institution: '^.{5,100}$',
 }
 
 type RegField =
@@ -74,7 +75,11 @@ const rules: Record<RegField, Rule> = {
     test: { re: new RegExp(patterns.verify_code), msg: 'Must be 6 digits' },
   },
   institution: {
-    required: 'Institution is required'
+    required: 'Institution is required',
+    test: {
+      re: new RegExp(patterns.institution),
+      msg: 'Institution must be 5-100 characters',
+    },
   },
   position: {
     required: 'Please select a position'
@@ -139,7 +144,6 @@ export function useRegisterForm() {
     homepage: '',
   })
 
-  const isOtherResearchField = ref(false)
   const loading = reactive({ register: false, sendCode: false })
 
   const passwordScore = computed(() => {
@@ -183,16 +187,6 @@ export function useRegisterForm() {
       errors[field] = rule.custom(value, form)
     } else {
       errors[field] = ''
-    }
-  }
-
-  const handleResearchFieldChange = (value: string | number | Event) => {
-    const nextValue = String(value)
-    if (nextValue === 'Other') {
-      isOtherResearchField.value = true
-    } else {
-      isOtherResearchField.value = false
-      validateField('research_field')
     }
   }
 
@@ -277,7 +271,6 @@ export function useRegisterForm() {
     regionOptions,
     positionOptions,
     researchFieldOptions,
-    isOtherResearchField,
     countdown,
     isCountdownActive,
     isExhausted,
@@ -285,7 +278,6 @@ export function useRegisterForm() {
     progressBarClass,
     validateField,
     clearError,
-    handleResearchFieldChange,
     sendVerificationCode,
     register,
   }

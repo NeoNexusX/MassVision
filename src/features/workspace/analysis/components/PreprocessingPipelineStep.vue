@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseSelect from '@/shared/components/BaseSelect.vue'
+import IconSelect from '@/shared/components/IconSelect.vue'
 
 defineProps<{
   availableMethods: any[]
@@ -76,11 +76,12 @@ defineProps<{
                   param.label
                 }}</span>
                 <template v-if="param.type === 'select'">
-                  <BaseSelect
+                  <IconSelect
                     class="flex-1"
                     :model-value="String(getParam(group.key, method.id, param.key) ?? '')"
                     :options="param.options!.map((option: any) => option.value)"
                     :placeholder="String(param.default ?? '')"
+                    hide-label
                     @update:model-value="
                       methodParams[buildParamKey(group.key, method.id, param.key)] = $event
                     "

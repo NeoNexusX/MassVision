@@ -2,6 +2,7 @@
 import type { AdminUser, UserListFilters } from '@/features/users/api/userAdminApi'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
 import PaginationBar from '@/shared/components/PaginationBar.vue'
+import { getRegionName } from '@/shared/utils/regionOptions'
 
 defineProps<{
   users: AdminUser[]
@@ -131,7 +132,7 @@ defineEmits<{
                 <StatusBadge :status="user.active ? 'active' : 'inactive'" />
               </td>
               <td class="text-base-content/80">{{ user.institution || '—' }}</td>
-              <td class="text-base-content/80">{{ user.region || '—' }}</td>
+              <td class="text-base-content/80">{{ getRegionName(user.region) || '—' }}</td>
               <td class="pr-6 text-right">
                 <button
                   @click="$emit('open-drawer', user)"

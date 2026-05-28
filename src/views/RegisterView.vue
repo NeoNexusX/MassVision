@@ -24,14 +24,13 @@ const accountFormProps = computed(() => ({
 const profileFormProps = computed(() => ({
   form: registerForm.form,
   errors: registerForm.errors,
+  patterns: registerForm.patterns,
   loading: registerForm.loading,
   positionOptions: registerForm.positionOptions,
   regionOptions: registerForm.regionOptions,
   researchFieldOptions: registerForm.researchFieldOptions,
-  isOtherResearchField: registerForm.isOtherResearchField.value,
   validateField: registerForm.validateField,
   clearError: registerForm.clearError,
-  handleResearchFieldChange: registerForm.handleResearchFieldChange,
   register: registerForm.register,
 }))
 </script>

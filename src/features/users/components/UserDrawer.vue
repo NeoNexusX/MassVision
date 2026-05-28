@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AdminUser } from '@/features/users/api/userAdminApi'
+import { getRegionName } from '@/shared/utils/regionOptions'
 
 defineProps<{
   selectedUser: AdminUser | null
@@ -73,7 +74,7 @@ defineEmits<{
             </div>
             <div class="w-full sm:w-1/2">
               <span class="text-xs font-semibold text-base-content/40 tracking-wider">Region</span>
-              <p class="text-sm font-medium mt-1">{{ selectedUser.region || '—' }}</p>
+              <p class="text-sm font-medium mt-1">{{ getRegionName(selectedUser.region) || '—' }}</p>
             </div>
           </div>
           <hr class="border-base-200/60" />

@@ -1,34 +1,64 @@
 <template>
-  <div class="flex flex-col">
-    <BaseSelect
-      :model-value="modelValue"
-      :options="options"
-      :placeholder="placeholder"
-      @update:model-value="$emit('update:modelValue', $event)"
-    />
+  <IconSelect
+    :model-value="modelValue"
+    :options="options"
+    :placeholder="placeholder"
+    :icon-type="iconType"
+    :label="label"
+    :hide-label="hideLabel"
+    :error="error"
+    :validator="validator"
+    :required="required"
+    @update:model-value="onSelectChange"
+    @change="$emit('change', $event)"
+    @focus="$emit('focus')"
+  >
     <input
-      v-if="modelValue === 'Other'"
-      :value="otherValue"
-      @input="$emit('update:otherValue', ($event.target as HTMLInputElement).value)"
-      class="input input-bordered input-sm w-full mt-1"
+      v-if="isOther"
+      :value="modelValue === 'Other' ? '' : modelValue"
+      @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+      @blur="$emit('blur')"
+      class="input input-bordered input-md w-full mt-1"
       :placeholder="otherPlaceholder"
     />
-  </div>
+  </IconSelect>
 </template>
 
 <script setup lang="ts">
-import BaseSelect from '@/shared/components/BaseSelect.vue'
+import { ref, watch } from 'vue'
+import IconSelect from '@/shared/components/IconSelect.vue'
 
-defineProps<{
+const props = defineProps<{
   modelValue: string
-  otherValue: string
   options: string[]
   placeholder?: string
   otherPlaceholder?: string
+  iconType?: string
+  label?: string
+  hideLabel?: boolean
+  error?: string
+  validator?: boolean
+  required?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'update:modelValue', v: string): void
-  (e: 'update:otherValue', v: string): void
+  (e: 'change', v: string): void
+  (e: 'focus'): void
+  (e: 'blur'): void
 }>()
+
+const isOther = ref(false)
+
+watch(() => props.modelValue, (val) => {
+  if (val === 'Other') {
+    isOther.value = true
+  } else if (props.options.includes(val)) {
+    isOther.value = false
+  }
+}, { immediate: true })
+
+function onSelectChange(value: string) {
+  emit('update:modelValue', value)
+}
 </script>

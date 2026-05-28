@@ -1,12 +1,54 @@
+<template>
+  <div class="form-control fluid-input">
+    <template v-if="!hideLabel && label">
+      <label class="label">
+        <span class="label-text text-[1em] font-semibold" :class="{ 'opacity-50': readonly }">
+          {{ label }}
+        </span>
+      </label>
+    </template>
+
+    <label class="input w-full flex items-center gap-2 fluid-input" :class="{ validator: validator, 'bg-base-200': readonly }">
+      <SvgIcon
+        v-if="iconType"
+        :type="iconType"
+        class="icon-fluid mr-2 ml-2 flex-shrink-0"
+        aria-hidden="true"
+      />
+      <input
+        v-model="value"
+        class="flex-1 bg-transparent outline-none h-full py-2 text-[0.9em]"
+        :type="type"
+        :readonly="readonly"
+        :required="required"
+        :placeholder="placeholder"
+        :pattern="pattern"
+        :minlength="minLength"
+        :maxlength="maxLength"
+        :title="title"
+        @input="onInput"
+        @focus="onFocus"
+        @blur="onBlur"
+      />
+    </label>
+
+    <span v-if="error" class="label text-sm text-error whitespace-pre-line pt-1 block">{{ error }}</span>
+    <slot />
+  </div>
+</template>
+
 <script setup lang="ts">
 import { computed } from 'vue'
 
 const emit = defineEmits(['update:modelValue', 'blur', 'input', 'focus'])
 
 const props = defineProps({
-  modelValue: { type: String, default: '' },
+  label: { type: String, default: '' },
+  modelValue: { type: [String, Number], default: '' },
   type: { type: String, default: 'text' },
-  iconType: { type: String, required: true },
+  iconType: { type: String, default: '' },
+  readonly: { type: Boolean, default: false },
+  hideLabel: { type: Boolean, default: false },
   required: { type: Boolean, default: false },
   placeholder: { type: String, default: '' },
   pattern: { type: String, default: '.*' },
@@ -14,6 +56,7 @@ const props = defineProps({
   maxLength: { type: Number, default: 100 },
   title: { type: String, default: '' },
   error: { type: String, default: '' },
+  validator: { type: Boolean, default: false },
 })
 
 const value = computed({
@@ -27,35 +70,9 @@ const onInput = (e: Event) => {
 
 const onFocus = (e: Event) => {
   emit('focus', e)
-  console.log('focus')
 }
 
 const onBlur = (e: Event) => {
   emit('blur', e)
 }
 </script>
-
-<template>
-  <div>
-    <label class="input validator w-full flex items-center gap-2 fluid-input">
-      <SvgIcon :type="iconType" class="icon-fluid mr-2 ml-2 flex-shrink-0" aria-hidden="true" />
-      <!-- v-model two-way binding -->
-      <input
-        v-model="value"
-        class="flex-1 bg-transparent outline-none h-full py-2 text-[0.9em]"
-        :type="type"
-        :required="required"
-        :placeholder="placeholder"
-        :pattern="pattern"
-        :minlength="minLength"
-        :maxlength="maxLength"
-        :title="title"
-        @input="onInput"
-        @focus="onFocus"
-        @blur="onBlur"
-      />
-    </label>
-    <span class="label text-sm text-error whitespace-pre-line pt-1 block">{{ error }}</span>
-  </div>
-  <slot />
-</template>

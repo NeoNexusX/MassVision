@@ -1,4 +1,4 @@
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCurrentUser, sendEmailCode, updateUserProfile } from '@/features/auth/api/authApi'
 import { useToast } from '@/shared/composables/useToast'
@@ -8,8 +8,9 @@ import { useCountdown } from '@/shared/composables/useCountdown'
 import { useUserQuota } from '@/shared/composables/useUserQuota'
 import { positionOptions } from '@/shared/constants/profileOptions'
 import { getRegionOptions } from '@/shared/utils/regionOptions'
+import type { UsrProfileUpdate } from '@/features/auth/types/auth'
 
-const countryList = getRegionOptions()
+const regionOptions = getRegionOptions()
 
 export function useUserProfileForm() {
   // External composables
@@ -45,20 +46,6 @@ export function useUserProfileForm() {
   const sendingCode = ref(false)
 
   // Computed
-  const regionNames = computed(() => countryList.map((country) => country.name))
-
-  const regionLabel = computed<string>({
-    get() {
-      const found = countryList.find(
-        (country) => country.code === formData.region || country.name === formData.region,
-      )
-      return found ? found.name : typeof formData.region === 'string' ? formData.region : ''
-    },
-    set(value: string) {
-      const found = countryList.find((country) => country.name === value)
-      formData.region = found ? found.code : value
-    },
-  })
 
   // Methods
   const applyUserData = (data: any) => {
@@ -154,46 +141,57 @@ export function useUserProfileForm() {
   }
 
   const handleSave = async () => {
-    loading.value = true
-    const messages: string[] = []
-    try {
-      await updateUserProfile({
-        username: formData.username,
-        institution: formData.institution,
-        position: formData.position,
-        research_field: formData.research_field,
-        region: formData.region,
-        orcid: formData.orcid,
-        homepage: formData.homepage,
-      } as any)
-      messages.push('Profile info updated.')
-    } catch (profileError: any) {
-      console.warn('Profile update failed:', profileError)
-      messages.push(`Profile update failed: ${extractBackendError(profileError)}`)
-    }
-
-    let logoutRequired = false
-    if (formData.password && formData.password.trim() !== '') {
-      try {
-        await updateUserProfile({ password: formData.password })
-        logoutRequired = true
-        messages.push('Password updated.')
-      } catch (passwordError: any) {
-        console.warn('Password update failed:', passwordError)
-        messages.push(`Failed to update password: ${extractBackendError(passwordError)}`)
+    const password = formData.password.trim()
+    if (password !== '') {
+      const passwordPattern = /^(?=.*[a-zA-Z])(?=.*\d).{8,25}$/
+      if (!passwordPattern.test(password)) {
+        showToast('Password must be 8-25 characters with at least one letter and one number', 'error')
+        return
       }
     }
 
-    formData.password = ''
+    let logoutRequired = false
+    loading.value = true
+    const messages: string[] = []
+
+    const profilePayload: Partial<UsrProfileUpdate> = {
+      username: formData.username,
+      institution: formData.institution,
+      position: formData.position,
+      research_field: formData.research_field,
+      region: formData.region,
+      orcid: formData.orcid,
+      homepage: formData.homepage,
+    }
+
+    if (formData.password.trim() !== '') {
+      profilePayload.password = formData.password
+    }
+
+    try {
+      await updateUserProfile(profilePayload)
+      if (formData.password.trim() !== '') {
+        logoutRequired = true
+      }
+      messages.push('Profile info updated.')
+    } catch (profileError: any) {
+      messages.push(`Profile update failed: ${extractBackendError(profileError)}`)
+    } finally {
+      formData.password = ''
+    }
+
     try {
       const refreshRes = await getCurrentUser()
       if (refreshRes.data) applyUserData({ ...formData, ...refreshRes.data })
     } catch (refreshError) {
       console.warn('Silent refresh failed after save:', refreshError)
+      messages.push(`Profile update failed: ${extractBackendError(refreshError)}`)
     }
 
-    const fullMessage =
-      messages.join('\n') + (logoutRequired ? '\n\nPlease login again with your new password.' : '')
+    // messages
+    const fullMessage = messages.join('\n') + (logoutRequired ? '\nPlease login again with your new password.' : '')
+
+    // toast
     const isFailure = messages.some((message) => message.toLowerCase().includes('failed'))
     showToast(fullMessage, isFailure ? 'error' : 'success')
 
@@ -211,8 +209,7 @@ export function useUserProfileForm() {
   return {
     loading,
     positionOptions,
-    regionNames,
-    regionLabel,
+    regionOptions,
     formData,
     isEmailModalOpen,
     newEmail,

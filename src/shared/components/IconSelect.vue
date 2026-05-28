@@ -1,6 +1,14 @@
 <template>
-  <div class="form-control w-full">
-    <label class="select validator w-full flex items-center gap-2 fluid-input">
+  <div class="form-control w-full fluid-input">
+    <template v-if="!hideLabel && label">
+      <label class="label">
+        <span class="label-text text-[1em] font-semibold">
+          {{ label }}
+        </span>
+      </label>
+    </template>
+
+    <label class="select w-full flex items-center gap-2 fluid-input" :class="{ validator: validator }">
       <SvgIcon
         v-if="iconType"
         :type="iconType"
@@ -8,23 +16,23 @@
         aria-hidden="true"
       />
       <select
-        class="grow 
-              focus:outline-none 
-              w-full 
-              appearance-none
+        class="grow
+              focus:outline-none
+              w-full
               opacity-80
-              text-[1em]"
+              text-[0.9em]"
         :value="modelValue"
+        :required="required"
         @change="onChange"
         @focus="emit('focus')"
       >
         <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>
         <option
-          v-for="option in options"
-          :key="getValue(option)"
-          :value="getValue(option)"
+          v-for="(value, label) in normalizedOptions"
+          :key="label"
+          :value="value"
         >
-          {{ getLabel(option) }}
+          {{ label }}
         </option>
       </select>
     </label>
@@ -38,12 +46,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { PropType } from 'vue'
-
-interface OptionItem {
-  label: string
-  value: string | number
-}
 
 const props = defineProps({
   modelValue: {
@@ -51,8 +55,16 @@ const props = defineProps({
     default: '',
   },
   options: {
-    type: Array as PropType<(string | OptionItem)[]>,
+    type: [String, Array, Object] as PropType<string | string[] | Record<string, string>>,
     required: true,
+  },
+  label: {
+    type: String,
+    default: '',
+  },
+  hideLabel: {
+    type: Boolean,
+    default: false,
   },
   placeholder: {
     type: String,
@@ -66,21 +78,35 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  validator: {
+    type: Boolean,
+    default: false,
+  },
+  required: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'change', 'focus'])
 
-const getValue = (option: string | OptionItem) =>
-  typeof option === 'object' ? option.value : option
+const normalizedOptions = computed(() => {
+  if (typeof props.options === 'string') {
+    return { [props.options]: props.options }
+  }
 
-const getLabel = (option: string | OptionItem) =>
-  typeof option === 'object' ? option.label : option
+  if (Array.isArray(props.options)) {
+    return props.options.reduce<Record<string, string>>((options, option) => {
+      options[option] = option
+      return options
+    }, {})
+  }
+  return props.options
+})
 
 const onChange = (e: Event) => {
   const value = (e.target as HTMLSelectElement).value
-  const matched = props.options.find((o) => String(getValue(o)) === value)
-  const finalValue = matched !== undefined ? getValue(matched) : value
-  emit('update:modelValue', finalValue)
-  emit('change', finalValue)
+  emit('update:modelValue', value)
+  emit('change', value)
 }
 </script>

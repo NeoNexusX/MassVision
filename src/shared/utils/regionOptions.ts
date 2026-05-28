@@ -12,18 +12,20 @@ const COUNTRY_OVERRIDES: Record<string, string> = {
   KP: 'North Korea',
 }
 
-interface RegionOption {
-  code: string
-  name: string
+export function getRegionOptions(): Record<string, string> {
+  const countryObj = countries.getNames('en')
+  const result: Record<string, string> = {}
+  for (const [code, name] of Object.entries(countryObj)) {
+    const overrideName = COUNTRY_OVERRIDES[code] ?? name
+    if (overrideName.length <= 28) {
+      result[overrideName] = code
+    }
+  }
+  return result
 }
 
-export function getRegionOptions(): RegionOption[] {
-  const countryObj = countries.getNames('en')
-  return Object.entries(countryObj)
-    .map(([code, name]) => ({
-      code,
-      name: COUNTRY_OVERRIDES[code] ?? name,
-    }))
-    .filter((c) => c.name.length <= 28)
-    .sort((a, b) => a.name.localeCompare(b.name))
+export function getRegionName(code: string): string {
+  const regionMap = getRegionOptions()
+  const entry = Object.entries(regionMap).find(([, c]) => c === code)
+  return entry ? entry[0] : code
 }
