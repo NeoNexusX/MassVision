@@ -29,6 +29,7 @@
         @input="onInput"
         @focus="onFocus"
         @blur="onBlur"
+        @keydown="onKeydown"
       />
     </label>
 
@@ -40,7 +41,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const emit = defineEmits(['update:modelValue', 'blur', 'input', 'focus'])
+const emit = defineEmits(['update:modelValue', 'blur', 'input', 'focus', 'keydown'])
 
 const props = defineProps({
   label: { type: String, default: '' },
@@ -74,5 +75,9 @@ const onFocus = (e: Event) => {
 
 const onBlur = (e: Event) => {
   emit('blur', e)
+}
+
+const onKeydown = (e: KeyboardEvent) => {
+  emit('keydown', e)
 }
 </script>

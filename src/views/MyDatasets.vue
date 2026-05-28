@@ -49,9 +49,6 @@ const auth = useAuthStore()
 // `handleSort` is provided by the composable and used directly in the template.
 
 // UI handlers used by the filter bar and cards
-const handleVisibilityFilter = () => {
-  /* placeholder: could toggle between My/Public */
-}
 const isUploadOpen = ref(false)
 const handleUpload = () => {
   isUploadOpen.value = true
@@ -142,46 +139,45 @@ const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSi
 <template>
   <div class="min-h-screen bg-base-200 p-4 md:p-8">
     <div class="max-w-[1680px] mx-auto">
-      <h1 class="text-4xl font-bold text-base-content mb-6">
+      <h1 class="text-4xl font-bold text-base-content mb-6 px-3">
         My Datasets
-        <button
-          class="btn btn-sm btn-ghost text-lg"
-          :class="{ loading: checkingFiles }"
-          :disabled="checkingFiles"
-          @click="refreshFileStatus"
-          title="Check file processing status"
-        >
-          <SvgIcon v-if="!checkingFiles" type="refresh" class="w-4 h-4" />
-          Refresh Status
-        </button>
       </h1>
 
-      <div v-if="quota" class="flex items-center gap-6 mb-4 text-lg text-base-content/70">
-        <span
+      <div v-if="quota" class="flex flex-col md:flex-row items-start gap-6 mb-4 text-xl text-base-content/80">
+        <span class="px-3"
           >Storage
           <strong class="text-base-content"
             >{{ quota.uploadUsed }} / {{ quota.uploadMax }}</strong
           ></span
         >
-        <span
+        <span class="px-3"
           >Files
           <strong class="text-base-content"
             >{{ quota.fileCount }} / {{ quota.maxFiles }}</strong
           ></span
         >
-        <span
+        <span class="px-3"
           >Processing
           <strong class="text-base-content"
             >{{ quota.procUsed }} / {{ quota.procMax }}</strong
           ></span
         >
+        <button
+          class="btn btn-sm btn-ghost text-xl md:ml-auto"
+          :class="{ loading: checkingFiles }"
+          :disabled="checkingFiles"
+          @click="refreshFileStatus"
+          title="Check file processing status"
+        >
+          <SvgIcon v-if="!checkingFiles" type="refresh" class="w-[1.2em] h-[1.2em]" />
+          Refresh Status
+        </button>
       </div>
 
       <DatasetFilterBar
         :show-add-filter="true"
         :show-upload="true"
         search-placeholder="Search my datasets"
-        @filter-visibility="handleVisibilityFilter"
         @upload="handleUpload"
         @search="handleSearch"
         @filter-status="handleStatusFilter"

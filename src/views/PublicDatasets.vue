@@ -68,7 +68,7 @@ const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSi
 
       <DatasetFilterBar
         :show-add-filter="true"
-        search-placeholder="Search by name/sample/institution"
+        search-placeholder="Search Datasets"
         @search="handleSearch"
         @filter-status="handleStatusFilter"
         @apply-filters="handleApplyFilters"
