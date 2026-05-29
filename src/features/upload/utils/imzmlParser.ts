@@ -146,25 +146,38 @@ function parseIonSource(params: ImzMLParam[]): string | undefined {
 }
 
 function parseAnalyzer(params: ImzMLParam[]): string | undefined {
-  // 1) accession priority
-  for (const p of params) {
-    const acc = (p.accession || '').toUpperCase()
-    if (acc === 'MS:1000484') return 'Orbitrap'
-    if (acc === 'MS:1000079') return 'FTICR'
-    if (acc === 'MS:1000264') return 'TOF'
+  const norm = (s: string) =>
+    s.toLowerCase().replace(/-/g, ' ').replace(/\s+/g, ' ').trim()
+
+  const allText = params
+    .map((p) => norm(`${p.name || ''} ${p.value || ''}`))
+    .join(' ')
+
+  // 1) Specific instrument model text recognition
+  if (/\borbitrap\s+exploris\s+480\b/i.test(allText) || /\bexploris\s+480\b/i.test(allText)) return 'Orbitrap Exploris 480'
+  if (/\borbitrap\s+exploris\s+240\b/i.test(allText) || /\bexploris\s+240\b/i.test(allText)) return 'Orbitrap Exploris 240'
+  if (/\borbitrap\s+exploris\s+120\b/i.test(allText) || /\bexploris\s+120\b/i.test(allText)) return 'Orbitrap Exploris 120'
+  if (/\bq\s+exactive\s+hf\b/i.test(allText) || /\bq\s+exactive\s+orbitrap\s+hf\b/i.test(allText)) return 'Q Exactive HF'
+  if (/\bq\s+exactive\b/i.test(allText)) return 'Q Exactive'
+  if (/\btimstof\s+flex\b/i.test(allText)) return 'timsTOF fleX'
+
+  // 2) Accession mapping
+  const accMap: Record<string, string> = {
+    'MS:1000484': 'Orbitrap',
+    'MS:1000079': 'FTICR',
+    'MS:1000084': 'TOF',
   }
-  // 2) fallback: name or value contains explicit analyzer keywords (case-insensitive)
   for (const p of params) {
-    const txt = ((p.name || '') + ' ' + (p.value || '')).toString().toLowerCase()
-    if (txt.includes('orbitrap')) return 'Orbitrap'
-    if (txt.includes('fticr')) return 'FTICR'
-    if (txt.includes('time-of-flight') || txt.includes('time of flight')) return 'TOF'
+    const label = accMap[(p.accession || '').toUpperCase()]
+    if (label) return label
   }
-  // 3) final fallback: generic FTMS if present (only if no specific analyzer found)
-  for (const p of params) {
-    const txt = ((p.name || '') + ' ' + (p.value || '')).toString().toUpperCase()
-    if (txt.includes('FTMS')) return 'FTMS'
-  }
+
+  // 3) Generic text fallback
+  if (/\borbitrap\b/i.test(allText)) return 'Orbitrap'
+  if (/\bfticr\b/i.test(allText) || /\bft[\s-]?icr\b/i.test(allText) || /fourier\s+transform\s+ion\s+cyclotron\s+resonance/i.test(allText)) return 'FTICR'
+  if (/\btime[\s-]of[\s-]flight\b/i.test(allText) || /\btof\b/i.test(allText)) return 'TOF'
+  if (/\bftms\b/i.test(allText)) return 'FTMS'
+
   return undefined
 }
 
