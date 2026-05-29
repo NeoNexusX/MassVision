@@ -7,6 +7,7 @@ import { formatBytes } from '@/shared/utils/format'
 const props = defineProps<{
   dataset: File
   isMyDataset?: boolean
+  packing?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -59,8 +60,8 @@ const placeholderSvg = computed(() => {
         <h3
           class="text-xl md:text-2xl font-semibold text-base-content truncate cursor-pointer hover:text-primary dark:hover:text-indigo-400 transition-colors block"
           @click.stop="$emit('view-overview', dataset.name)"
-          :title="dataset.name"
-          :aria-label="`Dataset name: ${dataset.name}`"
+          :title="dataset.filename || dataset.name"
+          :aria-label="`Dataset name: ${dataset.filename || dataset.name}`"
         >
           {{ dataset.name }}
         </h3>
@@ -157,10 +158,12 @@ const placeholderSvg = computed(() => {
 
       <button
         class="flex items-center gap-2 text-sm font-medium text-base-content/80 hover:text-base-content transition-colors p-1 rounded"
+        :class="{ 'pointer-events-none opacity-60': packing }"
         @click.stop="$emit('download', dataset.id)"
       >
-        <SvgIcon type="download" class="w-4 h-4" />
-        <span>Download</span>
+        <span v-if="packing" class="loading loading-spinner loading-xs"></span>
+        <SvgIcon v-else type="download" class="w-4 h-4" />
+        <span>{{ packing ? 'Packing' : 'Download' }}</span>
       </button>
 
       <button

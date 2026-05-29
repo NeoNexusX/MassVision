@@ -61,7 +61,7 @@ const handleUpload = () => {
 const { quota, fetchQuota } = useUserQuota()
 
 // Download progress handler (shared via composable)
-const { handleDownload } = useDownloadProgress()
+const { handleDownload, packingIds } = useDownloadProgress()
 
 // Upload success: refresh list to get backend status
 const handleUploadSuccess = (_datasetName: string) => {
@@ -216,6 +216,7 @@ const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSi
           :pagination="pagination"
           :is-my-dataset="true"
           :deletingId="deletingId"
+          :packingIds="packingIds"
           @view-overview="viewOverview"
           @download="handleDownload"
           @delete="handleDelete"

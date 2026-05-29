@@ -1,5 +1,15 @@
 import type { File } from '@/features/datasets/types/dataset'
 
+const DISPLAY_EXTENSIONS = ['.zip', '.imzml', '.ibd', '.mzml', '.csv']
+
+function stripKnownExtension(filename: string): string {
+  const lower = filename.toLowerCase()
+  for (const ext of DISPLAY_EXTENSIONS) {
+    if (lower.endsWith(ext)) return filename.slice(0, -ext.length)
+  }
+  return filename
+}
+
 /**
  * Convert backend file item into frontend `File` shape.
  * Provides fallbacks for common backend key variants and preserves raw object.
@@ -8,7 +18,7 @@ export function mapItemToDataset(item: any, index = 0): File {
   return {
     id: String(item.file_id),
     // Display name without extension
-    name: (item.filename || `dataset-${index}`).replace(/\.[^.]+$/, ''),
+    name: stripKnownExtension(item.filename || `dataset-${index}`),
 
     // Raw / filename
     filename: item.filename || '',

@@ -24,6 +24,8 @@ export function useToast() {
     if (duration > 0) {
       setTimeout(() => removeToast(id), duration)
     }
+
+    return id
   }
 
   return { toasts, showToast, removeToast }

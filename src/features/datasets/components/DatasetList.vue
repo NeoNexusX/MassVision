@@ -13,6 +13,7 @@ const props = defineProps({
   pagination: { type: Array as PropType<(number | string)[]>, required: true },
   isMyDataset: { type: Boolean, required: false, default: false },
   deletingId: { type: String as PropType<string | null>, required: false, default: null },
+  packingIds: { type: Object as PropType<Set<string>>, required: false, default: () => new Set() },
 })
 
 const emit = defineEmits(['view-overview', 'download', 'delete', 'change-size', 'go-to-page'])
@@ -58,6 +59,7 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
         <DatasetCard
           :dataset="dataset"
           :is-my-dataset="isMyDataset"
+          :packing="packingIds.has(dataset.id)"
           @view-overview="$emit('view-overview', $event)"
           @download="$emit('download', $event)"
           @delete="$emit('delete', $event)"

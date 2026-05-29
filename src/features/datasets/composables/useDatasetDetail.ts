@@ -11,7 +11,7 @@ export function useDatasetDetail() {
   // External composables
   const route = useRoute()
   const router = useRouter()
-  const { handleDownload } = useDownloadProgress()
+  const { handleDownload, isPacking } = useDownloadProgress()
 
   // State
   const dataset = ref<File | null>(null)
@@ -118,6 +118,7 @@ export function useDatasetDetail() {
     copyHash,
     goBack,
     downloadCurrent,
+    isPacking,
     fetchDatasetDetails,
   }
 }

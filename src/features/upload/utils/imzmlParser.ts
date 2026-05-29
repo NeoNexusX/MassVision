@@ -109,26 +109,39 @@ function parsePolarity(params: ImzMLParam[]): 'positive' | 'negative' | undefine
 }
 
 function parseIonSource(params: ImzMLParam[]): string | undefined {
-  // 1) accession priority
-  for (const p of params) {
-    const acc = (p.accession || '').toUpperCase()
-    if (acc === 'MS:1000075') return 'MALDI'
-    if (acc === 'MS:1000485') return 'DESI'
-  }
-  // 2) fallback: name or value contains explicit phrases (case-insensitive)
-  const phrases = [
-    'matrix-assisted laser desorption ionization',
-    'desorption electrospray ionization',
+  const norm = (s: string) =>
+    s.toLowerCase().replace(/-/g, ' ').replace(/\s+/g, ' ').trim()
+
+  const allText = params
+    .map((p) => norm(`${p.name || ''} ${p.value || ''}`))
+    .join(' ')
+
+  // 1) Text-priority sources — no standard accession, rely on text
+  if (/\bap\s+smaldi\s*5\s+af\b/i.test(allText)) return 'AP-SMALDI5 AF'
+  if (/\bap\s+smaldi\b/i.test(allText)) return 'AP-SMALDI'
+  if (/\bir\s+maldesi\b/i.test(allText)) return 'IR-MALDESI'
+  if (/\bmaldi[\s-]+2\b/i.test(allText)) return 'MALDI-2'
+  if (/\bnano[\s-]+desi\b/i.test(allText)) return 'nano-DESI'
+  if (/\bsims\b/i.test(allText) || /secondary\s+ion\s+mass\s+spectrometry/i.test(allText)) return 'SIMS'
+  if (/\bldi\b/i.test(allText)) return 'LDI'
+
+  // 2) Accession-priority sources
+  const accPriority: [string, string][] = [
+    ['MS:1000239', 'AP-MALDI'],
+    ['MS:1002011', 'DESI'],
+    ['MS:1000405', 'SALDI'],
+    ['MS:1000075', 'MALDI'],
   ]
-  for (const p of params) {
-    const txt = ((p.name || '') + ' ' + (p.value || '')).toString().toLowerCase()
-    for (const ph of phrases) {
-      if (txt.includes(ph)) {
-        if (ph.startsWith('matrix-assisted')) return 'MALDI'
-        if (ph.startsWith('desorption electrospray')) return 'DESI'
-      }
-    }
+  for (const [acc, label] of accPriority) {
+    if (params.some((p) => (p.accession || '').toUpperCase() === acc)) return label
   }
+
+  // 3) Text fallback for accession-priority sources
+  if (/\bap\s+maldi\b/i.test(allText) || /atmospheric\s+pressure\s+matrix/i.test(allText)) return 'AP-MALDI'
+  if (/\bdesi\b/i.test(allText) || /desorption\s+electrospray/i.test(allText)) return 'DESI'
+  if (/\bsaldi\b/i.test(allText) || /surface.assisted\s+laser/i.test(allText)) return 'SALDI'
+  if (/\bmaldi\b/i.test(allText) || /matrix.assisted\s+laser/i.test(allText)) return 'MALDI'
+
   return undefined
 }
 
