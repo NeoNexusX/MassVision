@@ -53,7 +53,7 @@ const isOther = ref(false)
 watch(() => props.modelValue, (val) => {
   if (val === 'Other') {
     isOther.value = true
-  } else if (props.options.includes(val)) {
+  } else if (val === '' || props.options.includes(val)) {
     isOther.value = false
   }
 }, { immediate: true })

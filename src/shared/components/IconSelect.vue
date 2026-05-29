@@ -26,7 +26,7 @@
         @change="onChange"
         @focus="emit('focus')"
       >
-        <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>
+        <option v-if="placeholder" value="" :disabled="required">{{ placeholder }}</option>
         <option
           v-for="(value, label) in normalizedOptions"
           :key="label"

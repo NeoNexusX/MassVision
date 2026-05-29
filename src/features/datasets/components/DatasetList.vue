@@ -86,6 +86,7 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
           >
             <option :value="10">10</option>
             <option :value="20">20</option>
+            <option :value="1">1</option>
           </select>
         </div>
 
@@ -101,9 +102,6 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
           @next-page="() => onGoToPage(meta.current_page + 1)"
           @go-to-page="onGoToPage"
         >
-          <template #info>
-            <span class="hidden">-</span>
-          </template>
         </PaginationBar>
       </div>
     </div>

@@ -25,7 +25,7 @@
           </button>
           <teleport to="body">
             <div
-              v-if="showFilterPanel"
+              v-show="showFilterPanel"
               ref="filterPanelRef"
               :style="panelStyle"
               class="bg-base-100 dark:bg-slate-800 border border-base-300 rounded-lg p-5 shadow-2xl"
