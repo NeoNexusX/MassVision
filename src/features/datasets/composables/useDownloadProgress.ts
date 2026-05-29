@@ -14,6 +14,7 @@ export function useDownloadProgress() {
     options?: { getFallbackFilename?: () => string | undefined },
   ) => {
     if (!id) return
+    if (packingIds.has(id)) return
     packingIds.add(id)
     const toastId = showToast('Preparing download, please wait...', 'info', 0)
     try {

@@ -157,8 +157,8 @@ const placeholderSvg = computed(() => {
       </button>
 
       <button
-        class="flex items-center gap-2 text-sm font-medium text-base-content/80 hover:text-base-content transition-colors p-1 rounded"
-        :class="{ 'pointer-events-none opacity-60': packing }"
+        class="flex items-center gap-2 text-sm font-medium text-base-content/80 hover:text-base-content transition-colors p-1 rounded disabled:opacity-60 disabled:cursor-not-allowed"
+        :disabled="packing"
         @click.stop="$emit('download', dataset.id)"
       >
         <span v-if="packing" class="loading loading-spinner loading-xs"></span>
