@@ -1,5 +1,7 @@
 import { computed, reactive, ref } from 'vue'
 import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
+import { buildPageList } from '@/shared/utils/pagination'
+import { getConfig } from '@/shared/config/runtimeConfig'
 import type { File } from '@/features/datasets/types/dataset'
 
 type Fetcher = (filters: Record<string, any>, page: number, size: number) => Promise<any>
@@ -20,7 +22,7 @@ export function useDatasetList(
 
   const meta = reactive({ current_page: 1, current_records: 0, total_pages: 1, total_records: 0 })
   const page = ref<number>(1)
-  const size = ref<number>(10)
+  const size = ref<number>(getConfig().pagination.defaultPageSize)
 
   const filters = reactive({ ...defaultFilters })
 
@@ -28,42 +30,14 @@ export function useDatasetList(
   const sortDesc = ref<boolean>(initialDesc)
 
   // Computed
-  const pagination = computed<(number | string)[]>(() => {
-    const total = Number(meta.total_pages || 1)
-    const current = Number(meta.current_page || 1)
-    const pages: (number | string)[] = []
-    const maxButtons = 7
-
-    if (total <= maxButtons) {
-      for (let i = 1; i <= total; i++) pages.push(i)
-      return pages
-    }
-
-    pages.push(1)
-
-    let left = Math.max(current - 1, 2)
-    let right = Math.min(current + 1, total - 1)
-
-    if (current <= 3) {
-      left = 2
-      right = 4
-    }
-    if (current >= total - 2) {
-      left = total - 3
-      right = total - 1
-    }
-
-    if (left > 2) pages.push('...')
-    for (let i = left; i <= right; i++) pages.push(i)
-    if (right < total - 1) pages.push('...')
-
-    pages.push(total)
-    return pages
-  })
+  const pagination = computed<(number | string)[]>(() =>
+    buildPageList(meta.current_page, meta.total_pages),
+  )
 
   // Methods
+  // 返回排序后的新数组，不原地 mutate（handleSort 直接传入响应式 datasets，原地排序是副作用）
   const applyClientSort = (arr: File[]) => {
-    return arr.sort((a, b) => {
+    return [...arr].sort((a, b) => {
       if (currentSort.value === 'size_bytes') {
         const sa = a.sizeBytes || 0
         const sb = b.sizeBytes || 0
@@ -96,8 +70,8 @@ export function useDatasetList(
     const p = opts?.page ?? page.value
     const s = opts?.size ?? size.value
     try {
-      const resp = await fetcher(normalizeFilters(filters as Record<string, any>), p, s)
-      const data = resp.data || {}
+      // fetcher 现已返回解包后的响应体（{ data, meta }），不再是 axios response
+      const data = (await fetcher(normalizeFilters(filters as Record<string, any>), p, s)) || {}
 
       if (data.meta) {
         meta.current_page = data.meta.current_page || p

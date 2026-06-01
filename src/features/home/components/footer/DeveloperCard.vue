@@ -36,7 +36,7 @@ const initials = computed(() =>
   >
     <!-- 第一个子元素：可见卡片内容（daisyUI 对其做 3D 旋转/放大/高光）-->
     <div class="card-face card aspect-[3/4] w-full">
-      <div class="card-body items-center gap-4 text-center">
+      <div class="card-body items-center text-center">
         <!-- 头像区 -->
         <div class="flex items-center justify-center">
           <!-- daisyUI avatar；无图时用 avatar-placeholder 回退首字母 -->
@@ -71,9 +71,9 @@ const initials = computed(() =>
         <!-- 学校 -->
         <div
           v-if="member.school"
-          class="member-sub flex items-center justify-center gap-[0.4em] text-base-content/60"
+          class="member-sub flex items-center justify-center gap-[0.4em] text-base-content/60 "
         >
-          <SvgIcon type="institution" class="h-[1.2em] w-[1.2em] shrink-0" />
+          <SvgIcon type="institution" class="w-[1.5em] shrink-0" />
           <div class="truncate leading-none">{{ member.school }}</div>
         </div>
         <!-- 学位 -->
@@ -81,7 +81,7 @@ const initials = computed(() =>
           v-if="member.degree"
           class="member-meta flex items-center justify-center gap-[0.4em] text-base-content/80"
         >
-          <SvgIcon type="research" class="w-[1.2em] shrink-0 text-primary" />
+          <SvgIcon type="research" class="w-[1.5em] shrink-0 text-primary" />
           <div class="truncate leading-none">{{ member.degree }}</div>
         </div>
       </div>
@@ -110,7 +110,11 @@ const initials = computed(() =>
    百分比以 250px 满宽为基准取像素占比；clamp 的下限是窄卡的可读/观感底线，
    上限是满卡时的既有尺寸。卡片越窄，头像、字号、内边距一起按比例缩小，3:4 盒内不挤不溢。 */
 .card-body {
-  padding: clamp(0.75rem, 9.6cqi, 2rem); /* 原 p-6 = 24px */
+  padding: clamp(1rem, 9.6cqi, 2rem); /* 原 p-6 = 24px */
+  /* 内容在固定高度内垂直居中：上下留均衡空白，3 行/5 行都不贴边 */
+  justify-content: center;
+  /* 行间随卡片宽度等比缩放（原 gap-4 = 16px 固定，窄卡时占比过大把末行顶到底边）*/
+  gap: clamp(0.5rem, 5.6cqi, 1.5rem);
   /* 字号基准（= 14px 正文）：其余字号 = --fs × 比例，三段边界自动等比缩放 */
   --fs: clamp(0.7rem, 5.6cqi, 1rem);
 }
@@ -127,10 +131,10 @@ const initials = computed(() =>
 }
 .member-role,
 .member-meta {
-  font-size: calc(var(--fs) * 1.2); /* 14（基准） */
+  font-size: calc(var(--fs) * 1.4); /* 14（基准） */
 }
 .member-sub {
-  font-size: calc(var(--fs) * 1.2);
+  font-size: calc(var(--fs) * 1.4);
 }
 
 /* 无边卡片：纯 base 色填充，去掉金属边框 */

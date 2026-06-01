@@ -1,7 +1,8 @@
 {
   "appName": "MassFlow",
   "pagination": {
-    "defaultPageSize": 10
+    "defaultPageSize": 10,
+    "pageSizeOptions": [5,10, 20]
   },
   "verification": {
     "countdownSeconds": 60,

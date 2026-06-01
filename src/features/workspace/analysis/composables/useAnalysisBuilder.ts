@@ -3,9 +3,13 @@ import { useRouter } from 'vue-router'
 import {
   usePreprocessingMethods,
   allMethodGroups,
+  buildParamKey,
+  buildDefaultMethodParams,
 } from '@/features/workspace/analysis/composables/usePreprocessingMethods'
 import { createProcess, getUserQuota, type UserQuota } from '@/features/datasets/api/datasetApi'
 import { formatBytes } from '@/shared/utils/format'
+import { extractBackendError } from '@/shared/api/httpClient'
+import { useToast } from '@/shared/composables/useToast'
 import { buildProcessPayload } from '@/features/workspace/analysis/services/buildProcessPayload'
 
 export function useAnalysisBuilder(
@@ -14,6 +18,7 @@ export function useAnalysisBuilder(
 ) {
   // External composables
   const router = useRouter()
+  const { showToast } = useToast()
 
   // State
   const spectrumMode = ref('')
@@ -24,28 +29,8 @@ export function useAnalysisBuilder(
   )
 
   const selectedMethods = reactive<Record<string, string>>({})
-  const methodParams = reactive<Record<string, string | number>>({
-    'noise.savgol_numba.window': 5,
-    'noise.savgol_numba.polyorder': 3,
-    'noise.savgol_numba.deriv': 0,
-    'noise.savgol_numba.delta': 1.0,
-    'noise.gaussian_numba.window': 5,
-    'noise.gaussian_numba.sd': 2.0,
-    'noise.ma_numba.window': 5,
-    'norm.tic_numba.scale': 1.0,
-    'norm.rms_numba.scale': 1.0,
-    'norm.ref_numba.scale': 1.0,
-    'norm.ref_numba.ref': '',
-    'norm.ref_numba.ref_tolerance': 0.1,
-    'pick.diff.method': 'diff',
-    'pick.diff.snr': 2.0,
-    'pick.diff.return_type': 'height',
-    'pick.diff.width': 5,
-    'align.align_py.tolerance': 'none',
-    'align.align_py.units': 'ppm',
-    'align.align_py.binfun': 'median',
-    'align.align_py.binratio': 2.0,
-  })
+  // 默认参数由方法定义生成（单一数据源，见 buildDefaultMethodParams），不再在此硬编码
+  const methodParams = reactive(buildDefaultMethodParams())
 
   const analysisForm = reactive({
     polarity: '' as 'positive' | 'negative' | '',
@@ -163,10 +148,7 @@ export function useAnalysisBuilder(
     return `${quota.value.file_count} / ${quota.value.max_files_per_user}`
   })
 
-  // Methods
-  const buildParamKey = (groupKey: string, methodId: string, paramKey: string) =>
-    `${groupKey}.${methodId}.${paramKey}`
-
+  // Methods （buildParamKey 由 usePreprocessingMethods 导入，与默认值生成、载荷构建同源）
   const getParam = (groupKey: string, methodId: string, paramKey: string) =>
     methodParams[buildParamKey(groupKey, methodId, paramKey)]
 
@@ -285,12 +267,11 @@ export function useAnalysisBuilder(
         methodGroups: allMethodGroups,
         isPublic: isPublic.value,
       })
-      const result = await createProcess(payload)
-      console.log('Process created:', result)
+      await createProcess(payload)
+      showToast('Analysis started', 'success')
       router.push('/workspace')
-    } catch (error: any) {
-      console.error('Failed to create process:', error)
-      alert(error?.response?.data?.detail || error.message || 'Failed to start analysis')
+    } catch (error) {
+      showToast(extractBackendError(error) || 'Failed to start analysis', 'error')
     } finally {
       submitting.value = false
     }

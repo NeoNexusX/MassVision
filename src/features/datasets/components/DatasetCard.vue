@@ -92,6 +92,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { File } from '@/features/datasets/types/dataset'
+import type { IconType } from '@/shared/components/svgIcons'
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
 import { formatBytes } from '@/shared/utils/format'
 
@@ -126,7 +127,7 @@ const metaFields = computed(() => [
 
 interface ActionItem {
   id: string
-  icon?: string
+  icon?: IconType
   label: string
   colorClass: string
   spinner?: boolean

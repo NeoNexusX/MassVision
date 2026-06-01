@@ -72,6 +72,8 @@ export interface AppConfig {
   pagination: {
     /** 列表默认每页条数 */
     defaultPageSize: number
+    /** 「每页条数」下拉可选项 */
+    pageSizeOptions: number[]
   }
   /** 验证码 */
   verification: {

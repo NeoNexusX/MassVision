@@ -1,17 +1,14 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { prefersReducedMotion } from '@/shared/utils/motion'
 
 /**
  * 横向卡片轮播的滚动驱动逻辑 —— 从 DeveloperCarousel 抽出的纯交互层。
  *
- * 滑动走原生 CSS scroll-snap（GPU 合成）。滚动时每张卡片按其在可视区内的
- * 可见比例缩放 + 淡入淡出：出现的卡片从小变大、消失的卡片从大变小，仿佛从
- * 虚空中浮现/隐没。计算用布局偏移（offsetLeft/Width，不受 transform 影响，
- * 避免反馈），transform 作用在内层包裹元素上（不干扰 scroll-snap 几何）。
- * scroll/resize 经 passive + rAF 节流，仅写 transform/opacity，流畅不卡。
+ * 滑动走原生 CSS scroll-snap（GPU 合成）。卡片「随可见进度缩放 + 淡入淡出」的
+ * 「从虚空浮现/隐没」效果已下放到 CSS Scroll-Driven Animations（view() 时间线，
+ * 见组件 <style>），由滚动位置驱动、运行在合成层，无需 JS 逐帧计算。
+ * 故本文件只负责：端点状态（翻页按钮显隐）、响应式列数、自动逐张步进。
  *
- * 关键：整张卡片的 opacity 是「均匀」变化的，无法柔化容器边缘那条竖直硬裁切线，
- * 故再叠加轨道两侧的 mask 横向渐变（CSS），在「空间上」把边缘渐隐到透明，
+ * 容器边缘再叠加轨道两侧的 mask 横向渐变（CSS），在「空间上」把边缘渐隐到透明，
  * 让轮播容器的边界融入虚空、不再明显；到达两端时收起对应侧遮罩（首/末卡完整可见）。
  *
  * 返回值供模板绑定：trackRef 挂到轨道；atStart/atEnd 驱动翻页按钮显隐；
@@ -20,12 +17,6 @@ import { prefersReducedMotion } from '@/shared/utils/motion'
 
 // 容差，吸收 scroll-snap / 子像素取整带来的几像素偏移
 const EDGE = 10
-// 边缘卡片的最小缩放 / 最小不透明度（越小，卡片在边缘缩得越小、淡得越透 —— 从虚空浮现/隐没越明显）
-// 与轨道两侧 mask 渐变（见组件 <style>）配合：缩放营造「从虚空浮现/隐没」，mask 柔化容器边界
-const MIN_SCALE = 0.1
-const MIN_OPACITY = 0
-// 缩放缓动指数（>1：卡片一进入边缘虚空槽就更快地缩小，让大小变化更明显）
-const EDGE_EASE = 2
 
 // 卡片宽度区间（px）：列数取「使每张落在 MIN~MAX」的整数，单元格再均分铺满
 const MIN_CARD = 170
@@ -39,7 +30,11 @@ const GAP = 24
 // 视口封顶宽度（px）：MAX_COLS 张满宽卡片 + 其间距（超宽屏多出的成员只能靠滑动浏览）
 const TRACK_MAX = MAX_COLS * MAX_CARD + (MAX_COLS - 1) * GAP
 
-export function useCarouselScroll() {
+export function useCarouselScroll(options?: { interval?: number; endPause?: number }) {
+  /** 自动逐张步进的间隔（ms）：每隔多久平滑翻过一张卡，默认 2000；设 0 禁用 */
+  const interval = options?.interval ?? 2000
+  /** 滚到末尾后停留多久（ms）再平滑返回开头，默认 5000 */
+  const endPause = options?.endPause ?? 5000
   const trackRef = ref<HTMLElement | null>(null)
   const atStart = ref(true)
   const atEnd = ref(false)
@@ -48,6 +43,9 @@ export function useCarouselScroll() {
 
   let rafId = 0
   let ro: ResizeObserver | null = null
+
+  // 自动逐张步进的计时器；交互（hover/wheel/翻页）时清掉，离开后重启
+  let autoTimer: ReturnType<typeof setInterval> | null = null
 
   /** 翻页按钮端点状态：是否已滚到最左 / 最右 */
   const syncEdges = (el: HTMLElement) => {
@@ -69,75 +67,109 @@ export function useCarouselScroll() {
     cols.value = Math.min(c, MAX_COLS)
   }
 
-  /**
-   * 每张卡片随其在「不透明带」（视口去掉两侧虚空槽）内的可见比例缩放 / 淡入淡出，
-   * 与 mask 的空间渐隐同步 —— 边缩边溶入虚空。用布局偏移（offsetLeft/Width，不受
-   * transform 影响）计算以避免反馈；transform/opacity 只写在内层包裹上、不扰动 snap 几何。
-   */
-  const syncCardTransforms = (el: HTMLElement, cs: CSSStyleDeclaration) => {
-    const reduce = prefersReducedMotion()
-    const padL = parseFloat(cs.paddingLeft) || 0
-    const padR = parseFloat(cs.paddingRight) || 0
-    const bandLeft = el.scrollLeft + padL
-    const bandRight = el.scrollLeft + el.clientWidth - padR
-    for (const li of Array.from(el.children) as HTMLElement[]) {
-      const inner = li.firstElementChild as HTMLElement | null
-      if (!inner) continue
-      if (reduce) {
-        inner.style.transform = ''
-        inner.style.opacity = ''
-        continue
-      }
-      const itemLeft = li.offsetLeft
-      const itemRight = itemLeft + li.offsetWidth
-      const visible = Math.max(0, Math.min(itemRight, bandRight) - Math.max(itemLeft, bandLeft))
-      const f = li.offsetWidth ? Math.min(1, visible / li.offsetWidth) : 1
-      inner.style.transform = `scale(${(MIN_SCALE + (1 - MIN_SCALE) * f ** EDGE_EASE).toFixed(3)})`
-      inner.style.opacity = (MIN_OPACITY + (1 - MIN_OPACITY) * f).toFixed(3)
-    }
-  }
-
-  // scroll/resize 经 rAF 节流后调用：一次 getComputedStyle，依次同步端点 / 列数 / 卡片变换
-  const update = () => {
+  // rAF 节流的同步。滚动只需更新端点（翻页按钮显隐）；列数仅随尺寸变化（full=true），
+  // 不在滚动热路径重算 —— 省去每帧 getComputedStyle 触发的强制重排。
+  // 卡片缩放/淡入淡出已由 CSS view() 时间线在合成层处理，此处不再触碰 transform/opacity。
+  const sync = (full: boolean) => {
     const el = trackRef.value
     if (!el) return
-    const cs = getComputedStyle(el)
     syncEdges(el)
-    syncColumns(el, cs)
-    syncCardTransforms(el, cs)
+    if (full) syncColumns(el, getComputedStyle(el))
   }
-
-  const onScroll = () => {
+  const schedule = (full: boolean) => {
     if (rafId) return
     rafId = requestAnimationFrame(() => {
       rafId = 0
-      update()
+      sync(full)
     })
+  }
+  const onScroll = () => schedule(false)
+  const onResize = () => schedule(true)
+
+  /** 鼠标滚轮转为水平滚动：PC 端鼠标没有横向滑动手势，滚轮默认只做垂直滚动 */
+  const onWheel = (e: WheelEvent) => {
+    const el = trackRef.value
+    if (!el) return
+    const atLeftEdge = el.scrollLeft <= 0 && e.deltaY < 0
+    const atRightEdge = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1 && e.deltaY > 0
+    if (atLeftEdge || atRightEdge) return
+    e.preventDefault()
+    el.scrollBy({ left: e.deltaY, behavior: 'auto' })
+    startAutoScroll() // 滚轮交互期间复位计时（与 hover/翻页一致），停手 interval 后再自动续播
+  }
+
+  /**
+   * 自动逐张步进：每隔 interval 平滑翻过一张卡（靠 DOM 的 scroll-smooth + scroll-snap
+   * 自然吸附到下一张）。到末尾时本拍不翻、改回开头，并把下一拍延后 endPause —— 末尾停留。
+   * 全程只用一个 setInterval，无 rAF、无中间状态。
+   */
+  const autoStep = () => {
+    const el = trackRef.value
+    if (!el) return
+    // 卡片步长：首个 <li> 的 offsetWidth + 间距（响应式，实时准确）
+    const firstLi = el.firstElementChild as HTMLElement | null
+    const cardStep = firstLi ? firstLi.offsetWidth + GAP : MAX_CARD + GAP
+    const atTail = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1
+    if (atTail) {
+      el.scrollTo({ left: 0, behavior: 'smooth' })
+      startAutoScroll(endPause) // 回到开头后多停 endPause 再继续
+    } else {
+      el.scrollBy({ left: cardStep, behavior: 'smooth' })
+    }
+  }
+
+  const stopAutoScroll = () => {
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null }
+  }
+  /** （重新）启动自动步进；firstDelay 为首拍前的额外等待，用于末尾停留。每次调用先清掉旧计时，可安全重入。 */
+  const startAutoScroll = (firstDelay = 0) => {
+    if (interval <= 0) return
+    stopAutoScroll()
+    autoTimer = setTimeout(() => {
+      autoStep()
+      autoTimer = setInterval(autoStep, interval)
+    }, firstDelay + interval)
   }
 
   const scrollByPage = (dir: 1 | -1) => {
     const el = trackRef.value
     if (!el) return
     el.scrollBy({ left: dir * el.clientWidth * 0.9, behavior: 'smooth' })
+    startAutoScroll() // 手动翻页后重置计时，避免紧接着又自动翻
   }
 
+  // 交互期间暂停（hover/聚焦），离开后从当前位置重新计时步进
+  const onResume = () => startAutoScroll()
+
   onMounted(() => {
-    update()
+    sync(true)
     trackRef.value?.addEventListener('scroll', onScroll, { passive: true })
+    trackRef.value?.addEventListener('wheel', onWheel, { passive: false })
+    trackRef.value?.addEventListener('mouseenter', stopAutoScroll)
+    trackRef.value?.addEventListener('mouseleave', onResume)
+    trackRef.value?.addEventListener('focusin', stopAutoScroll)
+    trackRef.value?.addEventListener('focusout', onResume)
     // ResizeObserver 同时覆盖窗口缩放，以及场景因 content-visibility 首次布局
     if (typeof ResizeObserver !== 'undefined' && trackRef.value) {
-      ro = new ResizeObserver(onScroll)
+      ro = new ResizeObserver(onResize)
       ro.observe(trackRef.value)
     } else {
-      window.addEventListener('resize', onScroll, { passive: true })
+      window.addEventListener('resize', onResize, { passive: true })
     }
+    startAutoScroll()
   })
 
   onBeforeUnmount(() => {
     if (rafId) cancelAnimationFrame(rafId)
+    stopAutoScroll()
     trackRef.value?.removeEventListener('scroll', onScroll)
+    trackRef.value?.removeEventListener('wheel', onWheel)
+    trackRef.value?.removeEventListener('mouseenter', stopAutoScroll)
+    trackRef.value?.removeEventListener('mouseleave', onResume)
+    trackRef.value?.removeEventListener('focusin', stopAutoScroll)
+    trackRef.value?.removeEventListener('focusout', onResume)
     ro?.disconnect()
-    window.removeEventListener('resize', onScroll)
+    window.removeEventListener('resize', onResize)
   })
 
   return { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage }

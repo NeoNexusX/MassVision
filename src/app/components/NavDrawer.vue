@@ -58,6 +58,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { User } from '@/features/auth/types/auth'
+import type { IconType } from '@/shared/components/svgIcons'
 import { APP_NAME } from '@/shared/config/app'
 
 const props = defineProps<{
@@ -73,15 +74,15 @@ const ICON_WRAP_CLASS = 'w-8 h-8 flex justify-center items-center shrink-0'
 type LinkItem = {
   kind: 'link'
   to: string
-  icon: string
+  icon: IconType
   label: string
   closeOnClick?: boolean
 }
 type GroupItem = {
   kind: 'group'
-  icon: string
+  icon: IconType
   label: string
-  children: { to: string; icon: string; label: string }[]
+  children: { to: string; icon: IconType; label: string }[]
 }
 type Item = (LinkItem | GroupItem) & { show: boolean }
 

@@ -13,11 +13,11 @@ interface FastAPIError {
   type: string
 }
 
-// Response interceptor definition
-export function formatErrorMessage(detail: FastAPIError[] | string | any): string {
-  // Normalize various backend error shapes into a readable string.
-  // Accepts FastAPI-style arrays, objects with msg/message, or strings (possibly JSON).
-  const safeStringify = (o: any) => {
+// Normalize backend error shapes into a readable string.
+// Handles FastAPI validation arrays ([{ loc, msg, type }]), objects with msg/message,
+// and plain strings. Objects/arrays without a message fall back to a safe JSON dump.
+export function formatErrorMessage(detail: unknown): string {
+  const safeStringify = (o: unknown) => {
     try {
       return JSON.stringify(o)
     } catch {
@@ -25,37 +25,19 @@ export function formatErrorMessage(detail: FastAPIError[] | string | any): strin
     }
   }
 
-  let msg: any = detail ?? 'Unknown Error'
+  if (detail == null) return 'Unknown Error'
 
-  // If it's an array (FastAPI validation errors), pick first message
-  if (Array.isArray(msg)) {
-    const first = msg[0]
-    msg = first && (first.msg || first.message) ? first.msg || first.message : safeStringify(first)
-  } else if (msg && typeof msg === 'object') {
-    // If it's an object, prefer msg/message fields
-    msg = msg.msg || msg.message || safeStringify(msg)
-  } else {
-    msg = String(msg)
+  if (Array.isArray(detail)) {
+    const first = detail[0] as { msg?: string; message?: string } | undefined
+    return first?.msg || first?.message || safeStringify(detail) || 'Response Failed'
   }
 
-  // If msg is a JSON string, try parsing nested detail/msg
-  if (typeof msg === 'string' && (msg.trim().startsWith('{') || msg.trim().startsWith('['))) {
-    try {
-      const parsed = JSON.parse(msg)
-      const inner = parsed?.detail || parsed?.msg || parsed
-      if (Array.isArray(inner) && inner.length && inner[0].msg) {
-        msg = inner[0].msg
-      } else if (typeof inner === 'object' && inner.msg) {
-        msg = inner.msg
-      } else {
-        msg = String(inner)
-      }
-    } catch (e) {
-      // ignore parse errors
-    }
+  if (typeof detail === 'object') {
+    const obj = detail as { msg?: string; message?: string }
+    return obj.msg || obj.message || safeStringify(detail) || 'Response Failed'
   }
 
-  return String(msg || 'Response Failed')
+  return String(detail) || 'Response Failed'
 }
 
 const error_catch = (error: AxiosError<ErrorResponse>) => {

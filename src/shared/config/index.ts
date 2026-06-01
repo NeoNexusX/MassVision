@@ -7,11 +7,11 @@
  * - 其余              代码内部常量（存储键名、OSS 调优参数等，非人来配置）
  *
  * 用法：
- *   import { ENV, STORAGE_KEYS, APP_NAME } from '@/shared/config'
+ *   import { ENV, STORAGE_KEYS } from '@/shared/config'
+ *   import { APP_NAME } from '@/shared/config/app'          // 直接导入，避免触发模块级 getConfig()
  *   import { getConfig } from '@/shared/config/runtimeConfig'   // 读分页/验证码/选项等运行时配置
  */
 export { ENV } from './env'
-export { APP_NAME } from './app'
 export { STORAGE_KEYS, SESSION_KEYS } from './storageKeys'
 export { OSS_UPLOAD } from './defaults'
 export { loadConfig, getConfig } from './runtimeConfig'

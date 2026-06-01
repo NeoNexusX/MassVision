@@ -3,16 +3,17 @@ import DeveloperCard from './DeveloperCard.vue'
 import { getConfig } from '@/shared/config'
 import { useCarouselScroll } from '@/features/home/composables/useCarouselScroll'
 
-/** 团队成员来自运行时 config.json（bootstrap 已 await loadConfig，此处可安全读取）。 */
+const props = defineProps<{
+  /** 自动逐张步进的间隔（ms）：每隔多久平滑翻过一张卡；未传则用 composable 默认值，设 0 禁用 */
+  interval?: number
+  /** 滚到末尾后停留多久（ms）再返回开头；未传则用 composable 默认值 */
+  endPause?: number
+}>()
+
 const TEAM_MEMBERS = getConfig().team
 
-/**
- * 开发者横向轮播 —— 仅负责标记与样式；滚动驱动的端点/列数/卡片变换逻辑
- * 全部抽到 useCarouselScroll。卡片在边缘缩放淡出（JS）配合轨道两侧 mask
- * 横向渐变（CSS），令容器边界融入虚空、不出现硬裁切竖线。
- */
 const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage } =
-  useCarouselScroll()
+  useCarouselScroll({ interval: props.interval, endPause: props.endPause })
 </script>
 
 <template>
@@ -76,7 +77,7 @@ const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage }
    故容器边界不再可见、也不会出现硬裁切竖线。遮罩常驻、固定在容器视口、仅作用于水平方向。
    scroll-padding-inline 同取该宽度：吸附到首/末卡时其正好落在不透明区，完整呈现、绝不被裁。 */
 .dev-track {
-  --fade: clamp(2rem, 7%, var(--fade-max));
+  --fade: clamp(2rem, 10%, var(--fade-max));
   gap: var(--gap);
   padding-inline: var(--fade);
   scroll-padding-inline: var(--fade);
@@ -107,6 +108,31 @@ const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage }
   /* 作为容器，使卡片边框可用 cqi 随其宽度自适应 */
   container-type: inline-size;
   transform-origin: center center;
-  will-change: transform, opacity;
+}
+
+/* 卡片「从虚空缩放浮现 / 隐没」：用 CSS Scroll-Driven Animations 的 view() 时间线，
+   按卡片在轨道滚动视口内的「可见进度」驱动 —— 进入(entry)时由小变大、淡入；离开(exit)时反之；
+   完整可见(contain)区间维持原大小。运行在合成层、由滚动位置驱动，无需 JS 逐帧。
+   inset 取渐隐槽宽度 var(--fade)（与 mask、scroll-padding 同源），使缩放与 mask 的空间渐隐对齐。
+   仅在支持的浏览器启用；不支持者（如旧版 Safari）整段忽略 —— 卡片保持原样、仅靠 mask 柔化边缘（优雅降级）。 */
+@supports (animation-timeline: view()) {
+  .carousel-item {
+    animation: card-emerge linear both;
+    animation-timeline: view(inline var(--fade));
+    will-change: transform, opacity;
+  }
+  @keyframes card-emerge {
+    entry 0% { transform: scale(0.1); opacity: 0 }
+    entry 50% { transform: scale(0.325); opacity: 0.5 }
+    entry 100%,
+    exit 0% { transform: scale(1); opacity: 1 }
+    exit 50% { transform: scale(0.325); opacity: 0.5 }
+    exit 100% { transform: scale(0.1); opacity: 0 }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .carousel-item {
+      animation: none;
+    }
+  }
 }
 </style>

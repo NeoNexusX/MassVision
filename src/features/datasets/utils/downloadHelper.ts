@@ -8,8 +8,7 @@ export async function ossDownloadAndSave(
   options?: { getFallbackFilename?: () => string | undefined },
 ) {
   // Step 1: Get download metadata (JSON with oss_download_url, filename, etc.)
-  const metaRes = await getDownloadMetadata(fileId)
-  const meta = metaRes.data || metaRes
+  const meta = await getDownloadMetadata(fileId)
   const ossUrl: string | undefined = meta.oss_download_url
   const filename: string = meta.filename
     ? meta.filename.toLowerCase().endsWith('.zip')

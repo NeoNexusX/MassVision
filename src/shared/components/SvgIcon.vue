@@ -1,104 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import {
-  PaperClipIcon,
-  UserIcon,
-  UserCircleIcon,
-  ArrowRightEndOnRectangleIcon,
-  HomeIcon,
-  AcademicCapIcon,
-  BuildingLibraryIcon,
-  MapPinIcon,
-  GlobeAltIcon,
-  LinkIcon,
-  IdentificationIcon,
-  LockClosedIcon,
-  EnvelopeIcon,
-  KeyIcon,
-  QuestionMarkCircleIcon,
-  InformationCircleIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  XCircleIcon,
-  XMarkIcon,
-  MagnifyingGlassIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  ChevronRightIcon,
-  ArrowPathIcon,
-  ArrowLeftIcon,
-  PlusIcon,
-  ArrowUpTrayIcon,
-  ArrowDownTrayIcon,
-  ArrowTopRightOnSquareIcon,
-  TrashIcon,
-  DocumentDuplicateIcon,
-  CheckIcon,
-  BoltIcon,
-  SparklesIcon,
-  ScaleIcon,
-  CircleStackIcon,
-  QueueListIcon,
-  FolderIcon,
-  UsersIcon,
-  UserPlusIcon,
-  Bars3Icon,
-  SunIcon,
-  MoonIcon,
-  // chart/result and adjustments icons removed as unused for now
-} from '@heroicons/vue/24/outline'
+import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
+import { ICON_MAP, type IconType } from './svgIcons'
 
-const props = defineProps<{ type: string }>()
+const props = defineProps<{ type: IconType }>()
 
-const ICON_MAP: Record<string, any> = {
-  user: UserIcon,
-  'user-circle': UserCircleIcon,
-  signin: ArrowRightEndOnRectangleIcon,
-  link: LinkIcon,
-  home: HomeIcon,
-  research: AcademicCapIcon,
-  institution: BuildingLibraryIcon,
-  position: MapPinIcon,
-  region: GlobeAltIcon,
-  'id-card': IdentificationIcon,
-  password: LockClosedIcon,
-  email: EnvelopeIcon,
-  verify_code: KeyIcon,
-  // Toast / status
-  info: InformationCircleIcon,
-  success: CheckCircleIcon,
-  warning: ExclamationTriangleIcon,
-  error: XCircleIcon,
-  // Common UI
-  search: MagnifyingGlassIcon,
-  chevron_down: ChevronDownIcon,
-  chevron_up: ChevronUpIcon,
-  chevron_right: ChevronRightIcon,
-  plus: PlusIcon,
-  upload: ArrowUpTrayIcon,
-  download: ArrowDownTrayIcon,
-  refresh: ArrowPathIcon,
-  back: ArrowLeftIcon,
-  share: ArrowTopRightOnSquareIcon,
-  trash: TrashIcon,
-  duplicate: DocumentDuplicateIcon,
-  check: CheckIcon,
-  bolt: BoltIcon,
-  sparkles: SparklesIcon,
-  scale: ScaleIcon,
-  close: XMarkIcon,
-  circle_stack: CircleStackIcon,
-  queue_list: QueueListIcon,
-  folder: FolderIcon,
-  users: UsersIcon,
-  user_plus: UserPlusIcon,
-  bars3: Bars3Icon,
-  sun: SunIcon,
-  moon: MoonIcon,
-  'paper-clip': PaperClipIcon,
-}
-
-const IconComp = computed(() => ICON_MAP[props.type] || QuestionMarkCircleIcon)
+// 未命中（理论上被类型拦住，仅运行时兜底）回退为问号图标
+const IconComp = computed(() => ICON_MAP[props.type] ?? QuestionMarkCircleIcon)
 </script>
 
 <template>

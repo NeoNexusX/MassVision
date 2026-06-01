@@ -7,33 +7,10 @@ import { createPinia } from 'pinia'
 import SvgIcon from './shared/components/SvgIcon.vue'
 import { vReveal } from './shared/directives/reveal'
 import { loadConfig } from './shared/config/runtimeConfig'
-import { STORAGE_KEYS } from './shared/config/storageKeys'
+import { initTheme } from './shared/composables/useTheme'
 
-// Initialize theme: prefer saved value in localStorage, otherwise match system preference.
-;(function initTheme() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEYS.theme)
-    if (saved === 'light' || saved === 'dark') {
-      document.documentElement.setAttribute('data-theme', saved)
-      return
-    }
-    const prefersDark =
-      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light')
-
-    // If user hasn't saved a preference, listen to system changes and switch automatically
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = (e: MediaQueryListEvent) => {
-      if (!localStorage.getItem(STORAGE_KEYS.theme)) {
-        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light')
-      }
-    }
-    if (mq.addEventListener) mq.addEventListener('change', onChange)
-    else if (mq.addListener) mq.addListener(onChange)
-  } catch (e) {
-    // ignore
-  }
-})()
+// Apply theme before mounting to avoid a flash of the wrong theme (FOUC).
+initTheme()
 
 /**
  * 启动顺序很关键：必须先 await loadConfig() 拉到 config.json，再动态导入 App 与 router。
