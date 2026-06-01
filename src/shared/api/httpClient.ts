@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios'
+import { ENV, STORAGE_KEYS } from '@/shared/config'
 
 // Top-level Response body
 interface ErrorResponse {
@@ -74,11 +75,11 @@ const error_catch = (error: AxiosError<ErrorResponse>) => {
 }
 
 // Authenticated API
-const auth_api = axios.create({ baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:9000' })
+const auth_api = axios.create({ baseURL: ENV.apiBase })
 
 // Inject auth token
 auth_api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
+  const token = localStorage.getItem(STORAGE_KEYS.accessToken)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -88,7 +89,7 @@ auth_api.interceptors.request.use((config) => {
 auth_api.interceptors.response.use((response) => response, error_catch)
 
 // Public API
-const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:9000' })
+const api = axios.create({ baseURL: ENV.apiBase })
 
 // Public API response interceptor
 api.interceptors.response.use((response) => response, error_catch)

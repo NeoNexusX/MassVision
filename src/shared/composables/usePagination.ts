@@ -1,9 +1,10 @@
 import { computed, ref } from 'vue'
+import { getConfig } from '@/shared/config/runtimeConfig'
 
 export function usePagination(fetchFn: (page: number) => void) {
   // State
   const currentPage = ref(1)
-  const pageSize = ref(10)
+  const pageSize = ref<number>(getConfig().pagination.defaultPageSize)
   const totalItems = ref(0)
 
   // Computed

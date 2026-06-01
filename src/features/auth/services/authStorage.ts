@@ -1,4 +1,5 @@
 import CryptoJS from 'crypto-js'
+import { STORAGE_KEYS } from '@/shared/config'
 
 export const secureStorage = {
   hashPassword(password: string): string {
@@ -6,17 +7,17 @@ export const secureStorage = {
   },
 
   clearAuthData() {
-    window.localStorage.removeItem('access_token')
-    window.localStorage.removeItem('user_details')
+    window.localStorage.removeItem(STORAGE_KEYS.accessToken)
+    window.localStorage.removeItem(STORAGE_KEYS.userDetails)
   },
 
   // Store user details
   storeUserInfo(userInfo: any) {
-    localStorage.setItem('user_details', JSON.stringify(userInfo))
+    localStorage.setItem(STORAGE_KEYS.userDetails, JSON.stringify(userInfo))
   },
 
   // Retrieve Token
   getToken(): string | null {
-    return localStorage.getItem('access_token')
+    return localStorage.getItem(STORAGE_KEYS.accessToken)
   },
 }

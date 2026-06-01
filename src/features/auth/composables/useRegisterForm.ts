@@ -6,6 +6,8 @@ import type { UsrSignup } from '@/features/auth/types/auth'
 import { useToast } from '@/shared/composables/useToast'
 import { positionOptions, researchFieldOptions } from '@/shared/constants/profileOptions'
 import { getRegionOptions } from '@/shared/utils/regionOptions'
+import { SESSION_KEYS } from '@/shared/config'
+import { getConfig } from '@/shared/config/runtimeConfig'
 
 const regionOptions = getRegionOptions()
 
@@ -113,7 +115,11 @@ export function useRegisterForm() {
     isActive: isCountdownActive,
     isExhausted,
     start: startCountdown,
-  } = useCountdown(60, 'register_code_attempts', Number(import.meta.env.APP_MAXATTEMPTS) || 10)
+  } = useCountdown(
+    getConfig().verification.countdownSeconds,
+    SESSION_KEYS.registerCodeAttempts,
+    getConfig().verification.maxAttempts,
+  )
 
   // State
   const form = reactive({

@@ -18,7 +18,8 @@ import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import NavDrawer from './NavDrawer.vue'
 import NavFab from './NavFab.vue'
-import FloatingAIAssistant from '@/app/components/FloatingAIAssistant.vue'
+import FloatingAIAssistant from '@/features/assistant/components/FloatingAIAssistant.vue'
+import { STORAGE_KEYS } from '@/shared/config'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -32,7 +33,7 @@ const toggleTheme = () => {
   isDark.value = !isDark.value
   const theme = isDark.value ? 'dark' : 'light'
   document.documentElement.setAttribute('data-theme', theme)
-  localStorage.setItem('theme', theme)
+  localStorage.setItem(STORAGE_KEYS.theme, theme)
 }
 
 const logout = async () => {
@@ -42,7 +43,7 @@ const logout = async () => {
 
 onMounted(() => {
   const savedTheme =
-    localStorage.getItem('theme') ||
+    localStorage.getItem(STORAGE_KEYS.theme) ||
     (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
   isDark.value = savedTheme === 'dark'
   document.documentElement.setAttribute('data-theme', savedTheme)

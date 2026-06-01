@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { auth_api } from '@/shared/api/httpClient'
 import { secureStorage } from '@/features/auth/services/authStorage'
 import { logoutApi } from '@/features/auth/api/authApi'
+import { STORAGE_KEYS } from '@/shared/config'
 
 interface User {
   username: string
@@ -40,7 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!accessToken) return
     token.value = accessToken
     // Update local storage
-    localStorage.setItem('access_token', accessToken)
+    localStorage.setItem(STORAGE_KEYS.accessToken, accessToken)
 
     // Fetch user immediately to update UI
     await fetchUser()

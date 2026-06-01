@@ -8,6 +8,8 @@ import { useCountdown } from '@/shared/composables/useCountdown'
 import { useUserQuota } from '@/shared/composables/useUserQuota'
 import { positionOptions } from '@/shared/constants/profileOptions'
 import { getRegionOptions } from '@/shared/utils/regionOptions'
+import { SESSION_KEYS } from '@/shared/config'
+import { getConfig } from '@/shared/config/runtimeConfig'
 import type { UsrProfileUpdate } from '@/features/auth/types/auth'
 
 const regionOptions = getRegionOptions()
@@ -23,7 +25,11 @@ export function useUserProfileForm() {
     isActive: isCooldownActive,
     start: startCodeCooldown,
     stop: stopCodeCooldown,
-  } = useCountdown(60, 'profile_email_code', 10)
+  } = useCountdown(
+    getConfig().verification.countdownSeconds,
+    SESSION_KEYS.profileEmailCode,
+    getConfig().verification.maxAttempts,
+  )
 
   // State
   const loading = ref(false)

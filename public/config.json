@@ -1,0 +1,207 @@
+{
+  "appName": "MassFlow",
+  "pagination": {
+    "defaultPageSize": 10
+  },
+  "verification": {
+    "countdownSeconds": 60,
+    "maxAttempts": 10
+  },
+  "joinLinks": {
+    "student": "https://bionet.xmu.edu.cn/",
+    "openSource": "https://github.com/NeoNexusX/MassFlow"
+  },
+  "team": [
+        {
+      "name": "Jiyang Dong",
+      "role": "Project Sponsor",
+      "degree": "Professor",
+      "school": "Xiamen University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780303224964.jpg",
+      "homepage": "https://ese.xmu.edu.cn/info/1071/1735.htm"
+    },
+    {
+      "name": "Lei Guo",
+      "role": "Project Sponsor",
+      "degree": "Associate Professor",
+      "school": "Fuzhou University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780300337455.jpg",
+      "homepage": "https://iime.fzu.edu.cn/info/1038/1481.htm"
+    },
+    {
+      "name": "Zeyu Zhu",
+      "role": "Project Lead",
+      "degree": "Ph.D. Student",
+      "school": "Xiamen University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Asuka.jpg",
+      "homepage": "https://neonexusx.github.io/"
+    },
+    {
+      "name": "Yongkun Lin",
+      "role": "Frontend Engineer",
+      "degree": "M.Sc. Student",
+      "school": "Xiamen University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780209856433_888.jpg",
+      "homepage": "https://bionet.xmu.edu.cn/info/1073/2600.htm"
+    },
+    {
+      "name": "Qiurong Xiong",
+      "role": "Backend Engineer",
+      "degree": "M.Sc. Student",
+      "school": "ECUT",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780299201986_41.jpeg",
+      "homepage": "https://bionet.xmu.edu.cn/info/1073/2630.htm"
+    },
+    {
+      "name": "Leqiang Dong",
+      "role": "Algorithm Engineer",
+      "degree": "M.Sc. Student",
+      "school": "Xiamen University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780299557207_374.jpg",
+      "homepage": "https://dil666555.github.io/"
+    },
+    {
+      "name": "Xun Zhong",
+      "role": "Backend Engineer",
+      "degree": "B.Sc.",
+      "school": "Xiamen University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780299787497.jpg",
+      "homepage": "https://b23.tv/ih7QjCW"
+    }
+  ],
+  "options": {
+    "position": [
+      "Researcher",
+      "Postdoctoral Researcher",
+      "Research Assistant",
+      "Research Engineer",
+      "Senior Researcher",
+      "Professor",
+      "Associate Professor",
+      "Lecture",
+      "PhD Student",
+      "Master's Student"
+    ],
+    "researchField": [
+      "Chemistry",
+      "Biology",
+      "Medicine",
+      "Pharmaceutical Science",
+      "Biomedical Engineering",
+      "Materials Science",
+      "Analytical Chemistry",
+      "Biotechnology",
+      "Environmental Science",
+      "Food Science",
+      "Other"
+    ],
+    "experimentType": ["imzML", "Other"],
+    "organism": [
+      "Human (Homo sapiens)",
+      "Mouse (Mus musculus)",
+      "Rat (Rattus norvegicus)",
+      "Zebrafish (Danio rerio)",
+      "Fruit fly (Drosophila melanogaster)",
+      "Arabidopsis (Arabidopsis thaliana)",
+      "E. coli",
+      "Yeast (Saccharomyces cerevisiae)",
+      "Other"
+    ],
+    "organismPart": [
+      "Brain",
+      "Heart",
+      "Liver",
+      "Lung",
+      "Kidney",
+      "Intestine",
+      "Stomach",
+      "Skin",
+      "Blood",
+      "Tumor",
+      "Muscle",
+      "Bone",
+      "Whole organism",
+      "Other"
+    ],
+    "condition": [
+      "Healthy / Control",
+      "Disease",
+      "Cancer",
+      "Treated",
+      "Untreated",
+      "Drug-treated",
+      "Infection",
+      "Genetic modification",
+      "Time-course",
+      "Other"
+    ],
+    "sampleGrowthCondition": [
+      "In vivo",
+      "In vitro",
+      "Cell culture",
+      "2D culture",
+      "3D culture",
+      "Organoid",
+      "Temperature controlled",
+      "Hypoxia",
+      "Serum-free",
+      "Other"
+    ],
+    "sampleStabilization": [
+      "Fresh",
+      "Fresh frozen",
+      "Snap frozen",
+      "FFPE (Formalin-fixed paraffin-embedded)",
+      "Fixed (formalin)",
+      "Ethanol fixed",
+      "Dried",
+      "Other"
+    ],
+    "tissueModification": [
+      "None",
+      "Sectioned",
+      "Cryosectioned",
+      "Microdissected",
+      "Washed",
+      "Digested",
+      "Stained",
+      "Enzymatic treatment",
+      "Chemical derivatization",
+      "Other"
+    ],
+    "maldiMatrix": [
+      "CHCA (α-Cyano-4-hydroxycinnamic acid)",
+      "DHB (2,5-Dihydroxybenzoic acid)",
+      "Sinapinic acid",
+      "9-AA (9-Aminoacridine)",
+      "Norharmane",
+      "DAN (1,5-Diaminonaphthalene)",
+      "Ionic liquid matrices",
+      "Gold nanoparticle",
+      "Silver nanoparticle",
+      "Other"
+    ],
+    "maldiMatrixApplication": [
+      "Spraying",
+      "Airbrush",
+      "Automated sprayer",
+      "Sublimation",
+      "Spotting",
+      "Droplet deposition",
+      "Inkjet printing",
+      "Other"
+    ],
+    "solvent": [
+      "Water",
+      "Acetonitrile (ACN)",
+      "Methanol (MeOH)",
+      "Ethanol",
+      "Isopropanol (IPA)",
+      "Acetone",
+      "Formic acid",
+      "Trifluoroacetic acid (TFA)",
+      "Ammonium hydroxide",
+      "Other"
+    ]
+  }
+}
