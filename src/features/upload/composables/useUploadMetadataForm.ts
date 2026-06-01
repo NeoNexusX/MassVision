@@ -23,22 +23,6 @@ export interface UploadMetadataFormState {
   is_public: boolean
 }
 
-export type UploadMetadataOtherInputs = Record<
-  | 'experiment_type'
-  | 'ionisation_source'
-  | 'analyzer'
-  | 'organism'
-  | 'organism_part'
-  | 'condition'
-  | 'sample_growth_conditions'
-  | 'sample_stabilization'
-  | 'tissue_modification'
-  | 'maldi_matrix'
-  | 'maldi_matrix_application'
-  | 'solvent',
-  string
->
-
 interface RequiredField {
   key: keyof UploadMetadataFormState
   label: string
@@ -84,32 +68,13 @@ function createForm(): UploadMetadataFormState {
   }
 }
 
-function createOtherInputs(): UploadMetadataOtherInputs {
-  return {
-    experiment_type: '',
-    ionisation_source: '',
-    analyzer: '',
-    organism: '',
-    organism_part: '',
-    condition: '',
-    sample_growth_conditions: '',
-    sample_stabilization: '',
-    tissue_modification: '',
-    maldi_matrix: '',
-    maldi_matrix_application: '',
-    solvent: '',
-  }
-}
-
 export function useUploadMetadataForm() {
   // State
   const form = ref(createForm())
-  const otherInputs = ref(createOtherInputs())
 
   // Methods
   const resetForm = () => {
     Object.assign(form.value, createForm())
-    Object.assign(otherInputs.value, createOtherInputs())
   }
 
   const resetParsedFields = () => {
@@ -151,10 +116,7 @@ export function useUploadMetadataForm() {
       if (!value || (typeof value === 'string' && !value.trim())) {
         return `${field.label} is required.`
       }
-      if (
-        value === 'Other' &&
-        !otherInputs.value[field.key as keyof UploadMetadataOtherInputs]?.trim()
-      ) {
+      if (value === 'Other') {
         return `Please specify custom value for ${field.label}.`
       }
     }
@@ -166,8 +128,7 @@ export function useUploadMetadataForm() {
     Object.keys(form.value).forEach((key) => {
       const formKey = key as keyof UploadMetadataFormState
       const value = form.value[formKey]
-      payload[formKey] =
-        value === 'Other' ? otherInputs.value[formKey as keyof UploadMetadataOtherInputs] : value
+      payload[formKey] = value
     })
 
     payload.pixel_size_horizontal = Number(payload.pixel_size_horizontal)
@@ -187,7 +148,6 @@ export function useUploadMetadataForm() {
 
   return {
     form,
-    otherInputs,
     resetForm,
     resetParsedFields,
     applyParsedSettings,

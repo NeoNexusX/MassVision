@@ -1,22 +1,40 @@
 import CryptoJS from 'crypto-js'
+import { STORAGE_KEYS } from '@/shared/config'
 
-export const secureStorage = {
+/**
+ * 鉴权相关的本地存储出入口（token / 用户信息）。
+ *
+ * 这是 token 读写的**唯一抽象层**：authStore、路由守卫等都应通过它存取，
+ * 不要再各自直接 `localStorage.getItem/setItem(STORAGE_KEYS.accessToken)`。
+ * 如此将来要换成 cookie / sessionStorage / 内存态，只需改本文件一处。
+ *
+ * 注意：token 与用户信息是**明文**存放（仅密码经 SHA256 哈希后再发往后端），
+ * 并非加密存储——故不要据此假定 token 在本地是安全的。
+ */
+export const authStorage = {
+  /** 密码哈希（发往后端前用，避免明文传输） */
   hashPassword(password: string): string {
     return CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex)
   },
 
-  clearAuthData() {
-    window.localStorage.removeItem('access_token')
-    window.localStorage.removeItem('user_details')
+  /** 写入 access token —— 登录成功后唯一的写入入口 */
+  setToken(token: string) {
+    localStorage.setItem(STORAGE_KEYS.accessToken, token)
   },
 
-  // Store user details
-  storeUserInfo(userInfo: any) {
-    localStorage.setItem('user_details', JSON.stringify(userInfo))
-  },
-
-  // Retrieve Token
+  /** 读取 access token */
   getToken(): string | null {
-    return localStorage.getItem('access_token')
+    return localStorage.getItem(STORAGE_KEYS.accessToken)
+  },
+
+  /** 存储用户信息 */
+  storeUserInfo(userInfo: unknown) {
+    localStorage.setItem(STORAGE_KEYS.userDetails, JSON.stringify(userInfo))
+  },
+
+  /** 清除全部鉴权数据（登出 / token 失效时调用） */
+  clearAuthData() {
+    localStorage.removeItem(STORAGE_KEYS.accessToken)
+    localStorage.removeItem(STORAGE_KEYS.userDetails)
   },
 }

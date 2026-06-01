@@ -18,22 +18,18 @@ import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import NavDrawer from './NavDrawer.vue'
 import NavFab from './NavFab.vue'
-import FloatingAIAssistant from '@/app/components/FloatingAIAssistant.vue'
+import FloatingAIAssistant from '@/features/assistant/components/FloatingAIAssistant.vue'
+import { useTheme } from '@/shared/composables/useTheme'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const { user } = storeToRefs(authStore)
 
-const sidebarOpen = ref(false)
-const isDark = ref(false)
-const showAI = ref(false)
+// 主题来自全站单例（已在 main.ts initTheme 初始化），切换即全局同步
+const { isDark, toggleTheme } = useTheme()
 
-const toggleTheme = () => {
-  isDark.value = !isDark.value
-  const theme = isDark.value ? 'dark' : 'light'
-  document.documentElement.setAttribute('data-theme', theme)
-  localStorage.setItem('theme', theme)
-}
+const sidebarOpen = ref(false)
+const showAI = ref(false)
 
 const logout = async () => {
   await authStore.logout()
@@ -41,12 +37,6 @@ const logout = async () => {
 }
 
 onMounted(() => {
-  const savedTheme =
-    localStorage.getItem('theme') ||
-    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-  isDark.value = savedTheme === 'dark'
-  document.documentElement.setAttribute('data-theme', savedTheme)
-
   if (!user.value) {
     authStore.fetchUser().catch(() => {})
   }

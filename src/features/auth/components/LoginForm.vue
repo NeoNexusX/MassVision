@@ -49,8 +49,8 @@ const emit = defineEmits<{
     </div>
 
     <div class="text-center">
-      <span class="text-sm opacity-75">New to {{ APP_NAME }}? </span>
-      <router-link to="/register" class="link link-hover text-primary text-sm font-semibold">
+      <span class="text-[1rem]">New to {{ APP_NAME }} ?</span>
+      <router-link to="/register" class="link link-hover text-secondary text-[1rem] font-semibold">
         Create an account
       </router-link>
     </div>

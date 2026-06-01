@@ -57,6 +57,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { User } from '@/features/auth/types/auth'
+import type { IconType } from '@/shared/components/svgIcons'
 
 const props = defineProps<{
   user: User | null
@@ -79,7 +80,7 @@ type FabAction =
   | { kind: 'theme' }
   | {
       kind: 'btn'
-      icon: string
+      icon: IconType
       iconClass: string
       onClick: () => void
       title: string

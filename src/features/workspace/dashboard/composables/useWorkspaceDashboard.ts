@@ -65,10 +65,14 @@ export function useWorkspaceDashboard() {
   async function fetchProcesses() {
     loading.value = true
     try {
-      const [procData, filesRes] = await Promise.all([listMyProcesses(), listUserFiles({}, 1, 100)])
+      const [procData, filesBody] = await Promise.all([
+        listMyProcesses(),
+        listUserFiles({}, 1, 100),
+      ])
       processes.value = procData
       const nameMap: Record<number, string> = {}
-      for (const f of filesRes.data || filesRes) {
+      const files = Array.isArray(filesBody?.data) ? filesBody.data : []
+      for (const f of files) {
         nameMap[f.file_id || f.id] = (f.filename || f.name || '').replace(/\.[^.]+$/, '')
       }
       fileNames.value = nameMap

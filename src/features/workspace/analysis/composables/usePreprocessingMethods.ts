@@ -221,6 +221,7 @@ export const allMethodGroups: MethodGroup[] = [
             key: 'tolerance',
             label: 'Tolerance',
             type: 'text',
+            default: 'none',
             hint: 'Positive number or empty=auto',
           },
           {
@@ -251,6 +252,28 @@ export const allMethodGroups: MethodGroup[] = [
     ],
   },
 ]
+
+/** 参数的扁平键：`组.方法.参数`，方法参数表与运行时表单/载荷共用同一拼法 */
+export function buildParamKey(groupKey: string, methodId: string, paramKey: string): string {
+  return `${groupKey}.${methodId}.${paramKey}`
+}
+
+/**
+ * 由方法定义（{@link allMethodGroups} 中每个参数的 `default`）生成默认参数表。
+ * 这样默认值只在方法定义处维护一次——新增方法/参数无需再到别处同步硬编码。
+ * 无 `default` 的参数（如可选的 text 字段）回退为空串，与后端「空=自动」语义一致。
+ */
+export function buildDefaultMethodParams(): Record<string, string | number> {
+  const params: Record<string, string | number> = {}
+  for (const group of allMethodGroups) {
+    for (const method of group.methods) {
+      for (const param of method.params ?? []) {
+        params[buildParamKey(group.key, method.id, param.key)] = param.default ?? ''
+      }
+    }
+  }
+  return params
+}
 
 const methodRulesByMode: Record<string, string[]> = {
   profile_continuous: ['noise', 'baseline', 'norm', 'pick', 'align'],

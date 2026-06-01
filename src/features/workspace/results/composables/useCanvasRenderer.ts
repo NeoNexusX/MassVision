@@ -10,9 +10,7 @@ interface CanvasRendererOptions {
   intensityScale: Ref<string>
   displayMin: Ref<number | undefined>
   displayMax: Ref<number | undefined>
-  zoom: Ref<number>
-  panX: Ref<number>
-  panY: Ref<number>
+  // 注：zoom / pan 由组件侧用 CSS transform 作用在 <canvas> 元素上，渲染器不参与，故不在此声明
   overlayData: Ref<Uint8ClampedArray | null>
   overlayWidth: Ref<number>
   overlayHeight: Ref<number>

@@ -93,21 +93,17 @@ async function loadData() {
   try {
     const zarrPath = props.zarrPath ?? '/ion_image_output.zarr'
     const zarrUrl = new URL(zarrPath, window.location.origin).href
-    console.log('[AverageSpectrum] Opening store at:', zarrUrl)
 
     const store = new FetchStore(zarrUrl)
     const root = await open(store, { kind: 'group' })
-    console.log('[AverageSpectrum] Root group opened')
 
     const mzArray = await open(root.resolve('mz_axis'), { kind: 'array' })
     const ionArray = await open(root.resolve('ion_images'), { kind: 'array' })
-    console.log('[AverageSpectrum] Arrays opened, shapes:', mzArray.shape, ionArray.shape)
 
     const mzChunk = await get(mzArray)
     const mzData = mzChunk.data as Float64Array
     const totalMz = mzData.length
     nMz.value = totalMz
-    console.log('[AverageSpectrum] m/z axis loaded, count:', totalMz)
 
     const chunkSize = 16
     const meanSpectrum = new Float64Array(totalMz)
@@ -129,8 +125,6 @@ async function loadData() {
       progress.value = Math.round((end / totalMz) * 100)
     }
 
-    console.log('[AverageSpectrum] Mean spectrum computed')
-
     const chartData: [number, number][] = []
     for (let i = 0; i < totalMz; i++) {
       chartData.push([mzData[i]!, meanSpectrum[i]!])
@@ -139,7 +133,6 @@ async function loadData() {
     loading.value = false
     await nextTick()
     renderChart(chartData)
-    console.log('[AverageSpectrum] Chart rendered')
   } catch (e) {
     console.error('[AverageSpectrum] Error:', e)
     loading.value = false
@@ -153,13 +146,6 @@ function renderChart(data: [number, number][]) {
     console.warn('[AverageSpectrum] No chart container')
     return
   }
-
-  console.log(
-    '[AverageSpectrum] Container size:',
-    container.clientWidth,
-    'x',
-    container.clientHeight,
-  )
 
   chartInstance?.dispose()
   chartInstance = echarts.init(container)
@@ -259,7 +245,6 @@ function renderChart(data: [number, number][]) {
 }
 
 onMounted(() => {
-  console.log('[AverageSpectrum] Mounted')
   loadData()
 })
 

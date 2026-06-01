@@ -1,3 +1,5 @@
+import { buildParamKey } from '@/features/workspace/analysis/composables/usePreprocessingMethods'
+
 interface BuildProcessPayloadOptions {
   selectedDataset: any
   selectedMethods: Record<string, string>
@@ -12,10 +14,6 @@ const BACKEND_ALGORITHM_KEYS: Record<string, string> = {
   norm: 'normalization',
   pick: 'peak_pick',
   align: 'peak_align',
-}
-
-function buildParamKey(groupKey: string, methodId: string, paramKey: string) {
-  return `${groupKey}.${methodId}.${paramKey}`
 }
 
 export function buildProcessPayload(options: BuildProcessPayloadOptions) {

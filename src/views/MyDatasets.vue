@@ -1,3 +1,94 @@
+<template>
+  <div class="min-h-screen bg-base-200 p-4 md:p-8">
+    <div class="max-w-[1680px] mx-auto">
+      <h1 class="text-[3em] font-bold text-base-content mb-6 px-3">
+        My Datasets
+      </h1>
+
+      <div v-if="quota" class="flex flex-col md:flex-row items-start md:items-center gap-6 mb-4 text-xl text-base-content/80">
+        <span class="px-3"
+          >Storage
+          <strong class="text-base-content"
+            >{{ quota.uploadUsed }} / {{ quota.uploadMax }}</strong
+          ></span
+        >
+        <span class="px-3"
+          >Files
+          <strong class="text-base-content"
+            >{{ quota.fileCount }} / {{ quota.maxFiles }}</strong
+          ></span
+        >
+        <span class="px-3"
+          >Processing
+          <strong class="text-base-content"
+            >{{ quota.procUsed }} / {{ quota.procMax }}</strong
+          ></span
+        >
+        <button
+          class="btn btn-ghost text-[1em] md:ml-auto"
+          :class="{ loading: checkingFiles }"
+          :disabled="checkingFiles"
+          @click="refreshFileStatus"
+          title="Check file processing status"
+        >
+          <SvgIcon v-if="!checkingFiles" type="refresh" class="w-[1.2em] h-[1.2em]" />
+          Refresh Status
+        </button>
+      </div>
+
+      <DatasetFilterBar
+        :show-add-filter="true"
+        :show-upload="true"
+        search-placeholder="Search my datasets"
+        @upload="handleUpload"
+        @search="handleSearch"
+        @filter-status="handleStatusFilter"
+        @apply-filters="handleApplyFilters"
+        @sort="handleSort"
+      />
+
+      <UploadModal
+        :is-open="isUploadOpen"
+        @close="isUploadOpen = false"
+        @upload-success="handleUploadSuccess"
+      />
+
+      <!-- Delete Confirmation Modal -->
+      <ConfirmDialog
+        :open="isDeleteModalOpen"
+        title="Delete Dataset"
+        message="Are you sure you want to delete this dataset? This action cannot be undone."
+        confirm-label="Delete"
+        :danger="true"
+        @confirm="confirmDelete"
+        @cancel="cancelDelete"
+      />
+
+      <div>
+        <DatasetList
+          :datasets="datasets"
+          :loading="loading"
+          :error="error"
+          :meta="meta"
+          :size="size"
+          :pagination="pagination"
+          :is-my-dataset="true"
+          :deletingId="deletingId"
+          @view-overview="viewOverview"
+          @download="handleDownload"
+          @delete="handleDelete"
+          @change-size="changeSize"
+          @go-to-page="goToPage"
+        >
+          <template #empty> You have no datasets yet matching your filters. </template>
+        </DatasetList>
+      </div>
+
+    </div>
+  </div>
+</template>
+
+
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -49,9 +140,6 @@ const auth = useAuthStore()
 // `handleSort` is provided by the composable and used directly in the template.
 
 // UI handlers used by the filter bar and cards
-const handleVisibilityFilter = () => {
-  /* placeholder: could toggle between My/Public */
-}
 const isUploadOpen = ref(false)
 const handleUpload = () => {
   isUploadOpen.value = true
@@ -139,99 +227,9 @@ const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSi
   })
 </script>
 
-<template>
-  <div class="min-h-screen bg-base-200 p-4 md:p-8">
-    <div class="max-w-[1680px] mx-auto">
-      <h1 class="text-4xl font-bold text-base-content mb-6">
-        My Datasets
-        <button
-          class="btn btn-sm btn-ghost text-lg"
-          :class="{ loading: checkingFiles }"
-          :disabled="checkingFiles"
-          @click="refreshFileStatus"
-          title="Check file processing status"
-        >
-          <SvgIcon v-if="!checkingFiles" type="refresh" class="w-4 h-4" />
-          Refresh Status
-        </button>
-      </h1>
-
-      <div v-if="quota" class="flex items-center gap-6 mb-4 text-lg text-base-content/70">
-        <span
-          >Storage
-          <strong class="text-base-content"
-            >{{ quota.uploadUsed }} / {{ quota.uploadMax }}</strong
-          ></span
-        >
-        <span
-          >Files
-          <strong class="text-base-content"
-            >{{ quota.fileCount }} / {{ quota.maxFiles }}</strong
-          ></span
-        >
-        <span
-          >Processing
-          <strong class="text-base-content"
-            >{{ quota.procUsed }} / {{ quota.procMax }}</strong
-          ></span
-        >
-      </div>
-
-      <DatasetFilterBar
-        :show-add-filter="true"
-        :show-upload="true"
-        search-placeholder="Search my datasets"
-        @filter-visibility="handleVisibilityFilter"
-        @upload="handleUpload"
-        @search="handleSearch"
-        @filter-status="handleStatusFilter"
-        @apply-filters="handleApplyFilters"
-        @sort="handleSort"
-      />
-
-      <UploadModal
-        :is-open="isUploadOpen"
-        @close="isUploadOpen = false"
-        @upload-success="handleUploadSuccess"
-      />
-
-      <!-- Delete Confirmation Modal -->
-      <ConfirmDialog
-        :open="isDeleteModalOpen"
-        title="Delete Dataset"
-        message="Are you sure you want to delete this dataset? This action cannot be undone."
-        confirm-label="Delete"
-        :danger="true"
-        @confirm="confirmDelete"
-        @cancel="cancelDelete"
-      />
-
-      <div>
-        <DatasetList
-          :datasets="datasets"
-          :loading="loading"
-          :error="error"
-          :meta="meta"
-          :size="size"
-          :pagination="pagination"
-          :is-my-dataset="true"
-          :deletingId="deletingId"
-          :packingIds="packingIds"
-          @view-overview="viewOverview"
-          @download="handleDownload"
-          @delete="handleDelete"
-          @change-size="changeSize"
-          @go-to-page="goToPage"
-        >
-          <template #empty> You have no datasets yet matching your filters. </template>
-        </DatasetList>
-      </div>
-
-      <!-- Active downloads overlay is rendered inside DatasetList; removed duplicate here -->
-    </div>
-  </div>
-</template>
-
 <style scoped>
 /* Layout handled by Tailwind classes */
 </style>
+
+
+

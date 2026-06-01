@@ -2,17 +2,14 @@
   <div
     class="flex-1 w-full flex flex-col justify-center items-center py-8 px-4 sm:px-6 lg:px-8 bg-base-200"
   >
-    <!-- Navbar Removed (Using global Navbar) -->
-
     <!-- Main Content -->
     <div class="w-full max-w-7xl">
-      <div class="card bg-base-100 border border-base-200 shadow-sm overflow-visible flex flex-col">
+      <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden flex flex-col">
         <!-- Header / Banner -->
-        <div
-          class="h-32 shrink-0 bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center px-8"
-        >
+        <div class="max-h-36 shrink-0 bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center px-8 py-8">
+
           <h1
-            class="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
+            class="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
           >
             Profile
           </h1>
@@ -33,30 +30,21 @@
               <div class="flex-1 w-full">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <!-- Username (Read Only) -->
-                  <BaseInput label="Username" :model-value="formData.username" readonly />
+                  <IconInput label="Username" :model-value="formData.username" readonly />
 
                   <!-- Identity (Read Only) -->
-                  <BaseInput label="Identity" :model-value="formData.identity" readonly />
+                  <IconInput label="Identity" :model-value="formData.identity" readonly />
 
                   <!-- Email (read-only, changed via modal) -->
-                  <div class="w-full">
-                    <label class="label mb-0">
-                      <span class="label-text font-semibold">Email</span>
-                    </label>
-                    <div class="flex items-center gap-3">
-                      <div class="flex-1">
-                        <BaseInput hideLabel label="Email" :model-value="formData.email" readonly />
-                      </div>
-                      <div class="flex-shrink-0">
-                        <button class="btn btn-sm w-28" type="button" @click="openEmailModal">
-                          Change Email
-                        </button>
-                      </div>
-                    </div>
+                  <div class="flex items-end  gap-3">
+                    <IconInput class="flex-3" label="Email" :model-value="formData.email" readonly />
+                    <button class=" flex-1 btn" type="button" @click="openEmailModal">
+                      Change Email
+                    </button>
                   </div>
 
                   <!-- Password (Editable) -->
-                  <BaseInput
+                  <IconInput
                     label="New Password"
                     v-model="formData.password"
                     type="password"
@@ -67,10 +55,10 @@
             </div>
           </div>
 
-          <div class="divider">Quota Usage</div>
+          <div class="divider text-xl">Quota Usage</div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="text-xs text-base-content/60 mb-1">Storage Upload</div>
+              <div class="text-lg lg:text-xl text-base-content/60 mb-1">Storage Upload</div>
               <div class="text-lg font-semibold">
                 {{ quota.uploadUsed }} / {{ quota.uploadMax }}
               </div>
@@ -81,7 +69,7 @@
               ></progress>
             </div>
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="text-xs text-base-content/60 mb-1">Files</div>
+              <div class="text-lg lg:text-xl text-base-content/60 mb-1">Files</div>
               <div class="text-lg font-semibold">{{ quota.fileCount }} / {{ quota.maxFiles }}</div>
               <progress
                 class="progress progress-secondary w-full mt-2"
@@ -90,7 +78,7 @@
               ></progress>
             </div>
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="text-xs text-base-content/60 mb-1">Processing</div>
+              <div class="text-lg lg:text-xl text-base-content/60 mb-1">Processing</div>
               <div class="text-lg font-semibold">{{ quota.procUsed }} / {{ quota.procMax }}</div>
               <progress
                 class="progress progress-accent w-full mt-2"
@@ -98,60 +86,51 @@
                 max="100"
               ></progress>
             </div>
-          </div>
+          </div> 
 
-          <div class="divider">Academic Profile</div>
+          <div class="divider text-xl">Academic Profile</div>
 
           <!-- Edit Form -->
           <form @submit.prevent="handleSave" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Institution -->
-              <BaseInput
+              <IconInput
                 label="Institution"
                 v-model="formData.institution"
                 placeholder="University Name"
               />
 
               <!-- Position -->
-              <div>
-                <label class="label mb-0"
-                  ><span class="label-text font-semibold">Position</span></label
-                >
-                <div class="bold-select">
-                  <IconSelect
-                    v-model="formData.position"
-                    :options="positionOptions"
-                    placeholder="Select Position"
-                  />
-                </div>
-              </div>
+              <IconSelect
+                label="Position"
+                v-model="formData.position"
+                :options="positionOptions"
+                placeholder="Select Position"
+              />
 
               <!-- Research Field -->
-              <BaseInput
+              <IconInput
                 label="Research Field"
                 v-model="formData.research_field"
                 placeholder="e.g. Computer Vision"
               />
 
               <!-- Region -->
-              <div>
-                <label class="label mb-0"
-                  ><span class="label-text font-semibold">Region</span></label
-                >
-                <div class="bold-select">
-                  <IconSelect
-                    v-model="regionLabel"
-                    :options="regionNames"
-                    placeholder="Select Region"
-                  />
-                </div>
-              </div>
+              <IconSelect
+                label="Region"
+                v-model="formData.region"
+                :options="regionOptions"
+                placeholder="Select Region"
+              />
 
               <!-- ORCID -->
-              <BaseInput label="ORCID" v-model="formData.orcid" placeholder="0000-0000-0000-0000" />
+              <IconInput 
+                label="ORCID" v-model="formData.orcid" 
+                placeholder="0000-0000-0000-0000" 
+                />
 
               <!-- Homepage -->
-              <BaseInput
+              <IconInput
                 label="Homepage"
                 v-model="formData.homepage"
                 placeholder="https://example.com"
@@ -184,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import BaseInput from '@/shared/components/BaseInput.vue'
+import IconInput from '@/shared/components/IconInput.vue'
 import IconSelect from '@/shared/components/IconSelect.vue'
 import EmailChangeModal from '@/features/users/components/EmailChangeModal.vue'
 import { useUserProfileForm } from '@/features/users/composables/useUserProfileForm'
@@ -192,8 +171,7 @@ import { useUserProfileForm } from '@/features/users/composables/useUserProfileF
 const {
   loading,
   positionOptions,
-  regionNames,
-  regionLabel,
+  regionOptions,
   formData,
   isEmailModalOpen,
   newEmail,
@@ -208,9 +186,3 @@ const {
   handleSave,
 } = useUserProfileForm()
 </script>
-
-<style scoped>
-.bold-select :deep(.truncate) {
-  font-weight: 600 !important;
-}
-</style>

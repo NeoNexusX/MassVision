@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
-import BaseSelect from '@/shared/components/BaseSelect.vue'
+import IconSelect from '@/shared/components/IconSelect.vue'
 import type {
   UploadMetadataFormState,
-  UploadMetadataOtherInputs,
 } from '@/features/upload/composables/useUploadMetadataForm'
 import {
   EXPERIMENT_TYPES,
@@ -20,7 +19,6 @@ import {
 
 defineProps<{
   form: UploadMetadataFormState
-  otherInputs: UploadMetadataOtherInputs
   parsingMetadata: boolean
 }>()
 </script>
@@ -56,10 +54,11 @@ defineProps<{
             >Polarity <span class="text-error">*</span></span
           ></label
         >
-        <BaseSelect
+        <IconSelect
           v-model="form.polarity"
           :options="['Positive', 'Negative']"
           placeholder="Select polarity..."
+          hide-label
         />
       </div>
 
@@ -71,7 +70,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.ionisation_source"
-          v-model:other-value="otherInputs.ionisation_source"
           :options="['MALDI', 'DESI', 'SIMS', 'Other']"
           placeholder="Select source..."
           other-placeholder="Please specify..."
@@ -86,7 +84,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.analyzer"
-          v-model:other-value="otherInputs.analyzer"
           :options="['Orbitrap', 'FTICR', 'TOF', 'Q-TOF', 'Other']"
           placeholder="Select analyzer..."
           other-placeholder="Please specify..."
@@ -131,10 +128,11 @@ defineProps<{
               >Spectrum Mode <span class="text-error">*</span></span
             ></label
           >
-          <BaseSelect
+          <IconSelect
             v-model="form.spectrum_mode"
             :options="['profile', 'centroid']"
             placeholder="Select..."
+            hide-label
           />
         </div>
         <div class="flex flex-col">
@@ -143,10 +141,11 @@ defineProps<{
               >Storage Mode <span class="text-error">*</span></span
             ></label
           >
-          <BaseSelect
+          <IconSelect
             v-model="form.storage_mode"
             :options="['continuous', 'processed']"
             placeholder="Select..."
+            hide-label
           />
         </div>
       </div>
@@ -159,7 +158,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.organism"
-          v-model:other-value="otherInputs.organism"
           :options="ORGANISMS"
           placeholder="Select organism..."
           other-placeholder="Please specify..."
@@ -174,7 +172,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.organism_part"
-          v-model:other-value="otherInputs.organism_part"
           :options="ORGANISM_PARTS"
           placeholder="Select part..."
           other-placeholder="Please specify..."
@@ -189,7 +186,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.condition"
-          v-model:other-value="otherInputs.condition"
           :options="CONDITIONS"
           placeholder="Select condition..."
           other-placeholder="Please specify..."
@@ -204,7 +200,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.sample_stabilization"
-          v-model:other-value="otherInputs.sample_stabilization"
           :options="SAMPLE_STABILIZATIONS"
           placeholder="Select stabilization..."
           other-placeholder="Please specify..."
@@ -219,7 +214,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.solvent"
-          v-model:other-value="otherInputs.solvent"
           :options="SOLVENTS"
           placeholder="Select solvent..."
           other-placeholder="Please specify..."
@@ -236,7 +230,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.experiment_type"
-          v-model:other-value="otherInputs.experiment_type"
           :options="EXPERIMENT_TYPES"
           placeholder="Select type..."
           other-placeholder="Please specify..."
@@ -280,7 +273,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.sample_growth_conditions"
-          v-model:other-value="otherInputs.sample_growth_conditions"
           :options="SAMPLE_GROWTH_CONDITIONS"
           placeholder="Select growth..."
           other-placeholder="Please specify..."
@@ -295,7 +287,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.tissue_modification"
-          v-model:other-value="otherInputs.tissue_modification"
           :options="TISSUE_MODIFICATIONS"
           placeholder="Select modification..."
           other-placeholder="Please specify..."
@@ -310,7 +301,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.maldi_matrix"
-          v-model:other-value="otherInputs.maldi_matrix"
           :options="MALDI_MATRICES"
           placeholder="Select matrix..."
           other-placeholder="Please specify..."
@@ -325,7 +315,6 @@ defineProps<{
         >
         <SelectWithOther
           v-model="form.maldi_matrix_application"
-          v-model:other-value="otherInputs.maldi_matrix_application"
           :options="MALDI_MATRIX_APPLICATIONS"
           placeholder="Select application..."
           other-placeholder="Please specify..."

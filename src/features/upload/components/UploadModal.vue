@@ -46,7 +46,6 @@ const upload = useUploadFlow({
 
           <UploadMetadataForm
             :form="upload.form.value"
-            :other-inputs="upload.otherInputs.value"
             :parsing-metadata="upload.parsingMetadata.value"
           />
         </div>

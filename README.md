@@ -1,43 +1,66 @@
 # MassFlow
 
-MassFlow 是一个基于 Vue 3 + TypeScript + Vite + daisy ui构建的现代前端项目。项目集成了 Pinia 状态管理、Vue Router 路由、Tailwind CSS 样式库以及完整的测试工具链。
+MassFlow 是一个基于 Vue 3 + TypeScript + Vite 构建的质谱成像（MSI）数据管理与分析平台，支持 imzML 数据集上传、浏览、可视化分析以及用户权限管理。
 
-## 🛠 技术栈
+## 技术栈
 
-- **核心框架**: [Vue 3](https://vuejs.org/)
-- **构建工具**: [Vite](https://vitejs.dev/)
-- **编程语言**: [TypeScript](https://www.typescriptlang.org/)
+- **核心框架**: [Vue 3](https://vuejs.org/) + [TypeScript](https://www.typescriptlang.org/)
+- **构建工具**: [Vite](https://vitejs.dev/) + [Tailwind CSS v4](https://tailwindcss.com/)
 - **状态管理**: [Pinia](https://pinia.vuejs.org/)
 - **路由管理**: [Vue Router](https://router.vuejs.org/)
-- **UI 样式**: [Tailwind CSS](https://tailwindcss.com/) + [DaisyUI](https://daisyui.com/)
-- **HTTP 请求**: [Axios](https://axios-http.com/)
-- **工具库**: [Crypto-JS](https://github.com/brix/crypto-js) (用于加密)
+- **UI 组件**: [DaisyUI v5](https://daisyui.com/) + [Heroicons](https://heroicons.com/)
+- **图表可视化**: [ECharts](https://echarts.apache.org/)
+- **MSI 数据解析**: [zarrita](https://github.com/manzt/zarrita) (Zarr 格式读取)、fflate (压缩)、hash-wasm (WebAssembly 哈希)
+- **对象存储**: [ali-oss](https://github.com/ali-sdk/ali-oss) (阿里云 OSS)
+- **HTTP 请求**: [Axios](https://axios-http.com/) + [qs](https://github.com/ljharb/qs)
+- **加密**: [Crypto-JS](https://github.com/brix/crypto-js)
+- **国际化**: [i18n-iso-countries](https://github.com/michaelwittig/node-i18n-iso-countries)
 - **测试**: [Vitest](https://vitest.dev/) (单元测试) + [Playwright](https://playwright.dev/) (E2E 测试)
 - **代码规范**: ESLint + Prettier
 
-## 📂 项目结构
+## 项目结构
 
 ```
 MassFlow/
-├── public/              # 静态资源
+├── public/                          # 静态资源
 ├── src/
-│   ├── assets/          # 资源文件 (CSS, 图片等)
-│   ├── components/      # 公共组件 (AuthInput, Navbar, SvgIcon 等)
-│   ├── router/          # 路由配置
-│   ├── stores/          # Pinia 状态管理
-│   ├── utils/           # 工具函数 (auth, http)
-│   ├── views/           # 页面视图 (Login, Register, Dashboard)
-│   ├── App.vue          # 根组件
-│   └── main.ts          # 入口文件
-├── docs/                # 项目文档
-├── e2e/                 # E2E 测试文件
-├── index.html           # 入口 HTML
-├── package.json         # 项目依赖与脚本
-├── vite.config.ts       # Vite 配置
-└── ...
+│   ├── app/components/              # 应用级组件 (Navbar, NavDrawer, AI助手)
+│   ├── assets/                      # CSS 资源 (Tailwind/DaisyUI 主题)
+│   ├── features/                    # 业务功能模块 (Feature-based 架构)
+│   │   ├── auth/                    # 用户认证 (登录/注册/store/API)
+│   │   ├── datasets/                # 数据集浏览与管理 (列表/详情/过滤/下载)
+│   │   ├── home/                    # 首页 (Hero/Features/Stats)
+│   │   ├── upload/                  # imzML 上传 (文件选择/压缩/断点续传/OSS)
+│   │   ├── users/                   # 用户管理 (管理员面板/用户列表/角色)
+│   │   └── workspace/               # 工作区与分析
+│   │       ├── analysis/            # 分析构建器 (数据源/预处理管线)
+│   │       ├── dashboard/           # 工作区仪表盘 (任务/结果/活动)
+│   │       └── results/             # 结果可视化 (离子图/光谱/ROI/UMAP)
+│   ├── router/                      # Vue Router 路由配置 (含路由守卫)
+│   ├── shared/                      # 共享模块
+│   │   ├── api/                     # HTTP 客户端 (Axios 封装)
+│   │   ├── components/              # 通用组件 (IconInput, PaginationBar, Toast, etc.)
+│   │   ├── composables/             # 通用 composables
+│   │   ├── config/                  # 应用配置
+│   │   ├── constants/               # 常量
+│   │   ├── types/                   # 类型声明
+│   │   └── utils/                   # 工具函数
+│   ├── views/                       # 页面视图
+│   │   └── workspace/               # 工作区页面 (WorkspacePage, NewAnalysis, ResultDetail, TaskDetail)
+│   ├── workers/                     # Web Workers (ZIP 压缩)
+│   ├── App.vue                      # 根组件
+│   ├── main.ts                      # 入口文件
+│   └── style.css                    # 全局样式
+├── docs/                            # 项目文档
+├── e2e/                             # E2E 测试文件
+├── index.html                       # 入口 HTML
+├── package.json                     # 项目依赖与脚本
+├── vite.config.ts                   # Vite 配置 (含 API 代理)
+├── vitest.config.ts                 # Vitest 配置
+└── playwright.config.ts             # Playwright 配置
 ```
 
-## 🚀 快速开始
+## 快速开始
 
 ### 环境要求
 
@@ -51,51 +74,45 @@ npm install
 
 ### 开发模式运行
 
-启动本地开发服务器：
-
 ```bash
 npm run dev
 ```
 
-### 构建生产版本
+开发服务器默认运行在 `http://localhost:5173`，API 请求自动代理至后端。
 
-进行类型检查并构建生产环境代码：
+### 构建生产版本
 
 ```bash
 npm run build
 ```
 
-### 代码格式化与检查
+## 测试
 
 ```bash
-# 运行 ESLint 检查并修复
-npm run lint
-
-# 运行 Prettier 格式化代码
-npm run format
-```
-
-## 🧪 测试
-
-### 单元测试
-
-使用 Vitest 运行单元测试：
-
-```bash
+# 运行单元测试
 npm run test:unit
-```
 
-### 端到端 (E2E) 测试
-
-使用 Playwright 运行 E2E 测试：
-
-```bash
+# 运行 E2E 测试
 npm run test:e2e
 ```
 
-## ✨ 功能特性
+## 代码检查与格式化
 
-- **用户认证**: 包含登录 (Login) 和注册 (Register) 页面，以及相关的输入组件。
-- **安全**: 使用 `crypto-js` 进行密码哈希处理。
-- **网络请求**: 封装了 Axios 实例，支持 API 基础路径配置。
-- **响应式布局**: 基于 Tailwind CSS 和 DaisyUI 构建的现代化 UI。
+```bash
+# ESLint 检查并修复
+npm run lint
+
+# Prettier 格式化
+npm run format
+```
+
+## 功能特性
+
+- **用户认证**: JWT 登录/注册，个人资料管理，路由守卫与权限控制
+- **数据集管理**: 公开数据集浏览、个人数据集管理、数据集详情查看与下载
+- **imzML 上传**: 支持 imzML 文件解析、前端压缩、断点续传、阿里云 OSS 分片上传
+- **分析工作区**: 创建分析任务，配置数据源与预处理管线，查看任务执行状态
+- **结果可视化**: 离子图像渲染、质谱图展示、ROI 区域分析、UMAP/k-means 聚类叠加
+- **用户管理**: 管理员面板，用户列表、角色管理与状态统计
+- **主题切换**: 支持亮色/暗色主题，跟随系统偏好
+- **响应式布局**: 基于 Tailwind CSS + DaisyUI 的现代化 UI，适配移动端与桌面端

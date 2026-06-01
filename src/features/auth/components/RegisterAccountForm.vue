@@ -38,6 +38,7 @@ defineProps<{
           icon-type="user"
           type="text"
           required
+          validator
           placeholder="Username"
           :pattern="patterns.username"
           :error="errors.username"
@@ -51,6 +52,7 @@ defineProps<{
           icon-type="email"
           type="email"
           required
+          validator
           placeholder="Email"
           :pattern="patterns.email"
           :error="errors.email"
@@ -64,6 +66,7 @@ defineProps<{
           icon-type="password"
           type="password"
           required
+          validator
           placeholder="Password"
           :error="errors.password"
           @focus="clearError('password')"
@@ -90,6 +93,7 @@ defineProps<{
           icon-type="password"
           type="password"
           required
+          validator
           placeholder="Confirm Password"
           :error="errors.confirm_password"
           @blur="validateField('confirm_password')"
@@ -105,6 +109,7 @@ defineProps<{
                 icon-type="verify_code"
                 type="text"
                 required
+                validator
                 placeholder="Verify Code"
                 :pattern="patterns.verify_code"
                 :error="errors.verify_code"

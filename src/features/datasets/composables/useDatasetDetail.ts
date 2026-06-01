@@ -73,8 +73,8 @@ export function useDatasetDetail() {
 
     const listApi = route.query.from === 'my' ? listUserFiles : listFiles
     try {
-      const res = await listApi({ filename: searchKey }, 1, 20)
-      const items = res.data?.data
+      const body = await listApi({ filename: searchKey }, 1, 20)
+      const items = body?.data
       if (!Array.isArray(items) || items.length === 0) return null
 
       const tryWithZip = searchKey.endsWith('.zip') ? searchKey : `${searchKey}.zip`

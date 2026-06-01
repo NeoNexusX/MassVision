@@ -1,120 +1,23 @@
-export const EXPERIMENT_TYPES = ['imzML', 'Other']
+/**
+ * 数据集元数据的下拉选项。
+ *
+ * 选项数据来源：运行时 `public/config.json` 的 `options`（人来编辑），见 runtimeConfig.ts。
+ * 这些导出在模块加载时取值，而应用 bootstrap 保证配置已先就位，故可安全读取。
+ */
+import { getConfig } from '@/shared/config/runtimeConfig'
 
-export const ORGANISMS = [
-  'Human (Homo sapiens)',
-  'Mouse (Mus musculus)',
-  'Rat (Rattus norvegicus)',
-  'Zebrafish (Danio rerio)',
-  'Fruit fly (Drosophila melanogaster)',
-  'Arabidopsis (Arabidopsis thaliana)',
-  'E. coli',
-  'Yeast (Saccharomyces cerevisiae)',
-  'Other',
-]
+const o = getConfig().options
 
-export const ORGANISM_PARTS = [
-  'Brain',
-  'Heart',
-  'Liver',
-  'Lung',
-  'Kidney',
-  'Intestine',
-  'Stomach',
-  'Skin',
-  'Blood',
-  'Tumor',
-  'Muscle',
-  'Bone',
-  'Whole organism',
-  'Other',
-]
-
-export const CONDITIONS = [
-  'Healthy / Control',
-  'Disease',
-  'Cancer',
-  'Treated',
-  'Untreated',
-  'Drug-treated',
-  'Infection',
-  'Genetic modification',
-  'Time-course',
-  'Other',
-]
-
-export const SAMPLE_GROWTH_CONDITIONS = [
-  'In vivo',
-  'In vitro',
-  'Cell culture',
-  '2D culture',
-  '3D culture',
-  'Organoid',
-  'Temperature controlled',
-  'Hypoxia',
-  'Serum-free',
-  'Other',
-]
-
-export const SAMPLE_STABILIZATIONS = [
-  'Fresh',
-  'Fresh frozen',
-  'Snap frozen',
-  'FFPE (Formalin-fixed paraffin-embedded)',
-  'Fixed (formalin)',
-  'Ethanol fixed',
-  'Dried',
-  'Other',
-]
-
-export const TISSUE_MODIFICATIONS = [
-  'None',
-  'Sectioned',
-  'Cryosectioned',
-  'Microdissected',
-  'Washed',
-  'Digested',
-  'Stained',
-  'Enzymatic treatment',
-  'Chemical derivatization',
-  'Other',
-]
-
-export const MALDI_MATRICES = [
-  'CHCA (α-Cyano-4-hydroxycinnamic acid)',
-  'DHB (2,5-Dihydroxybenzoic acid)',
-  'Sinapinic acid',
-  '9-AA (9-Aminoacridine)',
-  'Norharmane',
-  'DAN (1,5-Diaminonaphthalene)',
-  'Ionic liquid matrices',
-  'Gold nanoparticle',
-  'Silver nanoparticle',
-  'Other',
-]
-
-export const MALDI_MATRIX_APPLICATIONS = [
-  'Spraying',
-  'Airbrush',
-  'Automated sprayer',
-  'Sublimation',
-  'Spotting',
-  'Droplet deposition',
-  'Inkjet printing',
-  'Other',
-]
-
-export const SOLVENTS = [
-  'Water',
-  'Acetonitrile (ACN)',
-  'Methanol (MeOH)',
-  'Ethanol',
-  'Isopropanol (IPA)',
-  'Acetone',
-  'Formic acid',
-  'Trifluoroacetic acid (TFA)',
-  'Ammonium hydroxide',
-  'Other',
-]
+export const EXPERIMENT_TYPES: string[] = o.experimentType
+export const ORGANISMS: string[] = o.organism
+export const ORGANISM_PARTS: string[] = o.organismPart
+export const CONDITIONS: string[] = o.condition
+export const SAMPLE_GROWTH_CONDITIONS: string[] = o.sampleGrowthCondition
+export const SAMPLE_STABILIZATIONS: string[] = o.sampleStabilization
+export const TISSUE_MODIFICATIONS: string[] = o.tissueModification
+export const MALDI_MATRICES: string[] = o.maldiMatrix
+export const MALDI_MATRIX_APPLICATIONS: string[] = o.maldiMatrixApplication
+export const SOLVENTS: string[] = o.solvent
 
 export function createDefaultDatasetFilters() {
   return {

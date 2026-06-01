@@ -1,36 +1,32 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { auth_api } from '@/shared/api/httpClient'
-import { secureStorage } from '@/features/auth/services/authStorage'
+import { authStorage } from '@/features/auth/services/authStorage'
 import { logoutApi } from '@/features/auth/api/authApi'
 
 interface User {
   username: string
   email: string
-  [key: string]: any
+  /** 后端身份标识，'admin' 时拥有管理权限 */
+  identity?: string
+  [key: string]: unknown
 }
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
-  const token = ref<string | null>(secureStorage.getToken())
+  const token = ref<string | null>(authStorage.getToken())
 
   const isAuthenticated = computed(() => !!token.value)
-  const isAdmin = computed(() => {
-    return user.value?.identity === 'admin'
-  })
-
-  // Initialize state from local storage and secureStorage (if available)
-  // But usually we just need token to fetch user profile
+  const isAdmin = computed(() => user.value?.identity === 'admin')
 
   async function fetchUser() {
+    if (!token.value) return
     try {
-      if (!token.value) return
       const response = await auth_api.get('/user')
       user.value = response.data
     } catch (error: any) {
-      console.error('Failed to fetch user:', error)
-      // Only logout on 401 Unauthorized
-      if (error.response && error.response.status === 401) {
+      // Only logout on 401 Unauthorized; transient errors keep the session.
+      if (error.response?.status === 401) {
         await logout()
       }
     }
@@ -39,32 +35,24 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(accessToken: string) {
     if (!accessToken) return
     token.value = accessToken
-    // Update local storage
-    localStorage.setItem('access_token', accessToken)
-
+    authStorage.setToken(accessToken)
     // Fetch user immediately to update UI
     await fetchUser()
   }
 
   async function logout() {
-    console.log('AuthStore: logout called. Token present:', !!token.value)
     try {
-      if (token.value) {
-        await logoutApi()
-        console.log('Backend logout successful')
-      } else {
-        console.log('No token found, skipping backend logout')
-      }
+      if (token.value) await logoutApi()
     } catch (error) {
       console.error('Logout API failed:', error)
     } finally {
       token.value = null
       user.value = null
-      secureStorage.clearAuthData()
+      authStorage.clearAuthData()
     }
   }
 
-  // Try to recover user if we have a token but no user data (e.g. on page reload)
+  // Recover user if we have a token but no user data yet (e.g. on page reload)
   if (token.value && !user.value) {
     fetchUser()
   }

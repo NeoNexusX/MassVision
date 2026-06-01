@@ -2,6 +2,7 @@
 import type { PropType } from 'vue'
 import DatasetCard from '@/features/datasets/components/DatasetCard.vue'
 import PaginationBar from '@/shared/components/PaginationBar.vue'
+import { getConfig } from '@/shared/config/runtimeConfig'
 import type { File } from '@/features/datasets/types/dataset'
 
 const props = defineProps({
@@ -20,10 +21,13 @@ const emit = defineEmits(['view-overview', 'download', 'delete', 'change-size', 
 
 const onChangeSize = (v: number) => emit('change-size', v)
 const onGoToPage = (p: number) => emit('go-to-page', p)
+
+// 「每页条数」选项来自 config.json（pagination.pageSizeOptions），不写死在组件
+const pageSizeOptions = getConfig().pagination.pageSizeOptions
 </script>
 
 <template>
-  <div>
+  <div class="text-[clamp(1.0rem,2.5vw,1.3rem)]">
     <!-- Loading state -->
     <div v-if="loading" class="flex flex-col gap-3">
       <div class="animate-pulse flex flex-col gap-4">
@@ -72,21 +76,21 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
       v-if="datasets.length"
       class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4"
     >
-      <div class="text-sm text-base-content text-center sm:text-left">
+      <div class="text-[1.1em] text-base-content text-center sm:text-left ml-2">
         Page <span class="font-medium">{{ meta.current_page }}</span> of
         <span class="font-medium">{{ meta.total_pages }}</span> —
         <span class="font-medium">{{ meta.total_records }}</span> records
       </div>
-      <div class="flex flex-wrap items-center gap-4">
+      
+      <div class="flex flex-wrap items-center gap-4 mr-2">
         <div class="flex items-center gap-2">
-          <label class="whitespace-nowrap text-sm text-base-content/60">Per page</label>
+          <label class="whitespace-nowrap text-[1.1em] text-base-content/60">Per page</label>
           <select
             :value="size"
             @change="(e) => onChangeSize(Number((e.target as HTMLSelectElement).value))"
-            class="select select-sm select-bordered"
+            class="select select-sm select-bordered text-[1.1em] pl-3 pr-8"
           >
-            <option :value="10">10</option>
-            <option :value="20">20</option>
+            <option v-for="opt in pageSizeOptions" :key="opt" :value="opt">{{ opt }}</option>
           </select>
         </div>
 
@@ -102,9 +106,6 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
           @next-page="() => onGoToPage(meta.current_page + 1)"
           @go-to-page="onGoToPage"
         >
-          <template #info>
-            <span class="hidden">-</span>
-          </template>
         </PaginationBar>
       </div>
     </div>

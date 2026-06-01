@@ -10,6 +10,7 @@ import {
   resetSessionForReupload,
 } from './uploadResume'
 import { checkStorageQuota } from './quotaCheck'
+import { OSS_UPLOAD } from '@/shared/config'
 
 // Module-level refs for external abort
 let currentOssClient: OSS | null = null
@@ -182,7 +183,7 @@ export async function uploadImzmlZipFileOSS({
     stsToken: ossData.oss_sts_token.SecurityToken,
     authorizationV4: true,
     bucket: ossData.oss_bucket,
-    timeout: 30000,
+    timeout: OSS_UPLOAD.timeout,
   })
   currentOssClient = client
 
@@ -210,8 +211,11 @@ export async function uploadImzmlZipFileOSS({
   let lastPercent = 0
   let lastSaveTime = 0
 
-  // OSS part size: 1MB for files <1GB, otherwise fixed 1000 parts
-  const ossPartSize = zipFile.size < 1e9 ? 1 * 1024 * 1024 : Math.ceil(zipFile.size / 1000)
+  // OSS part size: fixed small part for files under threshold, otherwise split into a fixed part count
+  const ossPartSize =
+    zipFile.size < OSS_UPLOAD.singlePartThreshold
+      ? OSS_UPLOAD.smallFilePartSize
+      : Math.ceil(zipFile.size / OSS_UPLOAD.largeFilePartCount)
 
   const putOptions: any = {
     partSize: ossPartSize,
@@ -225,8 +229,8 @@ export async function uploadImzmlZipFileOSS({
       const loaded = percentage * zipFile.size
       const { speedStr, etaStr } = tracker.update(loaded, zipFile.size)
       lastPercent = Math.round(percentage * 10000) / 100
-      // Persist checkpoint for cross-session resume (throttled to every 5s)
-      if (cpt?.uploadId && Date.now() - lastSaveTime > 5000) {
+      // Persist checkpoint for cross-session resume (throttled)
+      if (cpt?.uploadId && Date.now() - lastSaveTime > OSS_UPLOAD.checkpointSaveIntervalMs) {
         lastSaveTime = Date.now()
         saveUploadSession({
           datasetName: normalizedFilename,

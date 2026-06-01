@@ -4,7 +4,7 @@ import Home from '../views/HomeView.vue'
 import UserProfileView from '../views/UserProfileView.vue'
 import PublicDatasets from '../views/PublicDatasets.vue'
 import MyDatasets from '../views/MyDatasets.vue'
-import { secureStorage } from '@/features/auth/services/authStorage'
+import { authStorage } from '@/features/auth/services/authStorage'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 
 const routes = [
@@ -87,9 +87,9 @@ router.beforeEach(async (to, from, next) => {
   // Check meta fields
   const authRequired = to.matched.some((record) => record.meta.requiresAuth)
   const adminRequired = to.matched.some((record) => record.meta.requiresAdmin)
-  // Retrieve token using the secure storage utility
+  // Retrieve token via the auth storage utility
   // Use `let` so we can re-check after attempting to fetch user (fetchUser may clear token on 401)
-  let loggedIn = secureStorage.getToken()
+  let loggedIn = authStorage.getToken()
 
   // Redirect to Profile if already logged in and trying to access login/register pages
   // But allow it if coming from an auth-required page (token may be stale / backend down)
@@ -114,7 +114,7 @@ router.beforeEach(async (to, from, next) => {
         await auth.fetchUser()
       } catch {
         // Token expired/invalid — clear and redirect to login
-        secureStorage.clearAuthData()
+        authStorage.clearAuthData()
         return next({ path: '/login', query: { redirect: to.fullPath } })
       }
     }
@@ -127,11 +127,11 @@ router.beforeEach(async (to, from, next) => {
     if (loggedIn && !auth.user) {
       try {
         await auth.fetchUser()
-      } catch (err) {
+      } catch {
         // ignore - fetchUser will handle logout on 401
       }
       // Re-check token after fetchUser because it may have triggered logout and cleared the token
-      loggedIn = secureStorage.getToken()
+      loggedIn = authStorage.getToken()
     }
 
     // If user is not admin, block access
