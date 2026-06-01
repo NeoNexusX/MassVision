@@ -12,6 +12,7 @@ const {
   copyHash,
   goBack,
   downloadCurrent,
+  isPacking,
 } = useDatasetDetail()
 </script>
 
@@ -101,23 +102,40 @@ const {
 
           <div class="flex-1 w-full min-w-0">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-              <h2 class="text-2xl md:text-3xl font-bold text-base-content truncate">
+              <h2 class="text-2xl md:text-3xl font-bold text-base-content truncate" :title="dataset.filename">
                 {{ dataset.filename }}
               </h2>
               <div class="flex items-center gap-2 shrink-0">
-                <button @click="downloadCurrent" class="btn btn-sm btn-primary">
-                  <svg-icon type="download" class="w-4 h-4" />
-                  Download
+                <button
+                  @click="downloadCurrent"
+                  class="btn btn-sm btn-primary"
+                  :disabled="isPacking(String(dataset?.id ?? ''))"
+                >
+                  <span v-if="isPacking(String(dataset?.id ?? ''))" class="loading loading-spinner loading-xs"></span>
+                  <svg-icon v-else type="download" class="w-4 h-4" />
+                  {{ isPacking(String(dataset?.id ?? '')) ? 'Packing' : 'Download' }}
                 </button>
                 <div
                   class="badge badge-soft shrink-0 border-0 font-medium px-3 py-3"
                   :class="
-                    dataset.status === 'completed' || dataset.status === 'Finished'
+                    dataset.status === 'completed'
                       ? 'badge-success bg-success/10 text-success'
-                      : 'badge-neutral bg-base-200 text-base-content/70'
+                      : dataset.status === 'uploading'
+                        ? 'badge-info bg-info/10 text-info'
+                        : dataset.status === 'failed'
+                          ? 'badge-error bg-error/10 text-error'
+                          : 'badge-neutral bg-base-200 text-base-content/70'
                   "
                 >
-                  {{ dataset.status || 'Finished' }}
+                  {{
+                    dataset.status === 'completed'
+                      ? 'Uploaded'
+                      : dataset.status === 'uploading'
+                        ? 'Uploading'
+                        : dataset.status === 'failed'
+                          ? 'Failed'
+                          : dataset.status || '—'
+                  }}
                 </div>
               </div>
             </div>

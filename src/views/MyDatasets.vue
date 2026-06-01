@@ -149,7 +149,7 @@ const handleUpload = () => {
 const { quota, fetchQuota } = useUserQuota()
 
 // Download progress handler (shared via composable)
-const { handleDownload } = useDownloadProgress()
+const { handleDownload, packingIds } = useDownloadProgress()
 
 // Upload success: refresh list to get backend status
 const handleUploadSuccess = (_datasetName: string) => {

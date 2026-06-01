@@ -6,6 +6,10 @@ type WorkerMessage = {
   imzml: File
   ibd: File
   chunkSize: number
+  /** Normalized name for the imzML entry inside the ZIP */
+  imzmlName?: string
+  /** Normalized name for the ibd entry inside the ZIP */
+  ibdName?: string
 }
 
 function readChunk(file: File, offset: number, size: number): Promise<ArrayBuffer> {
@@ -18,7 +22,7 @@ function readChunk(file: File, offset: number, size: number): Promise<ArrayBuffe
 }
 
 self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
-  const { imzml, ibd, chunkSize } = e.data
+  const { imzml, ibd, chunkSize, imzmlName, ibdName } = e.data
 
   try {
     // ── 1. Create MD5 hasher ──
@@ -40,12 +44,15 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
     }
 
     // ── 4. Process files: imzml → ibd ──
-    const files = [imzml, ibd]
+    const entries: Array<{ file: File; zipName: string }> = [
+      { file: imzml, zipName: imzmlName || imzml.name },
+      { file: ibd, zipName: ibdName || ibd.name },
+    ]
     const totalBytes = imzml.size + ibd.size
     let loadedBytes = 0
 
-    for (const file of files) {
-      const deflate = new ZipDeflate(file.name, { level: 1 })
+    for (const { file, zipName } of entries) {
+      const deflate = new ZipDeflate(zipName, { level: 2 })
       ;(deflate as any).mtime = new Date('2026-01-01')
       zip.add(deflate)
 

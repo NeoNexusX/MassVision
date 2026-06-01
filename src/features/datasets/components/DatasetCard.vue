@@ -34,8 +34,8 @@
             font-bold text-base-content text-[1.1em]
             hover:text-primary dark:hover:text-indigo-400 transition-colors"
           @click.stop="$emit('view-overview', dataset.name)"
-          :title="dataset.name"
-          :aria-label="`Dataset name: ${dataset.name}`"
+          :title="dataset.filename || dataset.name"
+          :aria-label="`Dataset name: ${dataset.filename || dataset.name}`"
         >
           {{ dataset.name }}
         </h3>

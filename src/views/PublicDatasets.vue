@@ -39,7 +39,7 @@ const router = useRouter()
 const auth = useAuthStore()
 
 // shared download progress composable
-const { handleDownload } = useDownloadProgress()
+const { handleDownload, packingIds } = useDownloadProgress()
 
 // Card actions
 const viewOverview = (id: string) => {
@@ -82,6 +82,7 @@ const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSi
           :meta="meta"
           :size="size"
           :pagination="pagination"
+          :packingIds="packingIds"
           @view-overview="viewOverview"
           @download="handleDownload"
           @change-size="changeSize"

@@ -1,9 +1,13 @@
 import ZipCompressWorker from '@/workers/zip-compress.worker?worker'
-import { ProgressTracker, type ImzmlFilePair } from './imzmlHelper'
+import { normalizeUploadFileName, ProgressTracker, type ImzmlFilePair } from './imzmlHelper'
 import { loadZipFromOPFS } from './uploadResume'
 
-const MIN_CHUNK = 1 * 1024 * 1024
-const FIXED_CHUNK_COUNT = 1000
+function pickChunkSize(totalBytes: number): number {
+  const mb = (n: number) => n * 1024 * 1024
+  if (totalBytes < 1e9) return mb(4)
+  if (totalBytes < 5e9) return mb(8)
+  return mb(16)
+}
 
 export interface CompressProgressEvent {
   loadedBytes: number
@@ -14,7 +18,6 @@ export interface CompressProgressEvent {
 }
 
 export interface CompressOptions {
-  chunkSize?: number
   onProgress?: (e: CompressProgressEvent) => void
   signal?: AbortSignal
 }
@@ -38,8 +41,7 @@ export async function compressImzmlToOPFS(
   }
 
   const totalBytes = pair.ibd.size + pair.imzml.size
-  const chunkSize =
-    options?.chunkSize ?? (totalBytes < 1e9 ? MIN_CHUNK : Math.ceil(totalBytes / FIXED_CHUNK_COUNT))
+  const chunkSize = pickChunkSize(totalBytes)
   const worker = new ZipCompressWorker()
   const tracker = new ProgressTracker()
   let lastReportTime = 0
@@ -127,6 +129,8 @@ export async function compressImzmlToOPFS(
       imzml: pair.imzml,
       ibd: pair.ibd,
       chunkSize,
+      imzmlName: normalizeUploadFileName(pair.imzml.name),
+      ibdName: normalizeUploadFileName(pair.ibd.name),
     })
   })
 }

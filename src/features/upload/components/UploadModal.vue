@@ -26,7 +26,7 @@ const upload = useUploadFlow({
       <h3 class="font-bold text-lg mb-4 shrink-0">Upload New Dataset (imzML + ibd)</h3>
 
       <div v-if="upload.stage.value === 'select'" class="flex flex-col flex-1 min-h-0">
-        <div class="flex-1 overflow-y-auto -mx-6 px-6 pt-4 pb-4 flex flex-col gap-4">
+        <div class="flex-1 overflow-y-auto overflow-x-hidden -mx-6 px-6 pt-4 pb-4 flex flex-col gap-4">
           <ResumeUploadBanner
             v-if="upload.pendingResume.value"
             :dataset-name="upload.pendingDatasetName.value"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ImzmlFilePair } from '@/features/upload/services/imzmlUploadService'
+import { normalizeUploadFileName } from '@/features/upload/utils/imzmlHelper'
 
 defineProps<{
   selectedPair: ImzmlFilePair | null
@@ -34,7 +35,16 @@ const onFileChange = (event: Event) => {
     return
   }
 
-  const baseName = imzml.name.substring(0, imzml.name.lastIndexOf('.'))
+  // Validate that imzML and ibd share the same base name
+  const imzmlBase = imzml.name.substring(0, imzml.name.lastIndexOf('.'))
+  const ibdBase = ibd.name.substring(0, ibd.name.lastIndexOf('.'))
+  if (imzmlBase !== ibdBase) {
+    input.value = ''
+    emit('invalid-selection', `File name mismatch: "${imzml.name}" and "${ibd.name}" do not share the same base name.`)
+    return
+  }
+
+  const baseName = normalizeUploadFileName(imzmlBase || imzml.name)
   emit('pair-selected', { ibd, imzml, baseName })
 }
 </script>
@@ -46,7 +56,7 @@ const onFileChange = (event: Event) => {
       <span class="label-text-alt text-error" v-if="error">{{ error }}</span>
     </div>
     <div
-      class="relative flex items-center justify-between border border-base-content/20 rounded-lg px-3 py-2 bg-base-100 hover:bg-base-200/50 transition-colors overflow-hidden h-12"
+      class="relative flex items-center justify-between border border-base-content/20 rounded-lg px-3 py-2 bg-base-100 hover:bg-base-200/50 transition-colors overflow-hidden min-h-12"
     >
       <input
         type="file"
@@ -60,15 +70,16 @@ const onFileChange = (event: Event) => {
       <div class="flex items-center gap-3 w-full pointer-events-none">
         <template v-if="pendingResume">
           <div class="btn btn-sm btn-ghost no-animation shrink-0 opacity-50">Choose Files</div>
-          <span class="text-sm text-warning truncate">
+          <span class="text-sm text-warning">
             Please resolve the pending upload above first
           </span>
         </template>
         <template v-else>
           <div class="btn btn-sm btn-neutral no-animation shrink-0">Choose Files</div>
           <span
-            class="text-sm truncate w-full opacity-80"
+            class="text-sm min-w-0 flex-1 opacity-80 pointer-events-auto"
             :class="{ 'opacity-50': !selectedPair }"
+            :title="selectedPair ? `${selectedPair.imzml.name}, ${selectedPair.ibd.name}` : ''"
             >{{
               selectedPair
                 ? `${selectedPair.imzml.name}, ${selectedPair.ibd.name}`
@@ -78,9 +89,9 @@ const onFileChange = (event: Event) => {
         </template>
       </div>
     </div>
-    <div class="label mt-1 text-sm">
+    <div class="mt-1 text-sm">
       <span v-if="selectedPair" class="text-success"
-        >Ready: {{ selectedPair.baseName }} ({{ formattedSize }})</span
+        >Ready: <span class="break-all">{{ selectedPair.baseName }}</span> ({{ formattedSize }})</span
       >
       <span v-else class="text-base-content/60">No matched pair selected</span>
     </div>
