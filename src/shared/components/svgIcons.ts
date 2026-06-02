@@ -43,6 +43,7 @@ import {
   Bars3Icon,
   SunIcon,
   MoonIcon,
+  CodeBracketIcon,
 } from '@heroicons/vue/24/outline'
 
 /**
@@ -96,6 +97,7 @@ export const ICON_MAP = {
   sun: SunIcon,
   moon: MoonIcon,
   'paper-clip': PaperClipIcon,
+  'code-bracket': CodeBracketIcon,
 } satisfies Record<string, FunctionalComponent>
 
 /** 所有合法图标名的联合类型，供 SvgIcon 的 `type` 及各处图标字段引用 */

@@ -84,12 +84,29 @@ export interface AppConfig {
   }
   /** 开发团队成员 */
   team: TeamMember[]
+  /** 联系方式 */
+  contact?: {
+    /** 实验室 / 项目官网 */
+    website?: string
+    /** 主联系邮箱 */
+    email?: string
+    /** 备用联系邮箱 */
+    emailAlt?: string
+    /** GitHub 组织主页 */
+    github?: string
+    /** 微信公众号 / 二维码页面链接 */
+    wechat?: string
+  }
   /** 团队加入链接（留空则不显示对应按钮） */
   joinLinks?: {
     /** 学术招募（Join Team as Student） */
     student?: string
     /** 开源社区（Join Team with Code） */
     openSource?: string
+    /** 招聘（Recruitment） */
+    recruitment?: string
+    /** 商业合作（Business Cooperation） */
+    businessCooperation?: string
   }
   /** 表单下拉选项表 */
   options: OptionLists

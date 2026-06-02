@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
+    "@iconify/vue": "^5.0.1",
     "@tailwindcss/vite": "^4.1.18",
     "@types/jszip": "^3.4.0",
     "ali-oss": "^6.23.0",
