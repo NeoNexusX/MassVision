@@ -1,5 +1,9 @@
 {
   "appName": "MassFlow",
+  "hero": {
+    "image": "",
+    "taglines": ["OPEN ↗", "FAST ▶︎▶︎", "FREE ∞", "UNIFIED ≡", "INTELLIGENT ✧"]
+  },
   "pagination": {
     "defaultPageSize": 10,
     "pageSizeOptions": [5,10,20]

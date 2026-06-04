@@ -2,22 +2,39 @@
 import BaseScene from './BaseScene.vue'
 import ScenePlaceholder from './ScenePlaceholder.vue'
 import { APP_NAME } from '@/shared/config/app'
+import { getConfig } from '@/shared/config/runtimeConfig'
+
+const { taglines: HERO_TAGLINES, image: HERO_IMAGE } = getConfig().hero
+
+// 每个 tagline 停留 1500ms，整圈时长 = 数量 × 1500ms
+const rotateDuration = `${HERO_TAGLINES.length * 1500}ms`
 </script>
 
 <template>
-  <BaseScene id="hero" class="bg-base-100">
-    <!-- ========= 背景视觉层（预留：WebGL / Canvas / 背景动效）========= -->
-    <div class="pointer-events-none absolute inset-0" aria-hidden="true">
-      <!-- TODO: Hero 背景主视觉 -->
-    </div>
+  <BaseScene id="hero" class="bg-base-100 text-[clamp(2.5rem,12vw,8rem)]">
+    <span class="leading-none text-[1em] ">
+      {{ APP_NAME }}
+    </span>
 
-    <!-- ========= 内容层（预留：主标题 / 副标题 / CTA）========= -->
-    <ScenePlaceholder
-      as="h1"
-      eyebrow="Scene 01"
-      :title="APP_NAME"
-      subtitle="Hero 场景预留区 · 主视觉 / 标题 / 背景动效"
+    <img
+      v-if="HERO_IMAGE"
+      :src="HERO_IMAGE"
+      alt=""
+      class="my-[0.15em] h-[0.8em] w-auto object-contain"
     />
+
+    <span
+      class="text-rotate text-[0.7em] leading-none"
+      :style="{ '--duration': rotateDuration }"
+    >
+      <span class="justify-items-center 
+                    font-bold 
+                    italic 
+                    font-['Outfit',sans-serif]" 
+                    style="font-synthesis: style">
+        <span v-for="tagline in HERO_TAGLINES" :key="tagline" class="px-2">{{ tagline }}</span>
+      </span>
+ </span>
 
     <!-- 向下滚动提示 -->
     <div

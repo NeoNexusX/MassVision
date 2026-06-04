@@ -17,7 +17,6 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 // 容差，吸收 scroll-snap / 子像素取整带来的几像素偏移
 const EDGE = 10
-
 // 卡片宽度区间（px）：列数取「使每张落在 MIN~MAX」的整数，单元格再均分铺满
 const MIN_CARD = 170
 // 满宽卡片上限（px）：3:4 竖卡，高 ≈ MAX_CARD×4/3，直接决定 footer 轮播这块的高度

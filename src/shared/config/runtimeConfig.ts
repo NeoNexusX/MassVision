@@ -68,6 +68,13 @@ export interface TeamMember {
 export interface AppConfig {
   /** 应用名称 */
   appName: string
+  /** 首屏 Hero 区 */
+  hero: {
+    /** 主标题与标语之间的图像 URL；留空 "" 则不显示 */
+    image?: string
+    /** 轮播展示的标语（每行一句，可含符号，如 "FREE ∞"） */
+    taglines: string[]
+  }
   /** 分页 */
   pagination: {
     /** 列表默认每页条数 */
