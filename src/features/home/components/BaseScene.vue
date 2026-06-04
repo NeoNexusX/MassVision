@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 
 /**
- * 全屏场景外壳 —— 场景式滚动叙事的统一基础块。
- * 负责：满视口高度、统一留白、滚动吸附对齐、离屏渲染优化。
+ * 场景外壳 —— 场景式滚动叙事的统一基础块。
+ * 负责：至少一屏高（内容更多时自然向下撑开、绝不裁剪）、统一留白、就近滚动吸附对齐。
  */
 const props = withDefaults(
   defineProps<{
@@ -30,7 +30,7 @@ const justifyClass = computed(
 <template>
   <component
     :is="as"
-    class="scene relative flex w-full flex-col items-center overflow-hidden px-6 py-20 sm:px-8 lg:px-12"
+    class="scene relative flex w-full flex-col items-center px-6 sm:px-8 lg:px-12"
     :class="[justifyClass, { 'scene--snap': snap }]"
   >
     <slot />
@@ -39,13 +39,11 @@ const justifyClass = computed(
 
 <style scoped>
 .scene {
-  min-height: 100vh; /* 回退 */
-  min-height: 100svh;
-  /* 离屏场景跳过渲染/布局，长页保持流畅 */
-  content-visibility: auto;
-  contain-intrinsic-size: auto 100svh;
+  /* 至少一屏高，内容更多时向下撑开（不再硬锁一屏、不裁剪） */
+  min-height: var(--scene-height, 100vh);
 }
 .scene--snap {
+  /* 就近吸附到场景顶部；不强制每屏停顿，超高场景可连续滚动 */
   scroll-snap-align: start;
 }
 </style>

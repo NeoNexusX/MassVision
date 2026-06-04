@@ -20,6 +20,7 @@ const EDGE = 10
 
 // 卡片宽度区间（px）：列数取「使每张落在 MIN~MAX」的整数，单元格再均分铺满
 const MIN_CARD = 170
+// 满宽卡片上限（px）：3:4 竖卡，高 ≈ MAX_CARD×4/3，直接决定 footer 轮播这块的高度
 const MAX_CARD = 340
 // 同时可见的卡片数上限：无论屏幕多宽，最多并排显示 MAX_COLS 张，其余靠滑动浏览。
 // 仅靠此上限还不够——超宽屏下单元格被 MAX_CARD 封顶后会空出余量、再塞进下一张，
@@ -149,6 +150,10 @@ export function useCarouselScroll(options?: { interval?: number; endPause?: numb
     trackRef.value?.addEventListener('mouseleave', onResume)
     trackRef.value?.addEventListener('focusin', stopAutoScroll)
     trackRef.value?.addEventListener('focusout', onResume)
+    // 触屏：手指按下即停，松手/取消后从当前位置重新计时（hover 在触屏上不可靠）
+    trackRef.value?.addEventListener('touchstart', stopAutoScroll, { passive: true })
+    trackRef.value?.addEventListener('touchend', onResume)
+    trackRef.value?.addEventListener('touchcancel', onResume)
     // ResizeObserver 同时覆盖窗口缩放，以及场景因 content-visibility 首次布局
     if (typeof ResizeObserver !== 'undefined' && trackRef.value) {
       ro = new ResizeObserver(onResize)
@@ -168,6 +173,9 @@ export function useCarouselScroll(options?: { interval?: number; endPause?: numb
     trackRef.value?.removeEventListener('mouseleave', onResume)
     trackRef.value?.removeEventListener('focusin', stopAutoScroll)
     trackRef.value?.removeEventListener('focusout', onResume)
+    trackRef.value?.removeEventListener('touchstart', stopAutoScroll)
+    trackRef.value?.removeEventListener('touchend', onResume)
+    trackRef.value?.removeEventListener('touchcancel', onResume)
     ro?.disconnect()
     window.removeEventListener('resize', onResize)
   })

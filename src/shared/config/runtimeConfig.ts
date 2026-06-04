@@ -82,6 +82,13 @@ export interface AppConfig {
     /** 验证码最大尝试次数 */
     maxAttempts: number
   }
+  /** 团队轮播（DeveloperCarousel 自动滚动） */
+  carousel: {
+    /** 自动逐张步进的间隔（ms）：每隔多久平滑翻过一张卡；设 0 禁用自动播放 */
+    interval: number
+    /** 滚到末尾后停留多久（ms）再平滑返回开头 */
+    endPause: number
+  }
   /** 开发团队成员 */
   team: TeamMember[]
   /** 联系方式 */
@@ -96,17 +103,8 @@ export interface AppConfig {
     github?: string
     /** 微信公众号 / 二维码页面链接 */
     wechat?: string
-  }
-  /** 团队加入链接（留空则不显示对应按钮） */
-  joinLinks?: {
-    /** 学术招募（Join Team as Student） */
-    student?: string
-    /** 开源社区（Join Team with Code） */
-    openSource?: string
-    /** 招聘（Recruitment） */
+    /** 学术招募页面链接 */
     recruitment?: string
-    /** 商业合作（Business Cooperation） */
-    businessCooperation?: string
   }
   /** 表单下拉选项表 */
   options: OptionLists

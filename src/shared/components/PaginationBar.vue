@@ -6,17 +6,16 @@
     >
       <div class="join">
         <button
-          class="join-item btn hover:bg-secondary/80 bg-secondary/50 h-[2em] min-h-[2em] px-[1em] text-[1em]  text-base-content/70"
+          class="join-item btn hover:bg-secondary/80 bg-base-100 h-[2em] min-h-[2em] px-[1em] text-[1em] text-base-content/70"
           :disabled="currentPage === 1"
           @click="$emit('prev-page')"
         >
           Prev
         </button>
-        <div class="join-item h-[2em] w-px"></div>
         <template v-for="(p, idx) in pageRange" :key="`pg-${idx}`">
           <button
             v-if="p !== '...'"
-            class="join-item btn h-[2em] min-h-[2em] font-medium text-[1em] bg-primary/80"
+            class="join-item btn h-[2em] min-h-[2em] font-medium text-[1em] bg-base-100"
             :class="
               currentPage === p
                 ? 'bg-base-200/80 text-base-content'
@@ -28,9 +27,8 @@
           </button>
           <span v-else class="join-item btn btn-disabled h-[2em] min-h-[2em] text-[1em]">...</span>
         </template>
-        <div class="join-item h-[2em] w-px"></div>
         <button
-          class="join-item btn hover:bg-secondary/80 bg-secondary/50 text-base-content/70 h-[2em] min-h-[2em] px-[1em] text-[1em]"
+          class="join-item btn hover:bg-secondary/80 bg-base-100 text-base-content/70 h-[2em] min-h-[2em] px-[1em] text-[1em]"
           :disabled="currentPage === totalPages"
           @click="$emit('next-page')"
         >
@@ -48,7 +46,7 @@
         />
         <div class="join-item h-[2em] w-px bg-base-200/80"></div>
         <button
-          class="join-item btn  bg-primary-100 hover:bg-primary h-[2em] min-h-[2em] px-[1em] text-[1em] text-base-content/70"
+          class="join-item btn hover:bg-primary h-[2em] min-h-[2em] px-[1em] text-[1em] text-base-content/70"
           @click="handleJump"
         >
           Go

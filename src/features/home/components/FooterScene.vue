@@ -12,45 +12,49 @@ const { contact = {} } = config
 type SocialLink = { icon: string; label: string; href: string }
 
 const socialLinks = computed<SocialLink[]>(() => [
-  contact.website && { icon: 'mdi:web',              label: 'Bionet Lab', href: contact.website },
-  contact.email   && { icon: 'mdi:email-outline',    label: 'Email',      href: `mailto:${contact.email}` },
-  contact.wechat  && { icon: 'simple-icons:wechat',  label: 'WeChat',     href: contact.wechat },
-  contact.github  && { icon: 'simple-icons:github',  label: 'GitHub',     href: contact.github },
+  contact.website && { icon: 'mdi:web',              label: 'Bionet Lab Website', href: contact.website },
+  contact.email   && { icon: 'mdi:email-outline',    label: 'Bionet Lab Email',      href: `mailto:${contact.email}` },
+  contact.wechat       && { icon: 'simple-icons:wechat',  label: 'WeChat Official Account', href: contact.wechat },
+  contact.github       && { icon: 'simple-icons:github',  label: 'Join us with Github',     href: contact.github },
+  contact.recruitment  && { icon: 'mdi:account-plus',     label: 'Join the Lab',            href: contact.recruitment },
 ].filter(Boolean) as SocialLink[])
 
 const poweredBy = [
-  { label: 'MassFlow', href: 'https://github.com/NeoNexusX/MassFlow' },
-  { label: 'Aliyun',   href: 'https://www.aliyun.com/' },
+  { label: 'Computing Framework', icon: 'mdi:atom-variant', href: 'https://github.com/NeoNexusX/MassFlow' },
+  { label: 'Aliyun', icon: 'simple-icons:alibabacloud', href: 'https://www.aliyun.com/' },
 ]
 </script>
 
 <template>
-  <BaseScene as="footer" align="between" class="footer-scene bg-base-300">
-    <div v-reveal class="flex w-full flex-1 flex-col ">
-      <p class="flex-1 pl-[0.4em] text-[clamp(5rem,10vw,10rem)] font-semibold uppercase tracking-[0.4em] text-secondary text-center">
+  <BaseScene as="footer" align="center" class="footer-scene bg-base-300">
+    <div v-reveal class="flex w-full flex-none flex-col">
+      <p class=" pl-[0.4em] text-[clamp(2.5rem,10vw,8rem)] font-semibold uppercase tracking-[0.4em] text-secondary text-center">
       The Team
       </p>
-      <p class="text-[2em] text-center [word-spacing:0.1em] flex-1">
+      <p class="text-[clamp(1rem,1.8vw,1.5rem)] text-center [word-spacing:0.1em]">
         Built by people who love science and engineering.
       </p>
-      <div class="flex min-h-0 flex-2 items-center">
+      <div class="flex min-h-0 flex-none items-center justify-center">
         <DeveloperCarousel class="w-full"/>
       </div>
     </div>
 
-    <footer class="footer footer-horizontal footer-center text-base-content rounded p-10 text-[clamp(1.2rem,1.5vw,2rem)]">
-      <nav class="flex gap-[2em]">
+    <footer class="footer footer-horizontal footer-center text-base-content rounded p-10 sm:p-6 text-[clamp(1.2rem,1.5vw,1.25rem)]">
+      <nav class="flex flex-wrap justify-center gap-[2em]">
         <a v-for="link in socialLinks" :key="link.href" :href="link.href"
-          :aria-label="link.label" target="_blank" rel="noopener noreferrer"
-          class="transition-opacity hover:opacity-70">
+          :aria-label="link.label" :data-tip="link.label" target="_blank" rel="noopener noreferrer"
+          class="tooltip transition-opacity hover:opacity-70">
           <Icon :icon="link.icon" class="h-[1.8em] w-[1.8em]" />
         </a>
       </nav>
-      <nav class="flex items-center justify-center gap-x-[1.2em] opacity-50 text-[0.85em]">
-        <span>Powered by</span>
+      <span>Powered by</span>
+      <nav class="flex items-center gap-x-[1.2em] opacity-80 text-[0.85em]">
         <template v-for="(item, i) in poweredBy" :key="item.href">
           <span v-if="i > 0" class="opacity-40">·</span>
-          <a :href="item.href" target="_blank" rel="noopener noreferrer" class="link link-hover">{{ item.label }}</a>
+          <a :href="item.href" :aria-label="item.label" :data-tip="item.label" target="_blank" rel="noopener noreferrer"
+            class="tooltip transition-opacity hover:opacity-70">
+            <Icon :icon="item.icon" class="h-[1.8em] w-[1.8em]" />
+          </a>
         </template>
       </nav>
       <p>Copyright © {{ year }} - All rights reserved by Bionet</p>
