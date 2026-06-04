@@ -2,18 +2,25 @@
   "appName": "MassFlow",
   "pagination": {
     "defaultPageSize": 10,
-    "pageSizeOptions": [5,10, 20]
+    "pageSizeOptions": [5,10,20]
   },
   "verification": {
     "countdownSeconds": 60,
     "maxAttempts": 10
   },
-  "joinLinks": {
-    "student": "https://bionet.xmu.edu.cn/",
-    "openSource": "https://github.com/NeoNexusX/MassFlow"
+  "carousel": {
+    "interval": 3000,
+    "endPause": 5000
+  },
+  "contact": {
+    "website": "https://bionet.xmu.edu.cn/",
+    "email": "jydong@xmu.edu.cn",
+    "github": "https://github.com/BioNet-XMU",
+    "wechat": "https://files.seeusercontent.com/2026/06/03/Yw8r/Snipaste_2026-06-03_11-14-27.png",
+    "recruitment": "https://bionet.xmu.edu.cn/lxwm.htm"
   },
   "team": [
-        {
+    {
       "name": "Jiyang Dong",
       "role": "Project Sponsor",
       "degree": "Professor",

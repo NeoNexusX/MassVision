@@ -3,17 +3,10 @@ import DeveloperCard from './DeveloperCard.vue'
 import { getConfig } from '@/shared/config'
 import { useCarouselScroll } from '@/features/home/composables/useCarouselScroll'
 
-const props = defineProps<{
-  /** 自动逐张步进的间隔（ms）：每隔多久平滑翻过一张卡；未传则用 composable 默认值，设 0 禁用 */
-  interval?: number
-  /** 滚到末尾后停留多久（ms）再返回开头；未传则用 composable 默认值 */
-  endPause?: number
-}>()
-
-const TEAM_MEMBERS = getConfig().team
+const { team: TEAM_MEMBERS, carousel } = getConfig()
 
 const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage } =
-  useCarouselScroll({ interval: props.interval, endPause: props.endPause })
+  useCarouselScroll({ interval: carousel.interval, endPause: carousel.endPause })
 </script>
 
 <template>
@@ -100,9 +93,8 @@ const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage }
 .dev-cell {
   /* 宽度 = (容器内容宽度 − 各间距) ÷ 列数，恰好铺满（--gap 与轨道 gap 同源）*/
   flex: 0 0 calc((100% - (var(--cols, 1) - 1) * var(--gap)) / var(--cols, 1));
-  /* 硬上限兜底：ceil 列数正常时单元格本就 ≤ MAX_CARD（此处不触发、无半卡）；
-     仅当离屏/首帧 cols 错算成 1 时，夹住单卡不被拉满整容器（aspect-3/4 否则会高得离谱） */
-  max-width: var(--card-max, 340px);
+  /* 兜底：离屏/首帧 cols 错算成 1 时，夹住单卡不被拉满整容器（上限即 JS 的 MAX_CARD）*/
+  max-width: var(--card-max);
 }
 .carousel-item {
   /* 作为容器，使卡片边框可用 cqi 随其宽度自适应 */

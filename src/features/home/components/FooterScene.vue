@@ -1,54 +1,64 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { Icon } from '@iconify/vue'
 import BaseScene from './BaseScene.vue'
 import DeveloperCarousel from './footer/DeveloperCarousel.vue'
-import { APP_NAME } from '@/shared/config/app'
 import { getConfig } from '@/shared/config/runtimeConfig'
 
 const year = new Date().getFullYear()
-const joinLinks = getConfig().joinLinks ?? {}
+const config = getConfig()
+const { contact = {} } = config
+
+type SocialLink = { icon: string; label: string; href: string }
+
+const socialLinks = computed<SocialLink[]>(() => [
+  contact.website && { icon: 'mdi:web',              label: 'Bionet Lab Website', href: contact.website },
+  contact.email   && { icon: 'mdi:email-outline',    label: 'Bionet Lab Email',      href: `mailto:${contact.email}` },
+  contact.wechat       && { icon: 'simple-icons:wechat',  label: 'WeChat Official Account', href: contact.wechat },
+  contact.github       && { icon: 'simple-icons:github',  label: 'Join us with Github',     href: contact.github },
+  contact.recruitment  && { icon: 'mdi:account-plus',     label: 'Join the Lab',            href: contact.recruitment },
+].filter(Boolean) as SocialLink[])
+
+const poweredBy = [
+  { label: 'Computing Framework', icon: 'mdi:atom-variant', href: 'https://github.com/NeoNexusX/MassFlow' },
+  { label: 'Aliyun', icon: 'simple-icons:alibabacloud', href: 'https://www.aliyun.com/' },
+]
 </script>
 
 <template>
-  <BaseScene as="footer" align="between" class="footer-scene bg-base-300">
-    <!-- 开发人员展示区 -->
-    <div v-reveal class="flex w-full flex-1 flex-col ">
-      <p class="flex-1 pl-[0.4em] text-[clamp(5rem,10vw,10rem)] font-semibold uppercase tracking-[0.4em] text-secondary text-center">
+  <BaseScene as="footer" align="center" class="footer-scene bg-base-300">
+    <div v-reveal class="flex w-full flex-none flex-col">
+      <p class=" pl-[0.4em] text-[clamp(2.5rem,10vw,8rem)] font-semibold uppercase tracking-[0.4em] text-secondary text-center">
       The Team
       </p>
-      <p class="text-[2em] text-center [word-spacing:0.1em] flex-1">
+      <p class="text-[clamp(1rem,1.8vw,1.5rem)] text-center [word-spacing:0.1em]">
         Built by people who love science and engineering.
       </p>
-      <div v-if="joinLinks.student || joinLinks.openSource" class="mt-[1.5em] flex flex-col items-center justify-center gap-[1em] sm:flex-row sm:gap-[3em]">
-        <a
-          v-if="joinLinks.student"
-          :href="joinLinks.student"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="btn btn-primary text-[clamp(1rem,2.5vw,1.75rem)] px-[2em] py-[1.2em]"
-        >Join the Bionet Lab</a>
-        <a
-          v-if="joinLinks.openSource"
-          :href="joinLinks.openSource"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="btn btn-secondary text-[clamp(1rem,2.5vw,1.75rem)] px-[2em] py-[1.2em]"
-        >Join on GitHub</a>
-      </div>
-      <div class="flex min-h-0 flex-2 items-center">
+      <div class="flex min-h-0 flex-none items-center justify-center">
         <DeveloperCarousel class="w-full"/>
       </div>
     </div>
 
-    <!-- 品牌信息区 -->
-    <div class="flex w-full flex-col items-center gap-[0.6em] border-t border-base-content/10 pt-[1em] text-center text-[1rem] md:items-end md:text-right">
-      <div class="flex items-center gap-[0.6em]">
-        <span class="flex h-[2em] w-[2em] items-center justify-center rounded-[0.4em] bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-sm">
-          <SvgIcon type="sparkles" class="h-[1em] w-[1em]" />
-        </span>
-        <span class="text-[1.2em] font-extrabold uppercase text-base-content">{{ APP_NAME }}</span>
-      </div>
-      <p class="text-[0.75em] uppercase tracking-[0.04em] text-base-content/50">© {{ year }} {{ APP_NAME }}. All rights reserved.</p>
-    </div>
+    <footer class="footer footer-horizontal footer-center text-base-content rounded p-10 sm:p-6 text-[clamp(1.2rem,1.5vw,1.25rem)]">
+      <nav class="flex flex-wrap justify-center gap-[2em]">
+        <a v-for="link in socialLinks" :key="link.href" :href="link.href"
+          :aria-label="link.label" :data-tip="link.label" target="_blank" rel="noopener noreferrer"
+          class="tooltip transition-opacity hover:opacity-70">
+          <Icon :icon="link.icon" class="h-[1.8em] w-[1.8em]" />
+        </a>
+      </nav>
+      <span>Powered by</span>
+      <nav class="flex items-center gap-x-[1.2em] opacity-80 text-[0.85em]">
+        <template v-for="(item, i) in poweredBy" :key="item.href">
+          <span v-if="i > 0" class="opacity-40">·</span>
+          <a :href="item.href" :aria-label="item.label" :data-tip="item.label" target="_blank" rel="noopener noreferrer"
+            class="tooltip transition-opacity hover:opacity-70">
+            <Icon :icon="item.icon" class="h-[1.8em] w-[1.8em]" />
+          </a>
+        </template>
+      </nav>
+      <p>Copyright © {{ year }} - All rights reserved by Bionet</p>
+    </footer>
   </BaseScene>
 </template>
 
