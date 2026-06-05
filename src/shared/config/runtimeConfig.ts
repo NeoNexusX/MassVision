@@ -70,10 +70,10 @@ export interface AppConfig {
   appName: string
   /** 首屏 Hero 区 */
   hero: {
-    /** 主标题与标语之间的图像 URL；留空 "" 则不显示 */
-    image?: string
     /** 轮播展示的标语（每行一句，可含符号，如 "FREE ∞"） */
     taglines: string[]
+    /** 悬停画廊：一组图片 URL，横向并排，悬停某张时展开放大；留空则不显示 */
+    gallery?: string[]
   }
   /** 分页 */
   pagination: {
