@@ -68,6 +68,13 @@ export interface TeamMember {
 export interface AppConfig {
   /** 应用名称 */
   appName: string
+  /** 首屏 Hero 区 */
+  hero: {
+    /** 轮播展示的标语（每行一句，可含符号，如 "FREE ∞"） */
+    taglines: string[]
+    /** 悬停画廊：一组图片 URL，横向并排，悬停某张时展开放大；留空则不显示 */
+    gallery?: string[]
+  }
   /** 分页 */
   pagination: {
     /** 列表默认每页条数 */
@@ -123,6 +130,7 @@ export async function loadConfig(): Promise<AppConfig> {
     throw new Error(`Failed to load ${url}: ${res.status} ${res.statusText}`)
   }
   _config = (await res.json()) as AppConfig
+  _config.hero ??= { taglines: [], gallery: [] }
   return _config
 }
 

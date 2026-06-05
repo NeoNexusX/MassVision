@@ -1,23 +1,51 @@
 <script setup lang="ts">
 import BaseScene from './BaseScene.vue'
 import ScenePlaceholder from './ScenePlaceholder.vue'
+import HoverGallery from '@/shared/components/HoverGallery.vue'
 import { APP_NAME } from '@/shared/config/app'
+import { getConfig } from '@/shared/config/runtimeConfig'
+
+const { taglines: HERO_TAGLINES, gallery: HERO_GALLERY = [] } = getConfig().hero
+
+// 每个 tagline 停留 1500ms，整圈时长 = 数量 × 1500ms
+const rotateDuration = `${HERO_TAGLINES.length * 1500}ms`
+
+// 把中间的大写 X 单独拆出来，做浅蓝→深蓝渐变；没有 X 时回退为完整名称
+const xIndex = APP_NAME.indexOf('X')
+const namePre = xIndex >= 0 ? APP_NAME.slice(0, xIndex) : APP_NAME
+const nameX = xIndex >= 0 ? APP_NAME[xIndex] : ''
+const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
 </script>
 
 <template>
-  <BaseScene id="hero" class="bg-base-100">
-    <!-- ========= 背景视觉层（预留：WebGL / Canvas / 背景动效）========= -->
-    <div class="pointer-events-none absolute inset-0" aria-hidden="true">
-      <!-- TODO: Hero 背景主视觉 -->
-    </div>
+  <BaseScene id="hero" class="bg-base-100 text-[clamp(2.5rem,12vw,8rem)]">
 
-    <!-- ========= 内容层（预留：主标题 / 副标题 / CTA）========= -->
-    <ScenePlaceholder
-      as="h1"
-      eyebrow="Scene 01"
-      :title="APP_NAME"
-      subtitle="Hero 场景预留区 · 主视觉 / 标题 / 背景动效"
-    />
+    <!-- #标题 -->
+    <span class="leading-none text-[1em]">
+      {{ namePre }}<span class="bg-gradient-to-bl 
+                                to-[#1F52F5] 
+                                from-[#8ca9f6] 
+                                bg-clip-text 
+                                text-transparent 
+                                font-['Outfit',sans-serif] text-[1.2em]"
+        style="font-synthesis: style">{{ nameX }}</span>{{ namePost }}
+    </span>
+    <!-- 滚动 -->
+    <span
+      class="text-rotate mt-[0.5em] text-[0.7em] leading-none"
+      :style="{ '--duration': rotateDuration }"
+    >
+      <span class="justify-items-center 
+                    font-bold 
+                    italic 
+                    font-['Outfit',sans-serif]" 
+                    style="font-synthesis: style">
+        <span v-for="tagline in HERO_TAGLINES" :key="tagline" class="px-2">{{ tagline }}</span>
+      </span>
+    </span>
+
+    <!-- 预览图 -->
+    <HoverGallery :images="HERO_GALLERY" class="mt-[0.6em]" />
 
     <!-- 向下滚动提示 -->
     <div

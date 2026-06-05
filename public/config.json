@@ -1,5 +1,14 @@
 {
-  "appName": "MassFlow",
+  "appName": "SpatialXomics",
+  "hero": {
+    "taglines": ["OPEN ↗", "FAST ▶︎▶︎", "UNIFIED ≡", "INTELLIGENT ✧"],
+    "gallery": [
+      "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/dataset_2_tic.png",
+      "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/dataset_2_umap.png",
+      "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/dataset_2_kmeans.png"
+
+    ]
+  },
   "pagination": {
     "defaultPageSize": 10,
     "pageSizeOptions": [5,10,20]
