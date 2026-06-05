@@ -21,13 +21,15 @@ const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
   <BaseScene id="hero" class="bg-base-100 text-[clamp(2.5rem,12vw,8rem)]">
 
     <!-- #标题 -->
-    <span class="leading-none text-[1em]"
-      >{{ namePre }}<span
-        class="bg-gradient-to-bl to-[#1F52F5] from-[#8ca9f6] bg-clip-text text-transparent font-['Outfit',sans-serif] text-[1.2em]"
-        style="font-synthesis: style"
-        >{{ nameX }}</span
-      >{{ namePost }}</span
-    >
+    <span class="leading-none text-[1em]">
+      {{ namePre }}<span class="bg-gradient-to-bl 
+                                to-[#1F52F5] 
+                                from-[#8ca9f6] 
+                                bg-clip-text 
+                                text-transparent 
+                                font-['Outfit',sans-serif] text-[1.2em]"
+        style="font-synthesis: style">{{ nameX }}</span>{{ namePost }}
+    </span>
     <!-- 滚动 -->
     <span
       class="text-rotate mt-[0.5em] text-[0.7em] leading-none"

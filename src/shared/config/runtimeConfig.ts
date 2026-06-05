@@ -130,6 +130,7 @@ export async function loadConfig(): Promise<AppConfig> {
     throw new Error(`Failed to load ${url}: ${res.status} ${res.statusText}`)
   }
   _config = (await res.json()) as AppConfig
+  _config.hero ??= { taglines: [], gallery: [] }
   return _config
 }
 
