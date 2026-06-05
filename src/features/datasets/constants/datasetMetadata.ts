@@ -8,6 +8,11 @@ import { getConfig } from '@/shared/config/runtimeConfig'
 
 const o = getConfig().options
 
+export const POLARITIES: string[] = o.polarity
+export const ION_SOURCES: string[] = o.ionSource
+export const ANALYZERS: string[] = o.analyzer
+export const SPECTRUM_MODES: string[] = o.spectrumMode
+export const STORAGE_MODES: string[] = o.storageMode
 export const EXPERIMENT_TYPES: string[] = o.experimentType
 export const ORGANISMS: string[] = o.organism
 export const ORGANISM_PARTS: string[] = o.organismPart

@@ -106,8 +106,13 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     abortController = new AbortController()
   }
 
-  const finishSuccessfully = (datasetName: string) => {
-    showToast('Dataset pipeline successfully completed', 'success')
+  const finishSuccessfully = (datasetName: string, reused = false) => {
+    showToast(
+      reused
+        ? 'File already exists on server, reused without re-upload.'
+        : 'Dataset pipeline successfully completed',
+      'success',
+    )
     uploading.value = false
     options.uploadSuccess(datasetName)
     closeModal()
@@ -173,14 +178,14 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
 
     try {
       const payload = metadataForm.buildMetadataPayload()
-      await uploadImzmlDataset({
+      const result = await uploadImzmlDataset({
         files: selectedPair.value,
         datasetName: selectedPair.value.baseName,
         metadata: { ...payload, file_type: 'zip', is_public: metadataForm.form.value.is_public },
         signal: abortController!.signal,
         onProgress: handleProgress,
       })
-      finishSuccessfully(selectedPair.value.baseName)
+      finishSuccessfully(selectedPair.value.baseName, !!result?.reused)
     } catch (err: any) {
       handleUploadError(err, 'Pipeline sequence failed')
     } finally {

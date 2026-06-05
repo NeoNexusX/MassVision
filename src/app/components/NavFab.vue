@@ -16,7 +16,7 @@
       <button class="fab-main-action btn btn-circle btn-lg btn-primary" aria-label="Main action">
         <template v-if="user">
           <div
-            class="bg-indigo-100 text-indigo-700 rounded-full w-8 h-8 flex items-center justify-center"
+            class="bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full w-8 h-8 flex items-center justify-center"
           >
             <span class="text-sm font-bold">{{ userInitial }}</span>
           </div>

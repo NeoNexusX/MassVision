@@ -23,7 +23,7 @@ const upload = useUploadFlow({
     <div
       class="modal-box rounded-2xl w-11/12 max-w-2xl max-h-[90vh] flex flex-col text-base-content"
     >
-      <h3 class="font-bold text-lg mb-4 shrink-0">Upload New Dataset (imzML + ibd)</h3>
+      <h3 class="font-bold text-2xl mb-4 shrink-0">Upload New Dataset (imzML + ibd)</h3>
 
       <div v-if="upload.stage.value === 'select'" class="flex flex-col flex-1 min-h-0">
         <div class="flex-1 overflow-y-auto overflow-x-hidden -mx-6 px-6 pt-4 pb-4 flex flex-col gap-4">

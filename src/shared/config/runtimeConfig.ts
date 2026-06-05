@@ -14,6 +14,16 @@ export interface OptionLists {
   position: string[]
   /** 研究领域 */
   researchField: string[]
+  /** 极性 */
+  polarity: string[]
+  /** 离子源 */
+  ionSource: string[]
+  /** 分析器 */
+  analyzer: string[]
+  /** 谱图模式 */
+  spectrumMode: string[]
+  /** 存储模式 */
+  storageMode: string[]
   /** 实验类型 */
   experimentType: string[]
   /** 物种 */

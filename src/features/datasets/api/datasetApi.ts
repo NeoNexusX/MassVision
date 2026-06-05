@@ -32,12 +32,14 @@ export async function listUserFiles(filters: Record<string, any> = {}, page = 1,
 // Get user storage and processing quota
 // GET /users/quota
 export interface UserQuota {
-  max_file_size_gb: number
   total_uploaded_size_bytes: number
   file_count: number
   max_files_per_user: number
+  max_total_file_size: number
   max_processing_size_gb: number
   total_processed_size_bytes: number
+  download_used: number
+  max_download_count: number
 }
 
 export async function getUserQuota(): Promise<UserQuota> {

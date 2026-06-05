@@ -157,6 +157,19 @@ export async function uploadImzmlZipFileOSS({
       throw new Error('Preflight did not return file_id')
     }
 
+    // ================= Phase 3a: Reuse short-circuit =================
+    // Backend signals that this file already exists on its side (matched by hash etc.),
+    // so we skip the OSS credential fetch + actual upload entirely.
+    if (preflightData.is_reuse) {
+      onProgress?.({
+        stage: 'completed',
+        percent: 100,
+        message: 'File already exists on server, reused.',
+      })
+      await cleanupResumable()
+      return { upload_id: String(fileId), fileHash, oss_path: '', reused: true }
+    }
+
     // ================= Phase 3b: Get OSS credentials =================
     onProgress?.({ stage: 'preflight', percent: 100, message: 'Fetching upload credentials...' })
 
@@ -311,7 +324,7 @@ export async function uploadImzmlZipFileOSS({
     onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete.' })
 
     await cleanupResumable()
-    return { upload_id: String(fileId), fileHash, oss_path: ossData.oss_path }
+    return { upload_id: String(fileId), fileHash, oss_path: ossData.oss_path, reused: false }
   } finally {
     currentOssClient = null
     currentUploadId = null

@@ -3,13 +3,13 @@
     <!-- Header: Title + actions -->
     <div class="flex items-start justify-between mb-6">
       <div>
-        <h1 class="text-3xl font-semibold">Workspace</h1>
-        <p class="text-base text-base-content/60 mt-1">
+        <h1 class="text-4xl font-semibold">Workspace</h1>
+        <p class="text-lg text-base-content/60 mt-1">
           Monitor preprocessing tasks and review recent MSI results.
         </p>
       </div>
       <div class="flex items-center gap-3">
-        <router-link to="/my-datasets" class="btn btn-ghost">Go to MyDatasets</router-link>
+        <router-link to="/my-datasets" class="btn btn-ghost btn-lg">Go to MyDatasets</router-link>
         <router-link to="/workspace/new" class="btn btn-primary btn-lg">New Task</router-link>
       </div>
     </div>
@@ -36,20 +36,20 @@
       />
     </div>
 
-    <!-- Main content: single column (Running Tasks then Recent Results) -->
+    <!-- Main content -->
     <div class="flex flex-col gap-8">
       <section class="bg-base-100 rounded-lg border border-base-200 shadow-sm p-6">
-        <h2 class="text-xl font-medium mb-4">Running Tasks</h2>
+        <h2 class="text-2xl font-medium mb-4">Running Tasks</h2>
         <TaskTable :tasks="runningTasks" />
       </section>
 
       <section class="bg-base-100 rounded-lg border border-base-200 shadow-sm p-6">
-        <h2 class="text-xl font-medium mb-4">Recent Results</h2>
+        <h2 class="text-2xl font-medium mb-4">Recent Results</h2>
         <ResultTable :results="recentResults" />
       </section>
 
       <section>
-        <ActivityList />
+        <ActivityList :activities="recentActivities" />
       </section>
     </div>
 
@@ -65,5 +65,5 @@ import SummaryCard from '@/features/workspace/dashboard/components/SummaryCard.v
 import ActivityList from '@/features/workspace/dashboard/components/ActivityList.vue'
 import { useWorkspaceDashboard } from '@/features/workspace/dashboard/composables/useWorkspaceDashboard'
 
-const { createOpen, runningTasks, recentResults, summary, onCreated } = useWorkspaceDashboard()
+const { createOpen, runningTasks, recentResults, recentActivities, summary, onCreated } = useWorkspaceDashboard()
 </script>

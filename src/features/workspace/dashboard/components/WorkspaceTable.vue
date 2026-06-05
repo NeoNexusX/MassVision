@@ -3,47 +3,47 @@
     <div class="w-full overflow-x-auto">
       <table class="table w-full table-fixed">
         <colgroup>
-          <col style="width: 19%" />
-          <col style="width: 13%" />
-          <col style="width: 31%" />
           <col style="width: 15%" />
-          <col style="width: 17%" />
-          <col style="width: 5%" />
+          <col style="width: 25%" />
+          <col style="width: 25%" />
+          <col style="width: 13%" />
+          <col style="width: 15%" />
+          <col style="width: 7%" />
         </colgroup>
         <thead>
-          <tr class="text-sm text-base-content/70">
+          <tr class="text-lg text-base-content/70">
             <th class="pl-6 text-left">Name</th>
-            <th class="text-left">Dataset</th>
-            <th class="text-left">Methods</th>
-            <th class="text-left">Status</th>
-            <th class="text-left">{{ type === 'running' ? 'Progress' : 'Created' }}</th>
-            <th class="text-right">Action</th>
+            <th class="pl-2 text-left">Dataset</th>
+            <th class="pl-2 text-left">Methods</th>
+            <th class="pl-2 text-left">Status</th>
+            <th class="pl-2 text-left">{{ type === 'running' ? 'Progress' : 'Created' }}</th>
+            <th class="pr-2 text-right">Action</th>
           </tr>
         </thead>
         <tbody>
           <tr
             v-for="r in rows"
             :key="r.id"
-            class="hover:bg-base-200 transition-colors"
+            class="hover:bg-base-200 transition-colors text-lg"
             :style="{ cursor: rowCursor }"
           >
-            <td class="font-medium pl-6 min-w-0">{{ r.name }}</td>
-            <td class="min-w-0">{{ r.dataset }}</td>
-            <td class="break-words whitespace-normal">{{ r.methods?.join(' + ') }}</td>
-            <td class="min-w-0">
-              <StatusBadge :status="normalizeStatus(r)" />
+            <td class="font-medium pl-6 truncate" :title="r.name">{{ r.name }}</td>
+            <td class="pl-2 truncate" :title="r.dataset">{{ r.dataset }}</td>
+            <td class="pl-2 break-words whitespace-normal">{{ r.methods?.join(' + ') }}</td>
+            <td class="pl-2">
+              <StatusBadge :status="normalizeStatus(r)" compact />
             </td>
-            <td>
+            <td class="pl-2">
               <template v-if="type === 'running'">
                 <progress
                   class="progress progress-primary w-full"
                   :value="r.progress || 0"
                   max="100"
                 ></progress>
-                <div class="text-xs text-base-content/60 mt-1">{{ r.progress || 0 }}%</div>
+                <div class="text-base text-base-content/60 mt-1">{{ r.progress || 0 }}%</div>
               </template>
               <template v-else>
-                <div class="text-sm text-base-content/60">
+                <div class="text-lg text-base-content/60">
                   {{ r.createdTime || r.created || '' }}
                 </div>
               </template>

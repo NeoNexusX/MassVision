@@ -91,7 +91,7 @@ defineEmits<{
     <div class="overflow-x-auto w-full">
       <table class="table table-md w-full">
         <thead>
-          <tr class="bg-base-50 text-base-content/60 border-b border-base-200 text-sm">
+          <tr class="bg-base-200 text-base-content/60 border-b border-base-200 text-sm">
             <th class="font-medium py-3 pl-6">Username</th>
             <th class="font-medium py-3 w-32">Status</th>
             <th class="font-medium py-3">Institution</th>
@@ -147,7 +147,7 @@ defineEmits<{
       </table>
     </div>
 
-    <div class="p-4 border-t border-base-200 bg-base-50/50">
+    <div class="p-4 border-t border-base-200 bg-base-200/50">
       <PaginationBar
         :current-page="currentPage"
         :total-pages="totalPages"

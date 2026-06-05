@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { getConfig } from '@/shared/config/runtimeConfig'
 
 export interface UploadMetadataFormState {
   experiment_type: string
@@ -86,15 +87,15 @@ export function useUploadMetadataForm() {
   }
 
   const applyParsedSettings = (settings: any) => {
+    const opts = getConfig().options
     if (settings.polarity) {
       form.value.polarity = settings.polarity === 'negative' ? 'Negative' : 'Positive'
     }
-    if (settings.ionSource && ['MALDI', 'DESI', 'SIMS'].includes(settings.ionSource)) {
+    if (settings.ionSource && opts.ionSource.includes(settings.ionSource)) {
       form.value.ionisation_source = settings.ionSource
     }
-    if (settings.analyzer) {
-      const analyzers = ['Orbitrap', 'FTICR', 'TOF', 'Q-TOF']
-      form.value.analyzer = analyzers.includes(settings.analyzer) ? settings.analyzer : ''
+    if (settings.analyzer && opts.analyzer.includes(settings.analyzer)) {
+      form.value.analyzer = settings.analyzer
     }
     if (settings.pixelSizeX != null) {
       form.value.pixel_size_horizontal = String(settings.pixelSizeX)

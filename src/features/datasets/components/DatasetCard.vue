@@ -99,6 +99,7 @@ import { formatBytes } from '@/shared/utils/format'
 const props = defineProps<{
   dataset: File
   isMyDataset?: boolean
+  packing?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -164,13 +165,20 @@ const actionItems = computed<ActionItem[]>(() => {
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
       onClick: () => emit('view-overview', props.dataset.name),
     },
-    {
-      id: 'download',
-      icon: 'download',
-      label: 'Download',
-      colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
-      onClick: () => emit('download', props.dataset.id),
-    },
+    props.packing
+      ? {
+          id: 'download',
+          label: 'Packing',
+          colorClass: 'text-base-content/80',
+          spinner: true,
+        }
+      : {
+          id: 'download',
+          icon: 'download',
+          label: 'Download',
+          colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
+          onClick: () => emit('download', props.dataset.id),
+        },
   )
 
   if (props.isMyDataset)

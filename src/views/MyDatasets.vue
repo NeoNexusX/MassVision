@@ -24,6 +24,12 @@
             >{{ quota.procUsed }} / {{ quota.procMax }}</strong
           ></span
         >
+        <span class="px-3"
+          >Downloads
+          <strong class="text-base-content"
+            >{{ quota.downloadUsed }} / {{ quota.downloadMax }}</strong
+          ></span
+        >
         <button
           class="btn btn-ghost text-[1em] md:ml-auto"
           :class="{ loading: checkingFiles }"
@@ -74,6 +80,7 @@
           :pagination="pagination"
           :is-my-dataset="true"
           :deletingId="deletingId"
+          :packingIds="packingIds"
           @view-overview="viewOverview"
           @download="handleDownload"
           @delete="handleDelete"

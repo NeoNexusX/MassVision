@@ -27,14 +27,29 @@ export function formatErrorMessage(detail: unknown): string {
 
   if (detail == null) return 'Unknown Error'
 
+  // --- FastAPI-style array: [{ loc, msg, type }, ...] ---
   if (Array.isArray(detail)) {
-    const first = detail[0] as { msg?: string; message?: string } | undefined
-    return first?.msg || first?.message || safeStringify(detail) || 'Response Failed'
+    // Collect non-empty messages from all items
+    const messages = detail
+      .map((item) => (item as { msg?: string; message?: string })?.msg || (item as { msg?: string; message?: string })?.message || '')
+      .filter(Boolean)
+    if (messages.length > 0) {
+      return messages.join('; ')
+    }
+    // Fallback: no extractable message in any item
+    return safeStringify(detail) || 'Response Failed'
   }
 
+  // --- Plain object: { msg } or { message } or { detail: "..." } ---
   if (typeof detail === 'object') {
-    const obj = detail as { msg?: string; message?: string }
-    return obj.msg || obj.message || safeStringify(detail) || 'Response Failed'
+    const obj = detail as Record<string, unknown>
+    // Recursively unwrap nested detail
+    if (obj.detail != null && (typeof obj.detail === 'string' || Array.isArray(obj.detail) || (typeof obj.detail === 'object' && (obj.detail as any)?.msg))) {
+      return formatErrorMessage(obj.detail)
+    }
+    const msg = obj.msg || obj.message
+    if (msg && typeof msg === 'string') return msg
+    return safeStringify(detail) || 'Response Failed'
   }
 
   return String(detail) || 'Response Failed'
@@ -43,7 +58,20 @@ export function formatErrorMessage(detail: unknown): string {
 const error_catch = (error: AxiosError<ErrorResponse>) => {
   if (error.response?.data) {
     const raw = (error.response.data as any) || {}
-    const candidate = raw?.detail ?? raw?.message ?? raw?.msg ?? error.message ?? raw
+
+    // If data is a plain string (e.g., text/plain response), try to parse it as JSON
+    let candidate: unknown
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw)
+        candidate = parsed?.detail ?? parsed?.message ?? parsed?.msg ?? parsed
+      } catch {
+        candidate = raw
+      }
+    } else {
+      candidate = raw?.detail ?? raw?.message ?? raw?.msg ?? error.message ?? raw
+    }
+
     const errorMessage = formatErrorMessage(candidate)
     // set formatted message on the error and also on response.data for callers
     try {
