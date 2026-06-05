@@ -1,34 +1,34 @@
 <template>
-  <div class="flex flex-col gap-3 text-lg">
+  <div class="flex flex-col gap-3 text-base">
     <!-- ROI Tools -->
     <div>
-      <div class="text-xl font-semibold text-base-content/50 mb-2 tracking-wide">ROI Tools</div>
+      <div class="text-base font-semibold text-base-content/50 mb-2 tracking-wide">ROI Tools</div>
       <div class="flex gap-1.5">
         <button
-          class="btn btn-sm flex-1"
+          class="btn btn-sm flex-1 text-base"
           :class="selectedTool === 'rectangle' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'rectangle' ? null : 'rectangle')"
         >
           ▭ Rect
         </button>
         <button
-          class="btn btn-sm flex-1"
+          class="btn btn-sm flex-1 text-base"
           :class="selectedTool === 'freehand' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'freehand' ? null : 'freehand')"
         >
           ✎ Lasso
         </button>
-        <button v-if="draftReady" class="btn btn-sm btn-success flex-1" @click="$emit('confirm')">
+        <button v-if="draftReady" class="btn btn-sm btn-success flex-1 text-base" @click="$emit('confirm')">
           ✓ Confirm
         </button>
         <button
           v-if="draftReady"
-          class="btn btn-sm btn-ghost flex-1 text-error"
+          class="btn btn-sm btn-ghost flex-1 text-base text-error"
           @click="$emit('cancel')"
         >
           ✕ Cancel
         </button>
-        <button v-if="showReset" class="btn btn-sm btn-warning flex-1" @click="$emit('reset')">
+        <button v-if="showReset" class="btn btn-sm btn-warning flex-1 text-base" @click="$emit('reset')">
           ↺ Reset
         </button>
       </div>
@@ -45,7 +45,7 @@
 
     <!-- ROI List -->
     <div v-if="rois.length">
-      <div class="text-xl font-semibold text-base-content/50 mb-2 tracking-wide">
+      <div class="text-base font-semibold text-base-content/50 mb-2 tracking-wide">
         ROIs
         <button class="text-base text-error ml-2 hover:underline" @click="$emit('clearAll')">
           Clear all
@@ -63,16 +63,16 @@
               roi.label
             }}</span>
             <button
-              class="text-sm text-base-content/30 hover:text-error"
+              class="text-base text-base-content/30 hover:text-error"
               @click="$emit('delete', roi.id)"
             >
               ✕
             </button>
           </div>
-          <span class="text-sm text-base-content/40">{{
+          <span class="text-base text-base-content/40">{{
             roi.type === 'freehand' ? 'Lasso' : 'Rectangle'
           }}</span>
-          <div v-if="roi.stats" class="mt-1 space-y-0.5 text-sm font-mono text-base-content/60">
+          <div v-if="roi.stats" class="mt-1 space-y-0.5 text-base font-mono text-base-content/60">
             <div class="flex justify-between">
               <span>Pixels</span><span>{{ roi.stats.pixelCount }}</span>
             </div>

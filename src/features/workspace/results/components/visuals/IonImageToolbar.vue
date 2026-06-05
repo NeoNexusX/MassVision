@@ -21,7 +21,7 @@
     <div class="ml-auto flex flex-wrap items-center gap-2">
       <div class="bg-base-200 rounded-lg px-3 py-1.5 text-base">
         <span class="text-base-content/50">m/z&nbsp;</span>
-        <span class="font-mono font-semibold">{{ selectedMz.toFixed(3) }}</span>
+        <span class="font-mono font-semibold">{{ selectedMz.toFixed(4) }}</span>
       </div>
       <div class="flex items-center gap-1 text-base">
         <span class="text-base-content/50">&plusmn;</span>
@@ -35,7 +35,7 @@
         />
       </div>
       <select
-        class="select select-sm select-bordered w-24 text-base"
+        class="select select-sm select-bordered w-28 text-base"
         :value="colormap"
         @change="$emit('update:colormap', ($event.target as HTMLSelectElement).value)"
       >
@@ -45,14 +45,14 @@
         <option value="gray">Gray</option>
       </select>
       <select
-        class="select select-sm select-bordered w-24 text-base"
+        class="select select-sm select-bordered w-28 text-base"
         :value="intensityScale"
         @change="$emit('update:intensityScale', ($event.target as HTMLSelectElement).value)"
       >
         <option value="linear">Linear</option>
         <option value="log">Log</option>
       </select>
-      <button class="btn btn-sm btn-ghost" @click="$emit('reset')">Reset</button>
+      <button class="btn btn-sm btn-ghost text-base" @click="$emit('reset')">Reset</button>
     </div>
   </div>
 </template>

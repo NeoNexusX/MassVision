@@ -104,19 +104,17 @@ export function useROI(
     return mask
   }
 
-  function computeStats(matrix: number[][], mask: boolean[][]): ROIStats | null {
-    const h = matrix.length
-    const w = matrix[0]?.length ?? 0
+  function computeStats(matrix: Float32Array, w: number, h: number, mask: boolean[][]): ROIStats | null {
     let sum = 0,
       count = 0,
       min = Infinity,
       max = -Infinity
     for (let r = 0; r < h; r++) {
-      const row = matrix[r]!
+      const rowOff = r * w
       const maskRow = mask[r]!
       for (let c = 0; c < w; c++) {
         if (!maskRow[c]) continue
-        const v = row[c] ?? 0
+        const v = matrix[rowOff + c] ?? 0
         if (!Number.isFinite(v)) continue
         sum += v
         count++
@@ -128,11 +126,11 @@ export function useROI(
     const mean = sum / count
     let sumSq = 0
     for (let r = 0; r < h; r++) {
-      const row = matrix[r]!
+      const rowOff = r * w
       const maskRow = mask[r]!
       for (let c = 0; c < w; c++) {
         if (!maskRow[c]) continue
-        const v = row[c] ?? 0
+        const v = matrix[rowOff + c] ?? 0
         if (!Number.isFinite(v)) continue
         sumSq += (v - mean) ** 2
       }
@@ -147,15 +145,13 @@ export function useROI(
     }
   }
 
-  function confirmROI(matrix: number[][], draftROI: DraftROI, label?: string): ConfirmedROI | null {
-    const w = matrix[0]?.length ?? 0
-    const h = matrix.length
+  function confirmROI(matrix: Float32Array, w: number, h: number, draftROI: DraftROI, label?: string): ConfirmedROI | null {
     if (!w || !h) return null
     const mask = generateMask(draftROI, w, h)
     const pixelCount = mask.flat().filter(Boolean).length
     if (pixelCount === 0) return null
 
-    const stats = computeStats(matrix, mask)
+    const stats = computeStats(matrix, w, h, mask)
     const roi: ConfirmedROI = {
       id: `roi-${nextId++}`,
       type: draftROI.type,

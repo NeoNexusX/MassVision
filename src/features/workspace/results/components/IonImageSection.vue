@@ -4,8 +4,8 @@ import ROIOverlay from '@/features/workspace/results/components/visuals/ROIOverl
 import type { ROIType } from '@/features/workspace/results/composables/useROI'
 
 defineProps<{
-  ionMatrix: number[][] | null
-  displayMatrix: number[][] | null
+  ionMatrix: Float32Array | null
+  displayMatrix: Float32Array | null
   selectedMz: number
   mzTolerance: number
   colormap: string
@@ -63,6 +63,8 @@ const emit = defineEmits<{
           :display-min="displayMin"
           :display-max="displayMax"
           :matrix="displayMatrix"
+          :matrix-cols="ionCols"
+          :matrix-rows="ionRows"
           :meta-info="meta"
           :draw-mode="!!roiTool"
           :overlay-data="overlayData"
@@ -110,14 +112,14 @@ const emit = defineEmits<{
           :style="{ top: clampPct(calcHandleTop(displayMax)) + '%', transform: 'translateY(-50%)' }"
           @mousedown.prevent.stop="emit('start-strip-drag', 'max', $event)"
         >
-          <div class="w-full h-[3px] bg-white rounded shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"></div>
+          <div class="w-full h-[3px] bg-base-100 rounded shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"></div>
         </div>
         <div
           class="absolute left-0 right-0 h-3 cursor-ns-resize z-10 flex items-center justify-center"
           :style="{ top: clampPct(calcHandleTop(displayMin)) + '%', transform: 'translateY(-50%)' }"
           @mousedown.prevent.stop="emit('start-strip-drag', 'min', $event)"
         >
-          <div class="w-full h-[3px] bg-white rounded shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"></div>
+          <div class="w-full h-[3px] bg-base-100 rounded shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"></div>
         </div>
       </div>
       <span

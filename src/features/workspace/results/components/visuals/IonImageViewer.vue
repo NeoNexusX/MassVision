@@ -72,11 +72,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, type PropType } from 'vue'
+import { ref, computed, watch, onMounted, type PropType } from 'vue'
 import IonImageToolbar from './IonImageToolbar.vue'
 import { useZoomPan } from '../../composables/useZoomPan'
 import { useCanvasRenderer } from '../../composables/useCanvasRenderer'
-import { generateMockMatrix } from '../../utils/mockData'
 
 const props = defineProps({
   selectedMz: { type: Number, required: true },
@@ -85,7 +84,9 @@ const props = defineProps({
   intensityScale: { type: String, required: true },
   displayMin: { type: Number, default: undefined },
   displayMax: { type: Number, default: undefined },
-  matrix: { type: Array as PropType<number[][] | null>, default: null },
+  matrix: { type: Object as PropType<Float32Array | null>, default: null },
+  matrixCols: { type: Number, default: 0 },
+  matrixRows: { type: Number, default: 0 },
   metaInfo: {
     type: Object as PropType<{ analyzer?: string; ionSource?: string; pixelSize?: string } | null>,
     default: null,
@@ -121,18 +122,20 @@ const { zoom, panX, panY, resetZoom, zoomIn, zoomOut, onWheel, onPanStart } = us
   () => containerH.value,
 )
 
-const { scheduleRender, observeContainer, setMockData } = useCanvasRenderer({
+const { scheduleRender, observeContainer } = useCanvasRenderer({
   canvasRef,
   containerW,
   containerH,
-  matrix: ref(props.matrix),
-  colormap: ref(props.colormap),
-  intensityScale: ref(props.intensityScale),
-  displayMin: ref(props.displayMin),
-  displayMax: ref(props.displayMax),
-  overlayData: ref(props.overlayData),
-  overlayWidth: ref(props.overlayWidth),
-  overlayHeight: ref(props.overlayHeight),
+  matrix: computed(() => props.matrix),
+  matrixCols: computed(() => props.matrixCols),
+  matrixRows: computed(() => props.matrixRows),
+  colormap: computed(() => props.colormap),
+  intensityScale: computed(() => props.intensityScale),
+  displayMin: computed(() => props.displayMin),
+  displayMax: computed(() => props.displayMax),
+  overlayData: computed(() => props.overlayData),
+  overlayWidth: computed(() => props.overlayWidth),
+  overlayHeight: computed(() => props.overlayHeight),
 })
 
 function onContainerWheel(e: WheelEvent) {
@@ -152,10 +155,10 @@ function onHover(e: MouseEvent) {
   const container = containerRef.value
   if (!container) return
   const rect = container.getBoundingClientRect()
-  const data = props.matrix ?? []
-  if (!data.length) return
-  const rows = data.length,
-    cols = data[0]?.length ?? 0
+  const data = props.matrix
+  const cols = props.matrixCols
+  const rows = props.matrixRows
+  if (!data || !data.length || !cols || !rows) return
   const W = rect.width,
     H = rect.height
   const scale = Math.min(W / cols, H / rows)
@@ -172,7 +175,7 @@ function onHover(e: MouseEvent) {
   const col = Math.floor((cx - ox) / cellW)
   const row = Math.floor((cy - oy) / cellH)
   if (row >= 0 && row < rows && col >= 0 && col < cols) {
-    hoverPixel.value = { x: mx, y: my, row, col, intensity: data[row]![col]! }
+    hoverPixel.value = { x: mx, y: my, row, col, intensity: data[row * cols + col]! }
   } else {
     hoverPixel.value = null
   }
@@ -180,7 +183,6 @@ function onHover(e: MouseEvent) {
 
 // --- Lifecycle ---
 onMounted(() => {
-  setMockData(generateMockMatrix(600, 800))
   if (containerRef.value) {
     observeContainer(containerRef.value)
     containerW.value = Math.floor(containerRef.value.getBoundingClientRect().width)
