@@ -18,8 +18,8 @@
         "image": ""
       },
       {
-        "word": "INTELLIGENT",
-        "title": "Intelligent Analysis",
+        "word": "SMART",
+        "title": "SMART Analysis",
         "desc": "Built-in clustering, dimensionality reduction, and AI-assisted insights turn raw spectra into spatial answers.",
         "image": ""
       },
@@ -36,17 +36,17 @@
     {
       "date": "26 06",
       "version": "1.0",
-      "features": ["imzML standard format support", "Basic mass spectrometry data visualization"]
+      "features": ["imzML standard format support"]
     },
     {
       "date": "09 24",
       "version": "1.5",
-      "features": ["Chunked upload & parallel processing", "Minute-level processing for large-scale imaging data"]
+      "features": ["Chunked upload & parallel processing"]
     },
     {
       "date": "03 25",
       "version": "2.0",
-      "features": ["Clustering & dimensionality reduction", "AI-assisted spatial annotation"]
+      "features": ["Clustering & dimensionality reduction"]
     }
   ],
 

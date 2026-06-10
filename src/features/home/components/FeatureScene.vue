@@ -27,14 +27,14 @@ const activeIndex = ref(0)
     <div
       v-if="items.length"
       v-reveal
-      class="flex w-full flex-col gap-8 md:flex-row md:gap-10"
+      class="flex w-full flex-col gap-3 md:flex-row md:gap-10 md:items-center"
     >
-      <!-- 左侧：画廊 -->
-      <div class="min-w-0 flex-1">
+      <!-- 左侧：画廊（小屏堆叠在时间线上方） -->
+      <div class="min-w-0 flex-2 pt-5">
         <FeatureGallery :items="items" v-model:active="activeIndex" />
       </div>
       <!-- 右侧：版本时间线 -->
-      <div v-if="timeline?.length" class="flex-1 pt-2">
+      <div v-if="timeline?.length" class="flex-3 pt-5">
         <VersionTimeline :items="timeline" />
       </div>
     </div>

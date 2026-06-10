@@ -30,7 +30,7 @@ const justifyClass = computed(
 <template>
   <component
     :is="as"
-    class="scene relative flex w-full flex-col items-center px-6 sm:px-8 lg:px-12"
+    class="scene relative flex w-full flex-col items-center px-6 sm:px-8 lg:px-16"
     :class="[justifyClass, { 'scene--snap': snap }]"
   >
     <slot />

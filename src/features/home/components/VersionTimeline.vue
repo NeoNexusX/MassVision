@@ -14,10 +14,12 @@ defineProps<{
 
 <template>
   <ul v-if="items.length" class="timeline timeline-vertical timeline-snap-icon">
+    <!-- 顶部延伸：流内实体，撑高列盒子并向上渐隐 -->
+    <li class="tl-tail tl-tail--top" aria-hidden="true" />
     <li v-for="(item, i) in items" :key="i">
-      <hr v-if="i > 0" />
+      <hr />
       <div class="timeline-middle">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="text-primary h-5 w-5">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="text-primary tl-icon">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
         </svg>
       </div>
@@ -25,7 +27,7 @@ defineProps<{
       <template v-if="i % 2 === 0">
         <div class="timeline-start">
           <span class="tl-date">{{ item.date }}</span>
-          <span class="badge badge-primary badge-sm mt-0.5 text-[0.7rem]">v{{ item.version }}</span>
+          <span class="badge badge-primary tl-badge">v{{ item.version }}</span>
         </div>
         <div class="timeline-end">
           <div class="timeline-box">
@@ -45,53 +47,103 @@ defineProps<{
         </div>
         <div class="timeline-end">
           <span class="tl-date">{{ item.date }}</span>
-          <span class="badge badge-primary badge-sm mt-0.5 text-[0.7rem]">v{{ item.version }}</span>
+          <span class="badge badge-primary tl-badge">v{{ item.version }}</span>
         </div>
       </template>
-      <hr v-if="i < items.length - 1" />
+      <hr />
     </li>
+    <!-- 底部延伸：流内实体，撑高列盒子并向下渐隐 -->
+    <li class="tl-tail tl-tail--bottom" aria-hidden="true" />
   </ul>
 </template>
 
 <style scoped>
+/* 基础字号随屏宽变化（对齐左侧 clamp+vw 体系）；
+   内部字体 / 图标 / 徽章 / 间距全部用 em 从此派生，整块等比缩放 */
+.timeline {
+  height: 100%;
+  font-size: clamp(0.7rem, 1.05vw, 2rem);
+}
+
 .tl-date {
-  font-size: 0.75rem;
+  font-size: 1.5em;
   font-weight: 600;
-  color: oklch(var(--bc) / 0.5);
+  color: oklch(var(--color-base-content) / 0.5);
   white-space: nowrap;
 }
 .timeline-start,
 .timeline-end {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
-  padding-inline: 0.75rem;
-  min-width: 4.5rem;
-}
-.timeline-start,
-.timeline-end {
+  gap: 0.25em;
+  padding-inline: 0.9em;
+  min-width: 5em;
   align-items: flex-start;
   text-align: left;
 }
 .timeline-box {
-  font-size: 0.8rem;
+  font-size: 1em;
   line-height: 1.6;
+  /* 长单词允许断行，避免超出窄列时朝右溢出（右列会冲出屏幕边） */
+  overflow-wrap: anywhere;
 }
 .tl-features {
   list-style: disc;
-  padding-left: 1rem;
+  padding-left: 1.25em;
 }
 .tl-features li {
-  color: oklch(var(--bc) / 0.7);
+  color: oklch(var(--color-base-content) / 0.7);
 }
 
-/* 拉开节点间距，让时间线填满容器 */
-.timeline {
-  height: 100%;
+/* 节点图标：随基础字号缩放（替代写死的 h-5 w-5） */
+.tl-icon {
+  width: 2em;
+  height: 2em;
 }
+
+/* 版本徽章：覆盖 daisyUI 固定尺寸，按基础字号等比缩放 */
+.tl-badge {
+  height: auto;
+  font-size: 1.25em;
+  font-weight: 600;
+  line-height: 1.3;
+  padding: 0.15em 0.55em;
+}
+
 .timeline li {
-  flex: 1;
+  /* 不用 flex:1 撑满——行高 = 内容 + hr，间距完全由下方 hr 的 min-height 决定，可精确控制。
+     整块在父容器里靠 md:items-center 居中。 */
   /* 覆盖 timeline-snap-icon 的 .5rem，让 icon 纵向居中而非贴顶 */
   --timeline-row-start: minmax(0, 1fr);
+}
+
+/* 连接线（=节点间距）整体加长：线即间距，故连续不断。
+   想拉大/缩小间距只调这个 min-height（用 em 跟随整块等比缩放）。 */
+.timeline :where(hr) {
+  min-height: 4em;
+}
+
+/* 上下延伸：流内实体（占布局空间、撑高列盒子），居中竖线接续连接线并向外渐隐。
+   流内高度无法用内容百分比（会与自身撑出的高度循环依赖），故用相对场景的 vh + 上下界。 */
+.tl-tail {
+  flex: 0 0 auto; /* 固定拖尾高度，不被压缩 */
+  display: flex;
+  justify-content: center; /* 竖线水平居中 = 连接线所在的几何正中 */
+  height: clamp(5rem, 10vh, 20rem);
+}
+.tl-tail::before {
+  content: '';
+  /* 与 daisyUI 连接线完全一致：同宽 .25rem、同色 base-300 */
+  width: 0.25rem;
+  height: 100%;
+  background: var(--color-base-300);
+}
+.tl-tail--top::before {
+  -webkit-mask-image: linear-gradient(to top, #000, transparent);
+  mask-image: linear-gradient(to top, #000, transparent);
+}
+.tl-tail--bottom::before {
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
+  mask-image: linear-gradient(to bottom, #000, transparent);
 }
 </style>

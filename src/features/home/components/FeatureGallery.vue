@@ -20,7 +20,8 @@ const activeItem = computed(() => props.items[active.value] ?? { word: '', image
 </script>
 
 <template>
-  <div class="w-full" @mouseleave="active = 0">
+  <!-- 基准字号随屏宽变化（与右侧 timeline 同一套 clamp）；内部字号全用 em 从此派生，整块等比缩放 -->
+  <div class="w-full text-[clamp(0.8rem,1.1vw,2rem)]" @mouseleave="active = 0">
     <!-- 上部：画廊 -->
     <div class="relative w-full">
         <!-- 图片栈：第一张在文档流撑高，其余绝对定位叠加 -->
@@ -44,14 +45,15 @@ const activeItem = computed(() => props.items[active.value] ?? { word: '', image
         class="absolute inset-0 z-10 grid px-4"
         :style="{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }"
       >
+        <!-- 每格声明为查询容器：词用 cqw 按「本格实际宽度」缩放，格窄时长单词不溢出 -->
         <div
           v-for="(it, i) in items"
           :key="i"
-          class="grid cursor-pointer place-items-center"
+          class="@container grid cursor-pointer place-items-center"
           @mouseenter="active = i"
         >
           <span
-            class="pointer-events-none whitespace-nowrap text-[clamp(1.25rem,2.2vw,2.25rem)] font-extrabold tracking-[0.12em] text-white opacity-70 transition-all duration-300 [text-shadow:0_2px_14px_rgba(0,0,0,0.6)] motion-reduce:transition-none"
+            class="pointer-events-none whitespace-nowrap text-[min(20.5cqw,2.5em)] font-extrabold tracking-[0.12em] text-white opacity-70 transition-all duration-300 [text-shadow:0_2px_14px_rgba(0,0,0,0.6)] motion-reduce:transition-none"
             :class="{
               'scale-[1.15] opacity-100 [text-shadow:0_2px_14px_rgba(0,0,0,0.6),0_0_30px_rgba(255,255,255,0.4)]': active === i,
             }"
@@ -65,10 +67,10 @@ const activeItem = computed(() => props.items[active.value] ?? { word: '', image
       <Transition name="card-fade" mode="out-in">
         <div :key="active">
           <h3
-            class="bg-gradient-to-br from-[#8ca9f6] to-[#1F52F5] bg-clip-text text-[clamp(2.5rem,5vw,4.5rem)] font-black leading-[1.1] tracking-[-0.02em] text-transparent [-webkit-text-fill-color:transparent]"
+            class="break-words bg-gradient-to-br from-[#8ca9f6] to-[#1F52F5] bg-clip-text text-[3em] font-black leading-[1.1] tracking-[-0.02em] text-transparent [-webkit-text-fill-color:transparent]"
           >{{ activeItem.word }}</h3>
-          <p v-if="activeItem.title" class="mt-4 text-[clamp(1.25rem,2vw,1.5rem)] font-semibold text-base-content">{{ activeItem.title }}</p>
-          <p v-if="activeItem.desc" class="mt-4 text-[clamp(0.875rem,1.5vw,1rem)] leading-[1.625] text-base-content/60">{{ activeItem.desc }}</p>
+          <p v-if="activeItem.title" class="mt-4 text-[1.5em] font-semibold text-base-content">{{ activeItem.title }}</p>
+          <p v-if="activeItem.desc" class="mt-4 text-justify text-[1.3em] leading-[1.5] text-base-content/60">{{ activeItem.desc }}</p>
         </div>
       </Transition>
     </div>
