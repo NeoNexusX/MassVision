@@ -64,6 +64,42 @@ export interface TeamMember {
   homepage?: string
 }
 
+/**
+ * 功能展示项（FeatureScene 联动画廊的「联动单元」：词语 + 图片 + 卡片文案，按数组顺序一一对应）。
+ *
+ * 悬停画廊里第 i 张图时，左侧卡片同步展示第 i 项的 word/title/desc，实现「图 ↔ 卡片」联动。
+ * 字段说明（编辑 config.json 的 features.items 时参考）：
+ * - word:  画廊图片上方的词，如 'OPEN' / 'FAST' / 'INTELLIGENT'
+ * - title: 左侧卡片标题（可选）
+ * - desc:  左侧卡片描述（可选）
+ * - image: 图片 URL（可选）；留空则回退到 hero.gallery 中同序号的图，便于先复用 Hero 的配图
+ */
+export interface FeatureItem {
+  /** 画廊图片上方的词，如 'OPEN' */
+  word: string
+  /** 左侧卡片标题 */
+  title?: string
+  /** 左侧卡片描述 */
+  desc?: string
+  /** 图片 URL；留空回退到 hero.gallery 同序号图 */
+  image?: string
+}
+
+/**
+ * 版本时间线项（编辑 config.json 的 timeline 时参考）。
+ * - date:     时间节点，如 '2024 Q1'
+ * - version:  版本号，如 '1.0' / '2.5'
+ * - features: 该版本新增特性列表
+ */
+export interface TimelineItem {
+  /** 时间节点 */
+  date: string
+  /** 版本号 */
+  version: string
+  /** 版本更新特性 */
+  features: string[]
+}
+
 /** config.json 的结构 */
 export interface AppConfig {
   /** 应用名称 */
@@ -75,6 +111,13 @@ export interface AppConfig {
     /** 悬停画廊：一组图片 URL，横向并排，悬停某张时展开放大；留空则不显示 */
     gallery?: string[]
   }
+  /** 功能展示区（FeatureScene 联动画廊）；缺省或为空时该场景回退为占位标题 */
+  features?: {
+    /** 联动单元列表，按序对应画廊从左到右的图片 */
+    items: FeatureItem[]
+  }
+  /** 版本时间线；缺省或为空时不显示时间线区域 */
+  timeline?: TimelineItem[]
   /** 分页 */
   pagination: {
     /** 列表默认每页条数 */
@@ -131,6 +174,8 @@ export async function loadConfig(): Promise<AppConfig> {
   }
   _config = (await res.json()) as AppConfig
   _config.hero ??= { taglines: [], gallery: [] }
+  _config.features ??= { items: [] }
+  _config.timeline ??= []
   return _config
 }
 

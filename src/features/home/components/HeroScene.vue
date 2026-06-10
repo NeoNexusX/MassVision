@@ -47,6 +47,15 @@ const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
     <!-- 预览图 -->
     <HoverGallery :images="HERO_GALLERY" class="mt-[0.6em]" />
 
+    <!-- 加入按钮：渐变取自标题 X，字体与标语一致；尺寸全用 em，跟随场景字号缩放 -->
+    <RouterLink
+      to="/register"
+      class="btn mt-[2em] h-[2.5em] gap-[0.4em] rounded-full border-none bg-gradient-to-bl from-[#8ca9f6] to-[#1F52F5] px-[1.6em] text-[max(0.22em,1rem)] font-['Outfit',sans-serif] font-bold text-white shadow-lg shadow-[#1F52F5]/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#1F52F5]/40"
+    >
+      Join to start
+      <SvgIcon type="chevron_right" class="h-[1.1em] w-[1.1em]" />
+    </RouterLink>
+
     <!-- 向下滚动提示 -->
     <div
       class="scroll-cue pointer-events-none absolute bottom-10 left-1/2 -translate-x-1/2 text-base-content/30"
