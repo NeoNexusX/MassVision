@@ -51,8 +51,8 @@ jobs:
 
       - run: npm ci
 
-      # 安装 Playwright 浏览器
-      - run: npx playwright install --with-deps chromium
+      # 安装 Playwright 浏览器（chromium / firefox / webkit 全装，与 config 中 3 个 project 对齐）
+      - run: npx playwright install --with-deps
 
       # 构建（test 环境变量，需存在 env/.env.production 或 CI 注入）
       - run: npm run build

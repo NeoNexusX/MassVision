@@ -9,13 +9,14 @@
 #   3. Docker 镜像构建 + 推送
 #   4. SSH 到 dev 服务器 → 拉取最新镜像 → 重启容器
 #
-# 需要的 GitHub Secrets（在仓库 Settings → Secrets 中配置）：
+# 需要的 GitHub Secrets（Settings → Secrets and variables → Actions → Secrets 标签页）：
 #   DEV_SERVER_HOST      — 开发服务器 IP（如 47.98.174.83）
-#   DEV_SERVER_USER      — SSH 用户名（如 root）
+#   DEV_SERVER_USER      — SSH 用户名（如 admin）
 #   DEV_SERVER_SSH_KEY   — SSH 私钥（用于免密登录）
-#   DOCKER_REGISTRY      — Docker 镜像仓库地址（如 docker.io/your-org）
-#   DOCKER_USERNAME      — 镜像仓库用户名
-#   DOCKER_PASSWORD      — 镜像仓库密码/Token
+#   DOCKER_USERNAME      — DockerHub 用户名（如 neonexusx）
+#   DOCKER_PASSWORD      — DockerHub Access Token（Hub → Settings → Security → New Access Token）
+#   IMAGE_REPO           — DockerHub 仓库名（如 massvision）
+#                          → 最终镜像名为 docker.io/$DOCKER_USERNAME/$IMAGE_REPO
 #
 # 端口配置：
 #   FRONTEND_PORT        — 前端容器对外暴露的端口（env.FRONTEND_PORT，默认 80），
@@ -29,7 +30,7 @@ on:
     branches: [dev]
 
 env:
-  IMAGE_NAME: ${{ secrets.DOCKER_REGISTRY }}/massvision-frontend
+  IMAGE_NAME: docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_REPO }}
   # 每次部署使用 git commit short SHA 作为镜像 tag，确保可追溯
   IMAGE_TAG: ${{ github.sha }}
   # 前端容器对外暴露的端口（可在此按需修改，默认 80）
@@ -56,7 +57,7 @@ jobs:
 
       # 登录 Docker Registry
       - name: Login to Docker Registry
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin "${{ secrets.DOCKER_REGISTRY }}"
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin docker.io
 
       # 构建 Docker 镜像（内置 npm ci + vite build）
       - name: Build Docker image
@@ -86,7 +87,7 @@ jobs:
           key: ${{ secrets.DEV_SERVER_SSH_KEY }}
           script: |
             # 登录镜像仓库（服务器上也需登录一次，或配置好 credential）
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin "${{ secrets.DOCKER_REGISTRY }}"
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin docker.io
 
             # 拉取最新镜像
             docker pull $IMAGE_NAME:latest
