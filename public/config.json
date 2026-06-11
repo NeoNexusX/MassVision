@@ -9,6 +9,47 @@
 
     ]
   },
+  "features": {
+    "items": [
+      {
+        "word": "OPEN",
+        "title": "Open & Interoperable",
+        "desc": "Built on the open imzML standard — import, share, and publish spatial datasets freely, with no proprietary lock-in.",
+        "image": ""
+      },
+      {
+        "word": "SMART",
+        "title": "SMART Analysis",
+        "desc": "Built-in clustering, dimensionality reduction, and AI-assisted insights turn raw spectra into spatial answers.",
+        "image": ""
+      },
+      {
+        "word": "FAST",
+        "title": "Fast at Scale",
+        "desc": "Chunked uploads and parallel processing move gigabyte-scale imaging data in minutes, keeping massive experiments responsive.",
+        "image": ""
+      }
+    ]
+  },
+
+  "timeline": [
+    {
+      "date": "26 06",
+      "version": "1.0",
+      "features": ["imzML standard format support"]
+    },
+    {
+      "date": "09 24",
+      "version": "1.5",
+      "features": ["Chunked upload & parallel processing"]
+    },
+    {
+      "date": "03 25",
+      "version": "2.0",
+      "features": ["Clustering & dimensionality reduction"]
+    }
+  ],
+
   "pagination": {
     "defaultPageSize": 10,
     "pageSizeOptions": [5,10,20]

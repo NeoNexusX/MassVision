@@ -1,0 +1,113 @@
+# ============================================================
+# Workflow: Dev 分支 — 自动构建 Docker 镜像 → 部署到 dev 服务器
+#
+# 触发条件：代码推送到 dev 分支（含 test → dev 的自动合并）
+#
+# 流程：
+#   1. 构建检查（type-check + lint + unit test）
+#   2. 生产构建（vite build）
+#   3. Docker 镜像构建 + 推送
+#   4. SSH 到 dev 服务器 → 拉取最新镜像 → 重启容器
+#
+# 需要的 GitHub Secrets（Settings → Secrets and variables → Actions → Secrets 标签页）：
+#   DEV_SERVER_HOST      — 开发服务器 IP（如 47.98.174.83）
+#   DEV_SERVER_USER      — SSH 用户名（如 admin）
+#   DEV_SERVER_SSH_KEY   — SSH 私钥（用于免密登录）
+#   DOCKER_USERNAME      — DockerHub 用户名（如 neonexusx）
+#   DOCKER_PASSWORD      — DockerHub Access Token（Hub → Settings → Security → New Access Token）
+#   IMAGE_REPO           — DockerHub 仓库名（如 massvision）
+#                          → 最终镜像名为 docker.io/$DOCKER_USERNAME/$IMAGE_REPO
+#
+# 端口配置：
+#   FRONTEND_PORT        — 前端容器对外暴露的端口（env.FRONTEND_PORT，默认 80），
+#                          容器内 nginx 始终监听 80，外部端口由 -p 映射决定
+# ============================================================
+
+name: Build & Deploy to Dev
+
+on:
+  push:
+    branches: [dev]
+
+env:
+  IMAGE_NAME: docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_REPO }}
+  # 每次部署使用 git commit short SHA 作为镜像 tag，确保可追溯
+  IMAGE_TAG: ${{ github.sha }}
+  # 前端容器对外暴露的端口（可在此按需修改，默认 80）
+  FRONTEND_PORT: '80'
+  # 后端服务地址与端口（传递给 nginx 反向代理）
+  BACKEND_HOST: 'host.docker.internal'
+  BACKEND_PORT: '8000'
+
+jobs:
+  # ---- Job 1: 构建 + 推送 Docker 镜像 ----
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      # 快速检查（不阻塞，仅确保基本质量）
+      - run: npm ci
+      - run: npm run check
+
+      # 登录 Docker Registry
+      - name: Login to Docker Registry
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin docker.io
+
+      # 构建 Docker 镜像（内置 npm ci + vite build）
+      - name: Build Docker image
+        run: |
+          docker build \
+            -f docker/Dockerfile \
+            -t $IMAGE_NAME:$IMAGE_TAG \
+            -t $IMAGE_NAME:latest \
+            .
+
+      # 推送到镜像仓库
+      - name: Push Docker image
+        run: |
+          docker push $IMAGE_NAME:$IMAGE_TAG
+          docker push $IMAGE_NAME:latest
+
+  # ---- Job 2: 部署到 dev 服务器 ----
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEV_SERVER_HOST }}
+          username: ${{ secrets.DEV_SERVER_USER }}
+          key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+          script: |
+            # 登录镜像仓库（服务器上也需登录一次，或配置好 credential）
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin docker.io
+
+            # 拉取最新镜像
+            docker pull $IMAGE_NAME:latest
+
+            # 停止并删除旧容器（如果存在）
+            docker stop massvision-frontend 2>/dev/null || true
+            docker rm massvision-frontend 2>/dev/null || true
+
+            # 启动新容器
+            # -e 传入后端地址/端口 → entrypoint.sh 在启动时写入 nginx 配置
+            # --add-host 让 host.docker.internal 解析到宿主机（无需 --network host）
+            # -p 将宿主机 ${FRONTEND_PORT} 映射到容器内 nginx 的 80 端口
+            docker run -d \
+              --name massvision-frontend \
+              --restart unless-stopped \
+              --add-host host.docker.internal:host-gateway \
+              -p ${FRONTEND_PORT}:80 \
+              -e BACKEND_HOST=${BACKEND_HOST} \
+              -e BACKEND_PORT=${BACKEND_PORT} \
+              $IMAGE_NAME:latest
+
+            # 清理旧镜像（保留最近 3 个版本）
+            docker image prune -a --filter "until=24h" -f
