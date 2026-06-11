@@ -1,0 +1,74 @@
+# ============================================================
+# Workflow: Test 分支 — 自动化测试
+#
+# 触发条件：
+#   - 向 test 分支提交 PR 时触发（用于预览测试结果）
+#   - 代码推送到 test 分支时触发（PR 合并后执行完整测试）
+#
+# 流程：
+#   1. 代码检查（type-check + lint + unit test）
+#   2. 构建（test 环境变量）
+#   3. e2e 测试（Playwright，CI 模式）
+#   （合并到 dev 由开发者手动操作 PR）
+# ============================================================
+
+name: Test
+
+on:
+  push:
+    branches: [test]
+  pull_request:
+    branches: [test]
+
+jobs:
+  # ---- Job 1: 静态检查 + 单元测试 ----
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # type-check + lint + unit test（与 package.json 中 check 脚本一致）
+      - run: npm run check
+
+  # ---- Job 2: 构建 + e2e 测试（依赖 check 通过）----
+  e2e:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # 安装 Playwright 浏览器
+      - run: npx playwright install --with-deps chromium
+
+      # 构建（test 环境变量，需存在 env/.env.production 或 CI 注入）
+      - run: npm run build
+        env:
+          VITE_API_BASE: /api
+
+      # e2e 测试（CI 模式：headless + retry + workers 自动调整）
+      - run: npm run test:e2e
+        env:
+          CI: 'true'
+
+      # 保留测试报告以便排查
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+

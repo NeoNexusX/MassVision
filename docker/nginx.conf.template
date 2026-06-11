@@ -1,0 +1,49 @@
+# ============================================================
+# Nginx 配置模板
+# 容器启动时由 entrypoint.sh 通过 envsubst 将 ${BACKEND_HOST}/${BACKEND_PORT}
+# 替换为实际值，生成最终 default.conf。
+#
+# 职责：
+#   1. 服务前端静态文件（dist/）
+#   2. /api 代理到后端
+#   3. Vue Router history 模式 SPA fallback
+# ============================================================
+
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # gzip 压缩静态资源
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 256;
+
+    # 静态资源长缓存（带 hash 的文件名）
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # API 代理 → 后端服务
+    # ${BACKEND_HOST} 和 ${BACKEND_PORT} 由 docker run -e 传入
+    location /api/ {
+        proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT}/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # 超时配置（适配大文件上传/处理场景）
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        client_max_body_size 10g;
+    }
+
+    # SPA fallback：所有非文件路径返回 index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

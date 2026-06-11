@@ -8,11 +8,13 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  // 后端地址单一来源：从 .env 读取，与前端运行时共用同一份配置（不再硬编码 IP）
-  const env = loadEnv(mode, process.cwd(), 'VITE_')
+  // envDir 指向 env/ 目录，集中管理多环境 .env 文件
+  const envDir = fileURLToPath(new URL('./env', import.meta.url))
+  const env = loadEnv(mode, envDir, 'VITE_')
   const backendUrl = env.VITE_BACKEND_URL || 'http://localhost:8000'
 
   return {
+    envDir: envDir,
     envPrefix: 'VITE_',
     plugins: [
       vue(),

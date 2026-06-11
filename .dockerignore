@@ -1,0 +1,14 @@
+# Docker 构建忽略文件
+node_modules
+dist
+.git
+.github
+.gitignore
+*.md
+# env 目录中只保留生产构建需要的文件，其余不打包
+env/.env.development
+env/.env.development.local
+__screenshots__
+test-results/
+playwright-report/
+coverage/
