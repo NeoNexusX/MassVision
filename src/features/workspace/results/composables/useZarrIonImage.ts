@@ -222,7 +222,7 @@ export function useZarrIonImage() {
       if (shape && shape.length >= 3) ionDims.value = { width: shape[2]!, height: shape[1]! }
       ready.value = true
       await loadDefaultImage()
-      await loadMeanSpectrum()   // kick off mean spectrum load (non-blocking for ion image)
+      loadMeanSpectrum()   // background: ion image is already ready
     } catch (e) {
       console.error('[useZarrIonImage] init failed:', e)
       error.value = e instanceof Error ? e.message : String(e)

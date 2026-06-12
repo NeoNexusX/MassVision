@@ -11,7 +11,7 @@ export interface ProcessItem {
   started_at: string | null
   finished_at: string | null
   error_message: string | null
-  filename: string
+  filename?: string
 }
 
 export function useWorkspaceDashboard() {
@@ -79,7 +79,7 @@ export function useWorkspaceDashboard() {
 
   // Methods
   function getFileName(p: ProcessItem): string {
-    return p.filename.replace(/\.[^.]+$/, '')
+    return (p.filename || 'Unknown').replace(/\.[^.]+$/, '')
   }
 
   function timeAgo(dateStr: string): string {

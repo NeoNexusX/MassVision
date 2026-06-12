@@ -324,7 +324,9 @@ export class ZarrOssStore {
   ): Promise<DecodedIonImageChunk> {
     if (!this.ionMeta) throw new Error('[ZarrOssStore] ionMeta not loaded')
     const dtype = this.ionMeta.data_type as DType
-    const chunkShape = this.ionMeta.chunk_grid.configuration.chunk_shape as [
+    // Copy the metadata chunk shape — edge chunks may have fewer planes
+    // and we mutate the local copy, never the shared metadata.
+    const chunkShape = [...this.ionMeta.chunk_grid.configuration.chunk_shape] as [
       number,
       number,
       number,
@@ -386,7 +388,7 @@ export class ZarrOssStore {
     const normalized = typed instanceof Float32Array ? typed : Float32Array.from(typed as Float64Array)
 
     // 4) Compute global mz_axis index and mz value for each plane in this chunk.
-    const mzStart = chunkIndex * (this.ionMeta.chunk_grid.configuration.chunk_shape[0] ?? cs)
+    const mzStart = chunkIndex * cs
     const actualCs = (chunkShape as number[])[0]!
     const mzIndices: number[] = []
     const mzValues: number[] = []

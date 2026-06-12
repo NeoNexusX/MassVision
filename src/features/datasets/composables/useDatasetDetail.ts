@@ -101,10 +101,12 @@ export function useDatasetDetail() {
       // Fetch TIC image after dataset is loaded
       if (dataset.value?.id) {
         try {
+          ticImageError.value = false
           const images = await getFileImages(dataset.value.id)
           ticImageUrl.value = images?.urls?.['tic_image.png'] || ''
         } catch {
           ticImageUrl.value = ''
+          ticImageError.value = true
         }
       }
     } catch (error) {

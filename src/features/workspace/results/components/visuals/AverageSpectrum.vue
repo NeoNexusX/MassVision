@@ -161,6 +161,18 @@ function renderChart() {
   if (!container) { console.warn('[AverageSpectrum] No chart container'); return }
   if (isUnmounted) return
 
+  // Clean up previous DOM listeners and observer before re-creating
+  if (nativeMouseDownHandler) {
+    container.removeEventListener('mousedown', nativeMouseDownHandler, true)
+    nativeMouseDownHandler = null
+  }
+  if (nativeClickHandler) {
+    container.removeEventListener('click', nativeClickHandler, true)
+    nativeClickHandler = null
+  }
+  resizeObserver?.disconnect()
+  resizeObserver = null
+
   chartInstance?.dispose()
   chartInstance = echarts.init(container)
 
