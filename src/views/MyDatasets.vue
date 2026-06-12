@@ -5,23 +5,29 @@
         My Datasets
       </h1>
 
-      <div v-if="quota" class="flex flex-col md:flex-row items-start md:items-center gap-6 mb-4 text-xl text-base-content/80">
-        <span class="px-3"
+      <div v-if="quota" class="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-6 mb-4 text-xl text-base-content/80">
+        <span class="px-3 whitespace-nowrap"
           >Storage
           <strong class="text-base-content"
             >{{ quota.uploadUsed }} / {{ quota.uploadMax }}</strong
           ></span
         >
-        <span class="px-3"
+        <span class="px-3 whitespace-nowrap"
           >Files
           <strong class="text-base-content"
             >{{ quota.fileCount }} / {{ quota.maxFiles }}</strong
           ></span
         >
-        <span class="px-3"
+        <span class="px-3 whitespace-nowrap"
           >Processing
           <strong class="text-base-content"
             >{{ quota.procUsed }} / {{ quota.procMax }}</strong
+          ></span
+        >
+        <span class="px-3 whitespace-nowrap"
+          >Downloads
+          <strong class="text-base-content"
+            >{{ quota.downloadUsed }} / {{ quota.downloadMax }}</strong
           ></span
         >
         <button
@@ -74,6 +80,7 @@
           :pagination="pagination"
           :is-my-dataset="true"
           :deletingId="deletingId"
+          :packingIds="packingIds"
           @view-overview="viewOverview"
           @download="handleDownload"
           @delete="handleDelete"

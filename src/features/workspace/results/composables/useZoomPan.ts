@@ -6,7 +6,7 @@ export function useZoomPan(
   containerH: () => number,
 ) {
   // State
-  const zoom = ref(2)
+  const zoom = ref(1)
   const panX = ref(0)
   const panY = ref(0)
 

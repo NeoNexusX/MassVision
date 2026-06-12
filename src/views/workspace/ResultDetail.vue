@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import ColorBar from '@/features/workspace/results/components/visuals/ColorBar.vue'
 import ResultVisualizationLayout from '@/features/workspace/results/components/ResultVisualizationLayout.vue'
-import ResultTopBar from '@/features/workspace/results/components/ResultTopBar.vue'
+import ResultHeader from '@/features/workspace/results/components/visuals/ResultHeader.vue'
 import IonImageSection from '@/features/workspace/results/components/IonImageSection.vue'
 import SpectrumSection from '@/features/workspace/results/components/SpectrumSection.vue'
 import OverlayControls from '@/features/workspace/results/components/OverlayControls.vue'
@@ -10,21 +11,30 @@ import { useZarrIonImage } from '@/features/workspace/results/composables/useZar
 import { useDisplayRange } from '@/features/workspace/results/composables/useDisplayRange'
 import { useOverlayData } from '@/features/workspace/results/composables/useOverlayData'
 import { useResultROI } from '@/features/workspace/results/composables/useResultROI'
+import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
+import { ZARR_STORE } from '@/shared/config/defaults'
 
-const meta = reactive({
-  datasetName: 'S-2406-001483_3_S3_SM_Neg_20260406_AQ',
-  analyzer: 'Orbitrap',
-  ionSource: 'MALDI',
-  pixelSize: '25 × 25 µm',
-  status: 'Completed',
-})
+const route = useRoute()
+const runId = computed(() => String(route.params.id))
 
-const methods = ref(['Noise Reduction', 'Peak Picking', 'Peak Alignment'])
+const { datasetName, analyzer, ionSource, pixelSize, polarity, status, methods } = useResultMeta(runId)
 const colormap = ref('inferno')
 const intensityScale = ref('linear')
 
-const { selectedMz, mzTolerance, ionMatrix, ionCols, ionRows, totalPeaks, onSpectrumClick } =
-  useZarrIonImage()
+const zarr = useZarrIonImage()
+const {
+  selectedMz,
+  selectedMzIndex,
+  mzTolerance,
+  ionMatrix,
+  ionCols,
+  ionRows,
+  onSpectrumClickByIndex,
+} = zarr
+
+watch(runId, (id) => {
+  zarr.init(id)
+}, { immediate: true })
 
 const {
   globalMin,
@@ -44,7 +54,7 @@ const {
   onStripMouseDown,
   startStripDrag,
   formatVal,
-} = useDisplayRange(ionMatrix, colormap)
+} = useDisplayRange(ionMatrix, colormap, ionCols, ionRows)
 
 const {
   roiOverlayRef,
@@ -69,12 +79,16 @@ const { overlayMode, overlayData, overlayLoading, overlayAlpha, toggleOverlay } 
 )
 
 const spectrumStats = computed(() => ({
-  totalPeaks: totalPeaks.value,
   intensityRange: getIntensityRange(),
 }))
 
+const displayInfo = computed(() => ({
+  ...imageInfo.value,
+  polarity: polarity.value || imageInfo.value.polarity,
+}))
+
 const resetControls = () => {
-  mzTolerance.value = 0.01
+  mzTolerance.value = ZARR_STORE.defaultMzTolerance
   colormap.value = 'inferno'
   intensityScale.value = 'linear'
   resetRange()
@@ -100,7 +114,11 @@ const onDisplayMaxChange = (value: number) => {
 <template>
   <ResultVisualizationLayout>
     <template #top-bar>
-      <ResultTopBar :meta="meta" />
+      <ResultHeader
+        class="pl-4"
+        :dataset-name="datasetName"
+        :status="status"
+      />
     </template>
 
     <template #main>
@@ -116,7 +134,7 @@ const onDisplayMaxChange = (value: number) => {
         :data-max="dataMax"
         :ion-cols="ionCols"
         :ion-rows="ionRows"
-        :meta="{ analyzer: meta.analyzer, ionSource: meta.ionSource, pixelSize: meta.pixelSize }"
+        :meta="{ analyzer, ionSource, pixelSize }"
         :roi-tool="roiTool"
         :overlay-data="overlayData"
         :gradient-css="gradientCSS"
@@ -138,23 +156,24 @@ const onDisplayMaxChange = (value: number) => {
 
       <SpectrumSection
         :selected-mz="selectedMz"
+        :selected-mz-index="selectedMzIndex"
         :mz-tolerance="mzTolerance"
-        :spectrum-stats="spectrumStats"
-        @select-mz="onSpectrumClick"
+        :intensity-range="spectrumStats.intensityRange"
+        @select-mz-index="onSpectrumClickByIndex"
       />
     </template>
 
     <template #side-panel>
       <ColorBar
         class="shrink-0 py-4"
-        :style="{ width: '300px' }"
+        :style="{ width: '340px' }"
         :colormap="colormap"
         :global-min="globalMin"
         :global-max="globalMax"
         :display-min="displayMin"
         :display-max="displayMax"
         :histogram="intensityHistogram"
-        :info="imageInfo"
+        :info="displayInfo"
         :methods="methods"
         :sorted-values="sortedNonZero"
         @update:display-min="onDisplayMinChange"

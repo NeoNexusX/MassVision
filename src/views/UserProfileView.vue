@@ -56,7 +56,7 @@
           </div>
 
           <div class="divider text-xl">Quota Usage</div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-base-200 rounded-lg p-4">
               <div class="text-lg lg:text-xl text-base-content/60 mb-1">Storage Upload</div>
               <div class="text-lg font-semibold">
@@ -86,7 +86,16 @@
                 max="100"
               ></progress>
             </div>
-          </div> 
+            <div class="bg-base-200 rounded-lg p-4">
+              <div class="text-lg lg:text-xl text-base-content/60 mb-1">Downloads</div>
+              <div class="text-lg font-semibold">{{ quota.downloadUsed }} / {{ quota.downloadMax }}</div>
+              <progress
+                class="progress progress-info w-full mt-2"
+                :value="quota.downloadPercent"
+                max="100"
+              ></progress>
+            </div>
+          </div>
 
           <div class="divider text-xl">Academic Profile</div>
 

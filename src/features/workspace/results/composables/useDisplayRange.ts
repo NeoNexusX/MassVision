@@ -7,9 +7,12 @@ const GRADIENT_STOPS: Record<string, string[]> = {
   gray: ['#000000', '#ffffff'],
 }
 
-function computeRange(matrix: number[][]) {
+function computeRange(matrix: Float32Array) {
   const nonZero: number[] = []
-  for (const row of matrix) for (const value of row) if (value > 0) nonZero.push(value)
+  for (let i = 0; i < matrix.length; i++) {
+    const v = matrix[i]!
+    if (v > 0) nonZero.push(v)
+  }
   if (!nonZero.length) return { displayMin: 0, displayMax: 1, dataMax: 1, sorted: [] as number[] }
   nonZero.sort((a, b) => a - b)
   const p95 = nonZero[Math.floor(nonZero.length * 0.95)] ?? nonZero[nonZero.length - 1]!
@@ -26,9 +29,10 @@ function formatIonValue(value: number): string {
 }
 
 export function useDisplayRange(
-  // Arguments
-  ionMatrix: Ref<number[][] | null>,
+  ionMatrix: Ref<Float32Array | null>,
   colormap: Ref<string>,
+  ionCols: Ref<number>,
+  ionRows: Ref<number>,
 ) {
   // State
   const globalMin = ref(0)
@@ -65,11 +69,10 @@ export function useDisplayRange(
     const matrix = ionMatrix.value
     if (!matrix) return hist
     const range = dataMax.value || 1
-    for (const row of matrix) {
-      for (const value of row) {
-        const index = Math.min(bins - 1, Math.max(0, Math.floor((value / range) * bins)))
-        hist[index] = (hist[index] ?? 0) + 1
-      }
+    for (let i = 0; i < matrix.length; i++) {
+      const value = matrix[i]!
+      const index = Math.min(bins - 1, Math.max(0, Math.floor((value / range) * bins)))
+      hist[index] = (hist[index] ?? 0) + 1
     }
     return hist
   })
@@ -77,24 +80,23 @@ export function useDisplayRange(
   const imageInfo = computed(() => {
     const matrix = ionMatrix.value
     if (!matrix || !matrix.length) {
-      return { pixels: '--', nonZero: '--', totalIon: '--', polarity: 'Negative' }
-    }
-    const rows = matrix.length
-    const cols = matrix[0]!.length
-    let nonZero = 0
-    let total = 0
-    for (const row of matrix) {
-      for (const value of row) {
-        if (value > 0) nonZero++
-        total += value
-      }
-    }
-    return {
-      pixels: `${cols} × ${rows}`,
-      nonZero: ((nonZero / (rows * cols)) * 100).toFixed(1) + '%',
-      totalIon: total.toExponential(2),
-      polarity: 'Positive',
-    }
+      return { pixels: '--', nonZero: '--', totalIon: '--', polarity: '' }
+  }
+  const cols = ionCols.value
+  const rows = ionRows.value
+  let nonZero = 0
+  let total = 0
+  for (let i = 0; i < matrix.length; i++) {
+    const value = matrix[i]!
+    if (value > 0) nonZero++
+    total += value
+  }
+  return {
+    pixels: `${cols} × ${rows}`,
+    nonZero: ((nonZero / (rows * cols)) * 100).toFixed(1) + '%',
+    totalIon: total.toExponential(2),
+    polarity: '',
+  }
   })
 
   // Methods
@@ -156,12 +158,11 @@ export function useDisplayRange(
     if (!matrix) return '--'
     let minValue = Infinity
     let maxValue = -Infinity
-    for (const row of matrix) {
-      for (const value of row) {
-        if (Number.isFinite(value)) {
-          if (value < minValue) minValue = value
-          if (value > maxValue) maxValue = value
-        }
+    for (let i = 0; i < matrix.length; i++) {
+      const value = matrix[i]!
+      if (Number.isFinite(value)) {
+        if (value < minValue) minValue = value
+        if (value > maxValue) maxValue = value
       }
     }
     return `${formatIonValue(minValue === Infinity ? 0 : minValue)} – ${formatIonValue(

@@ -84,9 +84,9 @@ const resetFilters = () => {
   <div class="mt-3 flex justify-end gap-2">
     <button
       @click="resetFilters"
-      class="btn btn-outline text-[1em] border border-base-600 hover:bg-base-300">Reset</button>
-    <button 
-    @click="applyFilters" 
-    class="btn btn-primary text-[1em] border border-base-600 hover:bg-base-300">Apply</button>
+      class="btn btn-outline text-[1em] border border-base-300 hover:bg-base-300">Reset</button>
+    <button
+    @click="applyFilters"
+    class="btn btn-primary text-[1em] border border-base-300 hover:bg-base-300">Apply</button>
   </div>
 </template>

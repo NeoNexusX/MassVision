@@ -13,6 +13,6 @@
  */
 export { ENV } from './env'
 export { STORAGE_KEYS, SESSION_KEYS } from './storageKeys'
-export { OSS_UPLOAD } from './defaults'
+export { OSS_UPLOAD, ZARR_STORE } from './defaults'
 export { loadConfig, getConfig } from './runtimeConfig'
 export type { AppConfig, OptionLists, TeamMember } from './runtimeConfig'

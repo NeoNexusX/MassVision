@@ -1,104 +1,249 @@
-import { computed, onMounted, ref } from 'vue'
-import { FetchStore, get, open } from 'zarrita'
+/**
+ * Ion image composable — loads zarr chunks on demand via OSS STS.
+ *
+ * selectedMzIndex is the single source of truth; selectedMz is derived from it.
+ * The markLine red axis aligns precisely by avoiding floating-point round-trips.
+ */
+import { computed, ref, shallowRef } from 'vue'
+import { getZarrAccess } from '@/services/zarrAccessApi'
+import { ZarrOssStore, type IonImageInfo } from '@/services/zarrOssStore'
+import { ZARR_STORE } from '@/shared/config/defaults'
 
-let zarrIonArray: any = null
-let zarrMzData: Float64Array | null = null
+/** Module-level shared state; mzAxis uses shallowRef so computed tracks changes */
+let store: ZarrOssStore | null = null
+const mzAxisRef = shallowRef<Float64Array | null>(null)
+const ionDims = shallowRef<{ width: number; height: number } | null>(null)
 
-async function initZarr() {
-  const zarrUrl = new URL('/ion_image_output.zarr', window.location.origin).href
-  const store = new FetchStore(zarrUrl)
-  const root = await open(store, { kind: 'group' })
-  zarrIonArray = await open(root.resolve('ion_images'), { kind: 'array' })
-  const mzArr = await open(root.resolve('mz_axis'), { kind: 'array' })
-  const chunk = await get(mzArr)
-  zarrMzData = chunk.data as Float64Array
+// ---- Mean spectrum state (managed here so no component needs store access) ----
+export const meanChartData = shallowRef<[number, number][]>([])
+export const spectrumLoading = ref(false)
+export const spectrumError = ref<string | null>(null)
+export const nMz = ref(0)
+
+export type MeanSpectrumState = {
+  meanChartData: [number, number][]
+  spectrumLoading: boolean
+  spectrumError: string | null
+  nMz: number
 }
 
-function findMzRangeIndices(target: number, tolerance: number): number[] {
-  if (!zarrMzData) return []
+export function getSharedZarrContext(): {
+  store: ZarrOssStore | null
+  mzAxis: Float64Array | null
+  ionShape: { width: number; height: number } | null
+} & MeanSpectrumState {
+  return {
+    store,
+    mzAxis: mzAxisRef.value,
+    ionShape: ionDims.value,
+    meanChartData: meanChartData.value,
+    spectrumLoading: spectrumLoading.value,
+    spectrumError: spectrumError.value,
+    nMz: nMz.value,
+  }
+}
+
+/**
+ * Load the mean spectrum from the zarr store and derive non-zero chart data.
+ * Only exported so SpectrumSection can call retry; normally invoked from init().
+ */
+export async function loadMeanSpectrum(): Promise<void> {
+  const axis = mzAxisRef.value
+  if (!store || !axis) return
+
+  spectrumLoading.value = true
+  spectrumError.value = null
+
+  try {
+    const meanData = await store.loadMeanSpectrum()
+
+    nMz.value = axis.length
+    const data: [number, number][] = []
+    for (let i = 0; i < axis.length; i++) {
+      const v = meanData[i]!
+      if (v !== 0 && Number.isFinite(v)) {
+        data.push([axis[i]!, v])
+      }
+    }
+    meanChartData.value = data
+    spectrumLoading.value = false
+  } catch (e) {
+    console.error('[useZarrIonImage] loadMeanSpectrum failed:', e)
+    spectrumLoading.value = false
+    spectrumError.value = e instanceof Error ? e.message : String(e)
+  }
+}
+
+export { mzAxisRef }
+
+function findMzRangeIndices(targetIdx: number, tolerance: number): number[] {
+  const mzAxis = mzAxisRef.value
+  if (!mzAxis) return []
+  const target = mzAxis[targetIdx]
+  if (target == null) return [targetIdx]
   const indices: number[] = []
-  for (let i = 0; i < zarrMzData.length; i++) {
-    const mz = zarrMzData[i]!
+  for (let i = 0; i < mzAxis.length; i++) {
+    const mz = mzAxis[i]!
     if (mz >= target - tolerance && mz <= target + tolerance) indices.push(i)
     else if (mz > target + tolerance) break
   }
-  return indices
+  return indices.length ? indices : [targetIdx]
 }
 
-async function loadIonSliceSum(indices: number[]): Promise<number[][]> {
-  if (!indices.length) return []
-  const first = await get(zarrIonArray, [indices[0]!, null, null])
-  const height = first.shape[0]!
-  const width = first.shape[1]!
-  const sum: number[][] = []
-  for (let rowIndex = 0; rowIndex < height; rowIndex++) {
-    sum.push(new Array<number>(width).fill(0))
-  }
-
-  const addSlice = (flat: Float32Array) => {
-    for (let rowIndex = 0; rowIndex < height; rowIndex++) {
-      const offset = rowIndex * width
-      for (let colIndex = 0; colIndex < width; colIndex++) {
-        sum[rowIndex]![colIndex]! += flat[offset + colIndex]!
-      }
+async function loadIonSliceSum(indices: number[]): Promise<Float32Array | null> {
+  if (!store || !indices.length || !ionDims.value) return null
+  const { width, height } = ionDims.value
+  const size = width * height
+  const sum = new Float32Array(size)
+  for (const idx of indices) {
+    try {
+      const info: IonImageInfo = await store.getIonImageByMzIndex(idx)
+      for (let i = 0; i < size; i++) sum[i]! += info.matrix[i]!
+    } catch (e) {
+      console.warn(`[useZarrIonImage] skip mzIndex=${idx}:`, (e as Error).message)
     }
-  }
-
-  addSlice(first.data as Float32Array)
-  for (let i = 1; i < indices.length; i++) {
-    const result = await get(zarrIonArray, [indices[i]!, null, null])
-    addSlice(result.data as Float32Array)
   }
   return sum
 }
 
-export function useZarrIonImage() {
-  // State
-  const selectedMz = ref(900.5)
-  const mzTolerance = ref(0.05)
-  const ionMatrix = ref<number[][] | null>(null)
+/**
+ * Binary search in mzAxis for the index closest to target.
+ * Returns -1 if mzAxis is empty.
+ */
+export function findClosestMzIndex(target: number): number {
+  const a = mzAxisRef.value
+  if (!a || !a.length) return -1
 
-  // Computed
-  const ionCols = computed(() => ionMatrix.value?.[0]?.length ?? 0)
-  const ionRows = computed(() => ionMatrix.value?.length ?? 0)
-  const totalPeaks = computed(() => (zarrMzData ? zarrMzData.length.toLocaleString() : '--'))
+  if (target <= a[0]!) return 0
 
-  // Methods
-  const onSpectrumClick = async (mz: number) => {
-    if (!zarrMzData) return
-    selectedMz.value = mz
-    const indices = findMzRangeIndices(mz, mzTolerance.value)
-    ionMatrix.value = await loadIonSliceSum(indices)
+  const lastIndex = a.length - 1
+  if (target >= a[lastIndex]!) return lastIndex
+
+  let lo = 0
+  let hi = lastIndex
+
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1
+    if (a[mid]! < target) lo = mid + 1
+    else hi = mid
   }
 
-  // Lifecycle
-  onMounted(async () => {
-    await initZarr()
-    if (!zarrMzData) return
+  const prev = lo - 1
 
-    let bestIdx = 0
-    let bestDist = Infinity
-    for (let i = 0; i < zarrMzData.length; i++) {
-      const dist = Math.abs(zarrMzData[i]! - 900.5)
-      if (dist < bestDist) {
-        bestDist = dist
-        bestIdx = i
-      } else if (zarrMzData[i]! > 900.5 + bestDist) {
-        break
-      }
-    }
-    selectedMz.value = zarrMzData[bestIdx]!
-    const indices = findMzRangeIndices(selectedMz.value, mzTolerance.value)
-    ionMatrix.value = await loadIonSliceSum(indices)
+  return Math.abs(target - a[prev]!) <= Math.abs(a[lo]! - target)
+    ? prev
+    : lo
+}
+
+/**
+ * Find the closest real peak to the clicked m/z value, constrained
+ * within a viewport-based tolerance so we don't snap to a peak far
+ * from the click position.
+ */
+export function findClosestPeak(mz: number, tolerance: number): number {
+  const axis = mzAxisRef.value
+  if (!axis || !axis.length) return -1
+
+  const idx = findClosestMzIndex(mz)
+  if (idx < 0) return -1
+
+  // Gate: only accept if the closest peak falls within tolerance
+  if (Math.abs(axis[idx]! - mz) <= tolerance) return idx
+  return -1
+}
+
+export function useZarrIonImage() {
+  const selectedMzIndex = ref(0)
+  const mzTolerance = ref<number>(ZARR_STORE.defaultMzTolerance)
+  const ionMatrix = ref<Float32Array | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+  const ready = ref(false)
+
+  const ionCols = computed(() => ionDims.value?.width ?? 0)
+  const ionRows = computed(() => ionDims.value?.height ?? 0)
+  const totalPeaks = computed(() => (mzAxisRef.value ? mzAxisRef.value.length.toLocaleString() : '--'))
+
+  // selectedMz is DERIVED from selectedMzIndex + mzAxis — never written directly.
+  // This guarantees the displayed/passed-down m/z value is exactly the one stored
+  // in zarr's mz_axis, with no float round-trip or display-precision loss.
+  const selectedMz = computed(() => {
+    const axis = mzAxisRef.value
+    const idx = selectedMzIndex.value
+    if (!axis || idx < 0 || idx >= axis.length) return 0
+    return axis[idx]!
   })
 
+  const loadForMzIndex = async (idx: number) => {
+    if (!mzAxisRef.value || !ready.value || idx < 0 || idx >= mzAxisRef.value.length) return
+    loading.value = true
+    selectedMzIndex.value = idx
+    ionMatrix.value = await loadIonSliceSum(findMzRangeIndices(idx, mzTolerance.value))
+    loading.value = false
+  }
+
+  // ===== Public API: spectrum bar click delivers a global mz_axis index =====
+  // The spectrum component emits the interpolated m/z value + tolerance,
+  // then SpectrumSection calls findPeakIndex() to locate the strongest real
+  // peak in the raw mean data within that tolerance window — no reliance on
+  // chart dataIndex which only covers non-zero points.
+  const onSpectrumClickByIndex = async (idx: number) => {
+    if (!mzAxisRef.value || !ready.value) return
+    if (idx < 0 || idx >= mzAxisRef.value.length) return
+    await loadForMzIndex(idx)
+  }
+
+  const loadDefaultImage = async () => {
+    if (!mzAxisRef.value || !ready.value) return
+    const idx = findClosestMzIndex(900.5)
+    await loadForMzIndex(idx)
+  }
+
+  // ===== Initialization =====
+  const init = async (runId: string) => {
+    if (!runId) return
+    loading.value = true
+    error.value = null
+    ready.value = false
+    store = null
+    mzAxisRef.value = null
+    ionDims.value = null
+    ionMatrix.value = null
+    // Reset mean spectrum state so the old chart doesn't flash.
+    meanChartData.value = []
+    spectrumLoading.value = false
+    spectrumError.value = null
+    try {
+      const access = await getZarrAccess(runId)
+      store = new ZarrOssStore(access, { ionChunkCacheSize: ZARR_STORE.ionChunkCacheSize })
+      await store.init()
+      mzAxisRef.value = (await store.loadMzAxis()) as Float64Array
+      const shape = store.getIonShape()
+      if (shape && shape.length >= 3) ionDims.value = { width: shape[2]!, height: shape[1]! }
+      ready.value = true
+      await loadDefaultImage()
+      loadMeanSpectrum()   // background: ion image is already ready
+    } catch (e) {
+      console.error('[useZarrIonImage] init failed:', e)
+      error.value = e instanceof Error ? e.message : String(e)
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
+    selectedMzIndex,
     selectedMz,
     mzTolerance,
     ionMatrix,
     ionCols,
     ionRows,
     totalPeaks,
-    onSpectrumClick,
+    onSpectrumClickByIndex,
+    loadForMzIndex,
+    loading,
+    error,
+    ready,
+    init,
   }
 }

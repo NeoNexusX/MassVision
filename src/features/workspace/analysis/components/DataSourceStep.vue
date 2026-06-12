@@ -23,8 +23,8 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="bg-white rounded-lg border border-base-200 p-6 shadow-sm">
-    <h2 class="text-xl font-medium mb-4">Step 1: Data Source</h2>
+  <section class="bg-base-100 rounded-lg border border-base-200 p-6 shadow-sm">
+    <h2 class="text-3xl font-medium mb-4">Step 1: Data Source</h2>
     <div class="tabs mb-4">
       <a
         :class="['tab', activeTab === 'upload' ? 'tab-active' : '']"
@@ -63,7 +63,7 @@ const emit = defineEmits<{
           <span class="loading loading-spinner loading-md"></span>
         </div>
         <div v-else>
-          <div v-if="error" class="text-sm text-error p-3">{{ error }}</div>
+          <div v-if="error" class="text-lg text-error p-3">{{ error }}</div>
           <ul>
             <li
               v-for="dataset in filteredDatasets"
@@ -77,11 +77,11 @@ const emit = defineEmits<{
               <div class="flex-1 mr-4">
                 <div class="flex items-center justify-between gap-4">
                   <div class="font-medium truncate">{{ dataset.name }}</div>
-                  <div class="text-sm text-base-content/60 ml-2">
+                  <div class="text-lg text-base-content/60 ml-2">
                     {{ formatBytes(dataset.sizeBytes) }}
                   </div>
                 </div>
-                <div class="text-xs text-base-content/60">
+                <div class="text-base text-base-content/60">
                   {{ dataset.filename || dataset.submitTime || '–' }}
                 </div>
               </div>
@@ -92,7 +92,7 @@ const emit = defineEmits<{
               />
             </li>
           </ul>
-          <div v-if="filteredDatasets.length === 0" class="text-sm text-base-content/60 p-3">
+          <div v-if="filteredDatasets.length === 0" class="text-lg text-base-content/60 p-3">
             No datasets found.
           </div>
         </div>

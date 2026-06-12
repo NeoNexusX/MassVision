@@ -14,14 +14,14 @@ defineEmits<{
 <template>
   <div class="flex flex-col items-center gap-4 py-8">
     <div class="w-full">
-      <div class="flex justify-between text-sm mb-2 font-medium">
+      <div class="flex justify-between text-lg mb-2 font-medium">
         <span class="text-base-content/80">{{ message }}</span>
         <span class="text-primary">{{ progress }}%</span>
       </div>
       <progress class="progress progress-primary w-full h-3" :value="progress" max="100"></progress>
       <div
         v-if="speed || eta"
-        class="flex justify-between items-center w-full mt-2 text-xs text-base-content/60 bg-base-200/50 py-1.5 px-3 rounded"
+        class="flex justify-between items-center w-full mt-2 text-base text-base-content/60 bg-base-200/50 py-1.5 px-3 rounded"
       >
         <div v-if="speed" class="flex items-center">⚡ {{ speed }}</div>
         <div v-if="eta" class="flex items-center">⏱️ ETA: {{ eta }}</div>

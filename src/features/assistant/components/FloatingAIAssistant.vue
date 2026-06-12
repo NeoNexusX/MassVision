@@ -3,12 +3,12 @@
   <div
     v-if="isOpen && !isMinimized"
     ref="panelRef"
-    class="fixed z-[10000] flex flex-col rounded-2xl shadow-2xl bg-white border border-base-200 overflow-hidden select-none"
+    class="fixed z-[10000] flex flex-col rounded-2xl shadow-2xl bg-base-100 border border-base-200 overflow-hidden select-none"
     :style="panelStyle"
   >
     <!-- Header -->
     <div
-      class="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-base-200 cursor-grab active:cursor-grabbing shrink-0"
+      class="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-50 dark:from-indigo-950 to-purple-50 dark:to-purple-950 border-b border-base-200 cursor-grab active:cursor-grabbing shrink-0"
       @mousedown="startDrag"
     >
       <div class="flex items-center gap-2">
@@ -18,7 +18,7 @@
           <svg-icon type="sparkles" class="w-4 h-4 text-white" />
         </div>
         <span class="font-semibold text-sm text-base-content">AI Assistant</span>
-        <span class="flex items-center gap-1 text-[10px] text-green-600">
+        <span class="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400">
           <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
           Online
         </span>
@@ -58,7 +58,7 @@
         <button
           v-for="p in quickPrompts"
           :key="p"
-          class="btn btn-xs bg-base-200 hover:bg-indigo-100 border border-base-300 text-xs rounded-full"
+          class="btn btn-xs bg-base-200 hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-base-300 text-xs rounded-full"
           @click="askQuick(p)"
         >
           {{ p }}

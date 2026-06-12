@@ -26,24 +26,24 @@ const emit = defineEmits<{
 
 <template>
   <div class="mt-3 pt-3 border-t border-base-200">
-    <div class="text-xs font-semibold text-base-content/50 mb-2">Statistical Visualization</div>
+    <div class="text-base font-semibold text-base-content/50 mb-2">Statistical Visualization</div>
     <div class="flex gap-2">
       <button
-        class="btn btn-sm flex-1 bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200 rounded-lg"
+        class="btn btn-sm flex-1 text-base bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-200 dark:hover:bg-amber-900 rounded-lg"
       >
         TIC
       </button>
       <button
-        class="btn btn-sm flex-1 bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 rounded-lg"
+        class="btn btn-sm flex-1 text-base bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 hover:bg-purple-200 dark:hover:bg-purple-900 rounded-lg"
       >
         PCA
       </button>
       <button
-        class="btn btn-sm flex-1 rounded-lg transition-colors"
+        class="btn btn-sm flex-1 text-base rounded-lg transition-colors"
         :class="
           overlayMode === 'umap'
             ? 'bg-teal-500 text-white border-teal-500'
-            : 'bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-200'
+            : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-200 dark:hover:bg-teal-900'
         "
         :disabled="overlayLoading"
         @click="emit('toggle-overlay', 'umap')"
@@ -51,11 +51,11 @@ const emit = defineEmits<{
         UMAP
       </button>
       <button
-        class="btn btn-sm flex-1 rounded-lg transition-colors"
+        class="btn btn-sm flex-1 text-base rounded-lg transition-colors"
         :class="
           overlayMode === 'kmeans'
             ? 'bg-rose-500 text-white border-rose-500'
-            : 'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200'
+            : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-200 dark:hover:bg-rose-900'
         "
         :disabled="overlayLoading"
         @click="emit('toggle-overlay', 'kmeans')"
@@ -66,22 +66,22 @@ const emit = defineEmits<{
   </div>
 
   <div class="mt-3 pt-3 border-t border-base-200">
-    <div class="flex items-center justify-between text-xs font-semibold text-base-content/50 mb-2">
+    <div class="flex items-center justify-between text-base font-semibold text-base-content/50 mb-2">
       <span>Overlay opacity</span>
-      <span class="font-mono font-normal">{{ Math.round(overlayAlpha / 2.55) }}%</span>
+      <span class="font-mono font-normal text-base">{{ Math.round(overlayAlpha / 2.55) }}%</span>
     </div>
     <input
       type="range"
       :min="0"
       :max="255"
       :value="overlayAlpha"
-      class="range range-sm w-full [--range-fill:0] [--range-thumb:bg-sky-400] [--range-bg:#dbeafe]"
+      class="range range-sm w-full [--range-fill:0] [--range-thumb:bg-sky-400] [--range-bg:theme(colors.blue.100)] dark:[--range-bg:theme(colors.blue.900)]"
       @input="emit('update:overlayAlpha', Number(($event.target as HTMLInputElement).value))"
     />
   </div>
 
   <div class="mt-3 pt-3 border-t border-base-200">
-    <div class="text-xs font-semibold text-base-content/50 mb-2">Region of interest</div>
+    <div class="text-base font-semibold text-base-content/50 mb-2">Region of interest</div>
     <ROIPanel
       :selected-tool="roiTool"
       :draft-ready="draftReady"

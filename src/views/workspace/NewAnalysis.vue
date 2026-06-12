@@ -26,7 +26,6 @@ const {
   methodParams,
   isPublic,
   quotaStorage,
-  quotaTasks,
   submitting,
   canSubmit,
   pipelineSummary,
@@ -48,8 +47,8 @@ const {
   <div class="p-6 max-w-screen-2xl mx-auto">
     <div class="flex items-start justify-between mb-6">
       <div>
-        <h1 class="text-3xl font-semibold">Create New Analysis</h1>
-        <p class="text-base text-base-content/60 mt-1">
+        <h1 class="text-5xl font-semibold">Create New Analysis</h1>
+        <p class="text-xl text-base-content/60 mt-1">
           Configure preprocessing pipeline for MSI datasets
         </p>
       </div>
@@ -86,9 +85,9 @@ const {
           :on-num-blur="onNumBlur"
         />
 
-        <details class="bg-white rounded-lg border border-base-200 p-6 shadow-sm">
-          <summary class="text-xl font-medium mb-2 list-none">Step 3: Annotation Settings</summary>
-          <div class="mt-4 text-sm text-base-content/60">Annotation settings placeholder</div>
+        <details class="bg-base-100 rounded-lg border border-base-200 p-6 shadow-sm">
+          <summary class="text-3xl font-medium mb-2 list-none">Step 3: Annotation Settings</summary>
+          <div class="mt-4 text-lg text-base-content/60">Annotation settings placeholder</div>
         </details>
       </div>
 
@@ -100,7 +99,6 @@ const {
         :selected-dataset="selectedDataset"
         :estimate-time-display="estimateTimeDisplay"
         :quota-storage="quotaStorage"
-        :quota-tasks="quotaTasks"
         :can-submit="canSubmit"
         :submitting="submitting"
         @submit="submit"

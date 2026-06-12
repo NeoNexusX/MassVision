@@ -1,5 +1,5 @@
 <template>
-  <div class="form-control w-full fluid-input">
+  <div class="form-control fluid-input">
     <template v-if="!hideLabel && label">
       <label class="label">
         <span class="label-text text-[1em] font-semibold">
@@ -8,7 +8,13 @@
       </label>
     </template>
 
-    <label class="select w-full flex items-center gap-2 fluid-input" :class="{ validator: validator }">
+    <label
+      class="select w-full flex items-center gap-2 fluid-input"
+      :class="[
+        { validator: validator },
+        size === 'xs' ? 'select-xs' : size === 'sm' ? 'select-sm' : size === 'lg' ? 'select-lg' : '',
+      ]"
+    >
       <SvgIcon
         v-if="iconType"
         :type="iconType"
@@ -82,6 +88,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  size: {
+    type: String as PropType<'xs' | 'sm' | 'md' | 'lg'>,
+    default: 'md',
+  },
   required: {
     type: Boolean,
     default: false,
@@ -96,7 +106,9 @@ const normalizedOptions = computed(() => {
   }
 
   if (Array.isArray(props.options)) {
-    return props.options.reduce<Record<string, string>>((options, option) => {
+    // Deduplicate using Set, then reduce to { label: value } object
+    const unique = [...new Set(props.options)]
+    return unique.reduce<Record<string, string>>((options, option) => {
       options[option] = option
       return options
     }, {})

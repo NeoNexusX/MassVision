@@ -8,49 +8,64 @@
         class="drawer-overlay"
         @click.prevent="open = false"
       ></label>
-      <ul
-        class="menu p-8 w-[450px] max-w-[85vw] min-h-full bg-base-100 text-base-content flex flex-col gap-6 overflow-y-auto"
+      <nav
+        class="menu p-[clamp(1rem,5.2vw,2.5rem)] w-[clamp(260px,55vw,420px)] min-h-full bg-base-100 text-base-content flex flex-col gap-[clamp(0.6rem,2.5vw,1.2rem)] overflow-y-auto overflow-x-hidden shadow-2xl"
       >
-        <li class="menu-title mb-8 flex items-center gap-5">
-          <SvgIcon type="home" class="w-10 h-10 text-blue-600" />
-          <span class="text-2xl md:text-3xl font-semibold">{{ APP_NAME }}</span>
+        <!-- Header -->
+        <li class="menu-title mb-8 flex items-center gap-4 px-2">
+          <span class="flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-md shrink-0"
+                :style="{ width: 'clamp(2rem, 5.9vw, 2.8rem)', height: 'clamp(2rem, 5.9vw, 2.8rem)' }">
+            <SvgIcon type="sparkles" class="w-[60%] h-[60%]" />
+          </span>
+          <span class="text-[clamp(1.4rem,4.2vw,2rem)] font-medium">{{ APP_NAME }}</span>
         </li>
 
         <template v-for="item in items" :key="item.kind === 'group' ? item.label : item.to">
+          <!-- Group item -->
           <li v-if="item.kind === 'group'">
             <details>
-              <summary :class="LINK_CLASS">
-                <span :class="ICON_WRAP_CLASS">
-                  <SvgIcon :type="item.icon" class="w-8 h-8 text-base-content" />
+              <summary class="flex items-center gap-[clamp(0.6rem,2.5vw,1.2rem)] py-[clamp(0.6rem,2.5vw,1.2rem)] px-[clamp(0.4rem,1.7vw,0.8rem)] text-[clamp(0.95rem,3vw,1.4rem)] font-medium rounded-lg transition-colors hover:bg-base-200/70 cursor-pointer">
+                <span class="flex items-center justify-center shrink-0"
+                      :style="{ width: 'clamp(1.5rem, 4.6vw, 2.2rem)', height: 'clamp(1.5rem, 4.6vw, 2.2rem)' }">
+                  <SvgIcon :type="item.icon" class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]" />
                 </span>
-                <span>{{ item.label }}</span>
+                <span class="whitespace-nowrap">{{ item.label }}</span>
               </summary>
-              <ul class="p-2 mt-2 flex flex-col gap-3">
+              <ul class="ml-[clamp(1.8rem,5.2vw,2.5rem)] mt-[clamp(0.2rem,1vw,0.5rem)] flex flex-col gap-[clamp(0.4rem,1.6vw,0.75rem)] border-l-2 border-base-200/60 pl-[clamp(0.5rem,2vw,1rem)]">
                 <li v-for="child in item.children" :key="child.to">
-                  <router-link :to="child.to" @click="open = false" :class="LINK_CLASS">
-                    <span :class="ICON_WRAP_CLASS">
-                      <SvgIcon :type="child.icon" class="w-8 h-8 text-base-content" />
+                  <router-link
+                    :to="child.to"
+                    @click="open = false"
+                    class="flex items-center gap-[clamp(0.5rem,2vw,1rem)] py-[clamp(0.5rem,1.9vw,0.9rem)] px-[clamp(0.3rem,1.3vw,0.6rem)] text-[clamp(0.9rem,2.5vw,1.2rem)] font-medium rounded-lg transition-colors hover:bg-base-200/60"
+                    active-class="!bg-primary/10 !text-primary font-medium"
+                  >
+                    <span class="flex items-center justify-center shrink-0"
+                          :style="{ width: 'clamp(1.2rem, 3.8vw, 1.8rem)', height: 'clamp(1.2rem, 3.8vw, 1.8rem)' }">
+                      <SvgIcon :type="child.icon" class="w-full h-full text-base-content/60 [&_svg]:stroke-[1.6]" />
                     </span>
-                    <span>{{ child.label }}</span>
+                    <span class="whitespace-nowrap">{{ child.label }}</span>
                   </router-link>
                 </li>
               </ul>
             </details>
           </li>
+          <!-- Link item -->
           <li v-else>
             <router-link
               :to="item.to"
-              :class="LINK_CLASS"
+              class="flex items-center gap-[clamp(0.6rem,2.5vw,1.2rem)] py-[clamp(0.6rem,2.5vw,1.2rem)] px-[clamp(0.4rem,1.7vw,0.8rem)] text-[clamp(0.95rem,3vw,1.4rem)] font-medium rounded-lg transition-colors hover:bg-base-200/70"
+              active-class="!bg-primary/10 !text-primary font-medium"
               @click="item.closeOnClick !== false ? (open = false) : null"
             >
-              <span :class="ICON_WRAP_CLASS">
-                <SvgIcon :type="item.icon" class="w-8 h-8 text-base-content" />
+              <span class="flex items-center justify-center shrink-0"
+                    :style="{ width: 'clamp(1.5rem, 4.6vw, 2.2rem)', height: 'clamp(1.5rem, 4.6vw, 2.2rem)' }">
+                <SvgIcon :type="item.icon" class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]" />
               </span>
-              <span>{{ item.label }}</span>
+              <span class="whitespace-nowrap">{{ item.label }}</span>
             </router-link>
           </li>
         </template>
-      </ul>
+      </nav>
     </div>
   </div>
 </template>
@@ -67,9 +82,6 @@ const props = defineProps<{
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
-
-const LINK_CLASS = 'flex items-center gap-6 py-4 px-3 text-xl'
-const ICON_WRAP_CLASS = 'w-8 h-8 flex justify-center items-center shrink-0'
 
 type LinkItem = {
   kind: 'link'

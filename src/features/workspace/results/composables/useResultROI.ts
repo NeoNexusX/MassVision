@@ -8,7 +8,7 @@ import {
 
 export function useResultROI(
   // Arguments
-  ionMatrix: Ref<number[][] | null>,
+  ionMatrix: Ref<Float32Array | null>,
   ionCols: Ref<number>,
   ionRows: Ref<number>,
 ) {
@@ -32,30 +32,20 @@ export function useResultROI(
 
   const displayMatrix = computed(() => {
     const matrix = ionMatrix.value
+    const w = ionCols.value
+    const h = ionRows.value
     if (!matrix || !viewingROI.value || !confirmedROIs.value.length) return matrix
-    const height = matrix.length
-    const width = matrix[0]?.length ?? 0
-    const combined: boolean[][] = []
-    for (let rowIndex = 0; rowIndex < height; rowIndex++) {
-      combined.push(new Array(width).fill(false))
-    }
+    const size = w * h
+    const filtered = new Float32Array(size)
     for (const roi of confirmedROIs.value) {
       const mask = roi.mask
       if (!mask || !mask.length) continue
-      for (let rowIndex = 0; rowIndex < height; rowIndex++) {
-        for (let colIndex = 0; colIndex < width; colIndex++) {
-          if (mask[rowIndex]?.[colIndex]) combined[rowIndex]![colIndex] = true
+      for (let r = 0; r < h; r++) {
+        const rowOff = r * w
+        for (let c = 0; c < w; c++) {
+          if (mask[r]?.[c]) filtered[rowOff + c] = matrix[rowOff + c] ?? 0
         }
       }
-    }
-
-    const filtered: number[][] = []
-    for (let rowIndex = 0; rowIndex < height; rowIndex++) {
-      const row = new Array<number>(width)
-      for (let colIndex = 0; colIndex < width; colIndex++) {
-        row[colIndex] = combined[rowIndex]![colIndex] ? (matrix[rowIndex]?.[colIndex] ?? 0) : 0
-      }
-      filtered.push(row)
     }
     return filtered
   })
@@ -77,7 +67,7 @@ export function useResultROI(
 
   const roiConfirm = () => {
     if (!ionMatrix.value || !currentDraft.value) return
-    roiConfirmDraft(ionMatrix.value, currentDraft.value)
+    roiConfirmDraft(ionMatrix.value, ionCols.value, ionRows.value, currentDraft.value)
     roiOverlayRef.value?.clearAll()
     currentDraft.value = null
     roiSelectTool(null)

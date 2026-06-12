@@ -1,5 +1,5 @@
 import { computed, onMounted, ref } from 'vue'
-import { listMyProcesses, listUserFiles } from '@/features/datasets/api/datasetApi'
+import { listMyProcesses, deleteProcess } from '@/features/datasets/api/datasetApi'
 import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
 
 export interface ProcessItem {
@@ -11,23 +11,23 @@ export interface ProcessItem {
   started_at: string | null
   finished_at: string | null
   error_message: string | null
+  filename?: string
 }
 
 export function useWorkspaceDashboard() {
   // State
   const processes = ref<ProcessItem[]>([])
-  const fileNames = ref<Record<number, string>>({})
   const loading = ref(false)
   const createOpen = ref(false)
 
   // Computed
   const tasks = computed(() =>
     processes.value
-      .filter((p) => ['processing', 'queued'].includes(p.status))
+      .filter((p) => ['processing'].includes(p.status))
       .map((p) => ({
         id: String(p.id),
         name: `Process #${p.id}`,
-        dataset: getFileName(p.source_file_id),
+        dataset: getFileName(p),
         methods: parseAlgorithms(p.params_json),
         status: p.status,
         progress: p.status === 'processing' ? 50 : 0,
@@ -41,7 +41,7 @@ export function useWorkspaceDashboard() {
       .map((p) => ({
         id: String(p.id),
         name: `Process #${p.id}`,
-        dataset: getFileName(p.source_file_id),
+        dataset: getFileName(p),
         methods: parseAlgorithms(p.params_json),
         status: p.status,
         created: new Date(p.finished_at || p.created_at).toLocaleDateString(),
@@ -49,7 +49,27 @@ export function useWorkspaceDashboard() {
   )
 
   const runningTasks = computed(() => tasks.value)
-  const recentResults = computed(() => results.value.slice(0, 10))
+  const recentResults = computed(() => results.value)
+
+  const recentActivities = computed(() => {
+    const list: Array<{ id: string; type: string; text: string; time: string }> = []
+    const sorted = [...processes.value].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )
+    for (const p of sorted) {
+      if (list.length >= 10) break
+      const name = getFileName(p)
+      const type = p.status === 'completed' ? 'success' : p.status === 'failed' ? 'error' : 'info'
+      const action = p.status === 'processing'
+        ? `Task "${name}" is running`
+        : p.status === 'completed'
+          ? `Result "${name}" completed`
+          : `Task "${name}" failed${p.error_message ? ': ' + p.error_message.slice(0, 60) : ''}`
+      const time = timeAgo(p.finished_at || p.started_at || p.created_at)
+      list.push({ id: String(p.id), type, text: action, time })
+    }
+    return list
+  })
 
   const summary = computed(() => ({
     running: tasks.value.length,
@@ -58,24 +78,27 @@ export function useWorkspaceDashboard() {
   }))
 
   // Methods
-  function getFileName(fileId: number): string {
-    return fileNames.value[fileId] || `File ${fileId}`
+  function getFileName(p: ProcessItem): string {
+    return (p.filename || 'Unknown').replace(/\.[^.]+$/, '')
+  }
+
+  function timeAgo(dateStr: string): string {
+    if (!dateStr) return ''
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'just now'
+    if (mins < 60) return `${mins} minutes ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours} hours ago`
+    const days = Math.floor(hours / 24)
+    if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`
+    return new Date(dateStr).toLocaleDateString()
   }
 
   async function fetchProcesses() {
     loading.value = true
     try {
-      const [procData, filesBody] = await Promise.all([
-        listMyProcesses(),
-        listUserFiles({}, 1, 100),
-      ])
-      processes.value = procData
-      const nameMap: Record<number, string> = {}
-      const files = Array.isArray(filesBody?.data) ? filesBody.data : []
-      for (const f of files) {
-        nameMap[f.file_id || f.id] = (f.filename || f.name || '').replace(/\.[^.]+$/, '')
-      }
-      fileNames.value = nameMap
+      processes.value = await listMyProcesses()
     } catch (e) {
       console.error('Failed to fetch processes:', e)
     } finally {
@@ -88,6 +111,22 @@ export function useWorkspaceDashboard() {
     fetchProcesses()
   }
 
+  // Delete
+  const deletingId = ref<string | null>(null)
+
+  async function deleteResult(id: string) {
+    deletingId.value = id
+    try {
+      await deleteProcess(id)
+      processes.value = processes.value.filter((p) => String(p.id) !== id)
+    } catch (e) {
+      console.error('Failed to delete process:', e)
+      throw e
+    } finally {
+      deletingId.value = null
+    }
+  }
+
   // Lifecycle
   onMounted(() => fetchProcesses())
 
@@ -96,8 +135,11 @@ export function useWorkspaceDashboard() {
     createOpen,
     runningTasks,
     recentResults,
+    recentActivities,
     summary,
+    deletingId,
     onCreated,
     fetchProcesses,
+    deleteResult,
   }
 }

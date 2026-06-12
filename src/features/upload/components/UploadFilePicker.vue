@@ -70,14 +70,14 @@ const onFileChange = (event: Event) => {
       <div class="flex items-center gap-3 w-full pointer-events-none">
         <template v-if="pendingResume">
           <div class="btn btn-sm btn-ghost no-animation shrink-0 opacity-50">Choose Files</div>
-          <span class="text-sm text-warning">
+          <span class="text-lg text-warning">
             Please resolve the pending upload above first
           </span>
         </template>
         <template v-else>
           <div class="btn btn-sm btn-neutral no-animation shrink-0">Choose Files</div>
           <span
-            class="text-sm min-w-0 flex-1 opacity-80 pointer-events-auto"
+            class="text-lg min-w-0 flex-1 opacity-80 pointer-events-auto"
             :class="{ 'opacity-50': !selectedPair }"
             :title="selectedPair ? `${selectedPair.imzml.name}, ${selectedPair.ibd.name}` : ''"
             >{{
@@ -89,7 +89,7 @@ const onFileChange = (event: Event) => {
         </template>
       </div>
     </div>
-    <div class="mt-1 text-sm">
+    <div class="mt-1 text-lg">
       <span v-if="selectedPair" class="text-success"
         >Ready: <span class="break-all">{{ selectedPair.baseName }}</span> ({{ formattedSize }})</span
       >

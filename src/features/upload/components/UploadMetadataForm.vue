@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
 import IconSelect from '@/shared/components/IconSelect.vue'
+import SolventPicker from '@/features/upload/components/SolventPicker.vue'
 import type {
   UploadMetadataFormState,
 } from '@/features/upload/composables/useUploadMetadataForm'
@@ -15,6 +16,11 @@ import {
   MALDI_MATRICES,
   MALDI_MATRIX_APPLICATIONS,
   SOLVENTS,
+  POLARITIES,
+  ION_SOURCES,
+  ANALYZERS,
+  SPECTRUM_MODES,
+  STORAGE_MODES,
 } from '@/features/datasets/constants/datasetMetadata'
 
 defineProps<{
@@ -33,14 +39,14 @@ defineProps<{
           v-model="form.is_public"
           class="checkbox checkbox-sm"
         />
-        <label for="is_public" class="text-sm">Make dataset public (visible to others)</label>
+        <label for="is_public" class="text-lg">Make dataset public (visible to others)</label>
       </div>
 
-      <div class="divider text-sm text-base-content/50">Required</div>
+      <div class="divider text-lg text-base-content/50">Required</div>
 
       <div
         v-if="parsingMetadata"
-        class="flex items-center gap-2 text-sm text-base-content/60 bg-base-200/50 rounded-lg px-3 py-2 mb-2"
+        class="flex items-center gap-2 text-lg text-base-content/60 bg-base-200/50 rounded-lg px-3 py-2 mb-2"
       >
         <span
           class="inline-block w-3.5 h-3.5 border-2 border-base-content/30 border-t-base-content/60 rounded-full animate-spin"
@@ -50,13 +56,13 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >Polarity <span class="text-error">*</span></span
           ></label
         >
         <IconSelect
           v-model="form.polarity"
-          :options="['Positive', 'Negative']"
+          :options="POLARITIES"
           placeholder="Select polarity..."
           hide-label
         />
@@ -64,13 +70,13 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >Ionisation Source <span class="text-error">*</span></span
           ></label
         >
         <SelectWithOther
           v-model="form.ionisation_source"
-          :options="['MALDI', 'DESI', 'SIMS', 'Other']"
+          :options="ION_SOURCES"
           placeholder="Select source..."
           other-placeholder="Please specify..."
         />
@@ -78,13 +84,13 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >Analyzer <span class="text-error">*</span></span
           ></label
         >
         <SelectWithOther
           v-model="form.analyzer"
-          :options="['Orbitrap', 'FTICR', 'TOF', 'Q-TOF', 'Other']"
+          :options="ANALYZERS"
           placeholder="Select analyzer..."
           other-placeholder="Please specify..."
         />
@@ -93,7 +99,7 @@ defineProps<{
       <div class="grid grid-cols-2 gap-3">
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-base"
+            ><span class="label-text font-medium text-base-content text-xl"
               >Pixel Size X (μm) <span class="text-error">*</span></span
             ></label
           >
@@ -107,7 +113,7 @@ defineProps<{
         </div>
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-base"
+            ><span class="label-text font-medium text-base-content text-xl"
               >Pixel Size Y (μm) <span class="text-error">*</span></span
             ></label
           >
@@ -124,26 +130,26 @@ defineProps<{
       <div class="grid grid-cols-2 gap-3">
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-base"
+            ><span class="label-text font-medium text-base-content text-xl"
               >Spectrum Mode <span class="text-error">*</span></span
             ></label
           >
           <IconSelect
             v-model="form.spectrum_mode"
-            :options="['profile', 'centroid']"
+            :options="SPECTRUM_MODES"
             placeholder="Select..."
             hide-label
           />
         </div>
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-base"
+            ><span class="label-text font-medium text-base-content text-xl"
               >Storage Mode <span class="text-error">*</span></span
             ></label
           >
           <IconSelect
             v-model="form.storage_mode"
-            :options="['continuous', 'processed']"
+            :options="STORAGE_MODES"
             placeholder="Select..."
             hide-label
           />
@@ -152,7 +158,7 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >Organism <span class="text-error">*</span></span
           ></label
         >
@@ -166,7 +172,7 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >Organism Part <span class="text-error">*</span></span
           ></label
         >
@@ -180,7 +186,7 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >Condition <span class="text-error">*</span></span
           ></label
         >
@@ -194,7 +200,7 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >Sample Stabilization <span class="text-error">*</span></span
           ></label
         >
@@ -208,23 +214,21 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >Solvent <span class="text-error">*</span></span
           ></label
         >
-        <SelectWithOther
+        <SolventPicker
           v-model="form.solvent"
-          :options="SOLVENTS"
-          placeholder="Select solvent..."
-          other-placeholder="Please specify..."
+          :solvent-options="SOLVENTS"
         />
       </div>
 
-      <div class="divider text-sm text-base-content/50">Optional</div>
+      <div class="divider text-lg text-base-content/50">Optional</div>
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >Experiment Type</span
           ></label
         >
@@ -236,10 +240,15 @@ defineProps<{
         />
       </div>
 
+      <label class="label"
+        ><span class="label-text font-medium text-base-content text-xl"
+          >Detector resolving power</span
+        ></label
+      >
       <div class="grid grid-cols-2 gap-3">
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-base">m/z</span></label
+            ><span class="label-text font-medium text-base-content text-xl">m/z</span></label
           >
           <input
             v-model="form.mz"
@@ -251,7 +260,7 @@ defineProps<{
         </div>
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-base"
+            ><span class="label-text font-medium text-base-content text-xl"
               >Resolving Power</span
             ></label
           >
@@ -267,7 +276,7 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >Sample Growth Conditions</span
           ></label
         >
@@ -281,7 +290,7 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >Tissue Modification</span
           ></label
         >
@@ -295,7 +304,7 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >MALDI Matrix</span
           ></label
         >
@@ -309,7 +318,7 @@ defineProps<{
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-base"
+          ><span class="label-text font-medium text-base-content text-xl"
             >MALDI Matrix Application</span
           ></label
         >

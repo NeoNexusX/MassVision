@@ -1,6 +1,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { listFiles, listUserFiles } from '@/features/datasets/api/datasetApi'
+import { listFiles, listUserFiles, getFileImages } from '@/features/datasets/api/datasetApi'
 import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
 import type { File } from '@/features/datasets/types/dataset'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
@@ -17,6 +17,8 @@ export function useDatasetDetail() {
   const dataset = ref<File | null>(null)
   const loading = ref(true)
   const isCopied = ref(false)
+  const ticImageUrl = ref<string>('')
+  const ticImageError = ref(false)
 
   // Computed
   const placeholderSvg = computed(() => {
@@ -96,6 +98,17 @@ export function useDatasetDetail() {
     try {
       const found = await findDatasetByRouteKey()
       dataset.value = found ? mapItemToDataset(found) : null
+      // Fetch TIC image after dataset is loaded
+      if (dataset.value?.id) {
+        try {
+          ticImageError.value = false
+          const images = await getFileImages(dataset.value.id)
+          ticImageUrl.value = images?.urls?.['tic_image.png'] || ''
+        } catch {
+          ticImageUrl.value = ''
+          ticImageError.value = true
+        }
+      }
     } catch (error) {
       console.error('Error fetching dataset details', error)
       dataset.value = null
@@ -112,6 +125,8 @@ export function useDatasetDetail() {
     dataset,
     loading,
     isCopied,
+    ticImageUrl,
+    ticImageError,
     placeholderSvg,
     formatSize: formatBytes,
     formatString,

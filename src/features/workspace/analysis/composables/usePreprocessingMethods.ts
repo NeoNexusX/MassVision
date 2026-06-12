@@ -218,27 +218,10 @@ export const allMethodGroups: MethodGroup[] = [
         label: 'Python Backend',
         params: [
           {
-            key: 'tolerance',
-            label: 'Tolerance',
-            type: 'text',
-            default: 'none',
-            hint: 'Positive number or empty=auto',
-          },
-          {
-            key: 'units',
-            label: 'Units',
-            type: 'select',
-            default: 'ppm',
-            options: [
-              { label: 'ppm', value: 'ppm' },
-              { label: 'Da', value: 'Da' },
-            ],
-          },
-          {
             key: 'binfun',
             label: 'Bin Function',
             type: 'select',
-            default: 'median',
+            default: 'min',
             options: [
               { label: 'Median', value: 'median' },
               { label: 'Mean', value: 'mean' },
@@ -246,7 +229,16 @@ export const allMethodGroups: MethodGroup[] = [
               { label: 'Max', value: 'max' },
             ],
           },
-          { key: 'binratio', label: 'Bin Ratio', type: 'float', default: 2.0, min: 0, step: 0.1 },
+          {
+            key: 'min_frequency',
+            label: 'Min Frequency',
+            type: 'float',
+            default: 0.01,
+            min: 0,
+            max: 1,
+            step: 0.01,
+            hint: 'Minimum frequency threshold for peak retention',
+          },
         ],
       },
     ],
