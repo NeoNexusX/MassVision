@@ -73,12 +73,12 @@ defineProps<{
               class="mt-2 ml-4 grid grid-cols-2 gap-2"
             >
               <div v-for="param in method.params" :key="param.key" class="flex items-center gap-2">
-                <span class="text-lg text-base-content/60 w-24 shrink-0" :title="param.hint">{{
+                <span class="text-lg text-base-content/60 w-32 shrink-0 whitespace-nowrap" :title="param.hint">{{
                   param.label
                 }}</span>
                 <template v-if="param.type === 'select'">
                   <IconSelect
-                    class="flex-1 max-w-40"
+                    class="flex-1 max-w-28"
                     size="sm"
                     :model-value="String(getParam(group.key, method.id, param.key) ?? '')"
                     :options="[...new Set(param.options!.map((o) => o.value))]"
@@ -92,7 +92,7 @@ defineProps<{
                 </template>
                 <template v-else-if="param.type === 'text'">
                   <input
-                    class="input input-sm input-bordered flex-1 max-w-40 text-lg font-mono"
+                    class="input input-sm input-bordered flex-1 max-w-28 text-lg font-mono"
                     type="text"
                     :placeholder="param.hint || String(param.default ?? '')"
                     :value="getParam(group.key, method.id, param.key)"
@@ -105,7 +105,7 @@ defineProps<{
                 </template>
                 <template v-else-if="param.type === 'number'">
                   <input
-                    class="input input-sm input-bordered flex-1 max-w-40 text-lg font-mono"
+                    class="input input-sm input-bordered flex-1 max-w-28 text-lg font-mono"
                     type="text"
                     inputmode="numeric"
                     :placeholder="param.hint || String(param.default ?? '')"
@@ -116,7 +116,7 @@ defineProps<{
                 </template>
                 <template v-else-if="param.type === 'float'">
                   <input
-                    class="input input-sm input-bordered flex-1 max-w-40 text-lg font-mono"
+                    class="input input-sm input-bordered flex-1 max-w-28 text-lg font-mono"
                     type="text"
                     inputmode="decimal"
                     :placeholder="param.hint || String(param.default ?? '')"

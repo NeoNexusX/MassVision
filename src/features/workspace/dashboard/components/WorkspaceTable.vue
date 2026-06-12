@@ -1,39 +1,44 @@
 <template>
-  <div class="card bg-base-100 shadow-sm border border-base-200 p-0">
+  <div class="card bg-base-100 shadow-sm border border-base-300 p-0 rounded-none">
     <div class="w-full overflow-x-auto">
-      <table class="table w-full table-fixed">
+      <table class="table w-full table-fixed" :class="{ 'empty-table': rows.length === 0 }">
         <colgroup>
-          <col style="width: 15%" />
-          <col style="width: 25%" />
-          <col style="width: 25%" />
-          <col style="width: 13%" />
-          <col style="width: 15%" />
-          <col style="width: 7%" />
+          <col style="width: 14%" />
+          <col style="width: 24%" />
+          <col style="width: 24%" />
+          <col style="width: 12%" />
+          <col style="width: 14%" />
+          <col style="width: 12%" />
         </colgroup>
         <thead>
           <tr class="text-lg text-base-content/70">
-            <th class="pl-6 text-left">Name</th>
-            <th class="pl-2 text-left">Dataset</th>
-            <th class="pl-2 text-left">Methods</th>
-            <th class="pl-2 text-left">Status</th>
-            <th class="pl-2 text-left">{{ type === 'running' ? 'Progress' : 'Created' }}</th>
-            <th class="pr-2 text-right">Action</th>
+            <th class="text-center">Name</th>
+            <th class="text-center">Dataset</th>
+            <th class="text-center">Methods</th>
+            <th class="text-center">Status</th>
+            <th class="text-center">{{ type === 'running' ? 'Progress' : 'Created' }}</th>
+            <th class="text-center">Action</th>
           </tr>
         </thead>
         <tbody>
+          <tr v-if="rows.length === 0">
+            <td colspan="6" class="text-center text-base-content/40 py-8 text-lg">
+              No data available
+            </td>
+          </tr>
           <tr
             v-for="r in rows"
             :key="r.id"
-            class="hover:bg-base-200 transition-colors text-lg"
+            class="hover:bg-base-300 transition-colors text-lg"
             :style="{ cursor: rowCursor }"
           >
-            <td class="font-medium pl-6 truncate" :title="r.name">{{ r.name }}</td>
-            <td class="pl-2 truncate" :title="r.dataset">{{ r.dataset }}</td>
-            <td class="pl-2 break-words whitespace-normal">{{ r.methods?.join(' + ') }}</td>
-            <td class="pl-2">
+            <td class="font-medium truncate text-center" :title="r.name">{{ r.name }}</td>
+            <td class="truncate text-center" :title="r.dataset">{{ r.dataset }}</td>
+            <td class="break-words whitespace-normal text-center">{{ r.methods?.join(' + ') }}</td>
+            <td class="text-center">
               <StatusBadge :status="normalizeStatus(r)" compact />
             </td>
-            <td class="pl-2">
+            <td class="text-center">
               <template v-if="type === 'running'">
                 <progress
                   class="progress progress-primary w-full"
@@ -48,14 +53,24 @@
                 </div>
               </template>
             </td>
-            <td class="text-right pr-2">
-              <button
-                @click="openRow(r.id)"
-                class="btn btn-ghost btn-sm btn-circle hover:bg-base-200"
-                aria-label="Open"
-              >
-                <svg-icon type="chevron_right" class="w-5 h-5 text-base-content/60" />
-              </button>
+            <td class="text-center">
+              <div class="flex items-center justify-center gap-1">
+                <button
+                  v-if="type === 'results'"
+                  @click.stop="$emit('delete', r.id)"
+                  class="btn btn-ghost btn-sm btn-circle hover:bg-error/10 hover:text-error"
+                  aria-label="Delete"
+                >
+                  <svg-icon type="trash" class="w-4 h-4 text-base-content/50" />
+                </button>
+                <button
+                  @click="openRow(r.id)"
+                  class="btn btn-ghost btn-sm btn-circle hover:bg-base-200"
+                  aria-label="Open"
+                >
+                  <svg-icon type="chevron_right" class="w-5 h-5 text-base-content/60" />
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -77,6 +92,10 @@ const props = defineProps<{
   cursor?: string
 }>()
 
+defineEmits<{
+  (e: 'delete', id: string): void
+}>()
+
 const router = useRouter()
 const rows = computed(() => props.rows || [])
 const type = computed(() => props.type || 'results')
@@ -94,3 +113,9 @@ const openRow = (id: string) => {
   }
 }
 </script>
+
+<style scoped>
+.empty-table thead th {
+  border-bottom-width: 0;
+}
+</style>

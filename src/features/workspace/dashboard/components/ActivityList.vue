@@ -1,5 +1,5 @@
 <template>
-  <div class="card p-4 border border-base-200 rounded-lg shadow-sm">
+  <div class="card">
     <h3 class="text-2xl font-medium mb-3">Recent Activity</h3>
     <ul v-if="activities && activities.length" class="space-y-3">
       <li v-for="a in activities" :key="a.id" class="flex items-start gap-3">

@@ -45,25 +45,68 @@
 
       <section class="bg-base-100 rounded-lg border border-base-200 shadow-sm p-6">
         <h2 class="text-2xl font-medium mb-4">Recent Results</h2>
-        <ResultTable :results="recentResults" />
+        <ResultTable :results="recentResults" @delete="onDeleteClick" />
       </section>
 
-      <section>
+      <section class="bg-base-100 rounded-lg border border-base-200 shadow-sm p-6">
         <ActivityList :activities="recentActivities" />
       </section>
     </div>
 
     <CreateTaskModal v-model:open="createOpen" @created="onCreated" />
+
+    <!-- Delete Confirmation Modal -->
+    <ConfirmDialog
+      :open="isDeleteModalOpen"
+      title="Delete Result"
+      :message="`Are you sure you want to delete this result? This action cannot be undone.`"
+      confirm-label="Delete"
+      :danger="true"
+      :loading="!!deletingId"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import TaskTable from '@/features/workspace/dashboard/components/TaskTable.vue'
 import ResultTable from '@/features/workspace/dashboard/components/ResultTable.vue'
 import CreateTaskModal from '@/features/workspace/dashboard/components/CreateTaskModal.vue'
 import SummaryCard from '@/features/workspace/dashboard/components/SummaryCard.vue'
 import ActivityList from '@/features/workspace/dashboard/components/ActivityList.vue'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { useWorkspaceDashboard } from '@/features/workspace/dashboard/composables/useWorkspaceDashboard'
+import { useToast } from '@/shared/composables/useToast'
 
-const { createOpen, runningTasks, recentResults, recentActivities, summary, onCreated } = useWorkspaceDashboard()
+const { createOpen, runningTasks, recentResults, recentActivities, summary, onCreated, deletingId, deleteResult } = useWorkspaceDashboard()
+
+// Delete
+const { showToast } = useToast()
+const isDeleteModalOpen = ref(false)
+const resultToDelete = ref<string | null>(null)
+
+function onDeleteClick(id: string) {
+  resultToDelete.value = id
+  isDeleteModalOpen.value = true
+}
+
+async function confirmDelete() {
+  if (!resultToDelete.value) return
+  isDeleteModalOpen.value = false
+  try {
+    await deleteResult(resultToDelete.value)
+    showToast('Result deleted successfully', 'success')
+  } catch (e: any) {
+    showToast(e?.message || 'Failed to delete result', 'error')
+  } finally {
+    resultToDelete.value = null
+  }
+}
+
+function cancelDelete() {
+  isDeleteModalOpen.value = false
+  resultToDelete.value = null
+}
 </script>

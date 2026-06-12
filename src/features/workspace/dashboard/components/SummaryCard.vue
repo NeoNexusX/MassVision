@@ -1,5 +1,5 @@
 <template>
-  <div :class="['p-4 rounded-lg border shadow-sm', borderClass, bgClass]">
+  <div :class="['p-4 rounded-lg border shadow-sm text-center', borderClass, bgClass]">
     <div class="text-base text-base-content/60">{{ title }}</div>
     <div :class="['mt-2 text-4xl font-bold', countClass]">{{ count }}</div>
     <div class="mt-1 text-base text-base-content/60">{{ subtitle }}</div>

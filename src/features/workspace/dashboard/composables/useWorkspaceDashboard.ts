@@ -1,5 +1,5 @@
 import { computed, onMounted, ref } from 'vue'
-import { listMyProcesses } from '@/features/datasets/api/datasetApi'
+import { listMyProcesses, deleteProcess } from '@/features/datasets/api/datasetApi'
 import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
 
 export interface ProcessItem {
@@ -49,11 +49,14 @@ export function useWorkspaceDashboard() {
   )
 
   const runningTasks = computed(() => tasks.value)
-  const recentResults = computed(() => results.value.slice(0, 10))
+  const recentResults = computed(() => results.value)
 
   const recentActivities = computed(() => {
     const list: Array<{ id: string; type: string; text: string; time: string }> = []
-    for (const p of processes.value) {
+    const sorted = [...processes.value].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )
+    for (const p of sorted) {
       if (list.length >= 10) break
       const name = getFileName(p)
       const type = p.status === 'completed' ? 'success' : p.status === 'failed' ? 'error' : 'info'
@@ -108,6 +111,22 @@ export function useWorkspaceDashboard() {
     fetchProcesses()
   }
 
+  // Delete
+  const deletingId = ref<string | null>(null)
+
+  async function deleteResult(id: string) {
+    deletingId.value = id
+    try {
+      await deleteProcess(id)
+      processes.value = processes.value.filter((p) => String(p.id) !== id)
+    } catch (e) {
+      console.error('Failed to delete process:', e)
+      throw e
+    } finally {
+      deletingId.value = null
+    }
+  }
+
   // Lifecycle
   onMounted(() => fetchProcesses())
 
@@ -118,7 +137,9 @@ export function useWorkspaceDashboard() {
     recentResults,
     recentActivities,
     summary,
+    deletingId,
     onCreated,
     fetchProcesses,
+    deleteResult,
   }
 }

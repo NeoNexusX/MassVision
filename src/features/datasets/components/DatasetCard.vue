@@ -15,16 +15,14 @@
     <!-- Left: Image -->
     <div class="relative z-10 w-full max-w-[250px] min-w-[120px] aspect-square rounded-lg overflow-hidden bg-base-200 flex items-center justify-center border border-base-300">
       <img
-        :src="`/api/files/${dataset.id}/tic`"
+        v-if="ticImageUrl && !ticImageError"
+        :src="ticImageUrl"
         :alt="dataset.name"
         class="w-full h-full object-contain"
         loading="lazy"
-        @error="
-          ;($event.target as HTMLImageElement).style.display = 'none'
-          ;($event.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden')
-        "
+        @error="ticImageError = true"
       />
-      <div class="w-full h-full text-base-content hidden" v-html="placeholderSvg"></div>
+      <div v-if="!ticImageUrl || ticImageError" class="w-full h-full text-base-content" v-html="placeholderSvg"></div>
     </div>
 
     <!-- Middle: Info -->
@@ -90,11 +88,12 @@
 </style>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import type { File } from '@/features/datasets/types/dataset'
 import type { IconType } from '@/shared/components/svgIcons'
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
 import { formatBytes } from '@/shared/utils/format'
+import { getFileImages } from '@/features/datasets/api/datasetApi'
 
 const props = defineProps<{
   dataset: File
@@ -107,6 +106,18 @@ const emit = defineEmits<{
   (e: 'download', id: string): void
   (e: 'delete', id: string): void
 }>()
+
+const ticImageUrl = ref<string>('')
+const ticImageError = ref(false)
+
+onMounted(async () => {
+  try {
+    const images = await getFileImages(props.dataset.id)
+    ticImageUrl.value = images?.urls?.['tic_image.png'] || ''
+  } catch {
+    ticImageUrl.value = ''
+  }
+})
 
 const submitDate = computed(() =>
   props.dataset.submitTime

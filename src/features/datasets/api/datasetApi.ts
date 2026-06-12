@@ -9,6 +9,18 @@ export async function getDownloadMetadata(fileId: string) {
   return res.data
 }
 
+// GET /files/{file_id}/images
+// Returns { urls: Record<string, string>, spectrum_mode: string }
+export interface FileImagesResponse {
+  urls: Record<string, string>
+  spectrum_mode: string
+}
+
+export async function getFileImages(fileId: string | number): Promise<FileImagesResponse> {
+  const res = await auth_api.get(`/files/${fileId}/images`)
+  return res.data
+}
+
 // DELETE /files/{file_id}
 export async function deleteFile(fileId: string | number) {
   const res = await auth_api.delete(`/files/${fileId}`)
@@ -60,5 +72,11 @@ export async function createProcess(payload: {
 // GET /processes/mine — List my processes
 export async function listMyProcesses() {
   const res = await auth_api.get('/processes/mine')
+  return res.data
+}
+
+// DELETE /processes/{run_id} — Delete a process/result
+export async function deleteProcess(runId: string | number) {
+  const res = await auth_api.delete(`/processes/${runId}`)
   return res.data
 }

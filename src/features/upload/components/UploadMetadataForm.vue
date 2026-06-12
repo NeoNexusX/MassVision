@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
 import IconSelect from '@/shared/components/IconSelect.vue'
+import SolventPicker from '@/features/upload/components/SolventPicker.vue'
 import type {
   UploadMetadataFormState,
 } from '@/features/upload/composables/useUploadMetadataForm'
@@ -217,11 +218,9 @@ defineProps<{
             >Solvent <span class="text-error">*</span></span
           ></label
         >
-        <SelectWithOther
+        <SolventPicker
           v-model="form.solvent"
-          :options="SOLVENTS"
-          placeholder="Select solvent..."
-          other-placeholder="Please specify..."
+          :solvent-options="SOLVENTS"
         />
       </div>
 

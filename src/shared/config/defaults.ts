@@ -18,3 +18,11 @@ export const OSS_UPLOAD = {
   /** checkpoint 持久化节流间隔（ms），用于跨会话断点续传 */
   checkpointSaveIntervalMs: 5000,
 } as const
+
+/** Zarr OSS Store 配置 */
+export const ZARR_STORE = {
+  /** ion_images chunk 缓存数量（LRU） */
+  ionChunkCacheSize: 5,
+  /** 默认 m/z 容差 */
+  defaultMzTolerance: 0.05,
+} as const

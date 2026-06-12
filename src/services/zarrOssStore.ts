@@ -185,14 +185,11 @@ export interface CacheInfo {
   size: number
   keys: (string | number)[]
   currentChunk: number | null
-  prefetchEnabled: boolean
 }
 
 export interface ZarrOssStoreOptions {
   /** ion_images chunk cache size; defaults to 5. */
   ionChunkCacheSize?: number
-  /** Whether to enable neighbor prefetch; defaults to true. */
-  enablePrefetch?: boolean
 }
 
 interface InFlightEntry {
@@ -206,20 +203,20 @@ export class ZarrOssStore {
   private cache: LruCache<number, DecodedIonImageChunk>
   private inFlight = new Map<number, InFlightEntry>()
   private currentChunk: number | null = null
-  private enablePrefetch: boolean
 
   // metadata
   private ionMeta: ZarrV3ArrayMetadata | null = null
   private mzMeta: ZarrV3ArrayMetadata | null = null
+  private meanSpectrumMeta: ZarrV3ArrayMetadata | null = null
 
   // data
   private mzAxis: Float32Array | Float64Array | null = null
+  private meanSpectrum: Float32Array | Float64Array | null = null
 
   constructor(access: ZarrAccessResponse, options: ZarrOssStoreOptions = {}) {
     this.access = access
     this.oss = createOssClient(access)
     this.cache = new LruCache<number, DecodedIonImageChunk>(options.ionChunkCacheSize ?? 5)
-    this.enablePrefetch = options.enablePrefetch ?? true
   }
 
   // ---------- lifecycle ----------
@@ -429,6 +426,22 @@ export class ZarrOssStore {
     return this.mzAxis
   }
 
+  async loadMeanSpectrum(): Promise<Float32Array | Float64Array> {
+    if (this.meanSpectrum) return this.meanSpectrum
+    if (!this.meanSpectrumMeta) {
+      this.meanSpectrumMeta = await this.readJson<ZarrV3ArrayMetadata>('mean_spectrum/zarr.json')
+      this.assertIsV3Array(this.meanSpectrumMeta, 'mean_spectrum')
+    }
+    const ab = await this.fetchArrayFull('mean_spectrum', this.meanSpectrumMeta)
+    const dtype = this.meanSpectrumMeta.data_type as DType
+    const typed = makeTypedArray(dtype, ab)
+    this.meanSpectrum =
+      typed instanceof Float32Array || typed instanceof Float64Array
+        ? typed
+        : Float64Array.from(typed as ArrayLike<number>)
+    return this.meanSpectrum
+  }
+
   /**
    * General-purpose: read a small 1D/2D array in one shot. Downloads every
    * chunk and concatenates them. Only used for small arrays like mz_axis.
@@ -590,20 +603,6 @@ export class ZarrOssStore {
       matrix,
     }
 
-    if (import.meta.env.DEV) {
-      console.table({
-        mzIndex,
-        mz: info.mz,
-        chunkIndex,
-        localIndex,
-        chunkCacheHit,
-        objectKey: this.computeChunkKey(chunkIndex),
-        fetchMs: Math.round(fetchMs),
-        decodeMs: Math.round(decodeMs),
-        renderMs: Math.round(performance.now() - t0),
-      })
-    }
-
     return info
   }
 
@@ -637,49 +636,12 @@ export class ZarrOssStore {
     return Object.assign(decoded, { fetchMs, decodeMs })
   }
 
-  /**
-   * Background prefetch of the current chunk's neighbors.
-   * Failures only emit a warning and never block the main request.
-   */
-  prefetchNeighborChunks(mzIndex: number): void {
-    if (!this.enablePrefetch || !this.ionMeta) return
-    const cs = this.ionMeta.chunk_grid.configuration.chunk_shape[0]!
-    const totalMz = this.ionMeta.shape[0]!
-    const totalChunks = Math.ceil(totalMz / cs)
-    const center = Math.floor(mzIndex / cs)
-    const radius = Math.max(1, Math.floor((this.cache.maxSize - 1) / 2))
-    const targets: number[] = []
-    for (let off = -radius; off <= radius; off++) {
-      const c = center + off
-      if (c < 0 || c >= totalChunks) continue
-      if (c === center) continue
-      if (this.cache.has(c) || this.inFlight.has(c)) continue
-      targets.push(c)
-    }
-    for (const c of targets) {
-      const p = this.fetchAndDecodeChunk(c)
-      this.inFlight.set(c, { promise: p, cached: false })
-      void p.then((chunk) => {
-          this.inFlight.delete(c)
-          this.cache.set(c, chunk)
-        })
-        .catch((err) => {
-          this.inFlight.delete(c)
-          console.warn(
-            `[ZarrOssStore] prefetch failed for chunk ${c}:`,
-            (err as OssError).message ?? err,
-          )
-        })
-    }
-  }
-
   getCacheInfo(): CacheInfo {
     return {
       maxSize: this.cache.maxSize,
       size: this.cache.size,
       keys: this.cache.keys(),
       currentChunk: this.currentChunk,
-      prefetchEnabled: this.enablePrefetch,
     }
   }
 

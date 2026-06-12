@@ -26,6 +26,31 @@ export function buildProcessPayload(options: BuildProcessPayloadOptions) {
     const backendKey = BACKEND_ALGORITHM_KEYS[group.key]
     if (!backendKey) continue
 
+    if (group.key === 'align') {
+      // peak_align has no "method" field in backend spec
+      const method = group.methods.find((item: any) => item.id === methodId)
+      const params: Record<string, any> = {}
+
+      if (method?.params) {
+        for (const param of method.params) {
+          const value = options.methodParams[buildParamKey(group.key, methodId, param.key)]
+          if (
+            (param.type === 'text' || param.type === 'float') &&
+            (value === '' || value === undefined || value === 'none')
+          ) {
+            continue
+          }
+          params[param.key] = value ?? param.default
+        }
+      }
+
+      params.units = 'ppm'
+      params.binratio = 2
+
+      algorithms[backendKey] = params
+      continue
+    }
+
     if (group.key === 'baseline') {
       algorithms[backendKey] = { method: methodId }
       continue
@@ -49,7 +74,7 @@ export function buildProcessPayload(options: BuildProcessPayloadOptions) {
       }
     }
 
-    if (backendKey === 'peak_pick' || backendKey === 'peak_align') {
+    if (backendKey === 'peak_pick') {
       params.backend = 'python'
     }
 

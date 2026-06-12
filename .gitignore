@@ -17,6 +17,7 @@ coverage
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+.claude/
 .idea
 *.suo
 *.ntvs*
@@ -46,3 +47,5 @@ playwright-report/
 *.njsproj
 *.sln
 *.sw?
+public/ion_image_output.zarr/
+public/umap_kmeans/
