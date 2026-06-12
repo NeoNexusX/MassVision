@@ -39,6 +39,7 @@
     "tailwindcss": "^4.1.18",
     "vue": "^3.5.25",
     "vue-router": "^4.6.3",
+    "vue3-calendar-heatmap": "^2.0.5",
     "zarrita": "^0.7.3"
   },
   "devDependencies": {

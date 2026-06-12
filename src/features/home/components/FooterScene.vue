@@ -27,11 +27,11 @@ const poweredBy = [
 
 <template>
   <BaseScene as="footer" align="center" class="footer-scene bg-base-300">
-    <div v-reveal class="flex w-full flex-none flex-col">
-      <p class=" pl-[0.4em] text-[clamp(2.5rem,10vw,8rem)] font-semibold uppercase tracking-[0.4em] text-secondary text-center">
+    <div v-reveal class="flex w-full flex-none flex-col text-[clamp(3rem,12vw,9rem)]">
+      <p class="pl-[0.4em] font-['Outfit',sans-serif] font-semibold uppercase tracking-[0.4em] text-secondary text-center">
       The Team
       </p>
-      <p class="text-[clamp(1rem,1.8vw,1.5rem)] text-center [word-spacing:0.1em]">
+      <p class="text-[0.25em] text-center [word-spacing:0.1em]">
         Built by people who love science and engineering.
       </p>
       <div class="flex min-h-0 flex-none items-center justify-center">
@@ -64,6 +64,10 @@ const poweredBy = [
 
 <style scoped>
 .footer-scene {
-  background-image: linear-gradient(to bottom, transparent, rgba(99, 102, 241, 0.05));
+  background-image: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in oklch, var(--color-primary) 5%, transparent)
+  );
 }
 </style>

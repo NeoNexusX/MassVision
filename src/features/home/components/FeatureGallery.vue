@@ -67,7 +67,7 @@ const activeItem = computed(() => props.items[active.value] ?? { word: '', image
       <Transition name="card-fade" mode="out-in">
         <div :key="active">
           <h3
-            class="break-words bg-gradient-to-br from-[#8ca9f6] to-[#1F52F5] bg-clip-text text-[3em] font-black leading-[1.1] tracking-[-0.02em] text-transparent [-webkit-text-fill-color:transparent]"
+            class="brand-text break-words bg-gradient-to-br from-primary to-[var(--brand-accent)] text-[3em] font-black leading-[1.1] tracking-[-0.02em]"
           >{{ activeItem.word }}</h3>
           <p v-if="activeItem.title" class="mt-4 text-[1.5em] font-semibold text-base-content">{{ activeItem.title }}</p>
           <p v-if="activeItem.desc" class="mt-4 text-justify text-[1.3em] leading-[1.5] text-base-content/60">{{ activeItem.desc }}</p>

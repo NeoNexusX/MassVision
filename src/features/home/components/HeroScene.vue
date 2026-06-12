@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import BaseScene from './BaseScene.vue'
-import ScenePlaceholder from './ScenePlaceholder.vue'
 import HoverGallery from '@/shared/components/HoverGallery.vue'
 import { APP_NAME } from '@/shared/config/app'
 import { getConfig } from '@/shared/config/runtimeConfig'
@@ -18,50 +17,53 @@ const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
 </script>
 
 <template>
-  <BaseScene id="hero" class="bg-base-100 text-[clamp(2.5rem,12vw,15rem)]">
-
-    <!-- #标题 -->
-    <span class="leading-none text-[1em]">
-      {{ namePre }}<span class="bg-gradient-to-bl 
-                                to-[#1F52F5] 
-                                from-[#8ca9f6] 
-                                bg-clip-text 
-                                text-transparent 
-                                font-['Outfit',sans-serif] text-[1.2em]"
-        style="font-synthesis: style">{{ nameX }}</span>{{ namePost }}
-    </span>
-    <!-- 滚动 -->
-    <span
-      class="text-rotate mt-[0.5em] text-[0.7em] leading-none"
-      :style="{ '--duration': rotateDuration }"
-    >
-      <span class="justify-items-center 
-                    font-bold 
-                    italic 
-                    font-['Outfit',sans-serif]" 
-                    style="font-synthesis: style">
-        <span v-for="tagline in HERO_TAGLINES" :key="tagline" class="px-2">{{ tagline }}</span>
+  <BaseScene
+    id="hero"
+    class="h-[var(--scene-height)] max-h-[var(--scene-height)] overflow-hidden bg-base-100 text-[clamp(2.5rem,min(12vw,9.5vh),8rem)]"
+  >
+    <!-- 主内容：my-auto 在单屏 Hero 内垂直居中，矮屏时通过 Hero 基准字号整体收敛。 -->
+    <div class="my-auto flex flex-col items-center pt-[0.35em]">
+      <!-- #标题 -->
+      <span class="leading-none text-[1em]">
+        {{ namePre
+        }}<span
+          class="brand-text bg-gradient-to-bl from-[var(--brand-accent)] to-primary font-['Outfit',sans-serif] text-[1.2em]"
+          style="font-synthesis: style"
+          >{{ nameX }}</span
+        >{{ namePost }}
       </span>
-    </span>
+      <!-- 滚动 -->
+      <span
+        class="text-rotate mt-[0.5em] text-[0.7em] leading-none"
+        :style="{ '--duration': rotateDuration }"
+      >
+        <span
+          class="justify-items-center font-bold italic font-['Outfit',sans-serif]"
+          style="font-synthesis: style"
+        >
+          <span v-for="tagline in HERO_TAGLINES" :key="tagline" class="px-2">{{ tagline }}</span>
+        </span>
+      </span>
 
-    <!-- 预览图 -->
-    <HoverGallery :images="HERO_GALLERY" class="mt-[0.6em]" />
+      <!-- 预览图 -->
+      <HoverGallery :images="HERO_GALLERY" class="mt-[0.6em]" />
 
-    <!-- 加入按钮：渐变取自标题 X，字体与标语一致；尺寸全用 em，跟随场景字号缩放 -->
-    <RouterLink
-      to="/register"
-      class="btn mt-[2em] h-[2.5em] gap-[0.4em] rounded-full border-none bg-gradient-to-bl from-[#8ca9f6] to-[#1F52F5] px-[1.6em] text-[max(0.22em,1rem)] font-['Outfit',sans-serif] font-bold text-white shadow-lg shadow-[#1F52F5]/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#1F52F5]/40"
-    >
-      Join to start
-      <SvgIcon type="chevron_right" class="h-[1.1em] w-[1.1em]" />
-    </RouterLink>
+      <!-- 加入按钮：渐变取自标题 X，字体与标语一致；尺寸全用 em，跟随场景字号缩放 -->
+      <RouterLink
+        to="/register"
+        class="btn mt-[3em] h-[2.5em] gap-[0.4em] rounded-full border-none bg-gradient-to-bl from-[var(--brand-accent)] to-primary px-[1.6em] text-[max(0.22em,1rem)] font-['Outfit',sans-serif] font-bold text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/40"
+      >
+        Join to start
+        <SvgIcon type="chevron_right" class="h-[1.1em] w-[1.1em]" />
+      </RouterLink>
+    </div>
 
-    <!-- 向下滚动提示 -->
+    <!-- 向下滚动提示：脱离文档流，避免继承 Hero 大字号行高后撑高场景 -->
     <div
-      class="scroll-cue pointer-events-none absolute bottom-10 left-1/2 -translate-x-1/2 text-base-content/30"
+      class="scroll-cue pointer-events-none absolute inset-x-0 bottom-1 flex justify-center leading-none text-primary"
       aria-hidden="true"
     >
-      <SvgIcon type="chevron_down" class="h-6 w-6" />
+      <SvgIcon type="chevron_down" class="h-[0.4em] w-[0.4em]" />
     </div>
   </BaseScene>
 </template>
@@ -73,11 +75,11 @@ const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
 @keyframes scroll-bounce {
   0%,
   100% {
-    transform: translate(-50%, 0);
-    opacity: 0.4;
+    transform: translateY(0);
+    opacity: 0.2;
   }
   50% {
-    transform: translate(-50%, 8px);
+    transform: translateY(-4px);
     opacity: 0.9;
   }
 }

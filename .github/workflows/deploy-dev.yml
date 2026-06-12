@@ -145,7 +145,7 @@ jobs:
               exit 1
             fi
 
-            # 部署成功后仅清理本仓库的旧 tag 镜像（含历史 latest），不影响服务器上其他镜像
+            # 部署成功后仅清理本仓库的旧 tag 镜像（含历史 latest)不影响服务器上其他镜像
             docker images "$MIRROR_IMAGE_NAME" --format '{{.Tag}}' \
               | grep -v -e "^${IMAGE_TAG}$" -e '^<none>$' \
               | xargs -r -I{} docker rmi "$MIRROR_IMAGE_NAME:{}" 2>/dev/null || true

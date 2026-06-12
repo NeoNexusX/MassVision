@@ -12,6 +12,8 @@ export const STORAGE_KEYS = {
   userDetails: 'user_details',
   /** 主题（'light' | 'dark'） */
   theme: 'theme',
+  /** GitHub 提交热力图缓存「前缀」；实际键为 前缀 + `owner/repo|branch|days`（见 features/home/api/githubApi.ts） */
+  githubCommitHeatmap: 'gh-commit-heatmap:',
 } as const
 
 /**
