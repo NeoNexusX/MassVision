@@ -12,6 +12,7 @@ import { useDisplayRange } from '@/features/workspace/results/composables/useDis
 import { useOverlayData } from '@/features/workspace/results/composables/useOverlayData'
 import { useResultROI } from '@/features/workspace/results/composables/useResultROI'
 import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
+import { ZARR_STORE } from '@/shared/config/defaults'
 
 const route = useRoute()
 const runId = computed(() => String(route.params.id))
@@ -28,7 +29,6 @@ const {
   ionMatrix,
   ionCols,
   ionRows,
-  totalPeaks,
   onSpectrumClickByIndex,
 } = zarr
 
@@ -79,7 +79,6 @@ const { overlayMode, overlayData, overlayLoading, overlayAlpha, toggleOverlay } 
 )
 
 const spectrumStats = computed(() => ({
-  totalPeaks: totalPeaks.value,
   intensityRange: getIntensityRange(),
 }))
 
@@ -89,7 +88,7 @@ const displayInfo = computed(() => ({
 }))
 
 const resetControls = () => {
-  mzTolerance.value = 0.01
+  mzTolerance.value = ZARR_STORE.defaultMzTolerance
   colormap.value = 'inferno'
   intensityScale.value = 'linear'
   resetRange()
@@ -116,6 +115,7 @@ const onDisplayMaxChange = (value: number) => {
   <ResultVisualizationLayout>
     <template #top-bar>
       <ResultHeader
+        class="pl-4"
         :dataset-name="datasetName"
         :status="status"
       />
@@ -158,8 +158,7 @@ const onDisplayMaxChange = (value: number) => {
         :selected-mz="selectedMz"
         :selected-mz-index="selectedMzIndex"
         :mz-tolerance="mzTolerance"
-        :spectrum-stats="spectrumStats"
-        :run-id="runId"
+        :intensity-range="spectrumStats.intensityRange"
         @select-mz-index="onSpectrumClickByIndex"
       />
     </template>
