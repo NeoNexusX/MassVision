@@ -110,6 +110,24 @@ export interface TimelineItem {
   features: string[]
 }
 
+/** GitHub 提交（commit）热力图配置（config.json 的 githubHeatmap 块） */
+export interface GithubHeatmapConfig {
+  /** GitHub 仓库拥有者，如 "BioNet-XMU" */
+  owner: string
+  /** GitHub 仓库名，如 "MassVision" */
+  repo: string
+  /** 统计哪个分支的提交，默认 "dev" */
+  branch?: string
+  /** 统计最近多少天，默认 365 */
+  days?: number
+  /** 热力图标题；缺省时显示 "{owner}/{repo} Commit Activity" */
+  title?: string
+  /** 点击标题跳转的仓库页面地址；缺省时标题不可点击 */
+  repoUrl?: string
+  /** 热力图朝向：'auto'（大屏纵向/小屏横向，默认）| 'horizontal' | 'vertical' */
+  orientation?: 'auto' | 'horizontal' | 'vertical'
+}
+
 /** config.json 的结构 */
 export interface AppConfig {
   /** 应用名称 */
@@ -166,6 +184,8 @@ export interface AppConfig {
     /** 学术招募页面链接 */
     recruitment?: string
   }
+  /** GitHub 提交热力图（StatsScene 展示用） */
+  githubHeatmap?: GithubHeatmapConfig
   /** 表单下拉选项表 */
   options: OptionLists
 }

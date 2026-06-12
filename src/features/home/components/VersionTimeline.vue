@@ -62,7 +62,7 @@ defineProps<{
    内部字体 / 图标 / 徽章 / 间距全部用 em 从此派生，整块等比缩放 */
 .timeline {
   height: 100%;
-  font-size: clamp(0.7rem, 1.05vw, 2rem);
+  font-size: clamp(0.8rem, 1.1vw, 3rem);
 }
 
 .tl-date {
@@ -84,8 +84,6 @@ defineProps<{
 .timeline-box {
   font-size: 1em;
   line-height: 1.6;
-  /* 长单词允许断行，避免超出窄列时朝右溢出（右列会冲出屏幕边） */
-  overflow-wrap: anywhere;
 }
 .tl-features {
   list-style: disc;
@@ -93,6 +91,7 @@ defineProps<{
 }
 .tl-features li {
   color: oklch(var(--color-base-content) / 0.7);
+  font-weight: 600;
 }
 
 /* 节点图标：随基础字号缩放（替代写死的 h-5 w-5） */

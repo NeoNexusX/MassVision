@@ -11,7 +11,7 @@ defineProps<{
 </script>
 
 <template>
-  <figure v-if="images.length" class="hover-gallery max-w-[min(60vw,1080px)]">
+  <figure v-if="images.length" class="hover-gallery max-w-[min(60vw,600px)]">
     <img v-for="src in images" :key="src" :src="src" alt="" loading="lazy" />
   </figure>
 </template>

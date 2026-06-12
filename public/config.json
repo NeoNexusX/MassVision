@@ -14,39 +14,39 @@
       {
         "word": "OPEN",
         "title": "Open & Interoperable",
-        "desc": "Built on the open imzML standard — import, share, and publish spatial datasets freely, with no proprietary lock-in.",
-        "image": ""
+        "desc": "Designed with an open-source spirit from the ground up, we break down data silos, enable open knowledge sharing, and collectively advance the spatial omics community.",
+        "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mz726.539885.png"
       },
       {
         "word": "SMART",
         "title": "SMART Analysis",
-        "desc": "Built-in clustering, dimensionality reduction, and AI-assisted insights turn raw spectra into spatial answers.",
-        "image": ""
+        "desc": "Powered by cloud-native infrastructure and AI, every analysis becomes faster, smarter, and more accessible to researchers at any scale.",
+        "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/kmeans_image2.png"
       },
       {
         "word": "FAST",
         "title": "Fast at Scale",
-        "desc": "Chunked uploads and parallel processing move gigabyte-scale imaging data in minutes, keeping massive experiments responsive.",
-        "image": ""
+        "desc": "Backed by a homegrown computing framework and cloud-native infrastructure, SpatialXomics delivers high-performance computation that scales effortlessly with your data.",
+        "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/umap_image2.png"
       }
     ]
   },
 
   "timeline": [
     {
-      "date": "26 06",
-      "version": "1.0",
-      "features": ["imzML standard format support"]
+      "date": "May 26",
+      "version": "0.3",
+      "features": ["Home page design completed"]
     },
     {
-      "date": "09 24",
-      "version": "1.5",
-      "features": ["Chunked upload & parallel processing"]
+      "date": "April 26",
+      "version": "0.2",
+      "features": ["Dataset part basically completed"]
     },
     {
-      "date": "03 25",
-      "version": "2.0",
-      "features": ["Clustering & dimensionality reduction"]
+      "date": "March 26",
+      "version": "0.1",
+      "features": ["Core framework completed"]
     }
   ],
 
@@ -61,6 +61,15 @@
   "carousel": {
     "interval": 3000,
     "endPause": 5000
+  },
+  "githubHeatmap": {
+    "owner": "NeoNexusX",
+    "repo": "MassVision",
+    "branch": "dev",
+    "days": 365,
+    "title": "SpatialXomics · Activity",
+    "repoUrl": "https://github.com/NeoNexusX/MassFlow",
+    "orientation": "auto"
   },
   "contact": {
     "website": "https://bionet.xmu.edu.cn/",
@@ -125,6 +134,14 @@
       "school": "Xiamen University",
       "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780299787497.jpg",
       "homepage": "https://b23.tv/ih7QjCW"
+    },
+    {
+      "name": "🐱Zai zai🐱",
+      "role": "Trouble Maker",
+      "degree": "Cat B.Sc.",
+      "school": "Cat University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1781240570533.jpg",
+      "homepage": "https://neonexusx.github.io/"
     }
   ],
   "options": {

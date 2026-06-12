@@ -15,6 +15,20 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* 品牌渐变取色：主色 → 主色提亮。标题文字 / 强调按钮统一用此 token，
+   取代散落各处的 color-mix(... var(--color-primary) ...%, white) 字面量。 */
+:root {
+  --brand-accent: color-mix(in oklch, var(--color-primary) 45%, white);
+}
+
+/* 渐变文字：配合 bg-gradient-* + from-/to- 把渐变裁切进文字（省去每处重复的 clip/transparent 样板） */
+.brand-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
 /* 全局统一的流体输入框排版 */
 .fluid-input {
   font-size: clamp(0.9rem, 0.9rem + 0.4vw, 1.2rem);
