@@ -141,13 +141,13 @@ const { scheduleRender, observeContainer } = useCanvasRenderer({
 function onContainerWheel(e: WheelEvent) {
   if (props.drawMode) return
   onWheel(e, containerRef.value)
-  scheduleRender()
+  // Zoom/pan is handled by CSS transform — canvas content stays the same.
 }
 
 function onContainerPanStart(e: MouseEvent) {
   if (props.drawMode) return
   onPanStart(e, containerRef.value)
-  scheduleRender()
+  // Zoom/pan is handled by CSS transform — canvas content stays the same.
 }
 
 // --- Hover ---
@@ -161,19 +161,20 @@ function onHover(e: MouseEvent) {
   if (!data || !data.length || !cols || !rows) return
   const W = rect.width,
     H = rect.height
-  const scale = Math.min(W / cols, H / rows)
-  const cellW = Math.max(1, Math.floor(scale))
-  const cellH = Math.max(1, Math.floor(scale))
-  const drawW = cols * cellW
-  const drawH = rows * cellH
+  const pad = 0.04
+  const availW = W * (1 - pad * 2)
+  const availH = H * (1 - pad * 2)
+  const scaleVal = Math.min(availW / cols, availH / rows)
+  const drawW = Math.floor(cols * scaleVal)
+  const drawH = Math.floor(rows * scaleVal)
   const ox = Math.floor((W - drawW) / 2)
   const oy = Math.floor((H - drawH) / 2)
   const mx = e.clientX - rect.left
   const my = e.clientY - rect.top
   const cx = (mx - panX.value) / zoom.value
   const cy = (my - panY.value) / zoom.value
-  const col = Math.floor((cx - ox) / cellW)
-  const row = Math.floor((cy - oy) / cellH)
+  const col = Math.floor((cx - ox) * cols / drawW)
+  const row = Math.floor((cy - oy) * rows / drawH)
   if (row >= 0 && row < rows && col >= 0 && col < cols) {
     hoverPixel.value = { x: mx, y: my, row, col, intensity: data[row * cols + col]! }
   } else {
