@@ -41,7 +41,7 @@ export function useResultMeta(runId: Ref<string>) {
 
       if (process) {
         datasetName.value = extractBasename(process.filename || '')
-        status.value = process.status === 'OK' ? 'completed' : (process.status || '')
+        status.value = (process.status || '').toLowerCase()
 
         if (process.params_json) {
           methods.value = parseAlgorithms(process.params_json)
