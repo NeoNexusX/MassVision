@@ -1,22 +1,22 @@
 # ============================================================
-# Workflow: Dev 分支 — 自动构建 Docker 镜像 → 部署到 dev 服务器
+# Workflow: Main 分支 — 自动构建 Docker 镜像 → 部署到 生产（main）服务器
 #
-# 触发条件：代码推送到 dev 分支（含 test → dev 的自动合并）
+# 触发条件：代码推送到 main 分支
 #
 # 流程：
 #   1. 构建检查（type-check + lint + unit test）
 #   2. 生产构建（vite build）
-#   3. Docker 镜像构建 + 推送
-#   4. SSH 到 dev 服务器 → 经 docker.1ms.run 代理拉取最新镜像 → 重启容器
-#      → 健康检查通过后，仅清理被替换下来的同名旧镜像
+#   3. Docker 镜像构建 + 推送（仅打 latest tag）
+#   4. SSH 到 main 服务器 → 直接从 docker.io 拉取最新镜像 → 重启容器
+#      → 健康检查通过后，清理悬空（<none>）镜像
 #
 # 需要的 GitHub Secrets（Settings → Secrets and variables → Actions → Secrets 标签页）：
-#   DEV_SERVER_HOST      — 开发服务器 IP
-#   DEV_SERVER_USER      — SSH 用户名（如 admin）
-#   DEV_SERVER_SSH_KEY   — SSH 私钥（用于免密登录）
-#   DOCKER_USERNAME      — DockerHub 用户名（如 neonexusx）
-#   DOCKER_PASSWORD      — DockerHub Access Token（Hub → Settings → Security → New Access Token）
-#   IMAGE_REPO           — DockerHub 仓库名（如 massvision）
+#   MAIN_SERVER_HOST     — 生产服务器 IP
+#   MAIN_SERVER_USER     — SSH 用户名
+#   MAIN_SERVER_SSH_KEY  — SSH 私钥（用于免密登录）
+#   DOCKER_USERNAME      — DockerHub 用户名（与 dev 复用同一账号）
+#   DOCKER_PASSWORD      — DockerHub Access Token（与 dev 复用同一 Token）
+#   IMAGE_REPO           — DockerHub 仓库名（与 dev 复用同一仓库）
 #                          → 最终镜像名为 docker.io/$DOCKER_USERNAME/$IMAGE_REPO
 #
 # 端口配置：
@@ -24,18 +24,16 @@
 #                          容器内 nginx 始终监听 80，外部端口由 -p 映射决定
 # ============================================================
 
-name: Build & Deploy to Dev
+name: Build & Deploy to Main
 
 on:
   push:
-    branches: [dev]
+    branches: [main]
 
 env:
   IMAGE_NAME: docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_REPO }}
-  # 大陆服务器无法直连 Docker Hub，部署侧通过 1ms 镜像代理拉取同一份镜像
-  MIRROR_IMAGE_NAME: docker.1ms.run/${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_REPO }}
-  # 每次部署使用 git commit SHA 作为镜像 tag，确保可追溯
-  IMAGE_TAG: ${{ github.sha }}
+  # main 服务器可直连 Docker Hub，无需 1ms 镜像代理，每次部署直接拉取 latest
+  IMAGE_TAG: latest
   # 前端容器对外暴露的端口（可在此按需修改，默认 8080）
   FRONTEND_PORT: '8080'
   # 后端服务地址与端口（传递给 nginx 反向代理）
@@ -68,16 +66,13 @@ jobs:
           docker build \
             -f docker/Dockerfile \
             -t $IMAGE_NAME:$IMAGE_TAG \
-            -t $IMAGE_NAME:latest \
             .
 
       # 推送到镜像仓库
       - name: Push Docker image
-        run: |
-          docker push $IMAGE_NAME:$IMAGE_TAG
-          docker push $IMAGE_NAME:latest
+        run: docker push $IMAGE_NAME:$IMAGE_TAG
 
-  # ---- Job 2: 部署到 dev 服务器 ----
+  # ---- Job 2: 部署到 main 服务器 ----
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -85,21 +80,19 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.DEV_SERVER_HOST }}
-          username: ${{ secrets.DEV_SERVER_USER }}
-          key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+          host: ${{ secrets.MAIN_SERVER_HOST }}
+          username: ${{ secrets.MAIN_SERVER_USER }}
+          key: ${{ secrets.MAIN_SERVER_SSH_KEY }}
           # env: 块里的变量只存在于 runner，必须用 envs 显式透传到远程脚本
-          envs: MIRROR_IMAGE_NAME,IMAGE_TAG,FRONTEND_PORT,BACKEND_HOST,BACKEND_PORT
+          envs: IMAGE_NAME,IMAGE_TAG,FRONTEND_PORT,BACKEND_HOST,BACKEND_PORT
           script: |
             # 任一命令失败立即终止，避免拉取失败后仍执行后续删除/清理
             set -e
 
-            # 公开仓库，经 1ms 代理匿名拉取（与 docker.io 上推送的是同一份）
-            # 按 commit SHA tag 拉取而非 latest，避免代理缓存返回旧的 latest manifest
-            # 代理可能限流（429），重试 3 次仍失败则中止，旧容器保持运行
+            # 直接从 docker.io 拉取最新镜像，失败重试 3 次
             PULLED=0
             for i in 1 2 3; do
-              if docker pull $MIRROR_IMAGE_NAME:$IMAGE_TAG; then
+              if docker pull $IMAGE_NAME:$IMAGE_TAG; then
                 PULLED=1
                 break
               fi
@@ -126,7 +119,7 @@ jobs:
               -p ${FRONTEND_PORT}:80 \
               -e BACKEND_HOST=${BACKEND_HOST} \
               -e BACKEND_PORT=${BACKEND_PORT} \
-              $MIRROR_IMAGE_NAME:$IMAGE_TAG
+              $IMAGE_NAME:$IMAGE_TAG
 
             # 健康检查：容器保持 running 且 nginx 能响应才算部署成功
             HEALTHY=0
@@ -145,7 +138,5 @@ jobs:
               exit 1
             fi
 
-            # 部署成功后仅清理本仓库的旧 tag 镜像（含历史 latest)不影响服务器上其他镜像
-            docker images "$MIRROR_IMAGE_NAME" --format '{{.Tag}}' \
-              | grep -v -e "^${IMAGE_TAG}$" -e '^<none>$' \
-              | xargs -r -I{} docker rmi "$MIRROR_IMAGE_NAME:{}" 2>/dev/null || true
+            # 部署成功后清理悬空镜像（被新 latest 替换下来的旧镜像层）
+            docker image prune -f
