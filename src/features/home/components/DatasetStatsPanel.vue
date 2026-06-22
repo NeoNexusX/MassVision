@@ -23,7 +23,7 @@ import {
 const cat = useDatasetCategoryStats()
 const ion = useDatasetIonSourceStats()
 const donutSections = [
-  { title: 'Dataset Categories', total: cat.total, loading: cat.loading, error: cat.error, isEmpty: cat.isEmpty, items: cat.items, reload: cat.reload },
+  { title: 'Organism Parts', total: cat.total, loading: cat.loading, error: cat.error, isEmpty: cat.isEmpty, items: cat.items, reload: cat.reload },
   { title: 'Ion Source Types', total: ion.total, loading: ion.loading, error: ion.error, isEmpty: ion.isEmpty, items: ion.items, reload: ion.reload },
 ]
 
@@ -37,7 +37,7 @@ function fmt(n: number | undefined): string {
 // stat 卡片三项结构一致，统一用 v-for 渲染
 const statItems = computed(() => [
   { icon: 'mdi:account-group-outline', color: 'text-primary', title: 'Total Users', value: ov.value?.total_users },
-  { icon: 'mdi:database-outline', color: 'text-secondary', title: 'Total Datasets', value: ov.value?.total_datasets },
+  { icon: 'mdi:database-outline', color: 'text-secondary', title: 'Total Datasets', value: ov.value?.total_files },
   { icon: 'mdi:tray-arrow-down', color: 'text-accent', title: 'Total Downloads', value: ov.value?.total_downloads },
 ])
 </script>

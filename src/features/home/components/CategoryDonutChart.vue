@@ -87,7 +87,7 @@ function render() {
             alignTo: 'edge', // 文字对齐到容器边，离大环最远
             edgeDistance: '4%', // 离容器边留 4%
             minMargin: labelMinMargin, // 相邻标签最小竖向间距，防重叠
-            formatter: '{b}\n{c}',
+            formatter: '{b}  {c}',
             color: labelColor,
             fontSize,
             lineHeight,
