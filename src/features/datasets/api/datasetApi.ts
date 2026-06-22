@@ -69,9 +69,26 @@ export async function createProcess(payload: {
   return res.data
 }
 
-// GET /processes/mine — List my processes
-export async function listMyProcesses() {
-  const res = await auth_api.get('/processes/mine')
+// GET /processes/mine?page=&size= — List my processes (paginated)
+// 后端返回 { data: [...], meta: { current_page, total_pages, total_records } }
+export async function listMyProcesses(page = 1, size = 10) {
+  const res = await auth_api.get('/processes/mine', { params: { page, size } })
+  const body = res.data
+  // 兼容纯数组返回（无分页信息时）
+  if (Array.isArray(body)) return { data: body, meta: { current_page: 1, total_pages: 1, total_records: body.length } }
+  if (body && Array.isArray(body.data)) return body
+  return { data: [], meta: { current_page: 1, total_pages: 1, total_records: 0 } }
+}
+
+// GET /stats/processing — Processing statistics for current user
+export interface ProcessingStats {
+  processing: number
+  completed: number
+  failed: number
+}
+
+export async function getProcessingStats(): Promise<ProcessingStats> {
+  const res = await auth_api.get('/stats/processing')
   return res.data
 }
 
