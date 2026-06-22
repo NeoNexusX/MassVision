@@ -7,9 +7,6 @@
       v-if="metaInfo"
       class="hidden sm:flex items-center gap-3 text-base text-base-content/60 ml-2"
     >
-      <span v-if="metaInfo.analyzer"
-        >Analyzer <strong class="text-base-content">{{ metaInfo.analyzer }}</strong></span
-      >
       <span v-if="metaInfo.ionSource"
         >Source <strong class="text-base-content">{{ metaInfo.ionSource }}</strong></span
       >
@@ -18,7 +15,7 @@
       >
     </div>
     <div class="ml-auto flex flex-wrap items-center gap-2">
-      <div class="bg-base-200 rounded-lg px-3 py-1.5 text-base">
+      <div class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-base h-8 flex items-center">
         <span class="text-base-content/50">m/z&nbsp;</span>
         <span class="font-mono font-semibold">{{ selectedMz.toFixed(4) }}</span>
       </div>
@@ -62,7 +59,7 @@ defineProps<{
   mzTolerance: number
   colormap: string
   intensityScale: string
-  metaInfo?: { analyzer?: string; ionSource?: string; pixelSize?: string } | null
+  metaInfo?: { ionSource?: string; pixelSize?: string } | null
 }>()
 
 defineEmits<{

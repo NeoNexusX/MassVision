@@ -16,6 +16,7 @@ const props = defineProps<{
   selectedMzIndex: number
   mzTolerance: number
   intensityRange?: string
+  spectrumMode?: string
 }>()
 
 const emit = defineEmits<{
@@ -48,6 +49,7 @@ async function onRetrySpectrum() {
       :loading="spectrumLoading"
       :error="spectrumError"
       :n-mz="nMz"
+      :spectrum-mode="spectrumMode"
       @select-mz="onSelectMz"
       @retry="onRetrySpectrum"
     />

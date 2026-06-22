@@ -12,9 +12,11 @@
           type="text"
           inputmode="decimal"
           class="input input-bordered w-full"
+          :class="{ 'input-error': percentageError }"
           placeholder="e.g. 50"
           @keyup.enter="addSolvent"
         />
+        <span v-if="percentageError" class="text-xs text-error mt-0.5">{{ percentageError }}</span>
       </div>
 
       <!-- Solvent select -->
@@ -102,6 +104,13 @@ const percentage = computed(() => {
   return val
 })
 
+const percentageError = computed(() => {
+  if (!percentageStr.value) return ''
+  const val = percentage.value
+  if (val === null || val < 1 || val > 100) return 'Percentage must be a number between 1 and 100'
+  return ''
+})
+
 // Parse existing solvent string into entries
 const solventEntries = computed(() => {
   if (!props.modelValue) return []
@@ -110,15 +119,15 @@ const solventEntries = computed(() => {
 
 // Can add check
 const canAdd = computed(() => {
-  return percentage.value !== null && percentage.value > 0 && selectedSolvent.value.trim() !== ''
+  return percentage.value !== null && percentage.value >= 1 && percentage.value <= 100 && selectedSolvent.value.trim() !== ''
 })
 
 // Add solvent
 function addSolvent() {
   error.value = ''
 
-  if (percentage.value === null || percentage.value <= 0) {
-    error.value = 'Please enter a valid percentage (> 0)'
+  if (percentage.value === null || percentage.value < 1 || percentage.value > 100) {
+    error.value = 'Please enter a valid percentage (1-100)'
     return
   }
 

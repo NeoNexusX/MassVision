@@ -207,4 +207,6 @@ watch(
   () => scheduleRender(),
   { deep: true },
 )
+
+defineExpose({ canvasContainer: containerRef })
 </script>

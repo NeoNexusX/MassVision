@@ -29,16 +29,6 @@ const emit = defineEmits<{
     <div class="text-base font-semibold text-base-content/50 mb-2">Statistical Visualization</div>
     <div class="flex gap-2">
       <button
-        class="btn btn-sm flex-1 text-base bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-200 dark:hover:bg-amber-900 rounded-lg"
-      >
-        TIC
-      </button>
-      <button
-        class="btn btn-sm flex-1 text-base bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 hover:bg-purple-200 dark:hover:bg-purple-900 rounded-lg"
-      >
-        PCA
-      </button>
-      <button
         class="btn btn-sm flex-1 text-base rounded-lg transition-colors"
         :class="
           overlayMode === 'umap'

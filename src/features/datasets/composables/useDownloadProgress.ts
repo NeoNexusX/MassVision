@@ -1,6 +1,7 @@
 import { reactive } from 'vue'
 import { ossDownloadAndSave } from '@/features/datasets/utils/downloadHelper'
 import { useToast } from '@/shared/composables/useToast'
+import axios from 'axios'
 
 const packingIds = reactive(new Set<string>())
 
@@ -22,7 +23,10 @@ export function useDownloadProgress() {
       removeToast(toastId)
     } catch (error) {
       removeToast(toastId)
-      showToast('Failed to download file', 'error')
+      const message = axios.isAxiosError(error)
+        ? (error.response?.data?.message || error.message)
+        : 'Failed to download file'
+      showToast(message, 'error')
       console.error('Download error:', error)
     } finally {
       packingIds.delete(id)

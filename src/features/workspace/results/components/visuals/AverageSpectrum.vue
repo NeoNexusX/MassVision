@@ -56,6 +56,8 @@ const props = defineProps<{
   loading: boolean
   error: string | null
   nMz: number
+  /** 'centroid' → bar chart (discrete peaks), 'profile' → line chart (continuous) */
+  spectrumMode?: string
 }>()
 
 const emit = defineEmits<{
@@ -218,12 +220,24 @@ function renderChart() {
         },
       ],
       series: [
-        {
-          id: 'average-spectrum',
-          type: 'bar', data: props.chartData, barWidth: 3, barGap: '-100%',
-          itemStyle: { color: '#374151' },
-          large: true,
-        },
+        props.spectrumMode === 'profile'
+          ? {
+              id: 'average-spectrum',
+              type: 'line',
+              data: props.chartData,
+              showSymbol: false,
+              lineStyle: { color: '#374151', width: 2 },
+              areaStyle: { color: 'rgba(55, 65, 81, 0.06)' },
+            }
+          : {
+              id: 'average-spectrum',
+              type: 'bar',
+              data: props.chartData,
+              barWidth: 3,
+              barGap: '-100%',
+              itemStyle: { color: '#374151' },
+              large: true,
+            },
       ],
       animation: false,
     },
@@ -332,6 +346,16 @@ watch(
   () => {
     if (!chartInstance) return
     updateSelector()
+  },
+)
+
+// Re-render chart when spectrum mode changes (centroid ↔ profile).
+watch(
+  () => props.spectrumMode,
+  () => {
+    if (props.chartData.length > 0 && !isUnmounted && !props.loading) {
+      renderChart()
+    }
   },
 )
 </script>

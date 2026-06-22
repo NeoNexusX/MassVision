@@ -17,7 +17,7 @@ import { ZARR_STORE } from '@/shared/config/defaults'
 const route = useRoute()
 const runId = computed(() => String(route.params.id))
 
-const { datasetName, analyzer, ionSource, pixelSize, polarity, status, methods } = useResultMeta(runId)
+const { datasetName, analyzer, ionSource, pixelSize, polarity, spectrumMode, storageMode, status, methods } = useResultMeta(runId)
 const colormap = ref('inferno')
 const intensityScale = ref('linear')
 
@@ -85,6 +85,9 @@ const spectrumStats = computed(() => ({
 const displayInfo = computed(() => ({
   ...imageInfo.value,
   polarity: polarity.value || imageInfo.value.polarity,
+  analyzer: analyzer.value,
+  spectrumMode: spectrumMode.value,
+  storageMode: storageMode.value,
 }))
 
 const resetControls = () => {
@@ -159,6 +162,7 @@ const onDisplayMaxChange = (value: number) => {
         :selected-mz-index="selectedMzIndex"
         :mz-tolerance="mzTolerance"
         :intensity-range="spectrumStats.intensityRange"
+        :spectrum-mode="spectrumMode"
         @select-mz-index="onSpectrumClickByIndex"
       />
     </template>

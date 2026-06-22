@@ -340,7 +340,7 @@ const {
             Technical Details
           </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="flex flex-col max-w-full">
+            <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
                 >MD5 Hash</span
               >
@@ -363,12 +363,6 @@ const {
                   </button>
                 </div>
               </div>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Storage Type</span
-              >
-              <span class="text-base-content break-words">{{ dataset?.storageType || '—' }}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"

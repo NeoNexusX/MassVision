@@ -93,6 +93,9 @@ const props = defineProps({
       nonZero?: string
       totalIon?: string
       polarity?: string
+      analyzer?: string
+      spectrumMode?: string
+      storageMode?: string
     }>,
     default: () => ({}),
   },
@@ -131,6 +134,9 @@ const infoRows = computed(() => {
   if (props.info.nonZero) items.push({ label: 'Non-zero', value: props.info.nonZero })
   if (props.info.totalIon) items.push({ label: 'TIC', value: props.info.totalIon })
   if (props.info.polarity) items.push({ label: 'Polarity', value: props.info.polarity })
+  if (props.info.analyzer) items.push({ label: 'Analyzer', value: props.info.analyzer })
+  if (props.info.spectrumMode) items.push({ label: 'Spectrum Mode', value: props.info.spectrumMode })
+  if (props.info.storageMode) items.push({ label: 'Storage Mode', value: props.info.storageMode })
   return items
 })
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
 import IconSelect from '@/shared/components/IconSelect.vue'
 import SolventPicker from '@/features/upload/components/SolventPicker.vue'
@@ -27,6 +28,24 @@ defineProps<{
   form: UploadMetadataFormState
   parsingMetadata: boolean
 }>()
+
+const pixelSizeXError = ref('')
+const pixelSizeYError = ref('')
+
+function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
+  const errorRef = field === 'horizontal' ? pixelSizeXError : pixelSizeYError
+  if (!value) {
+    errorRef.value = ''
+    return true
+  }
+  const num = Number(value)
+  if (isNaN(num) || !Number.isInteger(num) || num < 1 || num > 200) {
+    errorRef.value = 'Pixel size must be an integer between 1 and 200'
+    return false
+  }
+  errorRef.value = ''
+  return true
+}
 </script>
 
 <template>
@@ -108,8 +127,11 @@ defineProps<{
             type="text"
             inputmode="numeric"
             class="input input-bordered w-full"
+            :class="{ 'input-error': pixelSizeXError }"
             placeholder="e.g. 50"
+            @blur="validatePixelSize(form.pixel_size_horizontal, 'horizontal')"
           />
+          <span v-if="pixelSizeXError" class="text-xs text-error mt-0.5">{{ pixelSizeXError }}</span>
         </div>
         <div class="flex flex-col">
           <label class="label"
@@ -122,8 +144,11 @@ defineProps<{
             type="text"
             inputmode="numeric"
             class="input input-bordered w-full"
+            :class="{ 'input-error': pixelSizeYError }"
             placeholder="e.g. 50"
+            @blur="validatePixelSize(form.pixel_size_vertical, 'vertical')"
           />
+          <span v-if="pixelSizeYError" class="text-xs text-error mt-0.5">{{ pixelSizeYError }}</span>
         </div>
       </div>
 

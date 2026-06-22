@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import IonImageViewer from '@/features/workspace/results/components/visuals/IonImageViewer.vue'
 import ROIOverlay from '@/features/workspace/results/components/visuals/ROIOverlay.vue'
 import type { ROIType } from '@/features/workspace/results/composables/useROI'
@@ -41,6 +42,11 @@ const emit = defineEmits<{
   (e: 'draft-cleared'): void
   (e: 'roi-overlay-ref', element: InstanceType<typeof ROIOverlay> | null): void
 }>()
+
+const ionViewerRef = ref<InstanceType<typeof IonImageViewer> | null>(null)
+const roiOverlayRef = ref<InstanceType<typeof ROIOverlay> | null>(null)
+
+watch(roiOverlayRef, (el) => emit('roi-overlay-ref', el ?? null))
 </script>
 
 <template>
@@ -56,6 +62,7 @@ const emit = defineEmits<{
       </div>
       <div v-else class="flex-1 min-h-0 relative overflow-hidden">
         <IonImageViewer
+          ref="ionViewerRef"
           :selected-mz="selectedMz"
           :mz-tolerance="mzTolerance"
           :colormap="colormap"
@@ -76,12 +83,11 @@ const emit = defineEmits<{
           @reset="emit('reset-controls')"
         />
         <ROIOverlay
-          :ref="
-            (element) => emit('roi-overlay-ref', element as InstanceType<typeof ROIOverlay> | null)
-          "
+          ref="roiOverlayRef"
           :tool="roiTool"
           :image-width="ionCols"
           :image-height="ionRows"
+          :target-el="ionViewerRef?.canvasContainer ?? null"
           @draft-updated="emit('draft-updated', $event)"
           @draft-cleared="emit('draft-cleared')"
         />
