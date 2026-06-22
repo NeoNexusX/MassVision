@@ -130,7 +130,12 @@ export function useWorkspaceDashboard() {
     deletingId.value = id
     try {
       await deleteProcess(id)
-      processes.value = processes.value.filter((p) => String(p.id) !== id)
+      // 从服务端刷新当前页，保持 meta 一致
+      await fetchProcesses({ page: page.value, size: size.value })
+      // 如果当前页已空且不是第一页，回退一页
+      if (processes.value.length === 0 && page.value > 1) {
+        fetchProcesses({ page: page.value - 1, size: size.value })
+      }
       fetchStats()
     } catch (e) {
       console.error('Failed to delete process:', e)

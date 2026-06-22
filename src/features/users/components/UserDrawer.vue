@@ -173,11 +173,13 @@ const hasErrors = computed(() => Object.keys(errors.value).length > 0)
               <span class="text-sm font-medium text-base-content/50 mb-1">Max File Count</span>
               <input
                 v-model.number="quotaLimits.max_file_count"
-                type="text"
-                inputmode="numeric"
+                type="number"
+                min="1"
+                step="1"
                 class="input input-bordered text-sm h-8"
                 :class="{ 'input-error': errors['max_file_count'] }"
                 placeholder="≥ 1"
+                @input="validateQuotaField('max_file_count', quotaLimits.max_file_count, true)"
                 @blur="validateQuotaField('max_file_count', quotaLimits.max_file_count, true)"
               />
               <span v-if="errors['max_file_count']" class="text-xs text-error mt-0.5">{{ errors['max_file_count'] }}</span>
@@ -186,11 +188,12 @@ const hasErrors = computed(() => Object.keys(errors.value).length > 0)
               <span class="text-sm font-medium text-base-content/50 mb-1">Max Storage (GB)</span>
               <input
                 v-model.number="quotaLimits.max_total_file_size"
-                type="text"
-                inputmode="decimal"
+                type="number"
+                min="1"
                 class="input input-bordered text-sm h-8"
                 :class="{ 'input-error': errors['max_total_file_size'] }"
                 placeholder="≥ 1"
+                @input="validateQuotaField('max_total_file_size', quotaLimits.max_total_file_size)"
                 @blur="validateQuotaField('max_total_file_size', quotaLimits.max_total_file_size)"
               />
               <span v-if="errors['max_total_file_size']" class="text-xs text-error mt-0.5">{{ errors['max_total_file_size'] }}</span>
@@ -199,11 +202,12 @@ const hasErrors = computed(() => Object.keys(errors.value).length > 0)
               <span class="text-sm font-medium text-base-content/50 mb-1">Max Processing (GB)</span>
               <input
                 v-model.number="quotaLimits.max_processing_size"
-                type="text"
-                inputmode="decimal"
+                type="number"
+                min="1"
                 class="input input-bordered text-sm h-8"
                 :class="{ 'input-error': errors['max_processing_size'] }"
                 placeholder="≥ 1"
+                @input="validateQuotaField('max_processing_size', quotaLimits.max_processing_size)"
                 @blur="validateQuotaField('max_processing_size', quotaLimits.max_processing_size)"
               />
               <span v-if="errors['max_processing_size']" class="text-xs text-error mt-0.5">{{ errors['max_processing_size'] }}</span>
@@ -212,11 +216,13 @@ const hasErrors = computed(() => Object.keys(errors.value).length > 0)
               <span class="text-sm font-medium text-base-content/50 mb-1">Max Downloads</span>
               <input
                 v-model.number="quotaLimits.max_download_count"
-                type="text"
-                inputmode="numeric"
+                type="number"
+                min="1"
+                step="1"
                 class="input input-bordered text-sm h-8"
                 :class="{ 'input-error': errors['max_download_count'] }"
                 placeholder="≥ 1"
+                @input="validateQuotaField('max_download_count', quotaLimits.max_download_count, true)"
                 @blur="validateQuotaField('max_download_count', quotaLimits.max_download_count, true)"
               />
               <span v-if="errors['max_download_count']" class="text-xs text-error mt-0.5">{{ errors['max_download_count'] }}</span>

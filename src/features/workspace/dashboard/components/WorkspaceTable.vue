@@ -103,7 +103,6 @@ const rowCursor = computed(() => props.cursor || 'pointer')
 
 const normalizeStatus = (r: any) => {
   if (!r?.status) return ''
-  if (r.status === 'OK') return 'completed'
   return r.status.toLowerCase()
 }
 
