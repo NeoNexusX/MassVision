@@ -21,7 +21,7 @@ const props = withDefaults(
     /** 环内标签字号占父级基准字号的比例；引导线/行高等都由它派生 */
     labelScale?: number
   }>(),
-  { labelScale: 0.28},
+  { labelScale: 0.25 },
 )
 
 const { isDark } = useTheme()
@@ -77,7 +77,7 @@ function render() {
       series: [
         {
           type: 'pie',
-          radius: ['30%', '60%'],
+          radius: ['35%', '62%'],
           center: ['50%', '50%'],
           avoidLabelOverlap: true,
           itemStyle: { borderColor, borderWidth: 2, borderRadius: 4 },
@@ -87,7 +87,7 @@ function render() {
             alignTo: 'edge', // 文字对齐到容器边，离大环最远
             edgeDistance: '4%', // 离容器边留 4%
             minMargin: labelMinMargin, // 相邻标签最小竖向间距，防重叠
-            formatter: '{b}  {c}',
+            formatter: '{b}',
             color: labelColor,
             fontSize,
             lineHeight,
@@ -133,5 +133,5 @@ watch(isDark, render)
 </script>
 
 <template>
-  <div ref="chartRef" class="h-64 w-full"></div>
+  <div ref="chartRef" class="h-full w-full"></div>
 </template>

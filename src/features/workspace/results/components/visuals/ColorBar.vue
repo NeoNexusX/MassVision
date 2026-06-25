@@ -31,19 +31,27 @@
       </div>
     </div>
 
-    <!-- ─── Histogram ─── -->
+    <!-- ─── Statistic ─── -->
     <div class="mt-3 pt-3 border-t border-base-200">
-      <div class="text-base font-semibold text-base-content/50 mb-2">Distribution</div>
-      <div class="relative h-20 rounded border border-base-200 bg-base-200 overflow-hidden">
-        <canvas ref="histCanvasRef" class="absolute inset-0 w-full h-full" />
-        <div
-          class="absolute top-0 bottom-0 w-[2px] bg-red-500/80 z-10"
-          :style="{ left: markerLeft(displayMin) + '%' }"
-        />
-        <div
-          class="absolute top-0 bottom-0 w-[2px] bg-red-500/80 z-10"
-          :style="{ left: markerLeft(displayMax) + '%' }"
-        />
+      <div class="text-base font-semibold text-base-content/50 mb-2">Statistic</div>
+      <div class="rounded-lg border border-base-200 bg-base-200/50 p-3 space-y-2">
+        <div class="relative h-20 rounded border border-base-200 bg-base-200 overflow-hidden">
+          <canvas ref="histCanvasRef" class="absolute inset-0 w-full h-full" />
+          <div
+            class="absolute top-0 bottom-0 w-[2px] bg-red-500/80 z-10"
+            :style="{ left: markerLeft(displayMin) + '%' }"
+          />
+          <div
+            class="absolute top-0 bottom-0 w-[2px] bg-red-500/80 z-10"
+            :style="{ left: markerLeft(displayMax) + '%' }"
+          />
+        </div>
+        <div class="space-y-1.5 text-base text-base-content/60">
+          <div v-for="row in statisticRows" :key="row.label" class="flex justify-between">
+            <span>{{ row.label }}</span>
+            <span class="font-mono text-base-content/80">{{ row.value }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -94,6 +102,8 @@ const props = defineProps({
       totalIon?: string
       polarity?: string
       analyzer?: string
+      ionisationSource?: string
+      pixelSize?: string
       spectrumMode?: string
       storageMode?: string
     }>,
@@ -128,13 +138,20 @@ function pctLabel(v: number): string {
   return ((lo / arr.length) * 100).toFixed(1) + '%'
 }
 
-const infoRows = computed(() => {
+const statisticRows = computed(() => {
   const items: { label: string; value: string }[] = []
   if (props.info.pixels) items.push({ label: 'Dimensions', value: props.info.pixels })
   if (props.info.nonZero) items.push({ label: 'Non-zero', value: props.info.nonZero })
   if (props.info.totalIon) items.push({ label: 'TIC', value: props.info.totalIon })
+  return items
+})
+
+const infoRows = computed(() => {
+  const items: { label: string; value: string }[] = []
   if (props.info.polarity) items.push({ label: 'Polarity', value: props.info.polarity })
   if (props.info.analyzer) items.push({ label: 'Analyzer', value: props.info.analyzer })
+  if (props.info.ionisationSource) items.push({ label: 'Ionisation Source', value: props.info.ionisationSource })
+  if (props.info.pixelSize) items.push({ label: 'Pixel Size', value: props.info.pixelSize })
   if (props.info.spectrumMode) items.push({ label: 'Spectrum Mode', value: props.info.spectrumMode })
   if (props.info.storageMode) items.push({ label: 'Storage Mode', value: props.info.storageMode })
   return items

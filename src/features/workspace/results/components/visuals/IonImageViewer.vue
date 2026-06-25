@@ -5,7 +5,6 @@
       :mz-tolerance="mzTolerance"
       :colormap="colormap"
       :intensity-scale="intensityScale"
-      :meta-info="metaInfo"
       @update:mz-tolerance="$emit('update:mzTolerance', $event)"
       @update:colormap="$emit('update:colormap', $event)"
       @update:intensity-scale="$emit('update:intensityScale', $event)"
@@ -87,10 +86,6 @@ const props = defineProps({
   matrix: { type: Object as PropType<Float32Array | null>, default: null },
   matrixCols: { type: Number, default: 0 },
   matrixRows: { type: Number, default: 0 },
-  metaInfo: {
-    type: Object as PropType<{ analyzer?: string; ionSource?: string; pixelSize?: string } | null>,
-    default: null,
-  },
   drawMode: { type: Boolean, default: false },
   overlayData: { type: Object as PropType<Uint8ClampedArray | null>, default: null },
   overlayWidth: { type: Number, default: 0 },

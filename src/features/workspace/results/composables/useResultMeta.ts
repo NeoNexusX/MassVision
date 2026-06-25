@@ -35,7 +35,7 @@ export function useResultMeta(runId: Ref<string>) {
   async function fetchMeta(id: string) {
     loading.value = true
     try {
-      const result = await listMyProcesses(1, 1000)
+      const result = await listMyProcesses(1, 100)
       const processes = result.data || []
       const process = processes.find((p: any) => String(p.id) === id)
 
@@ -50,8 +50,8 @@ export function useResultMeta(runId: Ref<string>) {
         // Fetch file metadata for instrument params
         if (process.filename) {
           try {
-            const result = await listUserFiles({ filename: process.filename }, 1, 1)
-            const file = result?.data?.[0] || result?.[0]
+            const fileResult = await listUserFiles({ filename: process.filename }, 1, 1)
+            const file = fileResult?.data?.[0] || fileResult?.[0]
             if (file) {
               analyzer.value = file.analyzer || ''
               ionSource.value = file.ionisation_source || ''

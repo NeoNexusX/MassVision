@@ -9,10 +9,10 @@ export interface ProcessItem {
   status: string
   params_json: string
   source_file_id: number
+  error_message: string | null
   created_at: string
   started_at: string | null
   finished_at: string | null
-  error_message: string | null
   filename?: string
 }
 
@@ -23,6 +23,7 @@ export interface TaskRow {
   methods: string[]
   status: string
   created: string
+  errorMessage: string | null
 }
 
 export function useWorkspaceDashboard() {
@@ -48,6 +49,7 @@ export function useWorkspaceDashboard() {
       methods: parseAlgorithms(p.params_json),
       status: p.status,
       created: parseUtcDate(p.finished_at || p.created_at)?.toLocaleString() ?? '',
+      errorMessage: p.error_message || null,
     }
   }
 

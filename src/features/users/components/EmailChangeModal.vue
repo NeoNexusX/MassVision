@@ -5,6 +5,8 @@ defineProps<{
   emailCode: string
   sendingCode: boolean
   codeCooldown: number
+  isCooldownActive: boolean
+  isExhausted: boolean
   loading: boolean
 }>()
 
@@ -18,8 +20,8 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal modal-open">
-    <div class="modal-box max-w-md">
+  <div v-if="isOpen" class="modal modal-open" @click.self="emit('close')">
+    <div class="modal-box max-w-md" @click.stop>
       <h3 class="font-bold text-lg">Change Email</h3>
       <p class="py-2">Enter new email and the verification code sent to it.</p>
 
@@ -46,10 +48,12 @@ const emit = defineEmits<{
           />
           <button
             class="btn btn-outline btn-neutral border-base-300 shadow-none"
-            :disabled="sendingCode || codeCooldown > 0"
+            :disabled="sendingCode || isCooldownActive || isExhausted"
+            :title="isExhausted ? 'Maximum attempts reached for this session' : ''"
             @click="emit('send-code')"
           >
-            <span v-if="codeCooldown > 0">Resend ({{ codeCooldown }})</span>
+            <span v-if="isExhausted">Limit Reached</span>
+            <span v-else-if="isCooldownActive">Resend ({{ codeCooldown }}s)</span>
             <span v-else>Send Code</span>
           </button>
         </div>

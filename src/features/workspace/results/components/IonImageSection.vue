@@ -5,6 +5,7 @@ import ROIOverlay from '@/features/workspace/results/components/visuals/ROIOverl
 import type { ROIType } from '@/features/workspace/results/composables/useROI'
 
 defineProps<{
+  isStale?: boolean
   ionMatrix: Float32Array | null
   displayMatrix: Float32Array | null
   selectedMz: number
@@ -16,11 +17,6 @@ defineProps<{
   dataMax: number
   ionCols: number
   ionRows: number
-  meta: {
-    analyzer: string
-    ionSource: string
-    pixelSize: string
-  }
   roiTool: ROIType | null
   overlayData: Uint8ClampedArray | null
   gradientCss: string
@@ -55,7 +51,14 @@ watch(roiOverlayRef, (el) => emit('roi-overlay-ref', el ?? null))
       class="flex-1 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col overflow-hidden"
     >
       <div
-        v-if="!ionMatrix"
+        v-if="isStale"
+        class="flex-1 flex flex-col items-center justify-center text-base-content/40 gap-1"
+      >
+        <p class="text-lg">No result selected</p>
+        <p class="text-sm">Navigate from the Workspace dashboard to view a result.</p>
+      </div>
+      <div
+        v-else-if="!ionMatrix"
         class="flex-1 flex items-center justify-center text-base-content/40 text-lg"
       >
         Loading ion image...
@@ -72,7 +75,6 @@ watch(roiOverlayRef, (el) => emit('roi-overlay-ref', el ?? null))
           :matrix="displayMatrix"
           :matrix-cols="ionCols"
           :matrix-rows="ionRows"
-          :meta-info="meta"
           :draw-mode="!!roiTool"
           :overlay-data="overlayData"
           :overlay-width="ionCols"

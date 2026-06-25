@@ -53,12 +53,14 @@
             </td>
             <td class="text-center">
               <button
+                v-if="r.status !== 'processing'"
                 @click="openRow(r)"
                 class="btn btn-ghost btn-sm btn-circle hover:bg-base-200"
                 aria-label="View"
               >
                 <svg-icon type="chevron_right" class="w-5 h-5 text-base-content/60" />
               </button>
+              <span v-else class="text-base-content/30 text-sm">—</span>
             </td>
             <td class="text-center">
               <button
@@ -87,13 +89,13 @@ const props = defineProps<{
   title?: string
   rows: Array<any>
   type?: 'running' | 'results'
-  openRoute?: string
   cursor?: string
   loading?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'delete', id: string): void
+  (e: 'view-error', errorMessage: string): void
 }>()
 
 const router = useRouter()
@@ -107,9 +109,11 @@ const normalizeStatus = (r: any) => {
 }
 
 const openRow = (r: any) => {
-  // processing → TaskDetail, completed/failed → ResultDetail
-  const routeName = r.status === 'processing' ? 'WorkspaceTaskDetail' : (props.openRoute || 'WorkspaceResultDetail')
-  router.push({ name: routeName, params: { id: r.id } })
+  if (r.status === 'failed') {
+    emit('view-error', r.errorMessage || 'Unknown error')
+    return
+  }
+  router.push({ name: 'WorkspaceResultDetail', state: { runId: r.id } })
 }
 </script>
 

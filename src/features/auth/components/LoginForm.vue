@@ -16,8 +16,9 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div
+  <form
     class="card max-w-md w-full flex flex-col gap-6 bg-base-100 shadow-xl p-8 rounded-box border border-base-200"
+    @submit.prevent="emit('submit')"
   >
     <div class="text-center">
       <h2 class="text-2xl font-bold">Sign In</h2>
@@ -28,6 +29,7 @@ const emit = defineEmits<{
       @update:model-value="emit('update:username', $event)"
       icon-type="user"
       type="text"
+      autocomplete="username"
       required
       placeholder="Username"
     />
@@ -37,12 +39,22 @@ const emit = defineEmits<{
       @update:model-value="emit('update:password', $event)"
       icon-type="password"
       type="password"
+      autocomplete="current-password"
       required
       placeholder="Password"
     />
 
+    <div class="text-right -mt-4">
+      <router-link
+        to="/forgotpassword"
+        class="link link-hover text-xs text-base-content/70"
+      >
+        Forgot Password?
+      </router-link>
+    </div>
+
     <div class="form-control w-full mt-2">
-      <button class="btn btn-primary w-full" @click="emit('submit')" :disabled="isLoading">
+      <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
         <span v-if="isLoading" class="loading loading-spinner"></span>
         {{ isLoading ? 'Signing In...' : 'Sign In' }}
       </button>
@@ -54,5 +66,5 @@ const emit = defineEmits<{
         Create an account
       </router-link>
     </div>
-  </div>
+  </form>
 </template>

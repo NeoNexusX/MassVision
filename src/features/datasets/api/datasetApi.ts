@@ -9,6 +9,28 @@ export async function getDownloadMetadata(fileId: string) {
   return res.data
 }
 
+// GET /files/{file_id}/metadata — 根据文件 ID 获取元数据
+export async function getFileMetadata(fileId: string | number) {
+  const res = await auth_api.get(`/files/${fileId}/metadata`)
+  return res.data
+}
+
+// GET /files/{file_id}/download_raw — pre-signed URLs for imzML + ibd, zero polling
+export interface DownloadRawEntry {
+  filename: string
+  url: string
+  size: number
+}
+
+export interface DownloadRawResponse {
+  files: DownloadRawEntry[]
+}
+
+export async function getDownloadRaw(fileId: string): Promise<DownloadRawResponse> {
+  const res = await auth_api.get(`/files/${fileId}/download_raw`)
+  return res.data
+}
+
 // GET /files/{file_id}/images
 // Returns { urls: Record<string, string>, spectrum_mode: string }
 export interface FileImagesResponse {

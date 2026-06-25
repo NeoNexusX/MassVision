@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
 import ColorBar from '@/features/workspace/results/components/visuals/ColorBar.vue'
 import ResultVisualizationLayout from '@/features/workspace/results/components/ResultVisualizationLayout.vue'
 import ResultHeader from '@/features/workspace/results/components/visuals/ResultHeader.vue'
@@ -14,8 +13,9 @@ import { useResultROI } from '@/features/workspace/results/composables/useResult
 import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
 import { ZARR_STORE } from '@/shared/config/defaults'
 
-const route = useRoute()
-const runId = computed(() => String(route.params.id))
+const state = history.state as { runId?: string } | null
+const runId = computed(() => state?.runId || '')
+const isStale = computed(() => !state?.runId)
 
 const { datasetName, analyzer, ionSource, pixelSize, polarity, spectrumMode, storageMode, status, methods } = useResultMeta(runId)
 const colormap = ref('inferno')
@@ -86,6 +86,8 @@ const displayInfo = computed(() => ({
   ...imageInfo.value,
   polarity: polarity.value || imageInfo.value.polarity,
   analyzer: analyzer.value,
+  ionisationSource: ionSource.value,
+  pixelSize: pixelSize.value,
   spectrumMode: spectrumMode.value,
   storageMode: storageMode.value,
 }))
@@ -126,6 +128,7 @@ const onDisplayMaxChange = (value: number) => {
 
     <template #main>
       <IonImageSection
+        :is-stale="isStale"
         :ion-matrix="ionMatrix"
         :display-matrix="displayMatrix"
         :selected-mz="selectedMz"
@@ -137,7 +140,6 @@ const onDisplayMaxChange = (value: number) => {
         :data-max="dataMax"
         :ion-cols="ionCols"
         :ion-rows="ionRows"
-        :meta="{ analyzer, ionSource, pixelSize }"
         :roi-tool="roiTool"
         :overlay-data="overlayData"
         :gradient-css="gradientCSS"
@@ -158,6 +160,7 @@ const onDisplayMaxChange = (value: number) => {
       />
 
       <SpectrumSection
+        :is-stale="isStale"
         :selected-mz="selectedMz"
         :selected-mz-index="selectedMzIndex"
         :mz-tolerance="mzTolerance"

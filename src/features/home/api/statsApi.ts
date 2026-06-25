@@ -41,15 +41,27 @@ function classificationToCategoryStats(data: Record<string, number>): DatasetCat
   return { items, total }
 }
 
-/** GET /stats/files/classification?field=organism_part —— 数据集组织部位分布（环形图上方） */
+/** GET /stats/files/classification?field=organism —— 数据集物种分布 */
+export async function getOrganismStats(): Promise<DatasetCategoryStats> {
+  const data = await getFilesClassification('organism')
+  return classificationToCategoryStats(data)
+}
+
+/** GET /stats/files/classification?field=organism_part —— 数据集组织部位分布 */
 export async function getDatasetCategoryStats(): Promise<DatasetCategoryStats> {
   const data = await getFilesClassification('organism_part')
   return classificationToCategoryStats(data)
 }
 
-/** GET /stats/files/classification?field=ionisation_source —— 数据集离子源类型分布（环形图下方） */
+/** GET /stats/files/classification?field=ionisation_source —— 数据集离子源类型分布 */
 export async function getDatasetIonSourceStats(): Promise<DatasetCategoryStats> {
   const data = await getFilesClassification('ionisation_source')
+  return classificationToCategoryStats(data)
+}
+
+/** GET /stats/files/classification?field=analyzer —— 分析器类型分布 */
+export async function getAnalyzerStats(): Promise<DatasetCategoryStats> {
+  const data = await getFilesClassification('analyzer')
   return classificationToCategoryStats(data)
 }
 
@@ -72,5 +84,22 @@ const PLATFORM_OVERVIEW_PATH = '/stats/overview'
 /** GET /stats/overview —— 获取平台总览（总用户 / 总数据集 / 总下载） */
 export async function getPlatformOverview(): Promise<PlatformOverviewStats> {
   const res = await api.get(PLATFORM_OVERVIEW_PATH)
+  return res.data
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// ④ 网站访问量
+// ──────────────────────────────────────────────────────────────────────────
+
+/** 网站访问量响应体 */
+export interface VisitsStats {
+  daily: number
+  monthly: number
+  total: number
+}
+
+/** GET /stats/visits —— 获取全站访问统计（当日 / 当月 / 总计） */
+export async function getVisitsStats(): Promise<VisitsStats> {
+  const res = await api.get('/stats/visits')
   return res.data
 }

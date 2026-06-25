@@ -127,15 +127,21 @@ export async function uploadImzmlZipFileOSS({
         onProgress?.({
           stage: 'packing',
           percent: p.percent,
-          message: `Compressing ${p.percent.toFixed(1)}%`,
+          message: p.phase === 'hashing'
+            ? `Preparing ${p.percent.toFixed(1)}%`
+            : `Compressing ${p.percent.toFixed(1)}%`,
           speedStr: p.speedStr,
           etaStr: p.etaStr,
         }),
+      getEntryNames: (fileHash) => {
+        const name = generateDatasetFilename(metadata, fileHash)
+        return { imzmlName: `${name}.imzML`, ibdName: `${name}.ibd` }
+      },
     })
     zipFile = zipFileFromOPFS
     fileHash = hash
 
-    // Generate filename: {organism}_{part}_{source}_{hash8}
+    // Generate filename: {organism}_{part}_{source}_{pixelX}_{polarity}_{hash6}
     normalizedFilename = generateDatasetFilename(metadata, fileHash)
 
     // ================= Phase 2: Preflight =================

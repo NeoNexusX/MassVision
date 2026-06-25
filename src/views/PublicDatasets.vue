@@ -39,11 +39,11 @@ const router = useRouter()
 const auth = useAuthStore()
 
 // shared download progress composable
-const { handleDownload, packingIds } = useDownloadProgress()
+const { handleDownloadRaw, packingIds } = useDownloadProgress()
 
 // Card actions
-const viewOverview = (id: string) => {
-  router.push({ name: 'DatasetOverview', params: { id }, query: { from: 'public' } })
+const viewOverview = (fileId: string) => {
+  router.push({ name: 'DatasetOverview', state: { fileId, source: 'public' } })
 }
 
 // (download logic handled by composable above)
@@ -84,7 +84,7 @@ const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSi
           :pagination="pagination"
           :packingIds="packingIds"
           @view-overview="viewOverview"
-          @download="handleDownload"
+          @download="handleDownloadRaw"
           @change-size="changeSize"
           @go-to-page="goToPage"
         >

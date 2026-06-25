@@ -1,7 +1,7 @@
 /**
  * Generate dataset filename from metadata + hash.
- * Format: {organism}_{organism_part}_{ionSource}_{hash8}
- * Example: Mouse_Brain_MALDI_8f7c2e1a
+ * Format: {organism}_{organismPart}_{ionSource}_{pixelSizeX}_{polarity}_{hash6}
+ * Example: Human_Brain_MALDI_20_positive_0e75ee
  *
  * Organism is abbreviated from the config value format "CommonName (ScientificName)",
  * taking only the common name part and removing spaces/punctuation.
@@ -20,6 +20,8 @@ export function generateDatasetFilename(metadata: Record<string, any>, fileHash:
   const organism = abbreviateOrganism(metadata.organism || 'Unknown')
   const part = (metadata.organism_part || 'Unknown').replace(/\s+/g, '_')
   const source = (metadata.ionisation_source || 'Unknown').replace(/[-\s]+/g, '_').toUpperCase()
-  const hash8 = fileHash.slice(0, 8)
-  return `${organism}_${part}_${source}_${hash8}`
+  const pixelX = metadata.pixel_size_horizontal ?? metadata.pixel_size_vertical ?? '0'
+  const polarity = (metadata.polarity || 'Unknown').replace(/[-\s]+/g, '_')
+  const hash6 = fileHash.slice(0, 6)
+  return `${organism}_${part}_${source}_${pixelX}_${polarity}_${hash6}`
 }

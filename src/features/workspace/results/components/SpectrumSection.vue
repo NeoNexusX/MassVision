@@ -12,6 +12,7 @@ import {
 } from '@/features/workspace/results/composables/useZarrIonImage'
 
 const props = defineProps<{
+  isStale?: boolean
   selectedMz: number
   selectedMzIndex: number
   mzTolerance: number
@@ -41,8 +42,15 @@ async function onRetrySpectrum() {
 </script>
 
 <template>
-  <div class="shrink-0 h-80 card bg-base-100 border border-base-200 rounded-xl p-4">
+  <div class="shrink-0 h-80 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col">
+    <div
+      v-if="isStale"
+      class="flex-1 flex items-center justify-center text-base-content/40 text-lg"
+    >
+      No spectrum data available
+    </div>
     <AverageSpectrum
+      v-else
       :chart-data="meanChartData"
       :selected-mz-index="selectedMzIndex"
       :selected-mz="selectedMz"

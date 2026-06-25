@@ -3,17 +3,6 @@
     <div>
       <h3 class="text-lg font-semibold">Ion Image</h3>
     </div>
-    <div
-      v-if="metaInfo"
-      class="hidden sm:flex items-center gap-3 text-base text-base-content/60 ml-2"
-    >
-      <span v-if="metaInfo.ionSource"
-        >Source <strong class="text-base-content">{{ metaInfo.ionSource }}</strong></span
-      >
-      <span v-if="metaInfo.pixelSize"
-        >Pixel <strong class="text-base-content">{{ metaInfo.pixelSize }}</strong></span
-      >
-    </div>
     <div class="ml-auto flex flex-wrap items-center gap-2">
       <div class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-base h-8 flex items-center">
         <span class="text-base-content/50">m/z&nbsp;</span>
@@ -59,7 +48,6 @@ defineProps<{
   mzTolerance: number
   colormap: string
   intensityScale: string
-  metaInfo?: { ionSource?: string; pixelSize?: string } | null
 }>()
 
 defineEmits<{
