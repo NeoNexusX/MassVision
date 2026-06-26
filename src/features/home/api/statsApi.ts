@@ -4,19 +4,9 @@
  * - 这些是**首页公开数据**，统一走公开的 `api`（不带 token），不要用 auth_api。
  * - 约定：本模块所有函数都返回**解包后的响应体**（res.data），调用方不处理 axios 信封。
  *   （与 datasets/api/datasetApi.ts 保持一致。）
- *
- * ⚠️ 后端这几个接口目前尚未实现：路径先以空字符串占位（见下方 *_PATH 常量）。
- *   路径为空时，函数返回下方的占位**假数据**（带一点模拟延迟，保留 loading 态），先保证页面有内容可展示；
- *   后端就绪后把真实路径填进常量即可自动切换到真实请求，调用代码无需改动（mock 分支随后可删）。
  */
 
 import { api } from '@/shared/api/httpClient'
-
-// 后端就绪前的占位假数据公共延迟：模拟一次网络往返，让 loading 态可见。
-const MOCK_DELAY_MS = 600
-function mockResponse<T>(data: T): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(data), MOCK_DELAY_MS))
-}
 
 // ──────────────────────────────────────────────────────────────────────────
 // 数据集分类 / 离子源类型分布（环形图数据源）
@@ -35,55 +25,45 @@ export interface DatasetCategoryStats {
   total: number
 }
 
-/** 统一工厂：两个分布接口结构一致 ({category,count}+total)，只是数据源不同。 */
-function createDistributionFetcher(path: string, mockData: DatasetCategoryStats) {
-  return async (): Promise<DatasetCategoryStats> => {
-    if (!path) return mockResponse(mockData)
-    const res = await api.get(path)
-    return res.data
-  }
+/** GET /stats/files/classification?field= — 按指定字段统计文件分类数量 */
+export async function getFilesClassification(field: string): Promise<Record<string, number>> {
+  const res = await api.get('/stats/files/classification', { params: { field } })
+  return res.data
 }
 
-// TODO(后端): 数据集分类分布接口路径，例如 '/stats/dataset-categories'。后端就绪后填入。
-const DATASET_CATEGORY_STATS_PATH = ''
-const MOCK_DATASET_CATEGORY_STATS: DatasetCategoryStats = {
-  items: [
-    { category: 'Proteomics', count: 42 },
-    { category: 'Metabolomics', count: 31 },
-    { category: 'Spatial Transcriptomics', count: 24 },
-    { category: 'Lipidomics', count: 18 },
-    { category: 'Glycomics', count: 9 },
-    { category: 'Other', count: 7 },
-  ],
-  total: 131,
+/** 将 { key: count } 映射为 DonutStatSection 所需的 { items, total } 格式 */
+function classificationToCategoryStats(data: Record<string, number>): DatasetCategoryStats {
+  const items = Object.entries(data)
+    .filter(([, count]) => count > 0)
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count)
+  const total = items.reduce((sum, item) => sum + item.count, 0)
+  return { items, total }
 }
 
-/** GET <DATASET_CATEGORY_STATS_PATH> —— 获取数据集分类分布 */
-export const getDatasetCategoryStats = createDistributionFetcher(
-  DATASET_CATEGORY_STATS_PATH,
-  MOCK_DATASET_CATEGORY_STATS,
-)
-
-// TODO(后端): 离子源类型分布接口路径，例如 '/stats/dataset-ion-sources'。后端就绪后填入。
-const DATASET_ION_SOURCE_STATS_PATH = ''
-const MOCK_DATASET_ION_SOURCE_STATS: DatasetCategoryStats = {
-  items: [
-    { category: 'ESI', count: 48 },
-    { category: 'MALDI', count: 33 },
-    { category: 'APCI', count: 19 },
-    { category: 'EI', count: 14 },
-    { category: 'APPI', count: 8 },
-    { category: 'DESI', count: 6 },
-    { category: 'Other', count: 3 },
-  ],
-  total: 131,
+/** GET /stats/files/classification?field=organism —— 数据集物种分布 */
+export async function getOrganismStats(): Promise<DatasetCategoryStats> {
+  const data = await getFilesClassification('organism')
+  return classificationToCategoryStats(data)
 }
 
-/** GET <DATASET_ION_SOURCE_STATS_PATH> —— 获取数据集离子源类型分布 */
-export const getDatasetIonSourceStats = createDistributionFetcher(
-  DATASET_ION_SOURCE_STATS_PATH,
-  MOCK_DATASET_ION_SOURCE_STATS,
-)
+/** GET /stats/files/classification?field=organism_part —— 数据集组织部位分布 */
+export async function getDatasetCategoryStats(): Promise<DatasetCategoryStats> {
+  const data = await getFilesClassification('organism_part')
+  return classificationToCategoryStats(data)
+}
+
+/** GET /stats/files/classification?field=ionisation_source —— 数据集离子源类型分布 */
+export async function getDatasetIonSourceStats(): Promise<DatasetCategoryStats> {
+  const data = await getFilesClassification('ionisation_source')
+  return classificationToCategoryStats(data)
+}
+
+/** GET /stats/files/classification?field=analyzer —— 分析器类型分布 */
+export async function getAnalyzerStats(): Promise<DatasetCategoryStats> {
+  const data = await getFilesClassification('analyzer')
+  return classificationToCategoryStats(data)
+}
 
 // ──────────────────────────────────────────────────────────────────────────
 // ③ 平台总览（首页三个 stat）
@@ -94,25 +74,32 @@ export interface PlatformOverviewStats {
   /** 总用户数 */
   total_users: number
   /** 总数据集数 */
-  total_datasets: number
+  total_files: number
   /** 总下载数 */
   total_downloads: number
 }
 
-// TODO(后端): 平台总览接口路径，例如 '/stats/overview'。后端就绪后填入。
-const PLATFORM_OVERVIEW_PATH = ''
+const PLATFORM_OVERVIEW_PATH = '/stats/overview'
 
-// 占位假数据（后端就绪后可删）
-const MOCK_PLATFORM_OVERVIEW: PlatformOverviewStats = {
-  total_users: 1287,
-  total_datasets: 342,
-  total_downloads: 5821,
+/** GET /stats/overview —— 获取平台总览（总用户 / 总数据集 / 总下载） */
+export async function getPlatformOverview(): Promise<PlatformOverviewStats> {
+  const res = await api.get(PLATFORM_OVERVIEW_PATH)
+  return res.data
 }
 
-/** GET <PLATFORM_OVERVIEW_PATH> —— 获取平台总览（总用户 / 总数据集 / 总下载） */
-export async function getPlatformOverview(): Promise<PlatformOverviewStats> {
-  // 后端未接入：返回假数据；填入 PLATFORM_OVERVIEW_PATH 后自动改走真实请求。
-  if (!PLATFORM_OVERVIEW_PATH) return mockResponse(MOCK_PLATFORM_OVERVIEW)
-  const res = await api.get(PLATFORM_OVERVIEW_PATH)
+// ──────────────────────────────────────────────────────────────────────────
+// ④ 网站访问量
+// ──────────────────────────────────────────────────────────────────────────
+
+/** 网站访问量响应体 */
+export interface VisitsStats {
+  daily: number
+  monthly: number
+  total: number
+}
+
+/** GET /stats/visits —— 获取全站访问统计（当日 / 当月 / 总计） */
+export async function getVisitsStats(): Promise<VisitsStats> {
+  const res = await api.get('/stats/visits')
   return res.data
 }

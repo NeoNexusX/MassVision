@@ -174,6 +174,8 @@ export function useROI(
   function clearAllROIs() {
     confirmedROIs.value = []
     clearDraft()
+    nextId = 1
+    nextColorIdx = 0
   }
 
   return {

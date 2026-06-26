@@ -5,40 +5,41 @@
       <div class="text-base font-semibold text-base-content/50 mb-2 tracking-wide">ROI Tools</div>
       <div class="flex gap-1.5">
         <button
-          class="btn btn-sm flex-1 text-base"
+          class="btn btn-sm flex-1 text-sm"
           :class="selectedTool === 'rectangle' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'rectangle' ? null : 'rectangle')"
         >
           ▭ Rect
         </button>
         <button
-          class="btn btn-sm flex-1 text-base"
+          class="btn btn-sm flex-1 text-sm"
           :class="selectedTool === 'freehand' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'freehand' ? null : 'freehand')"
         >
           ✎ Lasso
         </button>
-        <button v-if="draftReady" class="btn btn-sm btn-success flex-1 text-base" @click="$emit('confirm')">
+      </div>
+      <div v-if="draftReady" class="flex gap-1.5 mt-1.5">
+        <button class="btn btn-sm btn-success flex-1 text-sm" @click="$emit('confirm')">
           ✓ Confirm
         </button>
         <button
-          v-if="draftReady"
-          class="btn btn-sm btn-ghost flex-1 text-base text-error"
+          class="btn btn-sm btn-ghost flex-1 text-sm text-error"
           @click="$emit('cancel')"
         >
           ✕ Cancel
         </button>
-        <button v-if="showReset" class="btn btn-sm btn-warning flex-1 text-base" @click="$emit('reset')">
-          ↺ Reset
-        </button>
       </div>
-      <div v-if="draftReady" class="text-base text-base-content/50 mt-1">
+      <button v-if="showReset" class="btn btn-sm btn-warning w-full text-sm mt-1.5" @click="$emit('reset')">
+        ↺ Reset
+      </button>
+      <div v-if="draftReady" class="text-sm text-base-content/50 mt-1">
         Selection ready — confirm or drag handles to adjust
       </div>
-      <div v-else-if="selectedTool === 'rectangle'" class="text-base text-base-content/50 mt-1">
+      <div v-else-if="selectedTool === 'rectangle'" class="text-sm text-base-content/50 mt-1">
         Drag on the ion image to draw a rectangle
       </div>
-      <div v-else-if="selectedTool === 'freehand'" class="text-base text-base-content/50 mt-1">
+      <div v-else-if="selectedTool === 'freehand'" class="text-sm text-base-content/50 mt-1">
         Draw a freeform outline on the ion image
       </div>
     </div>

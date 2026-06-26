@@ -11,6 +11,7 @@ import {
 } from './uploadResume'
 import { checkStorageQuota } from './quotaCheck'
 import { OSS_UPLOAD } from '@/shared/config'
+import { generateDatasetFilename } from './filenameGenerator'
 
 // Module-level refs for external abort
 let currentOssClient: OSS | null = null
@@ -78,11 +79,7 @@ export async function uploadImzmlZipFileOSS({
   let fileHash: string
   let fileId: string
   let ossData: OssUploadResponse
-
-  const normalizedFilename =
-    datasetName && String(datasetName).toLowerCase().endsWith('.zip')
-      ? String(datasetName).slice(0, -4)
-      : String(datasetName)
+  let normalizedFilename: string
 
   if (resume) {
     // ---------- Resume path: restore from OPFS + localStorage ----------
@@ -102,6 +99,7 @@ export async function uploadImzmlZipFileOSS({
     zipFile = storedZip
     fileHash = session.fileHash
     fileId = session.fileId
+    normalizedFilename = session.datasetName || String(datasetName || 'mass_dataset')
     ossData = {
       oss_sts_token: {
         AccessKeyId: session.accessKeyId,
@@ -129,13 +127,22 @@ export async function uploadImzmlZipFileOSS({
         onProgress?.({
           stage: 'packing',
           percent: p.percent,
-          message: `Compressing ${p.percent.toFixed(1)}%`,
+          message: p.phase === 'hashing'
+            ? `Preparing ${p.percent.toFixed(1)}%`
+            : `Compressing ${p.percent.toFixed(1)}%`,
           speedStr: p.speedStr,
           etaStr: p.etaStr,
         }),
+      getEntryNames: (fileHash) => {
+        const name = generateDatasetFilename(metadata, fileHash)
+        return { imzmlName: `${name}.imzML`, ibdName: `${name}.ibd` }
+      },
     })
     zipFile = zipFileFromOPFS
     fileHash = hash
+
+    // Generate filename: {organism}_{part}_{source}_{pixelX}_{polarity}_{hash6}
+    normalizedFilename = generateDatasetFilename(metadata, fileHash)
 
     // ================= Phase 2: Preflight =================
     onProgress?.({ stage: 'preflight', percent: 100, message: 'Requesting upload token...' })
@@ -167,7 +174,7 @@ export async function uploadImzmlZipFileOSS({
         message: 'File already exists on server, reused.',
       })
       await cleanupResumable()
-      return { upload_id: String(fileId), fileHash, oss_path: '', reused: true }
+      return { upload_id: String(fileId), fileHash, oss_path: '', reused: true, datasetName: normalizedFilename }
     }
 
     // ================= Phase 3b: Get OSS credentials =================
@@ -324,7 +331,7 @@ export async function uploadImzmlZipFileOSS({
     onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete.' })
 
     await cleanupResumable()
-    return { upload_id: String(fileId), fileHash, oss_path: ossData.oss_path, reused: false }
+    return { upload_id: String(fileId), fileHash, oss_path: ossData.oss_path, reused: false, datasetName: normalizedFilename }
   } finally {
     currentOssClient = null
     currentUploadId = null

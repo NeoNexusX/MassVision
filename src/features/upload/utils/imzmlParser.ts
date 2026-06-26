@@ -116,16 +116,7 @@ function parseIonSource(params: ImzMLParam[]): string | undefined {
     .map((p) => norm(`${p.name || ''} ${p.value || ''}`))
     .join(' ')
 
-  // 1) Text-priority sources — no standard accession, rely on text
-  if (/\bap\s+smaldi\s*5\s+af\b/i.test(allText)) return 'AP-SMALDI5 AF'
-  if (/\bap\s+smaldi\b/i.test(allText)) return 'AP-SMALDI'
-  if (/\bir\s+maldesi\b/i.test(allText)) return 'IR-MALDESI'
-  if (/\bmaldi[\s-]+2\b/i.test(allText)) return 'MALDI-2'
-  if (/\bnano[\s-]+desi\b/i.test(allText)) return 'nano-DESI'
-  if (/\bsims\b/i.test(allText) || /secondary\s+ion\s+mass\s+spectrometry/i.test(allText)) return 'SIMS'
-  if (/\bldi\b/i.test(allText)) return 'LDI'
-
-  // 2) Accession-priority sources
+  // 1) Accession-priority sources — standard MS CV terms
   const accPriority: [string, string][] = [
     ['MS:1000239', 'AP-MALDI'],
     ['MS:1002011', 'DESI'],
@@ -136,7 +127,16 @@ function parseIonSource(params: ImzMLParam[]): string | undefined {
     if (params.some((p) => (p.accession || '').toUpperCase() === acc)) return label
   }
 
-  // 3) Text fallback for accession-priority sources
+  // 2) Text-priority sources — no standard accession, rely on text
+  if (/\bap\s+smaldi\s*5\s+af\b/i.test(allText)) return 'AP-SMALDI5 AF'
+  if (/\bap\s+smaldi\b/i.test(allText)) return 'AP-SMALDI'
+  if (/\bir\s+maldesi\b/i.test(allText)) return 'IR-MALDESI'
+  if (/\bmaldi[\s-]+2\b/i.test(allText)) return 'MALDI-2'
+  if (/\bnano[\s-]+desi\b/i.test(allText)) return 'nano-DESI'
+  if (/\bsims\b/i.test(allText) || /secondary\s+ion\s+mass\s+spectrometry/i.test(allText)) return 'SIMS'
+  if (/\bldi\b/i.test(allText)) return 'LDI'
+
+  // 3) Text fallback for accession-priority sources (when accession missing)
   if (/\bap\s+maldi\b/i.test(allText) || /atmospheric\s+pressure\s+matrix/i.test(allText)) return 'AP-MALDI'
   if (/\bdesi\b/i.test(allText) || /desorption\s+electrospray/i.test(allText)) return 'DESI'
   if (/\bsaldi\b/i.test(allText) || /surface.assisted\s+laser/i.test(allText)) return 'SALDI'

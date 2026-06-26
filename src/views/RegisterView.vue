@@ -40,7 +40,7 @@ const profileFormProps = computed(() => ({
     <div
       class="card max-w-5xl w-full bg-base-100 shadow-2xl rounded-2xl overflow-visible border border-base-200"
     >
-      <div class="flex flex-col lg:flex-row relative items-stretch">
+      <form class="flex flex-col lg:flex-row relative items-stretch" @submit.prevent="registerForm.register">
         <RegisterAccountForm
           v-bind="accountFormProps"
         />
@@ -48,7 +48,7 @@ const profileFormProps = computed(() => ({
         <RegisterProfileForm
           v-bind="profileFormProps"
         />
-      </div>
+      </form>
     </div>
   </div>
 </template>

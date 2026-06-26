@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import IonImageViewer from '@/features/workspace/results/components/visuals/IonImageViewer.vue'
 import ROIOverlay from '@/features/workspace/results/components/visuals/ROIOverlay.vue'
 import type { ROIType } from '@/features/workspace/results/composables/useROI'
 
 defineProps<{
+  isStale?: boolean
   ionMatrix: Float32Array | null
   displayMatrix: Float32Array | null
   selectedMz: number
@@ -15,11 +17,6 @@ defineProps<{
   dataMax: number
   ionCols: number
   ionRows: number
-  meta: {
-    analyzer: string
-    ionSource: string
-    pixelSize: string
-  }
   roiTool: ROIType | null
   overlayData: Uint8ClampedArray | null
   gradientCss: string
@@ -41,6 +38,11 @@ const emit = defineEmits<{
   (e: 'draft-cleared'): void
   (e: 'roi-overlay-ref', element: InstanceType<typeof ROIOverlay> | null): void
 }>()
+
+const ionViewerRef = ref<InstanceType<typeof IonImageViewer> | null>(null)
+const roiOverlayRef = ref<InstanceType<typeof ROIOverlay> | null>(null)
+
+watch(roiOverlayRef, (el) => emit('roi-overlay-ref', el ?? null))
 </script>
 
 <template>
@@ -49,13 +51,21 @@ const emit = defineEmits<{
       class="flex-1 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col overflow-hidden"
     >
       <div
-        v-if="!ionMatrix"
+        v-if="isStale"
+        class="flex-1 flex flex-col items-center justify-center text-base-content/40 gap-1"
+      >
+        <p class="text-lg">No result selected</p>
+        <p class="text-sm">Navigate from the Workspace dashboard to view a result.</p>
+      </div>
+      <div
+        v-else-if="!ionMatrix"
         class="flex-1 flex items-center justify-center text-base-content/40 text-lg"
       >
         Loading ion image...
       </div>
       <div v-else class="flex-1 min-h-0 relative overflow-hidden">
         <IonImageViewer
+          ref="ionViewerRef"
           :selected-mz="selectedMz"
           :mz-tolerance="mzTolerance"
           :colormap="colormap"
@@ -65,7 +75,6 @@ const emit = defineEmits<{
           :matrix="displayMatrix"
           :matrix-cols="ionCols"
           :matrix-rows="ionRows"
-          :meta-info="meta"
           :draw-mode="!!roiTool"
           :overlay-data="overlayData"
           :overlay-width="ionCols"
@@ -76,12 +85,11 @@ const emit = defineEmits<{
           @reset="emit('reset-controls')"
         />
         <ROIOverlay
-          :ref="
-            (element) => emit('roi-overlay-ref', element as InstanceType<typeof ROIOverlay> | null)
-          "
+          ref="roiOverlayRef"
           :tool="roiTool"
           :image-width="ionCols"
           :image-height="ionRows"
+          :target-el="ionViewerRef?.canvasContainer ?? null"
           @draft-updated="emit('draft-updated', $event)"
           @draft-cleared="emit('draft-cleared')"
         />

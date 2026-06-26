@@ -2,7 +2,8 @@
 import { useDatasetDetail } from '@/features/datasets/composables/useDatasetDetail'
 
 const {
-  route,
+  source,
+  isStale,
   dataset,
   loading,
   isCopied,
@@ -28,7 +29,7 @@ const {
           class="btn btn-sm btn-ghost text-base-content/70 hover:bg-base-300 rounded-lg shrink-0 mt-1"
         >
           <svg-icon type="back" class="w-4 h-4 mr-1" />
-          Back to {{ route.query.from === 'public' ? 'Public Datasets' : 'My Datasets' }}
+          Back to {{ source === 'public' ? 'Public Datasets' : 'My Datasets' }}
         </button>
         <div class="ml-1 sm:ml-4">
           <h1 class="text-3xl font-bold text-base-content tracking-tight">Dataset Overview</h1>
@@ -74,9 +75,11 @@ const {
       <template v-else-if="!dataset">
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200 p-12 text-center">
           <svg-icon type="duplicate" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-          <h3 class="text-lg font-bold text-base-content">No data available</h3>
+          <h3 class="text-lg font-bold text-base-content">
+            {{ isStale ? 'Session lost' : 'No data available' }}
+          </h3>
           <p class="text-base-content/60 mt-1">
-            The dataset information could not be found or has been deleted.
+            {{ isStale ? 'Please navigate from My Datasets or Public Datasets to view details.' : 'The dataset information could not be found or has been deleted.' }}
           </p>
         </div>
       </template>
@@ -94,7 +97,7 @@ const {
               v-if="ticImageUrl && !ticImageError"
               :src="ticImageUrl"
               :alt="dataset.filename"
-              class="w-full h-full object-cover"
+              class="w-full h-full object-contain"
               @error="ticImageError = true"
             />
             <div v-if="!ticImageUrl || ticImageError" class="w-full h-full" v-html="placeholderSvg"></div>
@@ -340,7 +343,7 @@ const {
             Technical Details
           </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="flex flex-col max-w-full">
+            <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
                 >MD5 Hash</span
               >
@@ -363,12 +366,6 @@ const {
                   </button>
                 </div>
               </div>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Storage Type</span
-              >
-              <span class="text-base-content break-words">{{ dataset?.storageType || '—' }}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"

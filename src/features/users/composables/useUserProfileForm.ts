@@ -23,8 +23,8 @@ export function useUserProfileForm() {
   const {
     count: codeCooldown,
     isActive: isCooldownActive,
+    isExhausted,
     start: startCodeCooldown,
-    stop: stopCodeCooldown,
   } = useCountdown(
     getConfig().verification.countdownSeconds,
     SESSION_KEYS.profileEmailCode,
@@ -36,7 +36,6 @@ export function useUserProfileForm() {
   const formData = reactive({
     username: '',
     email: '',
-    password: '',
     identity: '',
     institution: '',
     position: '',
@@ -51,6 +50,12 @@ export function useUserProfileForm() {
   const emailCode = ref('')
   const sendingCode = ref(false)
 
+  // ── Password change modal ────────────────────────────────────────────────
+  const isPasswordModalOpen = ref(false)
+  const newPassword = ref('')
+  const confirmPassword = ref('')
+  const savingPassword = ref(false)
+
   // Computed
 
   // Methods
@@ -64,7 +69,6 @@ export function useUserProfileForm() {
     formData.region = data.region || ''
     formData.orcid = data.orcid || ''
     formData.homepage = data.homepage || ''
-    formData.password = ''
   }
 
   const handleLogout = async () => {
@@ -80,11 +84,14 @@ export function useUserProfileForm() {
 
   const closeEmailModal = () => {
     isEmailModalOpen.value = false
-    stopCodeCooldown()
-    codeCooldown.value = 0
   }
 
   const sendVerificationCode = async () => {
+    if (isExhausted.value) {
+      showToast('Maximum verification code requests reached for this session. Please try again later.', 'error')
+      return
+    }
+
     if (!newEmail.value || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(newEmail.value)) {
       showToast('Please enter a valid email address', 'warning')
       return
@@ -109,15 +116,9 @@ export function useUserProfileForm() {
     try {
       loading.value = true
       await updateUserProfile({
+        username: formData.username,
         email: newEmail.value,
         verify_code: emailCode.value,
-        username: formData.username,
-        institution: formData.institution,
-        position: formData.position,
-        research_field: formData.research_field,
-        region: formData.region,
-        orcid: formData.orcid,
-        homepage: formData.homepage,
       } as any)
       formData.email = newEmail.value
       showToast('Email updated successfully', 'success')
@@ -127,6 +128,55 @@ export function useUserProfileForm() {
       showToast(extractBackendError(err), 'error')
     } finally {
       loading.value = false
+    }
+  }
+
+  // ── Password change modal methods ──────────────────────────────────────
+
+  const openPasswordModal = () => {
+    newPassword.value = ''
+    confirmPassword.value = ''
+    isPasswordModalOpen.value = true
+  }
+
+  const closePasswordModal = () => {
+    isPasswordModalOpen.value = false
+  }
+
+  const submitPasswordChange = async () => {
+    const pw = newPassword.value
+    if (!pw || !confirmPassword.value) {
+      showToast('Please fill in both password fields', 'warning')
+      return
+    }
+
+    const passwordPattern = /^(?=.*[a-zA-Z])(?=.*\d).{8,25}$/
+    if (!passwordPattern.test(pw)) {
+      showToast('Password must be 8-25 characters with at least one letter and one number', 'error')
+      return
+    }
+
+    if (pw !== confirmPassword.value) {
+      showToast('Passwords do not match', 'error')
+      return
+    }
+
+    savingPassword.value = true
+    try {
+      await updateUserProfile({
+        username: formData.username,
+        password: pw,
+      } as Partial<UsrProfileUpdate>)
+      showToast('Password changed successfully. Please login again.', 'success')
+      closePasswordModal()
+      setTimeout(() => {
+        handleLogout()
+      }, 1500)
+    } catch (err: any) {
+      console.error('Password change failed:', err?.response?.data ?? err)
+      showToast(extractBackendError(err), 'error')
+    } finally {
+      savingPassword.value = false
     }
   }
 
@@ -147,16 +197,6 @@ export function useUserProfileForm() {
   }
 
   const handleSave = async () => {
-    const password = formData.password.trim()
-    if (password !== '') {
-      const passwordPattern = /^(?=.*[a-zA-Z])(?=.*\d).{8,25}$/
-      if (!passwordPattern.test(password)) {
-        showToast('Password must be 8-25 characters with at least one letter and one number', 'error')
-        return
-      }
-    }
-
-    let logoutRequired = false
     loading.value = true
     const messages: string[] = []
 
@@ -170,20 +210,11 @@ export function useUserProfileForm() {
       homepage: formData.homepage,
     }
 
-    if (formData.password.trim() !== '') {
-      profilePayload.password = formData.password
-    }
-
     try {
       await updateUserProfile(profilePayload)
-      if (formData.password.trim() !== '') {
-        logoutRequired = true
-      }
       messages.push('Profile info updated.')
     } catch (profileError: any) {
       messages.push(`Profile update failed: ${extractBackendError(profileError)}`)
-    } finally {
-      formData.password = ''
     }
 
     try {
@@ -194,18 +225,10 @@ export function useUserProfileForm() {
       messages.push(`Profile update failed: ${extractBackendError(refreshError)}`)
     }
 
-    // messages
-    const fullMessage = messages.join('\n') + (logoutRequired ? '\nPlease login again with your new password.' : '')
-
-    // toast
+    const fullMessage = messages.join('\n')
     const isFailure = messages.some((message) => message.toLowerCase().includes('failed'))
     showToast(fullMessage, isFailure ? 'error' : 'success')
 
-    if (logoutRequired) {
-      setTimeout(() => {
-        handleLogout()
-      }, 1500)
-    }
     loading.value = false
   }
 
@@ -222,11 +245,20 @@ export function useUserProfileForm() {
     emailCode,
     sendingCode,
     codeCooldown,
+    isCooldownActive,
+    isExhausted,
+    isPasswordModalOpen,
+    newPassword,
+    confirmPassword,
+    savingPassword,
     quota,
     openEmailModal,
     closeEmailModal,
     sendVerificationCode,
     submitEmailChange,
+    openPasswordModal,
+    closePasswordModal,
+    submitPasswordChange,
     handleSave,
     handleLogout,
   }

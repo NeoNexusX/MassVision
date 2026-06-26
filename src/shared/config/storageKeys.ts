@@ -25,4 +25,6 @@ export const SESSION_KEYS = {
   registerCodeAttempts: 'register_code_attempts',
   /** 个人资料页邮箱验证码尝试次数 */
   profileEmailCode: 'profile_email_code',
+  /** 忘记密码页验证码尝试次数 */
+  forgotPasswordCodeAttempts: 'forgot_password_code_attempts',
 } as const

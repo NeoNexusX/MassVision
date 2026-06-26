@@ -1,4 +1,4 @@
-import { getDownloadMetadata } from '@/features/datasets/api/datasetApi'
+import { getDownloadMetadata, getDownloadRaw } from '@/features/datasets/api/datasetApi'
 
 async function pollDownloadUrl(
   fileId: string,
@@ -48,4 +48,33 @@ export async function ossDownloadAndSave(
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+}
+
+/**
+ * RAW pre-signed download: GET /files/{file_id}/download_raw → imzML + ibd URLs.
+ * No polling — pre-signed URLs are returned immediately.
+ * Downloads each file sequentially via a hidden anchor.
+ */
+export async function ossDownloadRaw(
+  fileId: string,
+  options?: { getFallbackFilename?: () => string | undefined },
+) {
+  const { files } = await getDownloadRaw(fileId)
+
+  if (!files || !files.length) {
+    throw new Error('No download URLs returned')
+  }
+
+  for (const entry of files) {
+    const link = document.createElement('a')
+    link.href = entry.url
+    link.setAttribute('download', entry.filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    // Small delay between downloads to avoid browser blocking
+    if (files.length > 1 && entry !== files[files.length - 1]!) {
+      await new Promise((resolve) => setTimeout(resolve, 300))
+    }
+  }
 }

@@ -19,13 +19,13 @@ const routes = [
     component: PublicDatasets,
   },
   {
-    path: '/my-datasets',
+    path: '/mydatasets',
     name: 'MyDatasets',
     component: MyDatasets,
     meta: { requiresAuth: true },
   },
   {
-    path: '/datasets/:id',
+    path: '/overview',
     name: 'DatasetOverview',
     component: () => import('../views/DatasetOverviewView.vue'),
     meta: { requiresAuth: true },
@@ -39,6 +39,11 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: () => import('../views/RegisterView.vue'),
+  },
+  {
+    path: '/forgotpassword',
+    name: 'ForgotPassword',
+    component: () => import('../views/ForgotPasswordView.vue'),
   },
   {
     path: '/users',
@@ -65,15 +70,9 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/workspace/results/:id',
+    path: '/workspace/results',
     name: 'WorkspaceResultDetail',
     component: () => import('../views/workspace/ResultDetail.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/workspace/tasks/:id',
-    name: 'WorkspaceTaskDetail',
-    component: () => import('../views/workspace/TaskDetail.vue'),
     meta: { requiresAuth: true },
   },
 ]
@@ -94,7 +93,7 @@ router.beforeEach(async (to, from, next) => {
   // Redirect to Profile if already logged in and trying to access login/register pages
   // But allow it if coming from an auth-required page (token may be stale / backend down)
   const fromAuthRequired = from.matched.some((record) => record.meta.requiresAuth)
-  if (loggedIn && !fromAuthRequired && ['/login', '/register'].includes(to.path)) {
+  if (loggedIn && !fromAuthRequired && ['/login', '/register', '/forgotpassword'].includes(to.path)) {
     return next('/profile')
   }
 

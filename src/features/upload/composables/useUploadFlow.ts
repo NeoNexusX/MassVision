@@ -136,13 +136,13 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     startUploading('Resuming upload...')
 
     try {
-      await uploadImzmlDataset({
+      const result = await uploadImzmlDataset({
         datasetName: resumeState.pendingDatasetName.value,
         signal: abortController!.signal,
         resume: true,
         onProgress: handleProgress,
       })
-      finishSuccessfully(resumeState.pendingDatasetName.value)
+      finishSuccessfully(result?.datasetName || resumeState.pendingDatasetName.value)
     } catch (err: any) {
       handleUploadError(err, 'Resume upload failed')
     } finally {
@@ -185,7 +185,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
         signal: abortController!.signal,
         onProgress: handleProgress,
       })
-      finishSuccessfully(selectedPair.value.baseName, !!result?.reused)
+      finishSuccessfully(result?.datasetName || selectedPair.value.baseName, !!result?.reused)
     } catch (err: any) {
       handleUploadError(err, 'Pipeline sequence failed')
     } finally {

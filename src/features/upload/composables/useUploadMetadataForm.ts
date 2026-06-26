@@ -121,6 +121,17 @@ export function useUploadMetadataForm() {
         return `Please specify custom value for ${field.label}.`
       }
     }
+    // Validate pixel size ranges
+    for (const key of ['pixel_size_horizontal', 'pixel_size_vertical'] as const) {
+      const val = form.value[key]
+      if (val) {
+        const num = Number(val)
+        if (isNaN(num) || !Number.isInteger(num) || num < 1 || num > 200) {
+          const label = key === 'pixel_size_horizontal' ? 'Pixel Size X (μm)' : 'Pixel Size Y (μm)'
+          return `${label} must be an integer between 1 and 200.`
+        }
+      }
+    }
     return ''
   }
 
