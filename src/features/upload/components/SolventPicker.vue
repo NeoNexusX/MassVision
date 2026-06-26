@@ -11,7 +11,7 @@
           v-model="percentageStr"
           type="text"
           inputmode="decimal"
-          class="input input-bordered w-full"
+          class="input input-bordered w-full text-base"
           :class="{ 'input-error': percentageError }"
           placeholder="e.g. 50"
           @keyup.enter="addSolvent"

@@ -126,7 +126,7 @@ function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
             v-model="form.pixel_size_horizontal"
             type="text"
             inputmode="numeric"
-            class="input input-bordered w-full"
+            class="input input-bordered w-full text-base"
             :class="{ 'input-error': pixelSizeXError }"
             placeholder="e.g. 50"
             @blur="validatePixelSize(form.pixel_size_horizontal, 'horizontal')"
@@ -143,7 +143,7 @@ function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
             v-model="form.pixel_size_vertical"
             type="text"
             inputmode="numeric"
-            class="input input-bordered w-full"
+            class="input input-bordered w-full text-base"
             :class="{ 'input-error': pixelSizeYError }"
             placeholder="e.g. 50"
             @blur="validatePixelSize(form.pixel_size_vertical, 'vertical')"
@@ -237,10 +237,11 @@ function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
         />
       </div>
 
-      <div class="flex flex-col">
+      <!-- Solvent: hidden for SIMS, optional for LAESI, required for other ion sources -->
+      <div v-if="form.ionisation_source !== 'SIMS'" class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content text-xl"
-            >Solvent <span class="text-error">*</span></span
+            >Solvent <span v-if="form.ionisation_source !== 'LAESI'" class="text-error">*</span></span
           ></label
         >
         <SolventPicker
@@ -279,7 +280,7 @@ function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
             v-model="form.mz"
             type="text"
             inputmode="numeric"
-            class="input input-bordered w-full"
+            class="input input-bordered w-full text-base"
             placeholder="e.g. 200"
           />
         </div>
@@ -293,7 +294,7 @@ function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
             v-model="form.resolving_power"
             type="text"
             inputmode="numeric"
-            class="input input-bordered w-full"
+            class="input input-bordered w-full text-base"
             placeholder="e.g. 140000"
           />
         </div>

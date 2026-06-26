@@ -9,7 +9,7 @@
         </p>
       </div>
       <div class="flex items-center gap-3">
-        <router-link to="/my-datasets" class="btn btn-ghost btn-lg">Go to MyDatasets</router-link>
+        <router-link to="/mydatasets" class="btn btn-ghost btn-lg">Go to MyDatasets</router-link>
         <router-link to="/workspace/new" class="btn btn-primary btn-lg">New Task</router-link>
       </div>
     </div>
@@ -40,7 +40,7 @@
     <div class="flex flex-col gap-8">
       <section class="bg-base-100 rounded-lg border border-base-200 shadow-sm p-6">
         <h2 class="text-2xl font-medium mb-4">Recent Results</h2>
-        <ResultTable :results="recentResults" :loading="loading" @delete="onDeleteClick" />
+        <ResultTable :results="recentResults" :loading="loading" @delete="onDeleteClick" @view-error="showErrorModal" />
       </section>
     </div>
 
@@ -92,6 +92,19 @@
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
+
+    <!-- Error Modal for failed processes -->
+    <ConfirmDialog
+      :open="isErrorModalOpen"
+      title="Process Failed"
+      hide-confirm
+      @cancel="isErrorModalOpen = false"
+    >
+      <div>
+        <p class="font-medium">Error details:</p>
+        <p class="mt-2 text-sm text-base-content/70 whitespace-pre-wrap break-all">{{ errorModalMessage }}</p>
+      </div>
+    </ConfirmDialog>
   </div>
 </template>
 
@@ -114,6 +127,15 @@ const pageSizeOptions = getConfig().pagination.pageSizeOptions
 const { showToast } = useToast()
 const isDeleteModalOpen = ref(false)
 const resultToDelete = ref<string | null>(null)
+
+// Error modal for failed processes
+const isErrorModalOpen = ref(false)
+const errorModalMessage = ref('')
+
+function showErrorModal(message: string) {
+  errorModalMessage.value = message
+  isErrorModalOpen.value = true
+}
 
 function onDeleteClick(id: string) {
   resultToDelete.value = id
