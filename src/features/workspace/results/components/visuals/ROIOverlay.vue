@@ -40,6 +40,8 @@ const props = defineProps<{
   tool: ROIType | null
   imageWidth: number
   imageHeight: number
+  /** Element whose bounding rect represents the image draw area (must match canvas renderer's container) */
+  targetEl?: HTMLElement | null
 }>()
 
 const emit = defineEmits<{
@@ -89,24 +91,50 @@ const handlePos = computed(() => {
 })
 
 // ─── Coordinate helpers ───
+const PAD = 0.04 // must match useCanvasRenderer.ts
+
+/** Get the element used for coordinate calculation — use targetEl if provided, else parentElement */
+function getCoordEl(): HTMLElement | null {
+  return props.targetEl || containerRef.value?.parentElement || null
+}
+
+/** The overlay's own container (covers the full IonImageSection parent area) */
+function getOverlayEl(): HTMLElement | null {
+  return containerRef.value?.parentElement || null
+}
+
 function getScale() {
-  const el = containerRef.value?.parentElement
-  if (!el || !props.imageWidth || !props.imageHeight) return { ox: 0, oy: 0, scale: 1, W: 0, H: 0 }
-  const r = el.getBoundingClientRect()
-  const s = Math.min(r.width / props.imageWidth, r.height / props.imageHeight)
+  const canvasEl = getCoordEl()       // canvas container (actual image draw area)
+  const overlayEl = getOverlayEl()    // outer div (ROIOverlay covers this)
+  if (!canvasEl || !overlayEl || !props.imageWidth || !props.imageHeight)
+    return { ox: 0, oy: 0, scale: 1, W: 0, H: 0 }
+
+  const cr = canvasEl.getBoundingClientRect()
+  const padW = cr.width * (1 - PAD * 2)
+  const padH = cr.height * (1 - PAD * 2)
+  const s = Math.min(padW / props.imageWidth, padH / props.imageHeight)
+  const drawW = Math.floor(props.imageWidth * s)
+  const drawH = Math.floor(props.imageHeight * s)
+
+  // Image origin relative to canvas container
+  const canvasOx = Math.floor((cr.width - drawW) / 2)
+  const canvasOy = Math.floor((cr.height - drawH) / 2)
+
+  // Translate to overlay container's coordinate space
+  const or = overlayEl.getBoundingClientRect()
   return {
-    ox: Math.floor((r.width - props.imageWidth * s) / 2),
-    oy: Math.floor((r.height - props.imageHeight * s) / 2),
+    ox: (cr.left - or.left) + canvasOx,
+    oy: (cr.top - or.top) + canvasOy,
     scale: s,
-    W: r.width,
-    H: r.height,
+    W: or.width,
+    H: or.height,
   }
 }
 
 function toMatrix(ex: number, ey: number): ROIPoint {
-  const el = containerRef.value?.parentElement
-  if (!el) return { x: 0, y: 0 }
-  const r = el.getBoundingClientRect()
+  const overlayEl = getOverlayEl()
+  if (!overlayEl) return { x: 0, y: 0 }
+  const r = overlayEl.getBoundingClientRect()
   const t = getScale()
   return {
     x: clamp(Math.round((ex - r.left - t.ox) / t.scale), 0, props.imageWidth - 1),
@@ -350,7 +378,7 @@ function clearAll() {
 // ─── Lifecycle ───
 let ro: ResizeObserver | null = null
 onMounted(() => {
-  const el = containerRef.value?.parentElement
+  const el = getOverlayEl()
   if (el) {
     initCanvas()
     ro = new ResizeObserver(() => {

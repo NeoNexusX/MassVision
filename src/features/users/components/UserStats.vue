@@ -2,8 +2,8 @@
 defineProps<{
   stats: {
     total: number
-    active: number
-    inactive: number
+    admin: number
+    regularUsers: number
     instCount: number
   }
 }>()
@@ -11,21 +11,21 @@ defineProps<{
 
 <template>
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-5">
-      <div class="text-sm font-medium text-base-content/50">Total Users</div>
-      <div class="text-3xl font-bold mt-2 text-base-content">{{ stats.total }}</div>
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-200/60 p-4 text-center">
+      <div class="text-base text-base-content/60">Total Users</div>
+      <div class="text-4xl font-bold mt-2 text-base-content">{{ stats.total }}</div>
     </div>
-    <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-5">
-      <div class="text-sm font-medium text-base-content/50">Active Users</div>
-      <div class="text-3xl font-bold mt-2 text-success">{{ stats.active }}</div>
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-200/60 p-4 text-center">
+      <div class="text-base text-base-content/60">Admin</div>
+      <div class="text-4xl font-bold mt-2 text-info">{{ stats.admin }}</div>
     </div>
-    <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-5">
-      <div class="text-sm font-medium text-base-content/50">Inactive Users</div>
-      <div class="text-3xl font-bold mt-2 text-base-content/40">{{ stats.inactive }}</div>
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-200/60 p-4 text-center">
+      <div class="text-base text-base-content/60">Users</div>
+      <div class="text-4xl font-bold mt-2 text-success">{{ stats.regularUsers }}</div>
     </div>
-    <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-5">
-      <div class="text-sm font-medium text-base-content/50">Institutions</div>
-      <div class="text-3xl font-bold mt-2 text-base-content">{{ stats.instCount }}</div>
+    <div class="bg-base-100 rounded-lg shadow-sm border border-base-200/60 p-4 text-center">
+      <div class="text-base text-base-content/60">Institutions</div>
+      <div class="text-4xl font-bold mt-2 text-base-content">{{ stats.instCount }}</div>
     </div>
   </div>
 </template>

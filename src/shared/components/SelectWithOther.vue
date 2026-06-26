@@ -81,12 +81,13 @@ function onSelectChange(value: string) {
 
 function onOtherInput(e: Event) {
   const raw = (e.target as HTMLInputElement).value
-  // Real-time normalization: trim + collapse spaces
   const normalized = normalizeOtherInput(raw)
   otherText.value = normalized
-  // Clear error while typing
   otherError.value = ''
-  emit('update:modelValue', normalized)
+  // Only emit non-empty values — deleting all text should not collapse the input
+  if (normalized.trim()) {
+    emit('update:modelValue', normalized)
+  }
 }
 
 function onOtherBlur() {

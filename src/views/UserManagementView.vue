@@ -14,14 +14,13 @@ const {
   filters,
   currentPage,
   pageSize,
-  totalItems,
   isDrawerOpen,
   selectedUser,
-  totalPages,
+  meta,
   stats,
+  pageRange,
   from,
   to,
-  pageRange,
   fetchUsers,
   resetFilters,
   handleSearch,
@@ -33,23 +32,25 @@ const {
   prevPage,
   nextPage,
   goToPage,
+  changeSize,
+  quotaLimits,
+  quotaLoading,
+  saveUserQuota,
 } = useUserManagement()
 </script>
 
 <template>
-  <div class="drawer drawer-end min-h-screen bg-base-200 font-sans">
-    <input id="user-drawer" type="checkbox" class="drawer-toggle" v-model="isDrawerOpen" />
-
+  <div class="min-h-screen bg-base-200 font-sans">
     <!-- Main Content -->
-    <div class="drawer-content p-4 md:p-8 flex flex-col gap-6 max-w-7xl mx-auto w-full">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-8">
       <!-- 1. Top Banner -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="flex items-start justify-between mb-6">
         <div>
-          <h1 class="text-3xl font-bold text-base-content tracking-tight">User Management</h1>
-          <p class="text-base-content/60 mt-1">View and manage registered users across regions.</p>
+          <h1 class="text-4xl font-semibold text-base-content">User Management</h1>
+          <p class="text-lg text-base-content/60 mt-1">View and manage registered users across regions.</p>
         </div>
         <button
-          class="btn btn-primary rounded-xl shadow-sm border-none"
+          class="btn btn-primary rounded-lg shadow-sm border-none"
           @click="fetchUsers"
           :disabled="loading"
         >
@@ -80,8 +81,8 @@ const {
         :filters="filters"
         :current-page="currentPage"
         :page-size="pageSize"
-        :total-items="totalItems"
-        :total-pages="totalPages"
+        :total-pages="meta.total_pages"
+        :total-items="meta.total_records"
         :from="from"
         :to="to"
         :page-range="pageRange"
@@ -91,14 +92,18 @@ const {
         @prev-page="prevPage"
         @next-page="nextPage"
         @go-to-page="goToPage"
+        @change-size="changeSize"
       />
     </div>
 
     <UserDrawer
       :selected-user="selectedUser"
       :current-username="authStore.user?.username"
+      :quota-limits="quotaLimits"
+      :quota-loading="quotaLoading"
       @close="closeDrawer"
       @delete="promptDeleteUser"
+      @save-quota="saveUserQuota"
     />
 
     <!-- Delete Confirmation Modal -->

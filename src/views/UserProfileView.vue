@@ -36,20 +36,20 @@
                   <IconInput label="Identity" :model-value="formData.identity" readonly />
 
                   <!-- Email (read-only, changed via modal) -->
-                  <div class="flex items-end  gap-3">
-                    <IconInput class="flex-3" label="Email" :model-value="formData.email" readonly />
-                    <button class=" flex-1 btn" type="button" @click="openEmailModal">
+                  <div class="flex items-end gap-3">
+                    <IconInput class="flex-[3]" label="Email" :model-value="formData.email" readonly />
+                    <button class="flex-[2] btn whitespace-nowrap" type="button" @click="openEmailModal">
                       Change Email
                     </button>
                   </div>
 
-                  <!-- Password (Editable) -->
-                  <IconInput
-                    label="New Password"
-                    v-model="formData.password"
-                    type="password"
-                    placeholder="Leave blank to keep current"
-                  />
+                  <!-- Password (via modal) -->
+                  <div class="flex items-end gap-3">
+                    <IconInput class="flex-[3]" label="Password" model-value="••••••••" readonly />
+                    <button class="flex-[2] btn whitespace-nowrap" type="button" @click="openPasswordModal">
+                      Change Password
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -163,10 +163,21 @@
       :is-open="isEmailModalOpen"
       :sending-code="sendingCode"
       :code-cooldown="codeCooldown"
+      :is-cooldown-active="isCooldownActive"
+      :is-exhausted="isExhausted"
       :loading="loading"
       @send-code="sendVerificationCode"
       @confirm="submitEmailChange"
       @close="closeEmailModal"
+    />
+
+    <ChangePasswordModal
+      v-model:new-password="newPassword"
+      v-model:confirm-password="confirmPassword"
+      :is-open="isPasswordModalOpen"
+      :loading="savingPassword"
+      @confirm="submitPasswordChange"
+      @close="closePasswordModal"
     />
   </div>
 </template>
@@ -175,6 +186,7 @@
 import IconInput from '@/shared/components/IconInput.vue'
 import IconSelect from '@/shared/components/IconSelect.vue'
 import EmailChangeModal from '@/features/users/components/EmailChangeModal.vue'
+import ChangePasswordModal from '@/features/users/components/ChangePasswordModal.vue'
 import { useUserProfileForm } from '@/features/users/composables/useUserProfileForm'
 
 const {
@@ -187,11 +199,20 @@ const {
   emailCode,
   sendingCode,
   codeCooldown,
+  isCooldownActive,
+  isExhausted,
+  isPasswordModalOpen,
+  newPassword,
+  confirmPassword,
+  savingPassword,
   quota,
   openEmailModal,
   closeEmailModal,
   sendVerificationCode,
   submitEmailChange,
+  openPasswordModal,
+  closePasswordModal,
+  submitPasswordChange,
   handleSave,
 } = useUserProfileForm()
 </script>

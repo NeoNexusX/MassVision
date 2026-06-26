@@ -87,7 +87,6 @@ const start = () => {
     dataset: selectedDataset.value,
     methods: [...selectedMethods.value],
     status: 'Queued',
-    progress: 0,
     created: new Date().toISOString(),
     params: { ...params },
   }

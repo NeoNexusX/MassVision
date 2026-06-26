@@ -1,6 +1,6 @@
 import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { listFiles, listUserFiles, getFileImages } from '@/features/datasets/api/datasetApi'
+import { useRouter } from 'vue-router'
+import { getFileMetadata, getFileImages } from '@/features/datasets/api/datasetApi'
 import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
 import type { File } from '@/features/datasets/types/dataset'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
@@ -8,10 +8,11 @@ import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlace
 import { formatBytes } from '@/shared/utils/format'
 
 export function useDatasetDetail() {
-  // External composables
-  const route = useRoute()
   const router = useRouter()
-  const { handleDownload, isPacking } = useDownloadProgress()
+  const { handleDownloadRaw, isPacking } = useDownloadProgress()
+
+  // 从 history.state 读取导航上下文（无路径参数，刷新后会丢失）
+  const state = history.state as { fileId?: string; source?: 'my' | 'public' } | null
 
   // State
   const dataset = ref<File | null>(null)
@@ -20,9 +21,13 @@ export function useDatasetDetail() {
   const ticImageUrl = ref<string>('')
   const ticImageError = ref(false)
 
+  const source = computed(() => state?.source || 'my')
+  /** 刷新后 history.state 丢失，此时应提示用户从列表页重新进入 */
+  const isStale = computed(() => !state?.fileId)
+
   // Computed
   const placeholderSvg = computed(() => {
-    const targetId = (route.params.id as string) || (dataset.value?.filename as string)
+    const targetId = state?.fileId || (dataset.value?.filename as string)
     return getDatasetPlaceholderSvg({
       id: targetId,
       showGuides: true,
@@ -49,7 +54,7 @@ export function useDatasetDetail() {
   }
 
   const goBack = () => {
-    if (route.query.from === 'public') {
+    if (source.value === 'public') {
       router.push({ name: 'PublicDatasets' })
     } else {
       router.push({ name: 'MyDatasets' })
@@ -57,47 +62,28 @@ export function useDatasetDetail() {
   }
 
   const downloadCurrent = async () => {
-    const targetId = dataset.value?.id ? String(dataset.value.id) : (route.params.id as string)
+    const targetId = dataset.value?.id ? String(dataset.value.id) : ''
     if (!targetId) return
-    await handleDownload(targetId, {
+    await handleDownloadRaw(targetId, {
       getFallbackFilename: () => {
-        const filename =
-          dataset.value?.filename || dataset.value?.name || (route.params.id as string) || undefined
+        const filename = dataset.value?.filename || dataset.value?.name || undefined
         if (!filename) return undefined
         return filename.toLowerCase().endsWith('.zip') ? filename : `${filename}.zip`
       },
     })
   }
 
-  const findDatasetByRouteKey = async () => {
-    const searchKey = String(route.params.id || '')
-    if (!searchKey) return null
-
-    const listApi = route.query.from === 'my' ? listUserFiles : listFiles
-    try {
-      const body = await listApi({ filename: searchKey }, 1, 20)
-      const items = body?.data
-      if (!Array.isArray(items) || items.length === 0) return null
-
-      const tryWithZip = searchKey.endsWith('.zip') ? searchKey : `${searchKey}.zip`
-      return (
-        items.find((item: any) => {
-          const filename = (item.filename || '').toString()
-          const filenameBase = filename.replace(/\.[^/.]+$/, '')
-          return filename === searchKey || filenameBase === searchKey || filename === tryWithZip
-        }) || null
-      )
-    } catch (err) {
-      console.warn('Filename filter search failed', err)
-      return null
-    }
-  }
-
   const fetchDatasetDetails = async () => {
+    const fileId = state?.fileId
+    if (!fileId) {
+      loading.value = false
+      return
+    }
+
     loading.value = true
     try {
-      const found = await findDatasetByRouteKey()
-      dataset.value = found ? mapItemToDataset(found) : null
+      const metadata = await getFileMetadata(fileId)
+      dataset.value = metadata ? mapItemToDataset(metadata) : null
       // Fetch TIC image after dataset is loaded
       if (dataset.value?.id) {
         try {
@@ -121,7 +107,8 @@ export function useDatasetDetail() {
   onMounted(fetchDatasetDetails)
 
   return {
-    route,
+    source,
+    isStale,
     dataset,
     loading,
     isCopied,

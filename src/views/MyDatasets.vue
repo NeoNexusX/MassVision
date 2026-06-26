@@ -82,7 +82,7 @@
           :deletingId="deletingId"
           :packingIds="packingIds"
           @view-overview="viewOverview"
-          @download="handleDownload"
+          @download="handleDownloadRaw"
           @delete="handleDelete"
           @change-size="changeSize"
           @go-to-page="goToPage"
@@ -156,7 +156,7 @@ const handleUpload = () => {
 const { quota, fetchQuota } = useUserQuota()
 
 // Download progress handler (shared via composable)
-const { handleDownload, packingIds } = useDownloadProgress()
+const { handleDownloadRaw, packingIds } = useDownloadProgress()
 
 // Upload success: refresh list to get backend status
 const handleUploadSuccess = (_datasetName: string) => {
@@ -215,8 +215,8 @@ const cancelDelete = () => {
   datasetToDelete.value = null
 }
 
-const viewOverview = (id: string) => {
-  router.push({ name: 'DatasetOverview', params: { id }, query: { from: 'my' } })
+const viewOverview = (fileId: string) => {
+  router.push({ name: 'DatasetOverview', state: { fileId, source: 'my' } })
 }
 
 // pagination is provided by the `useDatasetList` composable (already destructured above)

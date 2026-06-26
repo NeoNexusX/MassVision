@@ -4,7 +4,7 @@
       bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md
       transition-shadow duration-200 border border-base-300
       cursor-pointer relative overflow-hidden"
-    @click="$emit('view-overview', dataset.name)"
+    @click="$emit('view-overview', dataset.id)"
   >
     <!-- Unclickable background mask to intercept clicks on the entire right side and bottom right edges -->
     <div
@@ -31,7 +31,7 @@
           class="block truncate cursor-pointer min-w-0 mb-1
             font-bold text-base-content text-[1.1em]
             hover:text-primary dark:hover:text-indigo-400 transition-colors"
-          @click.stop="$emit('view-overview', dataset.name)"
+          @click.stop="$emit('view-overview', dataset.id)"
           :title="dataset.filename || dataset.name"
           :aria-label="`Dataset name: ${dataset.filename || dataset.name}`"
         >
@@ -174,7 +174,7 @@ const actionItems = computed<ActionItem[]>(() => {
       icon: 'link',
       label: 'Overview',
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
-      onClick: () => emit('view-overview', props.dataset.name),
+      onClick: () => emit('view-overview', props.dataset.id),
     },
     props.packing
       ? {

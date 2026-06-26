@@ -1,4 +1,8 @@
 {
   "extends": "@tsconfig/node24/tsconfig.json",
-  "include": ["./**/*"]
+  "include": ["./**/*"],
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ESNext", "DOM"]
+  }
 }

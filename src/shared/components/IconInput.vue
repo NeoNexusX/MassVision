@@ -17,7 +17,8 @@
       />
       <input
         v-model="value"
-        class="flex-1 bg-transparent outline-none h-full py-2 text-[0.9em]"
+        class="flex-1 bg-transparent outline-none h-full py-2 text-[0.9em] min-w-0"
+        :class="{ truncate: readonly }"
         :type="type"
         :readonly="readonly"
         :required="required"
@@ -25,7 +26,8 @@
         :pattern="pattern"
         :minlength="minLength"
         :maxlength="maxLength"
-        :title="title"
+        :title="readonly ? String(modelValue) : title"
+        :autocomplete="autocomplete"
         @input="onInput"
         @focus="onFocus"
         @blur="onBlur"
@@ -58,6 +60,7 @@ const props = defineProps({
   title: { type: String, default: '' },
   error: { type: String, default: '' },
   validator: { type: Boolean, default: false },
+  autocomplete: { type: String, default: undefined },
 })
 
 const value = computed({

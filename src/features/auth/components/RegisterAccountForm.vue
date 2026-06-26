@@ -37,6 +37,7 @@ defineProps<{
           v-model="form.username"
           icon-type="user"
           type="text"
+          autocomplete="username"
           required
           validator
           placeholder="Username"
@@ -51,6 +52,7 @@ defineProps<{
           v-model="form.email"
           icon-type="email"
           type="email"
+          autocomplete="email"
           required
           validator
           placeholder="Email"
@@ -67,6 +69,7 @@ defineProps<{
           type="password"
           required
           validator
+          autocomplete="new-password"
           placeholder="Password"
           :error="errors.password"
           @focus="clearError('password')"
@@ -94,6 +97,7 @@ defineProps<{
           type="password"
           required
           validator
+          autocomplete="new-password"
           placeholder="Confirm Password"
           :error="errors.confirm_password"
           @blur="validateField('confirm_password')"

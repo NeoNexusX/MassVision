@@ -1,5 +1,5 @@
 import ZipCompressWorker from '@/workers/zip-compress.worker?worker'
-import { normalizeUploadFileName, ProgressTracker, type ImzmlFilePair } from './imzmlHelper'
+import { ProgressTracker, type ImzmlFilePair } from './imzmlHelper'
 import { loadZipFromOPFS } from './uploadResume'
 
 function pickChunkSize(totalBytes: number): number {
@@ -13,6 +13,7 @@ export interface CompressProgressEvent {
   loadedBytes: number
   totalBytes: number
   percent: number
+  phase?: 'hashing' | 'compressing'
   speedStr?: string
   etaStr?: string
 }
@@ -20,6 +21,8 @@ export interface CompressProgressEvent {
 export interface CompressOptions {
   onProgress?: (e: CompressProgressEvent) => void
   signal?: AbortSignal
+  /** Generate ZIP entry names from the file hash, e.g. { imzmlName, ibdName } */
+  getEntryNames?: (hash: string) => { imzmlName: string; ibdName: string }
 }
 
 export interface CompressResult {
@@ -29,8 +32,10 @@ export interface CompressResult {
 
 /**
  * Compress imzML + ibd into a ZIP stored in OPFS.
- * Reading, hashing, and compression all happen inside a Web Worker.
- * The returned hash is the MD5 of the raw imzml+ibd content (in sequence).
+ *
+ * Two-phase worker protocol:
+ * 1. Worker hashes imzml+ibd → sends hash → parent generates entry names
+ * 2. Worker compresses with renamed entries → sends done
  */
 export async function compressImzmlToOPFS(
   pair: ImzmlFilePair,
@@ -45,6 +50,7 @@ export async function compressImzmlToOPFS(
   const worker = new ZipCompressWorker()
   const tracker = new ProgressTracker()
   let lastReportTime = 0
+  let lastPhase: string | undefined
 
   return new Promise((resolve, reject) => {
     let settled = false
@@ -74,6 +80,12 @@ export async function compressImzmlToOPFS(
       switch (msg.type) {
         case 'progress':
           if (options?.onProgress) {
+            // Reset speed tracker on phase transition so it doesn't bleed
+            if (lastPhase && msg.phase !== lastPhase) {
+              tracker.reset()
+              lastReportTime = 0
+            }
+            lastPhase = msg.phase
             const now = Date.now()
             if (now - lastReportTime > 100) {
               const { speedStr, etaStr } = tracker.update(msg.loaded, totalBytes)
@@ -81,6 +93,7 @@ export async function compressImzmlToOPFS(
                 loadedBytes: msg.loaded,
                 totalBytes,
                 percent: Math.min(100, Math.round((msg.loaded / totalBytes) * 100)),
+                phase: msg.phase,
                 speedStr,
                 etaStr,
               })
@@ -88,6 +101,16 @@ export async function compressImzmlToOPFS(
             }
           }
           break
+
+        case 'hash-ready': {
+          const hash: string = msg.hash
+          const names = options?.getEntryNames?.(hash) ?? {
+            imzmlName: pair.imzml.name,
+            ibdName: pair.ibd.name,
+          }
+          worker.postMessage({ type: 'rename', ...names })
+          break
+        }
 
         case 'done':
           cleanup()
@@ -123,14 +146,12 @@ export async function compressImzmlToOPFS(
       reject(new Error('Zip compression worker failed'))
     }
 
-    // Send files to worker (structured clone shares underlying references)
+    // Phase 1: send files to worker for hashing (no entry names yet)
     worker.postMessage({
       type: 'start',
       imzml: pair.imzml,
       ibd: pair.ibd,
       chunkSize,
-      imzmlName: normalizeUploadFileName(pair.imzml.name),
-      ibdName: normalizeUploadFileName(pair.ibd.name),
     })
   })
 }

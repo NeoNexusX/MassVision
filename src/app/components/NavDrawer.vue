@@ -109,7 +109,7 @@ const items = computed<Item[]>(() =>
         show: true,
         children: [
           { to: '/datasets', icon: 'queue_list', label: 'Public Datasets' },
-          ...(props.user ? [{ to: '/my-datasets', icon: 'folder', label: 'My Datasets' }] : []),
+          ...(props.user ? [{ to: '/mydatasets', icon: 'folder', label: 'My Datasets' }] : []),
         ],
       },
       { kind: 'link', to: '/workspace', icon: 'sparkles', label: 'Workspace', show: true },

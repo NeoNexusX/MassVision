@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { ImzmlFilePair } from '@/features/upload/services/imzmlUploadService'
-import { normalizeUploadFileName } from '@/features/upload/utils/imzmlHelper'
 
 defineProps<{
   selectedPair: ImzmlFilePair | null
@@ -44,7 +43,7 @@ const onFileChange = (event: Event) => {
     return
   }
 
-  const baseName = normalizeUploadFileName(imzmlBase || imzml.name)
+  const baseName = imzmlBase || imzml.name
   emit('pair-selected', { ibd, imzml, baseName })
 }
 </script>

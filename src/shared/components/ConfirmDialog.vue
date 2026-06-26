@@ -9,8 +9,9 @@
         <slot>{{ message }}</slot>
       </p>
       <div class="modal-action">
-        <button class="btn" @click="$emit('cancel')" :disabled="loading">Cancel</button>
+        <button v-if="!hideCancel" class="btn" @click="$emit('cancel')" :disabled="loading">Cancel</button>
         <button
+          v-if="!hideConfirm"
           :class="['btn', danger ? 'btn-error text-white' : 'btn-primary']"
           @click="$emit('confirm')"
           :disabled="loading"
@@ -20,7 +21,7 @@
         </button>
       </div>
     </div>
-    <form method="dialog" class="modal-backdrop">
+    <form method="dialog" class="modal-backdrop" @click="$emit('cancel')">
       <button @click="$emit('cancel')">close</button>
     </form>
   </dialog>
@@ -35,12 +36,16 @@ withDefaults(
     confirmLabel?: string
     danger?: boolean
     loading?: boolean
+    hideCancel?: boolean
+    hideConfirm?: boolean
   }>(),
   {
     message: '',
     confirmLabel: 'Confirm',
     danger: false,
     loading: false,
+    hideCancel: false,
+    hideConfirm: false,
   },
 )
 

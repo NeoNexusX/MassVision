@@ -2,10 +2,14 @@ import { computed, onMounted, ref } from 'vue'
 import {
   getDatasetCategoryStats,
   getDatasetIonSourceStats,
+  getOrganismStats,
+  getAnalyzerStats,
   getPlatformOverview,
+  getVisitsStats,
   type DatasetCategoryItem,
   type DatasetCategoryStats,
   type PlatformOverviewStats,
+  type VisitsStats,
 } from '../api/statsApi'
 
 /**
@@ -53,6 +57,11 @@ function useCategoryDistribution(
   return { loading, error, items, total, isEmpty, reload: load }
 }
 
+// 物种分布
+export function useOrganismStats() {
+  return useCategoryDistribution(getOrganismStats, 'Failed to load organism stats')
+}
+
 // 数据集分类分布（上方环形图）
 export function useDatasetCategoryStats() {
   return useCategoryDistribution(getDatasetCategoryStats, 'Failed to load dataset category stats')
@@ -61,6 +70,11 @@ export function useDatasetCategoryStats() {
 // 数据集离子源类型分布（下方环形图）
 export function useDatasetIonSourceStats() {
   return useCategoryDistribution(getDatasetIonSourceStats, 'Failed to load ion source stats')
+}
+
+// 分析器类型分布
+export function useAnalyzerStats() {
+  return useCategoryDistribution(getAnalyzerStats, 'Failed to load analyzer stats')
 }
 
 // 平台总览（总用户 / 总数据集 / 总下载）
@@ -76,6 +90,30 @@ export function usePlatformOverview() {
       stats.value = await getPlatformOverview()
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to load platform overview'
+      stats.value = null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  onMounted(load)
+
+  return { loading, error, stats, reload: load }
+}
+
+// 全站访问量（当日 / 当月 / 总计）
+export function useVisitsStats() {
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+  const stats = ref<VisitsStats | null>(null)
+
+  async function load() {
+    loading.value = true
+    error.value = null
+    try {
+      stats.value = await getVisitsStats()
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Failed to load visits stats'
       stats.value = null
     } finally {
       loading.value = false

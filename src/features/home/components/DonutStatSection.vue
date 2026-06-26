@@ -66,7 +66,7 @@ defineEmits<{ reload: [] }>()
       <div class="h-[4.5em] w-full lg:h-auto lg:flex-1 lg:min-h-0">
         <CategoryDonutChart :items="items" />
       </div>
-      <p class="mt-[0.5em] grow-0 text-center text-[0.2em] text-base-content/40">{{ caption }}</p>
+      <p class="mt-[0.5em] grow-0 text-center text-[0.25em] text-base-content/40">{{ caption }}</p>
     </template>
   </section>
 </template>

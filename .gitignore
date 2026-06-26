@@ -37,6 +37,7 @@ __screenshots__/
 
 test-results/
 playwright-report/
+.auth/
 .vscode/
 !.vscode/extensions.json
 .idea

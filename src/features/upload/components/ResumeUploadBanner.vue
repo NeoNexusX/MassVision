@@ -11,8 +11,8 @@ defineEmits<{
 
 <template>
   <div class="alert bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-    <div class="flex items-center gap-2 mb-2">
-      <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="flex items-center gap-1.5 mb-1.5">
+      <svg class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -20,9 +20,9 @@ defineEmits<{
           d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
         />
       </svg>
-      <span class="font-medium text-blue-800 dark:text-blue-300">Incomplete upload detected</span>
+      <span class="text-sm font-semibold text-blue-800 dark:text-blue-300">Incomplete upload detected</span>
     </div>
-    <p class="text-lg text-blue-700 dark:text-blue-300 mb-3">
+    <p class="text-base text-blue-700 dark:text-blue-300 mb-2 break-all">
       You have a pending upload of <strong>{{ datasetName }}</strong
       >. Resume from where it left off?
     </p>

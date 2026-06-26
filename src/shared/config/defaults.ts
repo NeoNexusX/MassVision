@@ -26,3 +26,9 @@ export const ZARR_STORE = {
   /** 默认 m/z 容差 */
   defaultMzTolerance: 0.05,
 } as const
+
+/** 下载限制 */
+export const DOWNLOAD_LIMIT = {
+  /** 两次下载之间的冷却时长（秒） */
+  cooldownSeconds: 60,
+} as const

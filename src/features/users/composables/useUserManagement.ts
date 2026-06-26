@@ -1,13 +1,17 @@
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, onMounted, reactive, ref, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import { useToast } from '@/shared/composables/useToast'
-import { usePagination } from '@/shared/composables/usePagination'
+import { buildPageList } from '@/shared/utils/pagination'
+import { getConfig } from '@/shared/config/runtimeConfig'
 import {
   deleteAdminUser,
   listAdminUsers,
+  updateUserQuota,
+  getUsersClassification,
   type AdminUser,
   type UserListFilters,
+  type UserQuotaLimits,
 } from '@/features/users/api/userAdminApi'
 
 export function useUserManagement() {
@@ -15,7 +19,19 @@ export function useUserManagement() {
   const authStore = useAuthStore()
   const router = useRouter()
   const { showToast } = useToast()
-  const pagination = usePagination(() => fetchUsers())
+
+  // Pagination — same pattern as useDatasetList
+  const currentPage = ref(1)
+  const pageSize = ref<number>(getConfig().pagination.defaultPageSize)
+  const pageSizeOptions = getConfig().pagination.pageSizeOptions
+  const meta = reactive({ current_page: 1, total_pages: 1, total_records: 0 })
+
+  const pageRange = computed<(number | string)[]>(() =>
+    buildPageList(meta.current_page, meta.total_pages),
+  )
+
+  const from = computed(() => (meta.total_records ? (currentPage.value - 1) * pageSize.value + 1 : 0))
+  const to = computed(() => Math.min(currentPage.value * pageSize.value, meta.total_records))
 
   // State
   const users = ref<AdminUser[]>([])
@@ -33,27 +49,49 @@ export function useUserManagement() {
   const isDrawerOpen = ref(false)
   const selectedUser = ref<AdminUser | null>(null)
 
-  // Computed
-  const stats = computed(() => {
-    const total = pagination.totalItems.value
-    const active = users.value.filter((user) => user.active).length
-    const inactive = users.value.length - active
-    const instCount = new Set(users.value.map((user) => user.institution).filter(Boolean)).size
-    return { total, active, inactive, instCount }
+  // Quota state
+  const quotaLimits = ref<UserQuotaLimits>({
+    max_total_file_size: 0,
+    max_file_count: 0,
+    max_processing_size: 0,
+    max_download_count: 0,
   })
+  const quotaLoading = ref(false)
+
+  // Stats — driven by GET /stats/users/classification
+  const stats = reactive({ total: 0, admin: 0, regularUsers: 0, instCount: 0 })
 
   // Methods
+  const fetchStats = async () => {
+    try {
+      const [identityData, institutionData] = await Promise.all([
+        getUsersClassification('identity'),
+        getUsersClassification('institution'),
+      ])
+      stats.total = Object.values(identityData).reduce((sum, v) => sum + v, 0)
+      stats.admin = identityData.admin ?? 0
+      stats.regularUsers = identityData.user ?? 0
+      stats.instCount = Object.keys(institutionData).length
+    } catch (e) {
+      console.error('Failed to fetch user stats:', e)
+    }
+  }
+
   const fetchUsers = async () => {
     loading.value = true
     error.value = ''
     try {
-      const res = await listAdminUsers(
-        filters.value,
-        pagination.currentPage.value,
-        pagination.pageSize.value,
-      )
+      const res = await listAdminUsers(filters.value, currentPage.value, pageSize.value)
       users.value = res.data?.data || []
-      pagination.totalItems.value = res.data?.meta?.total_records || users.value.length
+      if (res.data?.meta) {
+        meta.current_page = res.data.meta.current_page || currentPage.value
+        meta.total_pages = res.data.meta.total_pages || 1
+        meta.total_records = res.data.meta.total_records || users.value.length
+      } else {
+        meta.current_page = currentPage.value
+        meta.total_pages = Math.ceil(users.value.length / pageSize.value) || 1
+        meta.total_records = users.value.length
+      }
     } catch (err: any) {
       console.error('Failed to load users:', err)
       error.value = err.message || 'Failed to load users from server.'
@@ -64,25 +102,65 @@ export function useUserManagement() {
 
   const resetFilters = () => {
     filters.value = { username: '', status: 'Active', institution: '', region: '' }
-    pagination.currentPage.value = 1
+    currentPage.value = 1
     fetchUsers()
   }
 
   const handleSearch = () => {
-    pagination.currentPage.value = 1
+    currentPage.value = 1
+    fetchUsers()
+  }
+
+  const goToPage = (np: number) => {
+    const clamped = Math.max(1, Math.min(meta.total_pages || 1, np))
+    if (clamped === currentPage.value) return
+    currentPage.value = clamped
+    fetchUsers()
+  }
+
+  const prevPage = () => goToPage(currentPage.value - 1)
+  const nextPage = () => goToPage(currentPage.value + 1)
+
+  const changeSize = (newSize: number) => {
+    pageSize.value = newSize
+    currentPage.value = 1
     fetchUsers()
   }
 
   const openDrawer = (user: AdminUser) => {
     selectedUser.value = user
     isDrawerOpen.value = true
+    quotaLimits.value = {
+      max_total_file_size: user.max_total_file_size ?? 0,
+      max_file_count: user.max_file_count ?? 0,
+      max_processing_size: user.max_processing_size ?? 0,
+      max_download_count: user.max_download_count ?? 0,
+    }
   }
 
   const closeDrawer = () => {
     isDrawerOpen.value = false
-    setTimeout(() => {
-      selectedUser.value = null
-    }, 300)
+    selectedUser.value = null
+  }
+
+  const saveUserQuota = async () => {
+    if (!selectedUser.value) return
+    quotaLoading.value = true
+    try {
+      const res = await updateUserQuota(selectedUser.value.id, { ...quotaLimits.value })
+      const data = res.data || {}
+      quotaLimits.value = {
+        max_total_file_size: data.max_total_file_size ?? quotaLimits.value.max_total_file_size,
+        max_file_count: data.max_file_count ?? quotaLimits.value.max_file_count,
+        max_processing_size: data.max_processing_size ?? quotaLimits.value.max_processing_size,
+        max_download_count: data.max_download_count ?? quotaLimits.value.max_download_count,
+      }
+      showToast('Quota updated successfully', 'success')
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update quota', 'error')
+    } finally {
+      quotaLoading.value = false
+    }
   }
 
   const promptDeleteUser = () => {
@@ -101,6 +179,7 @@ export function useUserManagement() {
       showToast('User deleted successfully', 'success')
       isConfirmOpen.value = false
       closeDrawer()
+      fetchStats()
       fetchUsers()
     } catch (err: any) {
       console.error('Failed to delete user:', err)
@@ -120,14 +199,20 @@ export function useUserManagement() {
   // Lifecycle
   onMounted(async () => {
     if (authStore.user) {
-      if (authStore.isAdmin) fetchUsers()
+      if (authStore.isAdmin) {
+        fetchStats()
+        fetchUsers()
+      }
       return
     }
 
     if (authStore.token) {
       try {
         await authStore.fetchUser()
-        if (authStore.isAdmin) fetchUsers()
+        if (authStore.isAdmin) {
+          fetchStats()
+          fetchUsers()
+        }
       } catch {
         /* fetchUser handles invalid auth */
       }
@@ -144,14 +229,27 @@ export function useUserManagement() {
     isDrawerOpen,
     selectedUser,
     stats,
-    ...pagination,
+    currentPage,
+    pageSize,
+    pageSizeOptions,
+    meta,
+    pageRange,
+    from,
+    to,
     fetchUsers,
     resetFilters,
     handleSearch,
+    goToPage,
+    prevPage,
+    nextPage,
+    changeSize,
     openDrawer,
     closeDrawer,
     promptDeleteUser,
     cancelDeleteUser,
     executeDeleteUser,
+    quotaLimits,
+    quotaLoading,
+    saveUserQuota,
   }
 }

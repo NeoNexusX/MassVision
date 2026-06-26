@@ -110,8 +110,8 @@ defineProps<{
 
     <div class="mt-auto pt-6">
       <button
+        type="submit"
         class="btn btn-primary w-full btn-lg shadow-xl hover:scale-[1.01] transition-transform"
-        @click="register"
         :disabled="loading.register"
       >
         <span v-if="loading.register" class="loading loading-spinner loading-md"></span>
