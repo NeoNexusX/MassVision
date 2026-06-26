@@ -85,7 +85,7 @@ const {
           :on-num-blur="onNumBlur"
         />
 
-        <details class="bg-base-100 rounded-lg border border-base-200 p-6 shadow-sm">
+        <details v-if="false" class="bg-base-100 rounded-lg border border-base-200 p-6 shadow-sm">
           <summary class="text-3xl font-medium mb-2 list-none">Step 3: Annotation Settings</summary>
           <div class="mt-4 text-lg text-base-content/60">Annotation settings placeholder</div>
         </details>

@@ -44,7 +44,7 @@ export function useAnalysisDatasets() {
 
   // Lifecycle
   onMounted(() => {
-    fetchFiles({ page: 1, size: 50 }).catch(() => {})
+    fetchFiles({ page: 1, size: 100 }).catch(() => {})
   })
 
   return {
