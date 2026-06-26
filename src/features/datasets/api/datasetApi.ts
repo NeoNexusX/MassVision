@@ -43,12 +43,12 @@ export interface FileImagesResponse {
 /** 根据 storage_mode 从 urls 中取出正确的图片 URL */
 export function pickImageUrl(images: FileImagesResponse): string {
   const { storage_mode: mode, urls } = images
-  const keys = Object.keys(urls)
-  if (keys.length === 0) return ''
+  const values = Object.values(urls)
+  const fallback = values[0] ?? ''
 
-  if (mode === 'continuous') return urls['umap_image.jpg'] || urls[keys[0]]
-  if (mode === 'processed')   return urls['tic_image.png']  || urls[keys[0]]
-  return urls[keys[0]]
+  if (mode === 'continuous') return urls['umap_image.jpg'] || fallback
+  if (mode === 'processed')   return urls['tic_image.png']  || fallback
+  return fallback
 }
 
 export async function getFileImages(fileId: string | number): Promise<FileImagesResponse> {
