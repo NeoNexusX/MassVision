@@ -1,6 +1,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getFileMetadata, getFileImages } from '@/features/datasets/api/datasetApi'
+import { getFileMetadata, getFileImages, pickImageUrl } from '@/features/datasets/api/datasetApi'
 import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
 import type { File } from '@/features/datasets/types/dataset'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
@@ -89,7 +89,7 @@ export function useDatasetDetail() {
         try {
           ticImageError.value = false
           const images = await getFileImages(dataset.value.id)
-          ticImageUrl.value = images?.urls?.['tic_image.png'] || ''
+          ticImageUrl.value = pickImageUrl(images)
         } catch {
           ticImageUrl.value = ''
           ticImageError.value = true

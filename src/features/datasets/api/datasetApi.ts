@@ -32,10 +32,23 @@ export async function getDownloadRaw(fileId: string): Promise<DownloadRawRespons
 }
 
 // GET /files/{file_id}/images
-// Returns { urls: Record<string, string>, spectrum_mode: string }
+// Returns { urls: Record<string, string>, storage_mode: string }
+// - storage_mode "continuous" → urls contains "umap_image.jpg"
+// - storage_mode "processed"   → urls contains "tic_image.png"
 export interface FileImagesResponse {
   urls: Record<string, string>
-  spectrum_mode: string
+  storage_mode: string
+}
+
+/** 根据 storage_mode 从 urls 中取出正确的图片 URL */
+export function pickImageUrl(images: FileImagesResponse): string {
+  const { storage_mode: mode, urls } = images
+  const keys = Object.keys(urls)
+  if (keys.length === 0) return ''
+
+  if (mode === 'continuous') return urls['umap_image.jpg'] || urls[keys[0]]
+  if (mode === 'processed')   return urls['tic_image.png']  || urls[keys[0]]
+  return urls[keys[0]]
 }
 
 export async function getFileImages(fileId: string | number): Promise<FileImagesResponse> {
