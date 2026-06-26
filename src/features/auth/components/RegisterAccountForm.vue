@@ -122,6 +122,7 @@ defineProps<{
               />
             </div>
             <button
+              type="button"
               @click="sendVerificationCode"
               class="btn btn-neutral min-w-[100px]"
               :disabled="isCountdownActive || loading.sendCode || isExhausted"
