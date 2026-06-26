@@ -166,7 +166,7 @@ test.describe('Authenticated', () => {
   test('token persistence — survives page reload', async ({ page }) => {
     await page.goto('/profile')
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await page.waitForURL('/profile')
 
     // token 从 localStorage 恢复，仍然在 /profile
     await expect(page).toHaveURL('/profile')
