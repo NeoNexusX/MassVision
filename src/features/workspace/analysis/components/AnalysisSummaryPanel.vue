@@ -74,7 +74,8 @@ const emit = defineEmits<{
           <div v-else class="text-lg text-base-content/40">No dataset selected</div>
         </div>
 
-        <div class="border-t border-base-200/70 px-5 py-4">
+        <!-- TODO: Est. time 功能暂未实现，先隐藏 -->
+        <div v-if="false" class="border-t border-base-200/70 px-5 py-4">
           <div class="text-lg font-medium text-base-content/60 mb-2">Est. time</div>
           <div class="text-lg font-medium text-base-content">{{ estimateTimeDisplay }}</div>
           <div class="text-base text-base-content/50 mt-2 space-y-1">
@@ -85,7 +86,8 @@ const emit = defineEmits<{
           </div>
         </div>
 
-        <div class="border-t border-base-200/70 px-5 py-4">
+        <!-- TODO: Visibility 功能暂未启用，先隐藏 UI，后端 isPublic 字段保留 -->
+        <div v-if="false" class="border-t border-base-200/70 px-5 py-4">
           <label class="flex items-center justify-between cursor-pointer">
             <div>
               <div class="text-lg font-medium text-base-content/60">Visibility</div>
