@@ -53,6 +53,7 @@ export const ICON_SETS = {
     'user-group',
     'arrow-trending-up',
     'cpu-chip',
+    'book-open',
   ],
   'simple-icons': ['github', 'wechat', 'alibabacloud'],
 }
