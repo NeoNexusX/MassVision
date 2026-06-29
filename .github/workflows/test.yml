@@ -37,6 +37,10 @@ jobs:
       # type-check + lint + unit test（与 package.json 中 check 脚本一致）
       - run: npm run check
 
+      # 文档站构建：死链、frontmatter 语法、主题文件类型错误会在此暴露
+      # 与部署阶段 docker build 内的 `RUN npm run docs:build` 行为一致，提前到 PR 阶段拦截
+      - run: npm run docs:build
+
   # ---- Job 2: 构建 + e2e 测试（依赖 check 通过）----
   e2e:
     needs: check
@@ -60,9 +64,12 @@ jobs:
           VITE_API_BASE: /api
 
       # e2e 测试（CI 模式：headless + retry + workers 自动调整）
+      # 登录账号密码从 GitHub Secrets 注入，避免硬编码（见 e2e/auth.setup.ts）
       - run: npm run test:e2e
         env:
           CI: 'true'
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
 
       # 保留测试报告以便排查
       - uses: actions/upload-artifact@v5

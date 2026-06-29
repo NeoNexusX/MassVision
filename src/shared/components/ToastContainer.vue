@@ -6,8 +6,10 @@ const { toasts, removeToast } = useToast()
 </script>
 
 <template>
+  <!-- daisyUI .toast 已自带 position:fixed + top:1rem + 居中 (toast-top + toast-center)；
+       不要再叠加 Tailwind 的 fixed/top-*/left-*/translate-*，否则只是同义冗余、易误读。 -->
   <div
-    class="toast toast-top toast-center z-[9999] pointer-events-none p-4 w-full flex flex-col items-center gap-2 max-w-md mx-auto fixed top-4 left-1/2 -translate-x-1/2"
+    class="toast toast-top toast-center z-[9999] pointer-events-none p-4 w-full flex flex-col items-center gap-2 max-w-md"
   >
     <transition-group name="toast-slide">
       <div

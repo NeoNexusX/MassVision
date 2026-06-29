@@ -110,6 +110,134 @@ export interface TimelineItem {
   features: string[]
 }
 
+/**
+ * 侧边导航栏菜单项（config.json 的 `nav` 块）。
+ *
+ * 字段说明：
+ * - active:        静态总开关（默认 true）。设为 false → 强制不显示，**优先级高于任何动态条件**。
+ * - requireAuth:   仅登录用户可见
+ * - requireAdmin:  仅管理员可见
+ * - requireGuest:  仅未登录访客可见
+ *
+ * 这些权限字段是「与」关系：必须同时满足；任意一个不满足即不显示。
+ * 父级（group）若被过滤掉，其 children 也整体隐藏。
+ */
+export interface NavVisibility {
+  /** 静态总开关；缺省视为 true。设为 false 时强制隐藏，覆盖所有动态条件 */
+  active?: boolean
+  /** 仅登录用户可见 */
+  requireAuth?: boolean
+  /** 仅管理员可见 */
+  requireAdmin?: boolean
+  /** 仅未登录访客可见 */
+  requireGuest?: boolean
+}
+
+/**
+ * 判断一项（nav / fab 均适用）是否应当显示。
+ * 静态开关 `active` 优先级最高：显式设为 false 即强制隐藏，不再看动态条件。
+ *
+ * 不直接依赖 `User` 类型，避免 shared 层反向依赖 features 层。
+ */
+export function isNavVisible(
+  item: NavVisibility,
+  ctx: { isAuthenticated: boolean; isAdmin?: boolean },
+): boolean {
+  if (item.active === false) return false
+  if (item.requireAuth && !ctx.isAuthenticated) return false
+  if (item.requireGuest && ctx.isAuthenticated) return false
+  if (item.requireAdmin && !ctx.isAdmin) return false
+  return true
+}
+
+/** 分组下的二级菜单项 */
+export interface NavChild extends NavVisibility {
+  /** 路由地址 */
+  to: string
+  /** 图标名（对应 SvgIcon 的 IconType） */
+  icon: string
+  /** 显示文案 */
+  label: string
+}
+
+/** 顶层菜单：普通链接 */
+export interface NavLinkItem extends NavVisibility {
+  kind: 'link'
+  /** 路由地址 */
+  to: string
+  /** 图标名 */
+  icon: string
+  /** 显示文案 */
+  label: string
+  /** 点击后是否关闭抽屉，默认 true（如登录/注册等可设为 false） */
+  closeOnClick?: boolean
+}
+
+/** 顶层菜单：可折叠分组 */
+export interface NavGroupItem extends NavVisibility {
+  kind: 'group'
+  /** 图标名 */
+  icon: string
+  /** 显示文案 */
+  label: string
+  /** 子菜单 */
+  children: NavChild[]
+}
+
+export type NavItem = NavLinkItem | NavGroupItem
+
+/**
+ * 悬浮按钮（NavFab）配置（config.json 的 `fab` 块）。
+ *
+ * 主按钮（main）只配置两套图标：drawer 收起时显示 `iconClosed`、展开时显示 `iconOpen`；
+ * 主按钮本身就是 drawer 的开关（受控于与 NavDrawer 共享的 `open` model），不再额外派发事件。
+ *
+ * 子项（items）只有两种 kind：
+ * - 'link'   : 跳转到 `to` 指定的路由
+ * - 'action' : 触发 `action` 指定的事件（如 'toggle-theme'、'toggle-ai'、'logout'）；
+ *              其中 'toggle-theme' 的图标由组件根据当前 isDark 自动在 sun/moon 之间切换，
+ *              配置里的 `icon` 字段对它会被忽略
+ *
+ * 每项都支持 NavVisibility 中的 active / requireAuth / requireAdmin / requireGuest 字段。
+ */
+export interface FabMainConfig {
+  /** drawer 关闭时主按钮显示的图标 */
+  iconClosed: string
+  /** drawer 打开时主按钮显示的图标 */
+  iconOpen: string
+}
+
+interface FabItemBase extends NavVisibility {
+  /** 图标名（'toggle-theme' action 会忽略此字段，改用 sun/moon） */
+  icon: string
+  /** tooltip 显示文案 */
+  label: string
+}
+
+export interface FabLinkItem extends FabItemBase {
+  kind: 'link'
+  /** 跳转的路由地址 */
+  to: string
+}
+
+/** FAB 上动作型子项支持的动作枚举（与 NavFab 对外 emit 的事件一一对应） */
+export type FabActionKind = 'toggle-theme' | 'toggle-ai' | 'logout'
+
+export interface FabActionItem extends FabItemBase {
+  kind: 'action'
+  /** 动作类型 */
+  action: FabActionKind
+}
+
+export type FabItem = FabLinkItem | FabActionItem
+
+export interface FabConfig {
+  /** 主按钮图标（必填） */
+  main: FabMainConfig
+  /** 子项列表，按声明顺序从外向内排列 */
+  items: FabItem[]
+}
+
 /** GitHub 提交（commit）热力图配置（config.json 的 githubHeatmap 块） */
 export interface GithubHeatmapConfig {
   /** GitHub 仓库拥有者，如 "BioNet-XMU" */
@@ -186,6 +314,10 @@ export interface AppConfig {
   }
   /** GitHub 提交热力图（StatsScene 展示用） */
   githubHeatmap?: GithubHeatmapConfig
+  /** 侧边导航抽屉菜单项；缺省或为空数组时抽屉只显示标题 */
+  nav?: NavItem[]
+  /** 悬浮按钮（NavFab）；缺省时 NavFab 不渲染任何子项，但仍渲染主按钮以切换 drawer */
+  fab?: FabConfig
   /** 表单下拉选项表 */
   options: OptionLists
 }
@@ -206,6 +338,8 @@ export async function loadConfig(): Promise<AppConfig> {
   _config.hero ??= { taglines: [], gallery: [] }
   _config.features ??= { items: [] }
   _config.timeline ??= []
+  _config.nav ??= []
+  _config.fab ??= { main: { iconClosed: 'home', iconOpen: 'close' }, items: [] }
   return _config
 }
 

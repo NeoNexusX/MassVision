@@ -6,6 +6,10 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
+# VitePress 的 lastUpdated 功能要在构建时对每个文档文件执行 `git log` 读最后提交时间，
+# node:22-alpine 默认不带 git，装上（.git 目录由 .dockerignore 放行进入构建上下文）
+RUN apk add --no-cache git
+
 # 利用 Docker 层缓存：先复制依赖描述文件
 COPY package.json package-lock.json* ./
 
@@ -18,6 +22,9 @@ COPY . .
 # 生产构建（读取 .env.production 中的 VITE_ 变量）
 RUN npm run build
 
+# 构建 VitePress 文档站 → /app/dist-docs（纯静态，无运行时依赖）
+RUN npm run docs:build
+
 # ---- Stage 2: Serve ----
 FROM nginx:alpine
 
@@ -26,6 +33,9 @@ RUN apk add --no-cache gettext
 
 # 复制构建产物
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# 复制文档站产物 → /docs 子路径（与 nginx.conf.template 的 base /docs/ 对齐）
+COPY --from=builder /app/dist-docs /usr/share/nginx/html/docs
 
 # 复制 nginx 配置模板（不是最终配置，占位符由 entrypoint.sh 在容器启动时替换）
 COPY docker/nginx.conf.template /etc/nginx/conf.d/default.conf.template

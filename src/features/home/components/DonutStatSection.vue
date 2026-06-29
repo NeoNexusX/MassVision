@@ -48,7 +48,7 @@ defineEmits<{ reload: [] }>()
       role="alert"
       class="alert alert-error my-[0.5em] gap-[0.6em] p-[0.7em] text-[0.22em]"
     >
-      <Icon icon="mdi:alert-outline" class="h-[1.4em] w-[1.4em] shrink-0" />
+      <Icon icon="heroicons:exclamation-triangle" class="h-[1.4em] w-[1.4em] shrink-0" />
       <span class="flex-1">{{ error }}</span>
       <button class="btn btn-ghost btn-xs" @click="$emit('reload')">Retry</button>
     </div>

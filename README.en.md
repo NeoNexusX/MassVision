@@ -121,6 +121,17 @@ npm run lint
 npm run format
 ```
 
+## Documentation Site
+
+The project ships a bilingual [VitePress](https://vitepress.dev/) docs site, with sources under `docs/`, sharing the same repo and deployment pipeline:
+
+```bash
+npm run docs:dev      # docs site only, defaults to http://localhost:5174/docs/
+npm run docs:build    # builds to dist-docs/ at the repo root
+```
+
+See [docs/en/dev/doc-maintenance.md](docs/en/dev/doc-maintenance.md) for details.
+
 ## Deployment
 
 The project ships with Docker deployment configuration (`docker/Dockerfile`, `nginx.conf.template`, `entrypoint.sh`) and GitHub Actions workflows (`.github/workflows/`) for automated testing and dev/production deployment.

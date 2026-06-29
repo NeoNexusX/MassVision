@@ -14,6 +14,11 @@ dist-ssr
 coverage
 *.local
 
+# VitePress 文档站构建产物与缓存
+dist-docs
+docs/.vitepress/cache
+docs/.vitepress/dist
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

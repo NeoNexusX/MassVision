@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
-import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { CalendarHeatmap } from 'vue3-calendar-heatmap'
 import 'vue3-calendar-heatmap/dist/style.css'
 import { useCommitHeatmap } from '../composables/useCommitHeatmap'
@@ -100,7 +99,7 @@ const vertical = computed(() =>
         role="alert"
         class="alert alert-error text-[0.95em] gap-[0.5em] p-[0.9em]"
       >
-        <ExclamationTriangleIcon class="h-[1.35em] w-[1.35em] shrink-0" />
+        <Icon icon="heroicons:exclamation-triangle" class="h-[1.35em] w-[1.35em] shrink-0" />
         <span>{{ error }}</span>
       </div>
 

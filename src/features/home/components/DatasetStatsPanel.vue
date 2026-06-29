@@ -46,10 +46,10 @@ function fmt(n: number | undefined): string {
 
 // stat 卡片项（总用户 / 总数据集 / 总下载 / 网站访问量）
 const statItems = computed(() => [
-  { icon: 'mdi:account-group-outline', color: 'text-primary', title: 'Total Users', value: ov.value?.total_users },
-  { icon: 'mdi:database-outline', color: 'text-secondary', title: 'Total Datasets', value: ov.value?.total_files },
-  { icon: 'mdi:tray-arrow-down', color: 'text-accent', title: 'Total Downloads', value: ov.value?.total_downloads },
-  { icon: 'mdi:chart-line', color: 'text-info', title: 'Website Visits', value: visitStats.value?.total },
+  { icon: 'heroicons:user-group', color: 'text-primary', title: 'Total Users', value: ov.value?.total_users },
+  { icon: 'heroicons:circle-stack', color: 'text-secondary', title: 'Total Datasets', value: ov.value?.total_files },
+  { icon: 'heroicons:arrow-down-tray', color: 'text-accent', title: 'Total Downloads', value: ov.value?.total_downloads },
+  { icon: 'heroicons:arrow-trending-up', color: 'text-info', title: 'Website Visits', value: visitStats.value?.total },
 ])
 </script>
 
@@ -86,7 +86,7 @@ const statItems = computed(() => [
           role="alert"
           class="alert alert-error gap-2 p-3 text-sm"
         >
-          <Icon icon="mdi:alert-outline" class="h-5 w-5 shrink-0" />
+          <Icon icon="heroicons:exclamation-triangle" class="h-5 w-5 shrink-0" />
           <span class="flex-1">{{ ovError }}</span>
           <button class="btn btn-ghost btn-xs" @click="reloadOv">Retry</button>
         </div>
@@ -97,7 +97,7 @@ const statItems = computed(() => [
           role="alert"
           class="alert alert-warning gap-2 p-3 text-sm"
         >
-          <Icon icon="mdi:alert-outline" class="h-5 w-5 shrink-0" />
+          <Icon icon="heroicons:exclamation-triangle" class="h-5 w-5 shrink-0" />
           <span class="flex-1">{{ visitsError }}</span>
           <button class="btn btn-ghost btn-xs" @click="reloadVisits">Retry</button>
         </div>

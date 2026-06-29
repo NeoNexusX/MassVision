@@ -11,12 +11,22 @@ import { test as setup } from '@playwright/test'
  *   - Unauthenticated 组的测试通过 storageState: { cookies: [], origins: [] } 清除
  *
  * .auth/ 目录已加入 .gitignore，不会提交。
+ *
+ * 账号密码不硬编码，从环境变量读取：
+ *   - CI：由 GitHub Secrets（E2E_USERNAME / E2E_PASSWORD）注入
+ *   - 本地：在 .env.local（已 gitignore）中设置，或直接 export
  */
+const username = process.env.E2E_USERNAME
+const password = process.env.E2E_PASSWORD
+if (!username || !password) {
+  throw new Error('缺少 E2E_USERNAME / E2E_PASSWORD 环境变量，请在 CI secrets 或本地 .env.local 中配置')
+}
+
 setup('authenticate', async ({ page }) => {
   await page.goto('/login')
 
-  await page.fill('input[placeholder="Username"]', 'linyk')
-  await page.fill('input[placeholder="Password"]', 'linyk123s')
+  await page.fill('input[placeholder="Username"]', username)
+  await page.fill('input[placeholder="Password"]', password)
 
   await page.click('button:has-text("Sign In")')
 

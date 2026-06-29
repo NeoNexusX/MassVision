@@ -12,15 +12,15 @@ const { contact = {} } = config
 type SocialLink = { icon: string; label: string; href: string }
 
 const socialLinks = computed<SocialLink[]>(() => [
-  contact.website && { icon: 'mdi:web',              label: 'Bionet Lab Website', href: contact.website },
-  contact.email   && { icon: 'mdi:email-outline',    label: 'Bionet Lab Email',      href: `mailto:${contact.email}` },
+  contact.website && { icon: 'heroicons:globe-alt',       label: 'Bionet Lab Website', href: contact.website },
+  contact.email   && { icon: 'heroicons:envelope',         label: 'Bionet Lab Email',      href: `mailto:${contact.email}` },
   contact.wechat       && { icon: 'simple-icons:wechat',  label: 'WeChat Official Account', href: contact.wechat },
   contact.github       && { icon: 'simple-icons:github',  label: 'Join us with Github',     href: contact.github },
-  contact.recruitment  && { icon: 'mdi:account-plus',     label: 'Join the Lab',            href: contact.recruitment },
+  contact.recruitment  && { icon: 'heroicons:user-plus',   label: 'Join the Lab',            href: contact.recruitment },
 ].filter(Boolean) as SocialLink[])
 
 const poweredBy = [
-  { label: 'Computing Framework', icon: 'mdi:atom-variant', href: 'https://github.com/NeoNexusX/MassFlow' },
+  { label: 'Computing Framework', icon: 'heroicons:cpu-chip', href: 'https://github.com/NeoNexusX/MassFlow' },
   { label: 'Aliyun', icon: 'simple-icons:alibabacloud', href: 'https://www.aliyun.com/' },
 ]
 </script>

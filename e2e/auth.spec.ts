@@ -27,12 +27,19 @@ test.describe('Unauthenticated', () => {
   test.use({ storageState: { cookies: [], origins: [] } })
 
   // ── 登录 ──
+  // 账号密码与 auth.setup.ts 保持一致，从环境变量读取（CI: GitHub Secrets，本地: .env.local）
 
   test('can login with valid credentials', async ({ page }) => {
+    const username = process.env.E2E_USERNAME
+    const password = process.env.E2E_PASSWORD
+    if (!username || !password) {
+      throw new Error('缺少 E2E_USERNAME / E2E_PASSWORD 环境变量，请在 CI secrets 或本地 .env.local 中配置')
+    }
+
     await page.goto('/login')
 
-    await page.fill('input[placeholder="Username"]', 'linyk')
-    await page.fill('input[placeholder="Password"]', 'linyk123s')
+    await page.fill('input[placeholder="Username"]', username)
+    await page.fill('input[placeholder="Password"]', password)
 
     await page.click('button:has-text("Sign In")')
 
