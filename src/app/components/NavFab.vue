@@ -1,121 +1,103 @@
 <template>
-  <div class="fixed top-4 right-4 z-[9999]">
-    <div class="fab fab-flower" :class="{ 'fab-open': fabOpen }">
-      <!-- Trigger button -->
-      <div
-        tabindex="0"
-        role="button"
-        class="btn btn-circle btn-lg"
-        @click="fabOpen = !fabOpen"
-        aria-label="Open menu"
+  <div class="fab z-[9999]">
+    <!-- 关闭态主按钮：显示 iconClosed，点击展开 drawer。
+         daisyui 的 fab 用 :focus-within 驱动展开视觉，且聚焦后会给自己加 pointer-events:none——
+         必须用 mousedown（在该样式生效前触发）而非 click，否则首次点击不会展开。 -->
+    <div
+      tabindex="0"
+      role="button"
+      class="btn btn-circle btn-lg"
+      aria-label="Open menu"
+      @mousedown="open = true"
+    >
+      <SvgIcon :type="(fab.main.iconClosed as IconType)" class="w-6 h-6 text-base-content" />
+    </div>
+
+    <!-- 展开态主按钮：显示 iconOpen，点击收起 drawer。
+         点击后需要主动 blur，否则该按钮仍持有焦点、:focus-within 仍为真，视觉不会收起。 -->
+    <button
+      class="fab-main-action btn btn-circle btn-lg btn-primary"
+      aria-label="Close menu"
+      @click="closeMenu"
+    >
+      <SvgIcon :type="(fab.main.iconOpen as IconType)" class="w-6 h-6" />
+    </button>
+
+    <template v-for="(item, i) in items" :key="i">
+      <!-- link：路由跳转 -->
+      <router-link
+        v-if="item.kind === 'link'"
+        :to="item.to"
+        class="btn btn-circle btn-lg child-btn tooltip tooltip-left"
+        :data-tip="item.label"
       >
-        <SvgIcon type="home" class="w-6 h-6 text-base-content" />
-      </div>
+        <SvgIcon :type="(item.icon as IconType)" class="w-5 h-5" />
+      </router-link>
 
-      <!-- Main action: user initial or user icon -->
-      <button class="fab-main-action btn btn-circle btn-lg btn-primary" aria-label="Main action">
-        <template v-if="user">
-          <div
-            class="bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full w-8 h-8 flex items-center justify-center"
-          >
-            <span class="text-sm font-bold">{{ userInitial }}</span>
-          </div>
-        </template>
-        <template v-else>
-          <SvgIcon type="user" class="w-6 h-6" />
-        </template>
-      </button>
-
-      <template v-for="(a, i) in actions" :key="i">
-        <button
-          v-if="a.kind === 'spacer'"
-          class="btn btn-circle btn-lg child-btn invisible pointer-events-none"
-          aria-hidden="true"
-        ></button>
-        <button
-          v-else-if="a.kind === 'theme'"
-          class="btn btn-circle btn-lg child-btn"
-          @click="emit('toggle-theme')"
-          :title="isDark ? 'Switch to light' : 'Switch to dark'"
-        >
+      <!-- action：触发事件；toggle-theme 的图标随 isDark 切换，其余按配置图标渲染 -->
+      <button
+        v-else
+        :class="[
+          'btn btn-circle btn-lg child-btn tooltip tooltip-left',
+          item.action === 'logout' ? 'btn-error' : '',
+        ]"
+        :data-tip="item.label"
+        @click="onAction(item.action)"
+      >
+        <template v-if="item.action === 'toggle-theme'">
           <SvgIcon v-if="!isDark" type="sun" class="w-6 h-6 text-yellow-400" />
           <SvgIcon v-else type="moon" class="w-6 h-6 text-indigo-300" />
-        </button>
-        <button
-          v-else
-          :class="['btn btn-circle btn-lg child-btn', a.btnClass]"
-          @click="a.onClick"
-          :title="a.title"
-        >
-          <SvgIcon :type="a.icon" :class="a.iconClass" />
-        </button>
-      </template>
-    </div>
+        </template>
+        <SvgIcon v-else :type="(item.icon as IconType)" class="w-5 h-5" />
+      </button>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import type { User } from '@/features/auth/types/auth'
 import type { IconType } from '@/shared/components/svgIcons'
+import { getConfig, isNavVisible } from '@/shared/config/runtimeConfig'
+import type { FabActionKind, FabItem, NavVisibility } from '@/shared/config/runtimeConfig'
 
 const props = defineProps<{
   user: User | null
+  isAdmin?: boolean
   isDark: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-drawer'): void
   (e: 'toggle-theme'): void
   (e: 'toggle-ai'): void
   (e: 'logout'): void
 }>()
 
-const fabOpen = ref(false)
+const open = defineModel<boolean>('open', { default: false })
 
-const userInitial = computed(() => props.user?.username?.charAt(0).toUpperCase() ?? '')
+const fab = computed(() => getConfig().fab!)
 
-type FabAction =
-  | { kind: 'spacer' }
-  | { kind: 'theme' }
-  | {
-      kind: 'btn'
-      icon: IconType
-      iconClass: string
-      onClick: () => void
-      title: string
-      btnClass?: string
-    }
+const visible = (i: NavVisibility): boolean =>
+  isNavVisible(i, { isAuthenticated: !!props.user, isAdmin: props.isAdmin })
 
-const drawerBtn = (iconClass: string): FabAction => ({
-  kind: 'btn',
-  icon: 'bars3',
-  iconClass,
-  onClick: () => emit('toggle-drawer'),
-  title: 'Menu',
-})
+const items = computed<FabItem[]>(() => fab.value.items.filter(visible))
 
-const actions = computed<FabAction[]>(() =>
-  props.user
-    ? [
-        drawerBtn('w-5 h-5'),
-        { kind: 'theme' },
-        {
-          kind: 'btn',
-          icon: 'sparkles',
-          iconClass: 'w-5 h-5',
-          onClick: () => emit('toggle-ai'),
-          title: 'AI Assistant',
-        },
-        {
-          kind: 'btn',
-          icon: 'signin',
-          iconClass: 'w-5 h-5',
-          onClick: () => emit('logout'),
-          title: 'Sign out',
-          btnClass: 'btn-error',
-        },
-      ]
-    : [{ kind: 'spacer' }, drawerBtn('w-6 h-6'), { kind: 'theme' }, { kind: 'spacer' }],
-)
+const closeMenu = (e: MouseEvent) => {
+  open.value = false
+  ;(e.currentTarget as HTMLElement).blur()
+}
+
+const onAction = (action: FabActionKind) => {
+  switch (action) {
+    case 'toggle-theme':
+      emit('toggle-theme')
+      break
+    case 'toggle-ai':
+      emit('toggle-ai')
+      break
+    case 'logout':
+      emit('logout')
+      break
+  }
+}
 </script>

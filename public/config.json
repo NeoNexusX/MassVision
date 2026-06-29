@@ -71,6 +71,32 @@
     "repoUrl": "https://github.com/NeoNexusX/MassFlow",
     "orientation": "auto"
   },
+  "nav": [
+    { "kind": "link", "to": "/", "icon": "home", "label": "Home", "active": true },
+    {
+      "kind": "group",
+      "icon": "circle_stack",
+      "label": "Datahub",
+      "active": true,
+      "children": [
+        { "to": "/datasets", "icon": "queue_list", "label": "Public Datasets", "active": true },
+        { "to": "/mydatasets", "icon": "folder", "label": "My Datasets", "active": true, "requireAuth": true }
+      ]
+    },
+    { "kind": "link", "to": "/workspace", "icon": "code-bracket", "label": "Workspace", "active": true },
+    { "kind": "link", "to": "/profile", "icon": "user-circle", "label": "Profile", "active": true, "requireAuth": true },
+    { "kind": "link", "to": "/users", "icon": "users", "label": "Users", "active": true, "requireAdmin": true },
+    { "kind": "link", "to": "/login", "icon": "signin", "label": "Sign in", "active": true, "requireGuest": true, "closeOnClick": false },
+    { "kind": "link", "to": "/register", "icon": "user_plus", "label": "Create account", "active": true, "requireGuest": true, "closeOnClick": false }
+  ],
+  "fab": {
+    "main": { "iconClosed": "bars3", "iconOpen": "close" },
+    "items": [
+      { "kind": "action", "action": "toggle-theme", "icon": "sun", "label": "Toggle theme", "active": true },
+      { "kind": "action", "action": "toggle-ai", "icon": "sparkles", "label": "AI Assistant", "active": false, "requireAuth": true },
+      { "kind": "action", "action": "logout", "icon": "signin", "label": "Sign out", "active": true, "requireAuth": true }
+    ]
+  },
   "contact": {
     "website": "https://bionet.xmu.edu.cn/",
     "email": "jydong@xmu.edu.cn",

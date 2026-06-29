@@ -37,6 +37,10 @@ jobs:
       # type-check + lint + unit test（与 package.json 中 check 脚本一致）
       - run: npm run check
 
+      # 文档站构建：死链、frontmatter 语法、主题文件类型错误会在此暴露
+      # 与部署阶段 docker build 内的 `RUN npm run docs:build` 行为一致，提前到 PR 阶段拦截
+      - run: npm run docs:build
+
   # ---- Job 2: 构建 + e2e 测试（依赖 check 通过）----
   e2e:
     needs: check

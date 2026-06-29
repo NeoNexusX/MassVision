@@ -5,6 +5,8 @@ dist
 .github
 .gitignore
 *.md
+# 防呆：确保 VitePress 文档源文件始终进入构建上下文
+!docs/**
 # env 目录中只保留生产构建需要的文件，其余不打包
 env/.env.development
 env/.env.development.local

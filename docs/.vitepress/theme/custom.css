@@ -1,0 +1,66 @@
+/* 所有 md 文档正文中的图片默认居中显示
+   覆盖两种写法：markdown 的 ![]()（在 <p> 内）与原生 <img>（不在 <p> 内）。
+   .vp-doc 为 markdown 内容容器，不影响导航栏/侧边栏等界面图片。 */
+.vp-doc img {
+  display: block;
+  margin-inline: auto;
+}
+
+/* 首页 Hero 标题：模仿前端 HeroScene 的 “SpatialXomics”——
+   除中间的 X 外用普通强调色，X 单独做品牌渐变（brand-accent → primary，向左下）。
+   品牌主色取自 src/assets/daisy-theme.css 的 --color-primary，区分明暗主题。 */
+:root {
+  --doc-brand-primary: oklch(62% 0.214 259.815);
+  /* Hero 标题字号开关（相对标题基准，em 保留 VitePress 响应式缩放）：
+       --doc-hero-name-size：Spatial / omics 的字号
+       --doc-hero-x-size   ：中间 X 的字号 */
+  --doc-hero-name-size: 1.4em;
+  --doc-hero-x-size: 1.6em;
+}
+.dark {
+  --doc-brand-primary: oklch(58% 0.233 277.117);
+}
+
+/* 首页 Hero 图片：容器与图片同步放大到 500px，其余特性沿用默认主题 */
+.VPHero .image-container {
+  width: 500px;
+  height: 500px;
+}
+.VPHero .VPImage {
+  max-width: 500px;
+  max-height: 500px;
+}
+
+/* 横向布局（≥960px）下让左侧文字与右侧图片中心对齐：
+   文字列在行内垂直居中，并去掉默认图片容器向上的 32px 偏移 */
+@media (min-width: 960px) {
+  .VPHero .main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .VPHero .image-container {
+    transform: translate(0, 0);
+  }
+}
+
+/* 非 X 字母：用强对比文字色，贴近 app 的白/深标题（覆盖默认的纯品牌色） */
+.VPHero .name.clip {
+  --vp-home-hero-name-color: var(--vp-c-text-1);
+}
+
+/* Spatial / omics：字号可配置 */
+.VPHero .name .brand-word {
+  font-size: var(--doc-hero-name-size);
+}
+
+/* X：浅蓝(主色提亮) → 主色，向左下渐变，裁切进文字；字号可配置 */
+.VPHero .name .brand-x {
+  --brand-accent: color-mix(in oklch, var(--doc-brand-primary) 45%, white);
+  background: linear-gradient(to bottom left, var(--brand-accent), var(--doc-brand-primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-size: var(--doc-hero-x-size);
+}

@@ -18,6 +18,9 @@ COPY . .
 # 生产构建（读取 .env.production 中的 VITE_ 变量）
 RUN npm run build
 
+# 构建 VitePress 文档站 → /app/dist-docs（纯静态，无运行时依赖）
+RUN npm run docs:build
+
 # ---- Stage 2: Serve ----
 FROM nginx:alpine
 
@@ -26,6 +29,9 @@ RUN apk add --no-cache gettext
 
 # 复制构建产物
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# 复制文档站产物 → /docs 子路径（与 nginx.conf.template 的 base /docs/ 对齐）
+COPY --from=builder /app/dist-docs /usr/share/nginx/html/docs
 
 # 复制 nginx 配置模板（不是最终配置，占位符由 entrypoint.sh 在容器启动时替换）
 COPY docker/nginx.conf.template /etc/nginx/conf.d/default.conf.template
