@@ -53,6 +53,7 @@ export const ICON_MAP = {
   moon: 'heroicons:moon',
   'paper-clip': 'heroicons:paper-clip',
   'code-bracket': 'heroicons:code-bracket',
+  book: 'heroicons:book-open',
 } satisfies Record<string, string>
 
 /** 所有合法图标名的联合类型，供 SvgIcon 的 `type` 及各处图标字段引用 */
