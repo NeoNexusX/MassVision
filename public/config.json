@@ -83,6 +83,7 @@
         { "to": "/mydatasets", "icon": "folder", "label": "My Datasets", "active": true, "requireAuth": true }
       ]
     },
+    { "kind": "link", "to": "/docs", "icon": "book", "label": "Documentation", "active": true },
     { "kind": "link", "to": "/workspace", "icon": "code-bracket", "label": "Workspace", "active": true },
     { "kind": "link", "to": "/profile", "icon": "user-circle", "label": "Profile", "active": true, "requireAuth": true },
     { "kind": "link", "to": "/users", "icon": "users", "label": "Users", "active": true, "requireAdmin": true },
