@@ -1,9 +1,10 @@
 <template>
   <NavDrawer v-model:open="sidebarOpen" :user="user" :is-admin="authStore.isAdmin" />
   <NavFab
+    v-model:open="sidebarOpen"
     :user="user"
+    :is-admin="authStore.isAdmin"
     :is-dark="isDark"
-    @toggle-drawer="sidebarOpen = !sidebarOpen"
     @toggle-theme="toggleTheme"
     @toggle-ai="showAI = !showAI"
     @logout="logout"

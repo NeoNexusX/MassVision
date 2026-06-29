@@ -42,6 +42,20 @@ server {
         client_max_body_size 10g;
     }
 
+    # VitePress 文档站静态资源长缓存（资源在 /docs/assets/，不走上面的 /assets/）
+    location /docs/assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # VitePress 文档站：独立 fallback，落 VitePress 自己的 404.html，
+    # 不被前端 SPA 的 index.html 接管。$uri.html 兼容 cleanUrls 开/关。
+    # root 继承自 server 块：/docs/ 映射到 /usr/share/nginx/html/docs/
+    location /docs/ {
+        index index.html;
+        try_files $uri $uri.html $uri/ /docs/404.html;
+    }
+
     # SPA fallback：所有非文件路径返回 index.html
     location / {
         try_files $uri $uri/ /index.html;

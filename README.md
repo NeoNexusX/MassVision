@@ -121,6 +121,17 @@ npm run lint
 npm run format
 ```
 
+## 文档站
+
+项目内置基于 [VitePress](https://vitepress.dev/) 的中英文文档站，源文件位于 `docs/`，与本仓库共用同一套部署流程：
+
+```bash
+npm run docs:dev      # 单独启动文档站，默认 http://localhost:5174/docs/
+npm run docs:build    # 构建到根目录 dist-docs/
+```
+
+详见 [docs/zh/dev/文档维护.md](docs/zh/dev/文档维护.md)。
+
 ## 部署
 
 项目内置 Docker 部署配置（`docker/Dockerfile`、`nginx.conf.template`、`entrypoint.sh`），并通过 GitHub Actions（`.github/workflows/`）实现测试与开发/生产环境的自动化部署。
