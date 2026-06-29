@@ -48,6 +48,12 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
+    # /docs（不带斜杠）不满足下面 /docs/ 的前缀匹配，会被 SPA 的 location / 兜底接管，
+    # 错误地返回主应用首页。这里精确匹配并 301 到带斜杠的地址，再交给 /docs/ 处理。
+    location = /docs {
+        return 301 /docs/;
+    }
+
     # VitePress 文档站：独立 fallback，落 VitePress 自己的 404.html，
     # 不被前端 SPA 的 index.html 接管。$uri.html 兼容 cleanUrls 开/关。
     # root 继承自 server 块：/docs/ 映射到 /usr/share/nginx/html/docs/
