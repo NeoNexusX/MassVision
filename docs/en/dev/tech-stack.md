@@ -20,7 +20,7 @@ npm run dev   # starts both the SPA (5173) and the docs site (5174)
 | Build tool | Vite 7 + `@tailwindcss/vite` | Dev server, production build |
 | State | Pinia | Global/cross-component state per feature (e.g. `authStore`) |
 | Routing | Vue Router | History mode + route guards |
-| UI | Tailwind CSS v4 + DaisyUI v5 + Heroicons + Iconify | Utility-first styling and components |
+| UI | Tailwind CSS v4 + DaisyUI v5 + Iconify (offline-bundled, see [Icon Guidelines](./icon-guidelines)) | Utility-first styling and components |
 | Charts | ECharts, vue3-calendar-heatmap | Stat charts, commit heatmap |
 | MSI data | zarrita (Zarr reader), fflate / zstddec (decompression), hash-wasm (file hashing) | Parsing and verifying imzML-derived imaging data |
 | Object storage | ali-oss | Alibaba Cloud OSS multipart upload / pre-signed download URLs |

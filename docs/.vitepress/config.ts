@@ -37,6 +37,7 @@ const en = {
         items: [
           { text: 'Tech Stack', link: '/dev/tech-stack' },
           { text: 'Frontend Architecture', link: '/dev/frontend-architecture' },
+          { text: 'Icon Guidelines', link: '/dev/icon-guidelines' },
           { text: 'Documentation Maintenance', link: '/dev/doc-maintenance' },
         ],
       },
@@ -73,6 +74,7 @@ const zh = {
         items: [
           { text: '技术栈', link: '/zh/dev/技术栈' },
           { text: '前端架构边界', link: '/zh/dev/前端架构边界' },
+          { text: '图标使用规范', link: '/zh/dev/图标使用规范' },
           { text: '文档维护', link: '/zh/dev/文档维护' },
         ],
       },

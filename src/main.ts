@@ -1,5 +1,6 @@
 import './style.css'
 // import './assets/main.css'
+import './shared/icons/offlineRegistry'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

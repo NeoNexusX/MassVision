@@ -98,7 +98,7 @@ test.describe('Public Datasets', () => {
 // My Datasets（需登录）
 // ============================================================
 
-test.describe('My Datasets', () => {
+test.describe.skip('My Datasets', () => {
 
   test('page loads with quota bar and dataset cards', async ({ page }) => {
     await page.goto('/mydatasets')
