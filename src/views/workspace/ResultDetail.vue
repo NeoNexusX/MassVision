@@ -13,9 +13,19 @@ import { useResultROI } from '@/features/workspace/results/composables/useResult
 import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
 import { ZARR_STORE } from '@/shared/config/defaults'
 
-const state = history.state as { runId?: string } | null
-const runId = computed(() => state?.runId || '')
-const isStale = computed(() => !state?.runId)
+interface ResultDetailState {
+  runId?: string
+  processName?: string
+  datasetName?: string
+  filename?: string
+  fileId?: number
+  methods?: string[]
+  status?: string
+}
+
+const state = history.state as ResultDetailState | null
+const runId = computed(() => state?.runId != null ? String(state.runId) : '')
+const isStale = computed(() => state?.runId == null)
 
 const { datasetName, analyzer, ionSource, pixelSize, polarity, spectrumMode, storageMode, status, methods } = useResultMeta(runId)
 const colormap = ref('inferno')

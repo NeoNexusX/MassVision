@@ -38,8 +38,8 @@ test.describe('Unauthenticated', () => {
 
     await page.goto('/login')
 
-    await page.fill('input[placeholder="Username"]', username)
-    await page.fill('input[placeholder="Password"]', password)
+    await page.fill('input[placeholder="Username"]', process.env.E2E_USERNAME!)
+    await page.fill('input[placeholder="Password"]', process.env.E2E_PASSWORD!)
 
     await page.click('button:has-text("Sign In")')
 
