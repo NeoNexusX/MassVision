@@ -6,6 +6,10 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
+# VitePress 的 lastUpdated 功能要在构建时对每个文档文件执行 `git log` 读最后提交时间，
+# node:22-alpine 默认不带 git，装上（.git 目录由 .dockerignore 放行进入构建上下文）
+RUN apk add --no-cache git
+
 # 利用 Docker 层缓存：先复制依赖描述文件
 COPY package.json package-lock.json* ./
 

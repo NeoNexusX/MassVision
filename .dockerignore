@@ -1,7 +1,7 @@
 # Docker 构建忽略文件
 node_modules
 dist
-.git
+# .git 不排除：VitePress 的 lastUpdated 功能要在构建时读 git log（见 docker/Dockerfile）
 .github
 .gitignore
 *.md
