@@ -186,8 +186,8 @@ test.describe('My Datasets', () => {
       : 0
 
     const card = downloadBtns.nth(pick).locator('..').locator('..')
-    // eslint-disable-next-line playwright/prefer-web-first-assertions — 需要文本值做 toContain 校验
     const cardName = await card.locator('h3').innerText()
+    await expect(card.locator('h3')).not.toBeEmpty()
 
     const [download] = await Promise.all([
       page.waitForEvent('download'),
@@ -195,7 +195,6 @@ test.describe('My Datasets', () => {
     ])
 
     const filename = download.suggestedFilename()
-    expect(cardName).toBeTruthy()
     expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
 
     await download.delete()
@@ -416,9 +415,9 @@ test.describe('Public Datasets', () => {
       ? eligible[Math.floor(Math.random() * eligible.length)]
       : 0
 
-    // eslint-disable-next-line playwright/prefer-web-first-assertions — 需要文本值做 toContain 校验
     const cardName = await downloadBtns.nth(pick).locator('..').locator('..')
       .locator('h3').innerText()
+    await expect(downloadBtns.nth(pick).locator('..').locator('..').locator('h3')).not.toBeEmpty()
 
     const [download] = await Promise.all([
       page.waitForEvent('download'),
@@ -426,7 +425,6 @@ test.describe('Public Datasets', () => {
     ])
 
     const filename = download.suggestedFilename()
-    expect(cardName).toBeTruthy()
     expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
 
     await download.delete()
