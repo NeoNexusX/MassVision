@@ -15,8 +15,8 @@ export async function checkStorageQuota(pair: ImzmlFilePair): Promise<void> {
     const estMB = (estimated / 1048576).toFixed(0)
     const availMB = (available / 1048576).toFixed(0)
     throw new Error(
-      `Insufficient storage: estimated ${estMB} MB needed, but only ${availMB} MB available. ` +
-        `Please free up disk space or use a smaller dataset.`,
+      `Insufficient browser storage: this upload needs ~${estMB} MB, but only ${availMB} MB is available in your browser's temporary storage. ` +
+        `Please close other tabs, clear browser cache, or use a smaller dataset.`,
     )
   }
 }

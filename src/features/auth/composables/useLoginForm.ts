@@ -38,9 +38,10 @@ export function useLoginForm() {
       if (!access_token) throw new Error('Invalid token received')
 
       authStore.login(access_token)
+      sessionStorage.setItem('just_logged_in', '1')
       showToast('Login successful! Redirecting...', 'success')
       setTimeout(() => {
-        router.push('/profile').catch((err) => console.error('Router Push Error:', err))
+        router.push('/mydatasets').catch((err) => console.error('Router Push Error:', err))
       }, 800)
     } catch (error: any) {
       console.error('Login Error:', error)

@@ -43,9 +43,9 @@ test.describe('Unauthenticated', () => {
 
     await page.click('button:has-text("Sign In")')
 
-    // 成功 toast + 跳转 /profile
+    // 成功 toast + 跳转
     await expect(page.locator('.toast')).toContainText('Login successful')
-    await expect(page).toHaveURL('/profile')
+    await expect(page).toHaveURL(/\/mydatasets/)
   })
 
   test('shows error with invalid credentials', async ({ page }) => {
@@ -162,12 +162,12 @@ test.describe('Authenticated', () => {
 
   // ── 路由守卫 + 持久化 ──
 
-  test('route guard — visiting /login redirects to /profile', async ({ page }) => {
-    await page.goto('/profile')    // 确保已登录
+  test('route guard — visiting /login redirects when already logged in', async ({ page }) => {
+    await page.goto('/mydatasets')    // 确保已登录
     await page.goto('/login')
 
-    // 已登录 → 踢回 /profile
-    await expect(page).toHaveURL('/profile')
+    // 已登录 → 踢回 /mydatasets 或 /profile
+    await expect(page).toHaveURL(/\/mydatasets/)
   })
 
   test('token persistence — survives page reload', async ({ page }) => {

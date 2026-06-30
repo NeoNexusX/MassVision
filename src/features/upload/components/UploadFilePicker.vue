@@ -52,7 +52,6 @@ const onFileChange = (event: Event) => {
   <label class="form-control w-full shrink-0">
     <div class="label">
       <span class="label-text">Select an .imzML and .ibd file pair</span>
-      <span class="label-text-alt text-error" v-if="error">{{ error }}</span>
     </div>
     <div
       class="relative flex items-center justify-between border border-base-content/20 rounded-lg px-3 py-2 bg-base-100 hover:bg-base-200/50 transition-colors overflow-hidden min-h-12"
@@ -93,6 +92,9 @@ const onFileChange = (event: Event) => {
         >Ready: <span class="break-all">{{ selectedPair.baseName }}</span> ({{ formattedSize }})</span
       >
       <span v-else class="text-base-content/60">No matched pair selected</span>
+    </div>
+    <div v-if="error" class="border border-error/30 bg-error/5 text-error rounded-lg px-4 py-3 mt-3 text-base">
+      <span>{{ error }}</span>
     </div>
   </label>
 </template>

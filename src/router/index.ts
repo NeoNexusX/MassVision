@@ -94,7 +94,7 @@ router.beforeEach(async (to, from, next) => {
   // But allow it if coming from an auth-required page (token may be stale / backend down)
   const fromAuthRequired = from.matched.some((record) => record.meta.requiresAuth)
   if (loggedIn && !fromAuthRequired && ['/login', '/register', '/forgotpassword'].includes(to.path)) {
-    return next('/profile')
+    return next('/mydatasets')
   }
 
   // Redirect to login page if authentication is required but user is not logged in

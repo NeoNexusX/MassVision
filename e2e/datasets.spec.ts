@@ -4,6 +4,23 @@ import { mkdtempSync, writeFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
+/** 解析 "File Size:X.X KB/MB/GB" 为 MB */
+function sizeToMB(text: string | null): number {
+  if (!text) return Infinity
+  const m = text.match(/([\d.]+)\s*(KB|MB|GB|TB)/i)
+  if (!m) return Infinity
+  const v = parseFloat(m[1])
+  switch (m[2].toUpperCase()) {
+    case 'KB': return v / 1024
+    case 'MB': return v
+    case 'GB': return v * 1024
+    case 'TB': return v * 1024 * 1024
+    default: return Infinity
+  }
+}
+
+const MAX_DOWNLOAD_MB = 300
+
 /**
  * Datasets E2E 测试 — 真实后端
  * ==============================
@@ -154,12 +171,33 @@ test.describe('My Datasets', () => {
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
     const downloadBtns = page.locator('button').filter({ hasText: /Download/ })
+    await downloadBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
     const count = await downloadBtns.count()
-    const pick = count > 1 ? Math.floor(Math.random() * count) : 0
 
-    await downloadBtns.nth(pick).click()
+    // 过滤出文件 < 300MB 的卡片索引
+    const eligible: number[] = []
+    for (let i = 0; i < count; i++) {
+      const card = downloadBtns.nth(i).locator('..').locator('..')
+      const sizeText = await card.locator('text=/File Size:/').textContent()
+      if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
+    }
+    const pick = eligible.length > 0
+      ? eligible[Math.floor(Math.random() * eligible.length)]
+      : 0
 
-    await expect(page.locator('.toast')).toContainText('Download started')
+    const card = downloadBtns.nth(pick).locator('..').locator('..')
+    const cardName = await card.locator('h3').textContent()
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      downloadBtns.nth(pick).click(),
+    ])
+
+    const filename = download.suggestedFilename()
+    expect(cardName).toBeTruthy()
+    expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
+
+    await download.delete()
   })
 
   test('download rate limit — second download is blocked', async ({ page }) => {
@@ -364,12 +402,32 @@ test.describe('Public Datasets', () => {
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
     const downloadBtns = page.locator('button').filter({ hasText: /Download/ })
+    await downloadBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
     const count = await downloadBtns.count()
-    const pick = count > 1 ? Math.floor(Math.random() * count) : 0
 
-    await downloadBtns.nth(pick).click()
+    const eligible: number[] = []
+    for (let i = 0; i < count; i++) {
+      const card = downloadBtns.nth(i).locator('..').locator('..')
+      const sizeText = await card.locator('text=/File Size:/').textContent()
+      if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
+    }
+    const pick = eligible.length > 0
+      ? eligible[Math.floor(Math.random() * eligible.length)]
+      : 0
 
-    await expect(page.locator('.toast')).toContainText('Download started')
+    const cardName = await downloadBtns.nth(pick).locator('..').locator('..')
+      .locator('h3').textContent()
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      downloadBtns.nth(pick).click(),
+    ])
+
+    const filename = download.suggestedFilename()
+    expect(cardName).toBeTruthy()
+    expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
+
+    await download.delete()
   })
 
   test('download rate limit — second download is blocked', async ({ page }) => {
