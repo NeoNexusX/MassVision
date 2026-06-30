@@ -178,7 +178,7 @@ test.describe('My Datasets', () => {
     const eligible: number[] = []
     for (let i = 0; i < count; i++) {
       const card = downloadBtns.nth(i).locator('..').locator('..')
-      const sizeText = await card.locator('text=/File Size:/').textContent()
+      const sizeText = await card.locator('text=/File Size:/').innerText()
       if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
     }
     const pick = eligible.length > 0
@@ -186,7 +186,7 @@ test.describe('My Datasets', () => {
       : 0
 
     const card = downloadBtns.nth(pick).locator('..').locator('..')
-    const cardName = await card.locator('h3').textContent()
+    const cardName = await card.locator('h3').innerText()
 
     const [download] = await Promise.all([
       page.waitForEvent('download'),
@@ -408,7 +408,7 @@ test.describe('Public Datasets', () => {
     const eligible: number[] = []
     for (let i = 0; i < count; i++) {
       const card = downloadBtns.nth(i).locator('..').locator('..')
-      const sizeText = await card.locator('text=/File Size:/').textContent()
+      const sizeText = await card.locator('text=/File Size:/').innerText()
       if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
     }
     const pick = eligible.length > 0
@@ -416,7 +416,7 @@ test.describe('Public Datasets', () => {
       : 0
 
     const cardName = await downloadBtns.nth(pick).locator('..').locator('..')
-      .locator('h3').textContent()
+      .locator('h3').innerText()
 
     const [download] = await Promise.all([
       page.waitForEvent('download'),

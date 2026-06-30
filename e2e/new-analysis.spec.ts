@@ -48,7 +48,7 @@ test.describe('New Analysis', () => {
 
     // 选第一个
     const firstLi = radios.first().locator('..')
-    const firstName = await firstLi.locator('.font-medium').textContent()
+    const firstName = await firstLi.locator('.font-medium').innerText()
     await firstLi.click()
     await expect(firstLi.locator('input[type="radio"]')).toBeChecked()
 
@@ -58,7 +58,7 @@ test.describe('New Analysis', () => {
 
     // 换选第二个
     const secondLi = radios.nth(1).locator('..')
-    const secondName = await secondLi.locator('.font-medium').textContent()
+    const secondName = await secondLi.locator('.font-medium').innerText()
     await secondLi.click()
 
     // 第二个 radio 选中，第一个取消
@@ -80,7 +80,7 @@ test.describe('New Analysis', () => {
     // 取第一个数据集的名称，通过 radio 所在的 li 定位
     const firstLi = page.locator('input[name="selectedDataset"]').first().locator('..')
     const nameEl = firstLi.locator('.font-medium')
-    const datasetName = await nameEl.textContent()
+    const datasetName = await nameEl.innerText()
     expect(datasetName).toBeTruthy()
 
     // 点击数据集行
