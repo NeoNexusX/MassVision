@@ -157,10 +157,9 @@ test.describe('New Analysis', () => {
       // 等表格数据真正加载完（不再是 "Loading..."）
       await expect(page.locator('table tbody tr').first().locator('td').first())
         .not.toHaveText('Loading...', { timeout: 15_000 })
-      const hasRunning = await page.locator('table')
+      const hasRunning = (await page.locator('table')
         .getByText('Running')
-        .isVisible()
-        .catch(() => false)
+        .count()) > 0
       if (!hasRunning) break
       await page.waitForTimeout(10_000)
     }

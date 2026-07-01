@@ -283,7 +283,7 @@ test.describe('My Datasets', () => {
   /**
    * Step 8 — 清理：删除第一个数据集
    */
-  test('delete — removes a dataset', async ({ page }) => {
+  test('delete — removes the first (newest) dataset on the page', async ({ page }) => {
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
