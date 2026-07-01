@@ -93,7 +93,7 @@ const onFileChange = (event: Event) => {
       >
       <span v-else class="text-base-content/60">No matched pair selected</span>
     </div>
-    <div v-if="error" class="border border-error/30 bg-error/5 text-error rounded-lg px-4 py-3 mt-3 text-base">
+    <div v-if="error" class="border border-error/30 bg-error/5 text-error rounded-lg px-4 py-3 mt-3 text-base break-all">
       <span>{{ error }}</span>
     </div>
   </label>
