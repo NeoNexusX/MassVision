@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
 import Login from '../views/LoginView.vue'
 import Home from '../views/HomeView.vue'
 import UserProfileView from '../views/UserProfileView.vue'
@@ -74,6 +74,15 @@ const routes = [
     name: 'WorkspaceResultDetail',
     component: () => import('../views/workspace/ResultDetail.vue'),
     meta: { requiresAuth: true },
+  },
+  // 裸 /docs 转发后由 nginx 的 `location = /docs` 301 补斜杠，这里无需特殊处理。
+  {
+    path: '/docs/:pathMatch(.*)*',
+    component: { render: () => null },
+    beforeEnter: (to: RouteLocationNormalized) => {
+      window.location.assign(to.fullPath)
+      return false
+    },
   },
 ]
 
