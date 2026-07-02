@@ -30,7 +30,6 @@ const {
   modeNotice,
   selectedMethods,
   methodParams,
-  isPublic,
   quotaStorage,
   submitting,
   canSubmit,
@@ -105,7 +104,6 @@ const {
       </div>
 
       <AnalysisSummaryPanel
-        v-model:is-public="isPublic"
         :status-badge="statusBadge"
         :pipeline-summary="pipelineSummary"
         :ms-settings-list="msSettingsList"

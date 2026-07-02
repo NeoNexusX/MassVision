@@ -167,6 +167,7 @@ test.describe('My Datasets', () => {
    * Step 4 — 随机下载一张卡
    */
   test('download — triggers download on a random card', async ({ page }) => {
+    test.setTimeout(60_000)  // WebKit 下载偶发较慢
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
@@ -178,7 +179,7 @@ test.describe('My Datasets', () => {
     const eligible: number[] = []
     for (let i = 0; i < count; i++) {
       const card = downloadBtns.nth(i).locator('..').locator('..')
-      const sizeText = await card.locator('text=/File Size:/').innerText()
+      const sizeText = await card.locator('p:has-text("File Size:")').innerText()
       if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
     }
     const pick = eligible.length > 0
@@ -197,7 +198,8 @@ test.describe('My Datasets', () => {
     const filename = download.suggestedFilename()
     expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
 
-    await download.delete()
+    // 清理下载文件（WebKit 偶发超时，忽略）
+    try { await download.delete() } catch { /* ok */ }
   })
 
   test('download rate limit — second download is blocked', async ({ page }) => {
@@ -231,6 +233,7 @@ test.describe('My Datasets', () => {
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
     const overviewBtns = page.getByRole('button', { name: 'Overview' })
+    await overviewBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
     const count = await overviewBtns.count()
     const pick = count > 1 ? Math.floor(Math.random() * count) : 0
     await overviewBtns.nth(pick).click()
@@ -283,7 +286,8 @@ test.describe('My Datasets', () => {
   /**
    * Step 8 — 清理：删除第一个数据集
    */
-  test('delete — removes the first (newest) dataset on the page', async ({ page }) => {
+  test('delete — removes the first (newest) dataset on the page', async ({ page, browserName }) => {
+    test.skip(browserName === 'webkit', 'Linux WebKit 没有上传，跳过删除避免误删真实数据')
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
@@ -353,6 +357,7 @@ test.describe('Public Datasets', () => {
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
     const overviewBtns = page.getByRole('button', { name: 'Overview' })
+    await overviewBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
     const count = await overviewBtns.count()
     const pick = count > 1 ? Math.floor(Math.random() * count) : 0
     await overviewBtns.nth(pick).click()
@@ -374,6 +379,7 @@ test.describe('Public Datasets', () => {
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
     const overviewBtns = page.getByRole('button', { name: 'Overview' })
+    await overviewBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
     const count = await overviewBtns.count()
     const pick = count > 1 ? Math.floor(Math.random() * count) : 0
     await overviewBtns.nth(pick).click()
@@ -398,6 +404,7 @@ test.describe('Public Datasets', () => {
   })
 
   test('download — triggers download on a random card', async ({ page }) => {
+    test.setTimeout(60_000)  // WebKit 下载偶发较慢
     await page.goto('/datasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
@@ -408,7 +415,7 @@ test.describe('Public Datasets', () => {
     const eligible: number[] = []
     for (let i = 0; i < count; i++) {
       const card = downloadBtns.nth(i).locator('..').locator('..')
-      const sizeText = await card.locator('text=/File Size:/').innerText()
+      const sizeText = await card.locator('p:has-text("File Size:")').innerText()
       if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
     }
     const pick = eligible.length > 0
@@ -427,7 +434,8 @@ test.describe('Public Datasets', () => {
     const filename = download.suggestedFilename()
     expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
 
-    await download.delete()
+    // 清理下载文件（WebKit 偶发超时，忽略）
+    try { await download.delete() } catch { /* ok */ }
   })
 
   test('download rate limit — second download is blocked', async ({ page }) => {

@@ -47,7 +47,6 @@ export function useAnalysisBuilder(
     pixelSize: false,
   })
 
-  const isPublic = ref(false)
   const quota = ref<UserQuota | null>(null)
   const quotaLoading = ref(false)
   const submitting = ref(false)
@@ -265,7 +264,6 @@ export function useAnalysisBuilder(
         selectedMethods,
         methodParams,
         methodGroups: allMethodGroups,
-        isPublic: isPublic.value,
       })
       await createProcess(payload)
       showToast('Analysis started', 'success')
@@ -295,7 +293,6 @@ export function useAnalysisBuilder(
     selectedMethods,
     methodParams,
     analysisForm,
-    isPublic,
     quota,
     quotaLoading,
     quotaStorage,

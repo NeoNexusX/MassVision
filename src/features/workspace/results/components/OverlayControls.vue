@@ -10,6 +10,7 @@ defineProps<{
   draftReady: boolean
   viewingRoi: boolean
   confirmedRois: any[]
+  gamma: number
 }>()
 
 const emit = defineEmits<{
@@ -21,12 +22,35 @@ const emit = defineEmits<{
   (e: 'roi-delete', id: string): void
   (e: 'roi-clear-all'): void
   (e: 'roi-reset'): void
+  (e: 'update:gamma', value: number): void
 }>()
 </script>
 
 <template>
   <div class="mt-3 pt-3 border-t border-base-200">
-    <div class="text-base font-semibold text-base-content/50 mb-2">Statistical Visualization</div>
+    <div class="text-base font-semibold text-base-content/50 mb-2">Visualization</div>
+
+    <div class="mb-3">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-sm text-base-content/50">Gamma</span>
+        <span class="text-sm font-mono text-base-content/60">{{ gamma.toFixed(1) }}</span>
+      </div>
+      <input
+        type="range"
+        class="range range-xs range-primary"
+        min="0.5"
+        max="1.5"
+        step="0.1"
+        :value="gamma"
+        @input="emit('update:gamma', +($event.target as HTMLInputElement).value)"
+      />
+      <div class="flex justify-between text-xs text-base-content/40 mt-0.5">
+        <span>0.5</span>
+        <span>1.0</span>
+        <span>1.5</span>
+      </div>
+    </div>
+
     <div class="flex gap-2">
       <button
         class="btn btn-sm flex-1 text-base rounded-lg transition-colors"

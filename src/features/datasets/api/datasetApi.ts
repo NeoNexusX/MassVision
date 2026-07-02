@@ -62,6 +62,12 @@ export async function deleteFile(fileId: string | number) {
   return res.data
 }
 
+// PUT /files/{file_id}/set_public
+export async function setFilePublic(fileId: string | number) {
+  const res = await auth_api.put(`/files/${fileId}/set_public`)
+  return res.data
+}
+
 // POST /files/list_files?page={page}&size={size}
 // Backend expects a JSON body of filter attributes; returns { data: [...], meta: {...} }.
 export async function listFiles(filters: Record<string, any> = {}, page = 1, size = getConfig().pagination.defaultPageSize) {
@@ -98,7 +104,6 @@ export async function getUserQuota(): Promise<UserQuota> {
 export async function createProcess(payload: {
   file_id: number
   algorithms: Record<string, any>
-  is_public?: boolean
 }) {
   const res = await auth_api.post('/processes', payload)
   return res.data
