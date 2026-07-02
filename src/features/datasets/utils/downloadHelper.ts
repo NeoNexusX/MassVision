@@ -57,9 +57,9 @@ export async function ossDownloadAndSave(
  */
 export async function ossDownloadRaw(
   fileId: string,
-  options?: { getFallbackFilename?: () => string | undefined },
+  options?: { getFallbackFilename?: () => string | undefined, isPublic?: boolean },
 ) {
-  const { files } = await getDownloadRaw(fileId)
+  const { files } = await getDownloadRaw(fileId, options?.isPublic ?? false)
 
   if (!files || !files.length) {
     throw new Error('No download URLs returned')

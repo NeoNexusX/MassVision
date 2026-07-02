@@ -8,13 +8,11 @@ defineProps<{
   selectedDataset: any
   estimateTimeDisplay: string
   quotaStorage: string
-  isPublic: boolean
   canSubmit: boolean
   submitting: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:isPublic', value: boolean): void
   (e: 'submit'): void
 }>()
 </script>
@@ -84,24 +82,6 @@ const emit = defineEmits<{
               <span class="text-base-content font-medium">{{ quotaStorage }}</span>
             </div>
           </div>
-        </div>
-
-        <!-- TODO: Visibility 功能暂未启用，先隐藏 UI，后端 isPublic 字段保留 -->
-        <div v-if="false" class="border-t border-base-200/70 px-5 py-4">
-          <label class="flex items-center justify-between cursor-pointer">
-            <div>
-              <div class="text-lg font-medium text-base-content/60">Visibility</div>
-              <div class="text-base text-base-content/40 mt-0.5">
-                {{ isPublic ? 'Public' : 'Private' }}
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              class="toggle toggle-sm"
-              :checked="isPublic"
-              @change="emit('update:isPublic', ($event.target as HTMLInputElement).checked)"
-            />
-          </label>
         </div>
 
         <div class="border-t border-base-200/70 px-5 py-4">

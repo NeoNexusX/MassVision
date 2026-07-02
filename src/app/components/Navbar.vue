@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/features/auth/stores/authStore'
@@ -42,4 +42,15 @@ onMounted(() => {
     authStore.fetchUser().catch(() => {})
   }
 })
+
+// Auto-open sidebar after fresh login redirect
+watch(
+  () => router.currentRoute.value.path,
+  (path) => {
+    if (sessionStorage.getItem('just_logged_in')) {
+      sidebarOpen.value = true
+      sessionStorage.removeItem('just_logged_in')
+    }
+  },
+)
 </script>

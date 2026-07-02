@@ -35,7 +35,7 @@
     <div class="mt-3 pt-3 border-t border-base-200">
       <div class="text-base font-semibold text-base-content/50 mb-2">Statistic</div>
       <div class="rounded-lg border border-base-200 bg-base-200/50 p-3 space-y-2">
-        <div class="relative h-20 rounded border border-base-200 bg-base-200 overflow-hidden">
+        <div class="relative h-20 rounded border border-base-200 bg-base-200 overflow-visible -mx-3">
           <canvas ref="histCanvasRef" class="absolute inset-0 w-full h-full" />
           <div
             class="absolute top-0 bottom-0 w-[2px] bg-red-500/80 z-10"
@@ -122,12 +122,12 @@ const localMin = computed(() => props.displayMin)
 const localMax = computed(() => props.displayMax)
 const range = computed(() => props.globalMax - props.globalMin || 1)
 function markerLeft(v: number) {
-  return ((v - props.globalMin) / range.value) * 100
+  return Math.max(0, Math.min(100, ((v - props.globalMin) / range.value) * 100))
 }
 
 function pctLabel(v: number): string {
   const arr = props.sortedValues
-  if (!arr.length) return '0.0%'
+  if (!arr.length) return '0.00%'
   let lo = 0,
     hi = arr.length
   while (lo < hi) {
@@ -135,7 +135,9 @@ function pctLabel(v: number): string {
     if (arr[mid]! <= v) lo = mid + 1
     else hi = mid
   }
-  return ((lo / arr.length) * 100).toFixed(1) + '%'
+  let pct = (lo / arr.length) * 100
+  if (lo < arr.length) pct = Math.min(pct, 99.99)
+  return pct.toFixed(2) + '%'
 }
 
 const statisticRows = computed(() => {

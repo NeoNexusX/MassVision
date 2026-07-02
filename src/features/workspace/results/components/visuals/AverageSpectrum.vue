@@ -111,7 +111,7 @@ function buildSelectorGraphic(): unknown[] {
   const gridRect = gridModel?.coordinateSystem?.getRect?.()
   const topY = gridRect ? gridRect.y : 24
   const bottomY = gridRect ? gridRect.y + gridRect.height : 200
-  const label = mz.toFixed(4)
+  const label = mz
 
   return [
     {
@@ -187,8 +187,8 @@ function renderChart() {
           if (!items?.length) return ''
           const [mz, intensity] = items[0]!.data
           return `<div class="font-mono text-xs">
-            <div>m/z: <strong>${mz.toFixed(4)}</strong></div>
-            <div>Mean intensity: <strong>${intensity.toFixed(4)}</strong></div>
+            <div>m/z: <strong>${mz}</strong></div>
+            <div>Mean intensity: <strong>${intensity}</strong></div>
           </div>`
         },
       },
@@ -196,7 +196,7 @@ function renderChart() {
       xAxis: {
         type: 'value', name: 'm/z', scale: true,
         nameLocation: 'center', nameGap: 28,
-        axisLabel: { formatter: (v: number) => v.toFixed(4) },
+        axisLabel: {},
         axisPointer: { label: { show: false } },
         nameTextStyle: { fontSize: 15, color: '#6b7280' },
         axisLine: { lineStyle: { color: '#9ca3af' } },

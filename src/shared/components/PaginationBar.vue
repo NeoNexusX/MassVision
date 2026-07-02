@@ -6,8 +6,8 @@
     >
       <div class="join">
         <button
-          class="join-item btn hover:bg-secondary/80 bg-base-100 h-[2em] min-h-[2em] px-[1em] text-[1em] text-base-content/70"
-          :disabled="currentPage === 1"
+          class="join-item btn hover:bg-secondary/80 bg-base-100 border-base-content/20 h-[2em] min-h-[2em] px-[1em] text-[1em] text-base-content/70"
+          :class="{ 'pointer-events-none opacity-50': currentPage === 1 }"
           @click="$emit('prev-page')"
         >
           Prev
@@ -15,7 +15,7 @@
         <template v-for="(p, idx) in pageRange" :key="`pg-${idx}`">
           <button
             v-if="p !== '...'"
-            class="join-item btn h-[2em] min-h-[2em] font-medium text-[1em] bg-base-100"
+            class="join-item btn h-[2em] min-h-[2em] font-medium text-[1em] bg-base-100 tabular-nums"
             :class="
               currentPage === p
                 ? 'bg-base-200/80 text-base-content'
@@ -28,8 +28,8 @@
           <span v-else class="join-item btn btn-disabled h-[2em] min-h-[2em] text-[1em]">...</span>
         </template>
         <button
-          class="join-item btn hover:bg-secondary/80 bg-base-100 text-base-content/70 h-[2em] min-h-[2em] px-[1em] text-[1em]"
-          :disabled="currentPage === totalPages"
+          class="join-item btn hover:bg-secondary/80 bg-base-100 border-base-content/20 text-base-content/70 h-[2em] min-h-[2em] px-[1em] text-[1em]"
+          :class="{ 'pointer-events-none opacity-50': currentPage === totalPages }"
           @click="$emit('next-page')"
         >
           Next
@@ -40,6 +40,8 @@
         <input
           v-model="jumpInput"
           type="number"
+          min="1"
+          :max="totalPages"
           class="join-item input  bg-base-100 h-[2em] min-h-[2em] w-[4em] text-center text-[1em] text-base-content"
           :placeholder="`${currentPage}`"
           @keydown.enter="handleJump"

@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import UploadModal from '@/features/upload/components/UploadModal.vue'
+import PaginationBar from '@/shared/components/PaginationBar.vue'
 import { formatBytes } from '@/shared/utils/format'
 
-defineProps<{
+const props = defineProps<{
   activeTab: 'upload' | 'my'
   uploadOpen: boolean
   datasetQuery: string
   loading: boolean
   error: string
-  filteredDatasets: any[]
+  datasets: any[]
   selectedDataset: any
+  meta: Record<string, any>
+  page: number
+  size: number
+  pagination: (number | string)[]
 }>()
 
 const emit = defineEmits<{
@@ -19,6 +24,9 @@ const emit = defineEmits<{
   (e: 'upload-success'): void
   (e: 'upload-close'): void
   (e: 'select-dataset', dataset: any): void
+  (e: 'go-to-page', page: number): void
+  (e: 'prev-page'): void
+  (e: 'next-page'): void
 }>()
 </script>
 
@@ -50,13 +58,30 @@ const emit = defineEmits<{
     </div>
 
     <div v-if="activeTab === 'my'">
-      <div class="mb-2">
+      <div class="flex items-center gap-3 mb-2">
         <input
           :value="datasetQuery"
           @input="emit('update:datasetQuery', ($event.target as HTMLInputElement).value)"
-          placeholder="Search datasets"
-          class="input input-bordered w-full"
+          placeholder="Search..."
+          class="input input-bordered w-48"
         />
+        <div v-if="meta.total_pages > 0" class="flex items-center gap-3 ml-auto">
+          <span class="text-base text-base-content/60 whitespace-nowrap tabular-nums"
+            >Page {{ meta.current_page }} / {{ meta.total_pages }} &mdash;
+            {{ meta.total_records }} records</span
+          >
+          <PaginationBar
+            :current-page="meta.current_page"
+            :total-pages="meta.total_pages"
+            :total-items="meta.total_records"
+            :from="(meta.current_page - 1) * size + 1"
+            :to="Math.min(meta.current_page * size, meta.total_records)"
+            :page-range="pagination"
+            @prev-page="emit('prev-page')"
+            @next-page="emit('next-page')"
+            @go-to-page="(p) => emit('go-to-page', p)"
+          />
+        </div>
       </div>
       <div class="max-h-48 overflow-auto border border-base-200 bg-base-100 rounded-md p-2">
         <div v-if="loading" class="flex items-center justify-center p-4">
@@ -66,7 +91,7 @@ const emit = defineEmits<{
           <div v-if="error" class="text-lg text-error p-3">{{ error }}</div>
           <ul>
             <li
-              v-for="dataset in filteredDatasets"
+              v-for="dataset in datasets"
               :key="dataset.id"
               :class="[
                 'px-4 py-2 cursor-pointer flex items-center justify-between',
@@ -92,7 +117,7 @@ const emit = defineEmits<{
               />
             </li>
           </ul>
-          <div v-if="filteredDatasets.length === 0" class="text-lg text-base-content/60 p-3">
+          <div v-if="datasets.length === 0" class="text-lg text-base-content/60 p-3">
             No datasets found.
           </div>
         </div>

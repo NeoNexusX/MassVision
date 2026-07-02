@@ -141,7 +141,7 @@ export function useForgotPassword() {
 
     loading.sendCode = true
     try {
-      await sendEmailCode(form.email, 'update')
+      await sendEmailCode(form.email, 'reset_password')
       showToast('Verification code sent! Check your email.', 'success')
       startCountdown()
       step.value = 'reset'
