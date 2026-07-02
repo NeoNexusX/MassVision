@@ -1,15 +1,18 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getFileMetadata, getFileImages, pickImageUrl } from '@/features/datasets/api/datasetApi'
+import axios from 'axios'
+import { getFileMetadata, getFileImages, pickImageUrl, setFilePublic } from '@/features/datasets/api/datasetApi'
 import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
 import type { File } from '@/features/datasets/types/dataset'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
 import { formatBytes } from '@/shared/utils/format'
+import { useToast } from '@/shared/composables/useToast'
 
 export function useDatasetDetail() {
   const router = useRouter()
   const { handleDownloadRaw, isPacking } = useDownloadProgress()
+  const { showToast } = useToast()
 
   // 从 history.state 读取导航上下文（无路径参数，刷新后会丢失）
   const state = history.state as { fileId?: string; source?: 'my' | 'public' } | null
@@ -22,6 +25,7 @@ export function useDatasetDetail() {
   const ticImageError = ref(false)
 
   const source = computed(() => state?.source || 'my')
+  const isPublic = computed(() => source.value === 'public')
   /** 刷新后 history.state 丢失，此时应提示用户从列表页重新进入 */
   const isStale = computed(() => !state?.fileId)
 
@@ -70,7 +74,43 @@ export function useDatasetDetail() {
         if (!filename) return undefined
         return filename.toLowerCase().endsWith('.zip') ? filename : `${filename}.zip`
       },
+      isPublic: isPublic.value,  // 公开页面不需要登录
     })
+  }
+
+  // Make Public
+  const makingPublic = ref(false)
+  const showPublicConfirm = ref(false)
+
+  const openPublicConfirm = () => {
+    showPublicConfirm.value = true
+  }
+
+  const cancelPublicConfirm = () => {
+    showPublicConfirm.value = false
+  }
+
+  const confirmSetPublic = async () => {
+    const targetId = dataset.value?.id ? String(dataset.value.id) : ''
+    if (!targetId) return
+    makingPublic.value = true
+    try {
+      await setFilePublic(targetId)
+      // 直接更新本地状态，避免刷新页面
+      if (dataset.value) {
+        dataset.value.isPublic = true
+      }
+      showToast('Dataset is now public.', 'success')
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? (error.response?.data?.message || error.message)
+        : 'Failed to make dataset public'
+      showToast(message, 'error')
+      console.error('Failed to set file public', error)
+    } finally {
+      makingPublic.value = false
+      showPublicConfirm.value = false
+    }
   }
 
   const fetchDatasetDetails = async () => {
@@ -82,13 +122,13 @@ export function useDatasetDetail() {
 
     loading.value = true
     try {
-      const metadata = await getFileMetadata(fileId)
+      const metadata = await getFileMetadata(fileId, isPublic.value)
       dataset.value = metadata ? mapItemToDataset(metadata) : null
       // Fetch TIC image after dataset is loaded
       if (dataset.value?.id) {
         try {
           ticImageError.value = false
-          const images = await getFileImages(dataset.value.id)
+          const images = await getFileImages(dataset.value.id, isPublic.value)
           ticImageUrl.value = pickImageUrl(images)
         } catch {
           ticImageUrl.value = ''
@@ -122,5 +162,10 @@ export function useDatasetDetail() {
     downloadCurrent,
     isPacking,
     fetchDatasetDetails,
+    makingPublic,
+    showPublicConfirm,
+    openPublicConfirm,
+    cancelPublicConfirm,
+    confirmSetPublic,
   }
 }

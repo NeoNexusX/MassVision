@@ -1,12 +1,22 @@
-import { computed, onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { listUserFiles } from '@/features/datasets/api/datasetApi'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
 
 export function useAnalysisDatasets() {
-  // External composables
-  const { datasets, loading, error, fetchFiles } = useDatasetList((filters, page, size) =>
-    listUserFiles(filters, page, size),
-  )
+  // External composables — fully leverage useDatasetList's pagination
+  const {
+    datasets,
+    loading,
+    error,
+    fetchFiles,
+    meta,
+    page,
+    size,
+    pagination,
+    goToPage,
+    changeSize,
+    applyFilters,
+  } = useDatasetList((filters, page, size) => listUserFiles(filters, page, size))
 
   // State
   const activeTab = ref<'upload' | 'my'>('my')
@@ -14,20 +24,13 @@ export function useAnalysisDatasets() {
   const selectedDataset = ref<any>(null)
   const uploadOpen = ref(false)
 
-  // Computed
-  const filteredDatasets = computed(() => {
-    const query = datasetQuery.value.trim().toLowerCase()
-    if (!query) return datasets.value
-    return datasets.value.filter((dataset) => (dataset.name || '').toLowerCase().includes(query))
-  })
-
   // Methods
   const selectDataset = (dataset: any) => {
     selectedDataset.value = dataset
   }
 
   const onUploadSuccess = async () => {
-    await fetchFiles({ page: 1, size: 50 })
+    await fetchFiles()
     const newest = datasets.value[0]
     if (newest) selectedDataset.value = newest
     uploadOpen.value = false
@@ -42,9 +45,20 @@ export function useAnalysisDatasets() {
     if (value === 'upload') uploadOpen.value = true
   })
 
+  // Debounced server-side search — reset to page 1 on every query change
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+  watch(datasetQuery, (query) => {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+      const trimmed = query.trim()
+      applyFilters(trimmed ? { name: trimmed } : {})
+      fetchFiles({ page: 1, size: size.value })
+    }, 300)
+  })
+
   // Lifecycle
   onMounted(() => {
-    fetchFiles({ page: 1, size: 100 }).catch(() => {})
+    fetchFiles().catch(() => {})
   })
 
   return {
@@ -55,7 +69,12 @@ export function useAnalysisDatasets() {
     datasets,
     loading,
     error,
-    filteredDatasets,
+    meta,
+    page,
+    size,
+    pagination,
+    goToPage,
+    changeSize,
     fetchFiles,
     selectDataset,
     onUploadSuccess,

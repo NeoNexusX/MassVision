@@ -10,6 +10,7 @@ interface CanvasRendererOptions {
   matrixRows: Ref<number>
   colormap: Ref<string>
   intensityScale: Ref<string>
+  gamma: Ref<number>
   displayMin: Ref<number | undefined>
   displayMax: Ref<number | undefined>
   overlayData: Ref<Uint8ClampedArray | null>
@@ -76,6 +77,8 @@ export function useCanvasRenderer(
     const lut = buildLUT(opts.colormap.value)
     const useLog = opts.intensityScale.value === 'log'
 
+    const gamma = opts.gamma.value
+
     // 4% padding on each side so the image doesn't touch container edges
     const pad = 0.04
     const availW = W * (1 - pad * 2)
@@ -112,7 +115,7 @@ export function useCanvasRenderer(
         if (rawVal === 0) continue
 
         let norm = (rawVal - dispMin) / range
-        norm = Math.pow(Math.max(0, norm), 0.45)
+        if (gamma !== 1) norm = Math.pow(Math.max(0, norm), gamma)
         if (useLog) norm = Math.log1p(norm * 9) / Math.log1p(9)
         norm = Math.max(0, Math.min(1, norm))
         const lutIdx = Math.round(norm * 255)

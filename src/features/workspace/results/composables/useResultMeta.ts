@@ -1,6 +1,15 @@
 import { ref, watch, type Ref } from 'vue'
-import { listMyProcesses, listUserFiles } from '@/features/datasets/api/datasetApi'
-import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
+import { getFileMetadata } from '@/features/datasets/api/datasetApi'
+
+interface ResultDetailState {
+  runId?: string
+  processName?: string
+  datasetName?: string
+  filename?: string
+  fileId?: number
+  methods?: string[]
+  status?: string
+}
 
 export function useResultMeta(runId: Ref<string>) {
   const datasetName = ref('')
@@ -13,10 +22,6 @@ export function useResultMeta(runId: Ref<string>) {
   const status = ref('')
   const methods = ref<string[]>([])
   const loading = ref(false)
-
-  function extractBasename(filename: string): string {
-    return filename.replace(/\.[^.]+$/, '')
-  }
 
   function formatPixelSize(x?: number, y?: number): string {
     if (x != null && y != null) return `${x} × ${y} µm`
@@ -32,41 +37,35 @@ export function useResultMeta(runId: Ref<string>) {
     if (hasPeakAlignment) storageMode.value = 'continuous'
   }
 
-  async function fetchMeta(id: string) {
+  async function fetchMeta(_id: string) {
     loading.value = true
     try {
-      const result = await listMyProcesses(1, 100)
-      const processes = result.data || []
-      const process = processes.find((p: any) => String(p.id) === id)
+      const state = history.state as ResultDetailState | null
 
-      if (process) {
-        datasetName.value = extractBasename(process.filename || '')
-        status.value = (process.status || '').toLowerCase()
+      // Read process info directly from router state (passed by WorkspaceTable)
+      datasetName.value = state?.datasetName || ''
+      status.value = (state?.status || '').toLowerCase()
+      methods.value = state?.methods || []
 
-        if (process.params_json) {
-          methods.value = parseAlgorithms(process.params_json)
-        }
-
-        // Fetch file metadata for instrument params
-        if (process.filename) {
-          try {
-            const fileResult = await listUserFiles({ filename: process.filename }, 1, 1)
-            const file = fileResult?.data?.[0] || fileResult?.[0]
-            if (file) {
-              analyzer.value = file.analyzer || ''
-              ionSource.value = file.ionisation_source || ''
-              pixelSize.value = formatPixelSize(file.pixel_size_horizontal, file.pixel_size_vertical)
-              polarity.value = file.polarity || ''
-              spectrumMode.value = file.spectrum_mode || ''
-              storageMode.value = file.storage_mode || ''
-            }
-          } catch {
-            // file lookup is optional
+      // Fetch file metadata for instrument params
+      const fileId = state?.fileId
+      if (fileId != null) {
+        try {
+          const file = await getFileMetadata(fileId)
+          if (file) {
+            analyzer.value = file.analyzer || ''
+            ionSource.value = file.ionisation_source || ''
+            pixelSize.value = formatPixelSize(file.pixel_size_horizontal, file.pixel_size_vertical)
+            polarity.value = file.polarity || ''
+            spectrumMode.value = file.spectrum_mode || ''
+            storageMode.value = file.storage_mode || ''
           }
+        } catch {
+          // file lookup is optional
         }
-
-        applyProcessingAdjustments()
       }
+
+      applyProcessingAdjustments()
     } catch (e) {
       console.error('[useResultMeta] fetch failed:', e)
     } finally {

@@ -12,7 +12,13 @@ const {
   uploadOpen,
   loading,
   error,
-  filteredDatasets,
+  datasets,
+  meta,
+  page,
+  size,
+  pagination,
+  goToPage,
+  changeSize,
   selectDataset,
   onUploadSuccess,
   onUploadClose,
@@ -24,7 +30,6 @@ const {
   modeNotice,
   selectedMethods,
   methodParams,
-  isPublic,
   quotaStorage,
   submitting,
   canSubmit,
@@ -62,12 +67,19 @@ const {
           :upload-open="uploadOpen"
           :loading="loading"
           :error="error"
-          :filtered-datasets="filteredDatasets"
+          :datasets="datasets"
           :selected-dataset="selectedDataset"
+          :meta="meta"
+          :page="page"
+          :size="size"
+          :pagination="pagination"
           @open-upload="uploadOpen = true"
           @upload-success="onUploadSuccess"
           @upload-close="onUploadClose"
           @select-dataset="selectDataset"
+          @go-to-page="goToPage"
+          @prev-page="goToPage(page - 1)"
+          @next-page="goToPage(page + 1)"
         />
 
         <PreprocessingPipelineStep
@@ -92,7 +104,6 @@ const {
       </div>
 
       <AnalysisSummaryPanel
-        v-model:is-public="isPublic"
         :status-badge="statusBadge"
         :pipeline-summary="pipelineSummary"
         :ms-settings-list="msSettingsList"

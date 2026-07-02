@@ -13,13 +13,24 @@ import { useResultROI } from '@/features/workspace/results/composables/useResult
 import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
 import { ZARR_STORE } from '@/shared/config/defaults'
 
-const state = history.state as { runId?: string } | null
-const runId = computed(() => state?.runId || '')
-const isStale = computed(() => !state?.runId)
+interface ResultDetailState {
+  runId?: string
+  processName?: string
+  datasetName?: string
+  filename?: string
+  fileId?: number
+  methods?: string[]
+  status?: string
+}
+
+const state = history.state as ResultDetailState | null
+const runId = computed(() => state?.runId != null ? String(state.runId) : '')
+const isStale = computed(() => state?.runId == null)
 
 const { datasetName, analyzer, ionSource, pixelSize, polarity, spectrumMode, storageMode, status, methods } = useResultMeta(runId)
 const colormap = ref('inferno')
 const intensityScale = ref('linear')
+const gamma = ref(1)
 
 const zarr = useZarrIonImage()
 const {
@@ -96,6 +107,7 @@ const resetControls = () => {
   mzTolerance.value = ZARR_STORE.defaultMzTolerance
   colormap.value = 'inferno'
   intensityScale.value = 'linear'
+  gamma.value = 1
   resetRange()
 }
 
@@ -135,6 +147,7 @@ const onDisplayMaxChange = (value: number) => {
         :mz-tolerance="mzTolerance"
         :colormap="colormap"
         :intensity-scale="intensityScale"
+        :gamma="gamma"
         :display-min="displayMin"
         :display-max="displayMax"
         :data-max="dataMax"
@@ -195,6 +208,7 @@ const onDisplayMaxChange = (value: number) => {
             :draft-ready="draftReady"
             :viewing-roi="viewingROI"
             :confirmed-rois="confirmedROIs as any"
+            :gamma="gamma"
             @toggle-overlay="toggleOverlay"
             @update:roi-tool="roiSelectTool"
             @roi-confirm="roiConfirm"
@@ -202,6 +216,7 @@ const onDisplayMaxChange = (value: number) => {
             @roi-delete="roiDelete"
             @roi-clear-all="roiClearAll"
             @roi-reset="roiReset"
+            @update:gamma="gamma = $event"
           />
         </template>
       </ColorBar>

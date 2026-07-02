@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDatasetDetail } from '@/features/datasets/composables/useDatasetDetail'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 
 const {
   source,
@@ -16,6 +17,11 @@ const {
   goBack,
   downloadCurrent,
   isPacking,
+  makingPublic,
+  showPublicConfirm,
+  openPublicConfirm,
+  cancelPublicConfirm,
+  confirmSetPublic,
 } = useDatasetDetail()
 </script>
 
@@ -109,6 +115,14 @@ const {
                 {{ dataset.filename }}
               </h2>
               <div class="flex items-center gap-2 shrink-0">
+                <button
+                  v-if="source === 'my' && !dataset.isPublic"
+                  @click="openPublicConfirm"
+                  class="btn btn-sm btn-outline btn-warning"
+                >
+                  <svg-icon type="region" class="w-4 h-4" />
+                  Make Public
+                </button>
                 <button
                   @click="downloadCurrent"
                   class="btn btn-sm btn-primary"
@@ -386,6 +400,18 @@ const {
           </div>
         </div>
       </template>
+
+      <!-- Make Public Confirmation Dialog -->
+      <ConfirmDialog
+        :open="showPublicConfirm"
+        title="Make Dataset Public"
+        message="This dataset will be moved to Public Data and become visible to other users. This action cannot be undone."
+        confirm-label="Make Public"
+        :danger="true"
+        :loading="makingPublic"
+        @confirm="confirmSetPublic"
+        @cancel="cancelPublicConfirm"
+      />
     </div>
   </div>
 </template>

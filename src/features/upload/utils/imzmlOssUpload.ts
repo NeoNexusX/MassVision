@@ -1,6 +1,6 @@
 import OSS from 'ali-oss'
 import { ProgressTracker, type ImzmlFilePair, type UnifiedUploadProgress } from './imzmlHelper'
-import { compressImzmlToOPFS } from './imzmlCompress'
+import { prepareUpload, type UploadPreparation } from './imzmlCompress'
 import { auth_api } from '@/shared/api/httpClient'
 import {
   saveUploadSession,
@@ -58,10 +58,12 @@ export interface UploadImzmlOssConfig {
 /**
  * OSS-based imzML upload pipeline.
  *
- * Phase 1-2: ZIP + hash (reused from imzml-helper).
- * Phase 3a: Preflight with storage_type=oss → file_id.
- * Phase 3b: POST /files/upload with pre_file_id + filename → OSS STS credentials + fc_request_id.
- * Phase 4:   Upload directly to OSS with callback notification.
+ * Phase 1: Hash via Worker → generate filename (pauses before compression).
+ * Phase 2: Preflight with original size + hash → file_id.
+ *   If reuse: return immediately (no compression / upload needed).
+ * Phase 3: Compress to ZIP in OPFS (continue Worker).
+ * Phase 4: POST /files/upload with pre_file_id → OSS STS credentials.
+ * Phase 5: Upload directly to OSS with callback notification.
  */
 export async function uploadImzmlZipFileOSS({
   files,
@@ -80,6 +82,7 @@ export async function uploadImzmlZipFileOSS({
   let fileId: string
   let ossData: OssUploadResponse
   let normalizedFilename: string
+  let prep: UploadPreparation | null = null
 
   if (resume) {
     // ---------- Resume path: restore from OPFS + localStorage ----------
@@ -113,43 +116,31 @@ export async function uploadImzmlZipFileOSS({
     }
     onProgress?.({ stage: 'uploading', percent: 0, message: 'Resuming upload...' })
   } else {
-    // ---------- Normal path: pack → hash → preflight ----------
+    // ==================== Normal path ====================
     if (!files) throw new Error('No files provided for upload')
 
-    // ================= Check storage quota =================
-    await checkStorageQuota(files)
-
-    // ================= Phase 1: Compress + Hash =================
-    onProgress?.({ stage: 'packing', percent: 0, message: 'Building dataset archive...' })
-    const { file: zipFileFromOPFS, fileHash: hash } = await compressImzmlToOPFS(files, {
+    // -----------------------------------------------------------
+    // Phase 1: Hash via Worker (pauses before compression)
+    // -----------------------------------------------------------
+    onProgress?.({ stage: 'preflight', percent: 0, message: 'Preparing upload...' })
+    prep = await prepareUpload(files, {
       signal,
       onProgress: (p) =>
-        onProgress?.({
-          stage: 'packing',
-          percent: p.percent,
-          message: p.phase === 'hashing'
-            ? `Preparing ${p.percent.toFixed(1)}%`
-            : `Compressing ${p.percent.toFixed(1)}%`,
-          speedStr: p.speedStr,
-          etaStr: p.etaStr,
-        }),
-      getEntryNames: (fileHash) => {
-        const name = generateDatasetFilename(metadata, fileHash)
-        return { imzmlName: `${name}.imzML`, ibdName: `${name}.ibd` }
-      },
+        onProgress?.({ stage: 'preflight', percent: p.percent, message: 'Preparing upload...' }),
     })
-    zipFile = zipFileFromOPFS
-    fileHash = hash
+    fileHash = prep.fileHash
 
     // Generate filename: {organism}_{part}_{source}_{pixelX}_{polarity}_{hash6}
     normalizedFilename = generateDatasetFilename(metadata, fileHash)
 
-    // ================= Phase 2: Preflight =================
-    onProgress?.({ stage: 'preflight', percent: 100, message: 'Requesting upload token...' })
+    // -----------------------------------------------------------
+    // Phase 2: Preflight (before compression — reuse avoids compress cost)
+    // -----------------------------------------------------------
+    onProgress?.({ stage: 'preflight', percent: 100, message: 'Checking server for existing file...' })
 
     const preflightPayload = {
       filename: normalizedFilename,
-      size: zipFile.size,
+      size: files.ibd.size + files.imzml.size,
       file_verify_code: fileHash,
       is_public: metadata.is_public ?? false,
       total_parts: 1,
@@ -164,20 +155,43 @@ export async function uploadImzmlZipFileOSS({
       throw new Error('Preflight did not return file_id')
     }
 
-    // ================= Phase 3a: Reuse short-circuit =================
-    // Backend signals that this file already exists on its side (matched by hash etc.),
-    // so we skip the OSS credential fetch + actual upload entirely.
+    // ── Reuse short-circuit: file already on server ──
     if (preflightData.is_reuse) {
       onProgress?.({
         stage: 'completed',
         percent: 100,
         message: 'File already exists on server, reused.',
       })
-      await cleanupResumable()
+      // prep.startCompress was never called → Worker gets GC'd
       return { upload_id: String(fileId), fileHash, oss_path: '', reused: true, datasetName: normalizedFilename }
     }
 
-    // ================= Phase 3b: Get OSS credentials =================
+    // -----------------------------------------------------------
+    // Phase 3: Compress (only if not reused)
+    // -----------------------------------------------------------
+    await checkStorageQuota(files)
+
+    onProgress?.({ stage: 'packing', percent: 0, message: 'Building dataset archive...' })
+    zipFile = await prep.startCompress(
+      {
+        imzmlName: `${normalizedFilename}.imzML`,
+        ibdName: `${normalizedFilename}.ibd`,
+      },
+      (p) =>
+        onProgress?.({
+          stage: 'packing',
+          percent: p.percent,
+          message: p.phase === 'hashing'
+            ? `Preparing ${p.percent.toFixed(1)}%`
+            : `Compressing ${p.percent.toFixed(1)}%`,
+          speedStr: p.speedStr,
+          etaStr: p.etaStr,
+        }),
+    )
+
+    // -----------------------------------------------------------
+    // Phase 4: Get OSS credentials
+    // -----------------------------------------------------------
     onProgress?.({ stage: 'preflight', percent: 100, message: 'Fetching upload credentials...' })
 
     const uploadPayload = new URLSearchParams({
@@ -192,7 +206,7 @@ export async function uploadImzmlZipFileOSS({
     }
   }
 
-  // ================= Phase 4: OSS Upload =================
+  // ================= Phase 5: OSS Upload =================
   onProgress?.({ stage: 'uploading', percent: 0, message: 'Uploading to server...' })
 
   const region = `oss-${ossData.oss_region_id}`

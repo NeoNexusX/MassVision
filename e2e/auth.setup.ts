@@ -25,13 +25,13 @@ if (!username || !password) {
 setup('authenticate', async ({ page }) => {
   await page.goto('/login')
 
-  await page.fill('input[placeholder="Username"]', username)
-  await page.fill('input[placeholder="Password"]', password)
+  await page.fill('input[placeholder="Username"]', process.env.E2E_USERNAME!)
+  await page.fill('input[placeholder="Password"]', process.env.E2E_PASSWORD!)
 
   await page.click('button:has-text("Sign In")')
 
-  // 等待登录完成并跳转到 /profile
-  await page.waitForURL('/profile')
+  // 等待登录完成，跳转到 /mydatasets 或 /profile
+  await page.waitForURL(/\/(mydatasets|profile)/)
   await page.waitForLoadState('networkidle')
 
   // 保存浏览器状态（token、localStorage、cookie）供后续测试复用

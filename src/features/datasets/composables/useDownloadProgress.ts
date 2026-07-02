@@ -42,12 +42,12 @@ export function useDownloadProgress() {
    */
   const handleDownloadRaw = async (
     id?: string,
-    options?: { getFallbackFilename?: () => string | undefined },
+    options?: { getFallbackFilename?: () => string | undefined, isPublic?: boolean },
   ) => {
     if (!id) return
     if (packingIds.has(id)) return
 
-    // Rate-limit check
+    // Rate-limit check（登录和未登录都限制，防止刷带宽）
     if (!downloadStore.canDownload()) {
       const remain = Math.ceil(downloadStore.cooldownRemaining())
       showToast(
@@ -61,7 +61,7 @@ export function useDownloadProgress() {
     downloadStore.startDownload(id)
     const toastId = showToast('Downloading...', 'info', 0)
     try {
-      await ossDownloadRaw(id, options)
+      await ossDownloadRaw(id, { ...options, isPublic: options?.isPublic ?? false })
       downloadStore.completeDownload()
       removeToast(toastId)
       showToast('Download started', 'success')

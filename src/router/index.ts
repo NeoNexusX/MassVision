@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
 import Login from '../views/LoginView.vue'
 import Home from '../views/HomeView.vue'
 import UserProfileView from '../views/UserProfileView.vue'
@@ -28,7 +28,6 @@ const routes = [
     path: '/overview',
     name: 'DatasetOverview',
     component: () => import('../views/DatasetOverviewView.vue'),
-    meta: { requiresAuth: true },
   },
   {
     path: '/login',
@@ -75,6 +74,15 @@ const routes = [
     component: () => import('../views/workspace/ResultDetail.vue'),
     meta: { requiresAuth: true },
   },
+  // 裸 /docs 转发后由 nginx 的 `location = /docs` 301 补斜杠，这里无需特殊处理。
+  {
+    path: '/docs/:pathMatch(.*)*',
+    component: { render: () => null },
+    beforeEnter: (to: RouteLocationNormalized) => {
+      window.location.assign(to.fullPath)
+      return false
+    },
+  },
 ]
 
 const router = createRouter({
@@ -94,7 +102,7 @@ router.beforeEach(async (to, from, next) => {
   // But allow it if coming from an auth-required page (token may be stale / backend down)
   const fromAuthRequired = from.matched.some((record) => record.meta.requiresAuth)
   if (loggedIn && !fromAuthRequired && ['/login', '/register', '/forgotpassword'].includes(to.path)) {
-    return next('/profile')
+    return next('/mydatasets')
   }
 
   // Redirect to login page if authentication is required but user is not logged in

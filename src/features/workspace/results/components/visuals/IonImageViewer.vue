@@ -81,6 +81,7 @@ const props = defineProps({
   mzTolerance: { type: Number, required: true },
   colormap: { type: String, required: true },
   intensityScale: { type: String, required: true },
+  gamma: { type: Number, default: 1 },
   displayMin: { type: Number, default: undefined },
   displayMax: { type: Number, default: undefined },
   matrix: { type: Object as PropType<Float32Array | null>, default: null },
@@ -126,6 +127,7 @@ const { scheduleRender, observeContainer } = useCanvasRenderer({
   matrixRows: computed(() => props.matrixRows),
   colormap: computed(() => props.colormap),
   intensityScale: computed(() => props.intensityScale),
+  gamma: computed(() => props.gamma),
   displayMin: computed(() => props.displayMin),
   displayMax: computed(() => props.displayMax),
   overlayData: computed(() => props.overlayData),
@@ -193,6 +195,7 @@ watch(
   () => [
     props.colormap,
     props.intensityScale,
+    props.gamma,
     props.matrix,
     props.selectedMz,
     props.displayMin,
