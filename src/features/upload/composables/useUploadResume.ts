@@ -17,6 +17,9 @@ export function useUploadResume() {
       pendingResume.value = true
       const session = loadUploadSession()
       pendingDatasetName.value = session?.datasetName || ''
+    } else {
+      // No pending session — clean up any orphaned ZIP from a previous abort
+      cleanupResumable()
     }
   }
 

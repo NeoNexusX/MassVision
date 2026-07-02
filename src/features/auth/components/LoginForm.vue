@@ -44,7 +44,7 @@ const emit = defineEmits<{
       placeholder="Password"
     />
 
-    <div v-if="false" class="text-right -mt-4">
+    <div class="text-right -mt-4">
       <router-link
         to="/forgotpassword"
         class="link link-hover text-xs text-base-content/70"

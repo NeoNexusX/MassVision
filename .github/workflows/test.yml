@@ -16,9 +16,9 @@ name: Test
 
 on:
   push:
-    branches: [test]
+    branches: [feature/zarr-update]
   pull_request:
-    branches: [test]
+    branches: [feature/zarr-update]
 
 jobs:
   # ---- Job 1: 静态检查 + 单元测试 ----

@@ -57,7 +57,10 @@ const poweredBy = [
           </a>
         </template>
       </nav>
-      <p>Copyright © {{ year }} - All rights reserved by Bionet</p>
+      <p class="flex items-center justify-center gap-2">
+        <span>Copyright © {{ year }} - All rights reserved by Bionet</span>
+        <span v-if="config.version" class="badge badge-outline badge-sm border-base-content/30 text-base-content/60">v{{ config.version }}</span>
+      </p>
     </footer>
   </BaseScene>
 </template>

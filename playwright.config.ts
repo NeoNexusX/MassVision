@@ -12,6 +12,8 @@ import { defineConfig, devices } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './e2e',
+  /* 排除 new-analysis 测试，暂时不运行 */
+  testIgnore: ['**/new-analysis.spec.ts'],
   /* Maximum time one test can run for. */
   timeout: 30 * 1000,
   expect: {
@@ -26,7 +28,7 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */

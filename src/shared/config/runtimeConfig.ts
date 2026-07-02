@@ -260,6 +260,8 @@ export interface GithubHeatmapConfig {
 export interface AppConfig {
   /** 应用名称 */
   appName: string
+  /** 应用版本号，如 "0.3.0" */
+  version?: string
   /** 首屏 Hero 区 */
   hero: {
     /** 轮播展示的标语（每行一句，可含符号，如 "FREE ∞"） */

@@ -113,7 +113,18 @@ const openRow = (r: any) => {
     emit('view-error', r.errorMessage || 'Unknown error')
     return
   }
-  router.push({ name: 'WorkspaceResultDetail', state: { runId: r.id } })
+  router.push({
+    name: 'WorkspaceResultDetail',
+    state: {
+      runId: r.id,
+      processName: r.name,
+      datasetName: r.dataset,
+      filename: r.filename,
+      fileId: r.fileId,
+      methods: r.methods,
+      status: r.status,
+    },
+  })
 }
 </script>
 

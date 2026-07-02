@@ -5,7 +5,6 @@ interface BuildProcessPayloadOptions {
   selectedMethods: Record<string, string>
   methodParams: Record<string, string | number>
   methodGroups: any[]
-  isPublic: boolean
 }
 
 const BACKEND_ALGORITHM_KEYS: Record<string, string> = {
@@ -84,6 +83,5 @@ export function buildProcessPayload(options: BuildProcessPayloadOptions) {
   return {
     file_id: Number(options.selectedDataset?.id) ?? 0,
     algorithms,
-    is_public: options.isPublic,
   }
 }

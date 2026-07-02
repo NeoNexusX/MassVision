@@ -12,6 +12,7 @@ defineProps<{
   mzTolerance: number
   colormap: string
   intensityScale: string
+  gamma: number
   displayMin: number
   displayMax: number
   dataMax: number
@@ -70,6 +71,7 @@ watch(roiOverlayRef, (el) => emit('roi-overlay-ref', el ?? null))
           :mz-tolerance="mzTolerance"
           :colormap="colormap"
           :intensity-scale="intensityScale"
+          :gamma="gamma"
           :display-min="displayMin"
           :display-max="displayMax"
           :matrix="displayMatrix"

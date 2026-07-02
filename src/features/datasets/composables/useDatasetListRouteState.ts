@@ -1,5 +1,4 @@
 import { onMounted, type Ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import type { useAuthStore } from '@/features/auth/stores/authStore'
 
 type FetchFiles = (opts?: { page?: number; size?: number }) => Promise<void>
@@ -18,24 +17,12 @@ interface DatasetRouteStateOptions {
 }
 
 export function useDatasetListRouteState(options: DatasetRouteStateOptions) {
-  // External composables
-  const route = useRoute()
-  const router = useRouter()
-
   // Methods
   const fetchCurrentPage = () =>
     options.fetchFiles({ page: options.page.value, size: options.size.value })
 
-  const replaceQuery = (query: Record<string, string>) => {
-    router.replace({ query: { ...route.query, ...query } })
-  }
-
   const initializeFromRoute = () => {
-    const qp = Number(route.query.page || 1)
-    const qs = Number(route.query.size || options.size.value)
-    options.page.value = qp > 0 ? qp : 1
-    options.size.value = qs > 0 ? qs : options.size.value
-
+    // 不再从 URL 读取分页参数，始终从第一页开始
     const load = () => options.fetchFiles({ page: options.page.value, size: options.size.value })
     if (!options.auth.user && options.auth.token) {
       options.auth.fetchUser().finally(load)
@@ -48,7 +35,6 @@ export function useDatasetListRouteState(options: DatasetRouteStateOptions) {
   const applyAndRefresh = (payload: Record<string, any>) => {
     options.applyFilters(payload)
     options.page.value = 1
-    replaceQuery({ page: '1' })
     fetchCurrentPage()
   }
 
@@ -69,14 +55,12 @@ export function useDatasetListRouteState(options: DatasetRouteStateOptions) {
     const normalizedPage = Math.min(Math.max(nextPage, 1), totalPages)
     options.page.value = normalizedPage
     options.meta.current_page = normalizedPage
-    replaceQuery({ page: String(normalizedPage) })
     options.goToPage(normalizedPage)
   }
 
   const changeSize = (newSize: number) => {
     options.size.value = newSize
     options.page.value = 1
-    replaceQuery({ page: '1', size: String(newSize) })
     options.changeSize(newSize)
   }
 

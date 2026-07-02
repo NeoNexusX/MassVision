@@ -20,6 +20,8 @@ export interface TaskRow {
   id: string
   name: string
   dataset: string
+  filename: string
+  fileId: number
   methods: string[]
   status: string
   created: string
@@ -46,6 +48,8 @@ export function useWorkspaceDashboard() {
       id: String(p.id),
       name: `Process #${p.id}`,
       dataset: getFileName(p),
+      filename: p.filename || '',
+      fileId: p.source_file_id,
       methods: parseAlgorithms(p.params_json),
       status: p.status,
       created: parseUtcDate(p.finished_at || p.created_at)?.toLocaleString() ?? '',
