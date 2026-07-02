@@ -28,7 +28,6 @@ const routes = [
     path: '/overview',
     name: 'DatasetOverview',
     component: () => import('../views/DatasetOverviewView.vue'),
-    meta: { requiresAuth: true },
   },
   {
     path: '/login',

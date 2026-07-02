@@ -1,4 +1,4 @@
-import { auth_api } from '@/shared/api/httpClient'
+import { auth_api, api } from '@/shared/api/httpClient'
 import { getConfig } from '@/shared/config/runtimeConfig'
 
 // 约定：本模块所有函数都返回**解包后的响应体**（res.data），调用方不再处理 axios 信封。
@@ -10,8 +10,9 @@ export async function getDownloadMetadata(fileId: string) {
 }
 
 // GET /files/{file_id}/metadata — 根据文件 ID 获取元数据
-export async function getFileMetadata(fileId: string | number) {
-  const res = await auth_api.get(`/files/${fileId}/metadata`)
+export async function getFileMetadata(fileId: string | number, isPublic = false) {
+  const client = isPublic ? api : auth_api
+  const res = await client.get(`/files/${fileId}/metadata`)
   return res.data
 }
 
@@ -26,8 +27,9 @@ export interface DownloadRawResponse {
   files: DownloadRawEntry[]
 }
 
-export async function getDownloadRaw(fileId: string): Promise<DownloadRawResponse> {
-  const res = await auth_api.get(`/files/${fileId}/download_raw`)
+export async function getDownloadRaw(fileId: string, isPublic = false): Promise<DownloadRawResponse> {
+  const client = isPublic ? api : auth_api
+  const res = await client.get(`/files/${fileId}/download_raw`)
   return res.data
 }
 
@@ -51,8 +53,9 @@ export function pickImageUrl(images: FileImagesResponse): string {
   return fallback
 }
 
-export async function getFileImages(fileId: string | number): Promise<FileImagesResponse> {
-  const res = await auth_api.get(`/files/${fileId}/images`)
+export async function getFileImages(fileId: string | number, isPublic = false): Promise<FileImagesResponse> {
+  const client = isPublic ? api : auth_api
+  const res = await client.get(`/files/${fileId}/images`)
   return res.data
 }
 
@@ -70,8 +73,9 @@ export async function setFilePublic(fileId: string | number) {
 
 // POST /files/list_files?page={page}&size={size}
 // Backend expects a JSON body of filter attributes; returns { data: [...], meta: {...} }.
-export async function listFiles(filters: Record<string, any> = {}, page = 1, size = getConfig().pagination.defaultPageSize) {
-  const res = await auth_api.post('/files/list_files', filters, { params: { page, size } })
+export async function listFiles(filters: Record<string, any> = {}, page = 1, size = getConfig().pagination.defaultPageSize, isPublic = false) {
+  const client = isPublic ? api : auth_api
+  const res = await client.post('/files/list_files', filters, { params: { page, size } })
   return res.data
 }
 

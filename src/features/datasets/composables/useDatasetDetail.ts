@@ -25,6 +25,7 @@ export function useDatasetDetail() {
   const ticImageError = ref(false)
 
   const source = computed(() => state?.source || 'my')
+  const isPublic = computed(() => source.value === 'public')
   /** 刷新后 history.state 丢失，此时应提示用户从列表页重新进入 */
   const isStale = computed(() => !state?.fileId)
 
@@ -73,6 +74,7 @@ export function useDatasetDetail() {
         if (!filename) return undefined
         return filename.toLowerCase().endsWith('.zip') ? filename : `${filename}.zip`
       },
+      isPublic: isPublic.value,  // 公开页面不需要登录
     })
   }
 
@@ -120,13 +122,13 @@ export function useDatasetDetail() {
 
     loading.value = true
     try {
-      const metadata = await getFileMetadata(fileId)
+      const metadata = await getFileMetadata(fileId, isPublic.value)
       dataset.value = metadata ? mapItemToDataset(metadata) : null
       // Fetch TIC image after dataset is loaded
       if (dataset.value?.id) {
         try {
           ticImageError.value = false
-          const images = await getFileImages(dataset.value.id)
+          const images = await getFileImages(dataset.value.id, isPublic.value)
           ticImageUrl.value = pickImageUrl(images)
         } catch {
           ticImageUrl.value = ''

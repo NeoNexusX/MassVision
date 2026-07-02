@@ -13,7 +13,7 @@ import { createDefaultDatasetFilters } from '@/features/datasets/constants/datas
 const initialFilters = createDefaultDatasetFilters()
 
 const fetcher = async (f: Record<string, any>, p: number, s: number) => {
-  return await listFiles(f, p, s)
+  return await listFiles(f, p, s, true)  // isPublic = true，不需要登录
 }
 
 const {
