@@ -5,6 +5,9 @@
       :mz-tolerance="mzTolerance"
       :colormap="colormap"
       :intensity-scale="intensityScale"
+      :data-mode="dataMode"
+      :pixel-coord="selectedPixelCoord"
+      :title="imageTitle"
       @update:mz-tolerance="$emit('update:mzTolerance', $event)"
       @update:colormap="$emit('update:colormap', $event)"
       @update:intensity-scale="$emit('update:intensityScale', $event)"
@@ -13,8 +16,9 @@
     <div
       ref="containerRef"
       class="relative flex-1 min-h-0 bg-base-200 rounded-lg border border-base-300 overflow-hidden"
-      :class="drawMode ? 'cursor-default' : zoom > 1 ? 'cursor-grab' : 'cursor-crosshair'"
-      @mousedown="onContainerPanStart"
+      :class="containerCursorClass"
+      @mousedown="onContainerMouseDown"
+      @click="onContainerClick"
       @mousemove="onHover"
       @mouseleave="hoverPixel = null"
     >
@@ -30,13 +34,21 @@
         }"
         @wheel.prevent="onContainerWheel"
       />
+      <!-- 悬停提示 -->
       <div
         v-if="hoverPixel"
         class="absolute pointer-events-none bg-base-100/90 backdrop-blur-sm text-sm px-2 py-1 rounded shadow border border-base-300 font-mono"
         :style="{ left: hoverPixel.x + 12 + 'px', top: hoverPixel.y + 12 + 'px' }"
       >
-        ({{ hoverPixel.col }}, {{ hoverPixel.row }}) — {{ hoverPixel.intensity.toExponential(2) }}
+        <template v-if="dataMode === 'processed'">
+          ({{ hoverPixel.col }}, {{ hoverPixel.row }})
+          {{ hoverPixel.intensity.toExponential(2) }}
+        </template>
+        <template v-else>
+          ({{ hoverPixel.col }}, {{ hoverPixel.row }}) — {{ hoverPixel.intensity.toExponential(2) }}
+        </template>
       </div>
+      <!-- 缩放控件 -->
       <div
         class="absolute bottom-2 right-2 flex items-center gap-1 bg-base-100/80 backdrop-blur-sm rounded-lg px-1.5 py-1 border border-base-300"
       >
@@ -75,6 +87,7 @@ import { ref, computed, watch, onMounted, type PropType } from 'vue'
 import IonImageToolbar from './IonImageToolbar.vue'
 import { useZoomPan } from '../../composables/useZoomPan'
 import { useCanvasRenderer } from '../../composables/useCanvasRenderer'
+import type { DataMode } from '@/services/zarrOssStore'
 
 const props = defineProps({
   selectedMz: { type: Number, required: true },
@@ -91,26 +104,34 @@ const props = defineProps({
   overlayData: { type: Object as PropType<Uint8ClampedArray | null>, default: null },
   overlayWidth: { type: Number, default: 0 },
   overlayHeight: { type: Number, default: 0 },
+  /** 数据模式 */
+  dataMode: { type: String as PropType<DataMode | null>, default: null },
+  /** 当前选中像素坐标（processed 模式） */
+  selectedPixelCoord: { type: Object as PropType<{ x: number; y: number } | null>, default: null },
+  /** 图片区域标题 */
+  imageTitle: { type: String, default: 'Ion Image' },
 })
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'update:mzTolerance', v: number): void
   (e: 'update:colormap', v: string): void
   (e: 'update:intensityScale', v: string): void
   (e: 'reset'): void
+  /** processed 模式：点击像素 */
+  (e: 'select-pixel', col: number, row: number): void
 }>()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
 const hoverPixel = ref<{
-  x: number
-  y: number
-  row: number
-  col: number
-  intensity: number
+  x: number; y: number; row: number; col: number; intensity: number
 } | null>(null)
 const containerW = ref(0)
 const containerH = ref(0)
+
+// 区分拖拽和点击
+let mouseDownPos = { x: 0, y: 0 }
+let mouseMoved = false
 
 // --- Composables ---
 const { zoom, panX, panY, resetZoom, zoomIn, zoomOut, onWheel, onPanStart } = useZoomPan(
@@ -135,19 +156,79 @@ const { scheduleRender, observeContainer } = useCanvasRenderer({
   overlayHeight: computed(() => props.overlayHeight),
 })
 
+/** 容器光标样式 */
+const containerCursorClass = computed(() => {
+  if (props.drawMode) return 'cursor-default'
+  if (props.dataMode === 'processed') return 'cursor-crosshair'
+  if (zoom.value > 1) return 'cursor-grab'
+  return 'cursor-crosshair'
+})
+
 function onContainerWheel(e: WheelEvent) {
   if (props.drawMode) return
   onWheel(e, containerRef.value)
-  // Zoom/pan is handled by CSS transform — canvas content stays the same.
 }
 
-function onContainerPanStart(e: MouseEvent) {
+// --- 鼠标事件：拖拽 + 点击 ---
+
+function onContainerMouseDown(e: MouseEvent) {
+  mouseDownPos = { x: e.clientX, y: e.clientY }
+  mouseMoved = false
+
   if (props.drawMode) return
-  onPanStart(e, containerRef.value)
-  // Zoom/pan is handled by CSS transform — canvas content stays the same.
+
+  // 缩放 > 1 时支持拖拽平移
+  if (zoom.value > 1 && e.button === 0) {
+    onPanStart(e, containerRef.value)
+    // 监听 mouseup 来判断是拖拽还是点击
+    const onUp = (ev: MouseEvent) => {
+      const dx = ev.clientX - mouseDownPos.x
+      const dy = ev.clientY - mouseDownPos.y
+      mouseMoved = Math.abs(dx) > 3 || Math.abs(dy) > 3
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mouseup', onUp)
+  }
 }
 
-// --- Hover ---
+// 在容器的 click 事件中处理像素选择
+function onContainerClick(e: MouseEvent) {
+  if (mouseMoved) return  // 拖拽不触发点击
+  if (props.drawMode) return
+  if (props.dataMode !== 'processed') return  // 仅 processed 模式
+
+  const container = containerRef.value
+  if (!container) return
+  const rect = container.getBoundingClientRect()
+  const data = props.matrix
+  const cols = props.matrixCols
+  const rows = props.matrixRows
+  if (!data || !data.length || !cols || !rows) return
+
+  const W = rect.width, H = rect.height
+  const pad = 0.04
+  const availW = W * (1 - pad * 2)
+  const availH = H * (1 - pad * 2)
+  const scaleVal = Math.min(availW / cols, availH / rows)
+  const drawW = Math.floor(cols * scaleVal)
+  const drawH = Math.floor(rows * scaleVal)
+  const ox = Math.floor((W - drawW) / 2)
+  const oy = Math.floor((H - drawH) / 2)
+
+  const mx = e.clientX - rect.left
+  const my = e.clientY - rect.top
+  const cx = (mx - panX.value) / zoom.value
+  const cy = (my - panY.value) / zoom.value
+  const col = Math.floor((cx - ox) * cols / drawW)
+  const row = Math.floor((cy - oy) * rows / drawH)
+
+  if (row >= 0 && row < rows && col >= 0 && col < cols) {
+    emit('select-pixel', col, row)
+  }
+}
+
+// --- 悬停 ---
+
 function onHover(e: MouseEvent) {
   const container = containerRef.value
   if (!container) return
@@ -156,8 +237,7 @@ function onHover(e: MouseEvent) {
   const cols = props.matrixCols
   const rows = props.matrixRows
   if (!data || !data.length || !cols || !rows) return
-  const W = rect.width,
-    H = rect.height
+  const W = rect.width, H = rect.height
   const pad = 0.04
   const availW = W * (1 - pad * 2)
   const availH = H * (1 - pad * 2)
@@ -180,6 +260,7 @@ function onHover(e: MouseEvent) {
 }
 
 // --- Lifecycle ---
+
 onMounted(() => {
   if (containerRef.value) {
     observeContainer(containerRef.value)
