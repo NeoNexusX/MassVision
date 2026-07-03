@@ -1,26 +1,57 @@
 # Uploading Data
 
-This page walks you through uploading mass spectrometry imaging (MSI) data into SpatialXomics.
+This page describes how to upload mass spectrometry imaging (MSI) data to the SpatialXomics platform.
 
 ## Supported Formats
 
-- **imzML data pairs**: a `.imzML` file (metadata/spectrum index) plus its matching `.ibd` file (binary spectrum data). The two files must share the **same base filename** (only the extension differs), or they can't be paired for upload.
+- **imzML data pair**: a `.imzML` file (metadata / spectrum index) together with its matching `.ibd` file (binary spectrum data). The two files must share the **same base filename** (only the extension differs), otherwise they cannot be paired and recognized for upload.
 
 ## Steps
 
-1. On the datasets page, click **Upload** to open the upload dialog.
-2. Select (or drag and drop) a local `.imzML` + `.ibd` pair, and fill in the dataset metadata (analyzer type, ionization source, pixel size, etc.).
-3. Your browser first hashes the files, then compresses them into a ZIP — this runs in a Web Worker so the page stays responsive. The compressed archive is staged in the browser's OPFS (Origin Private File System) to support resuming later.
-4. The client requests temporary Alibaba Cloud OSS upload credentials from the backend, then uploads the archive via **multipart upload**. If the backend recognizes the file by its hash as already existing, it skips the actual transfer and reuses the stored copy.
-5. Once the upload completes, the dataset appears in the data panel and is ready for analysis.
+1. Click the button on the right and sign in to your personal account.
+
+![image-20260703113729368](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703113729368.png)
+
+2. Navigate to your personal datasets page and click the **Upload** button to open the upload dialog.
+
+![image-20260703113834009](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703113834009.png)
+
+3. Select the local `.imzML` and `.ibd` file pair (by clicking or drag-and-drop), and complete the dataset metadata (e.g., analyzer type, ionization source, pixel size, etc.).
+
+![image-20260703114021254](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703114021254.png)
+
+4. Fill in the dataset metadata: the system will first attempt to parse and pre-fill fields automatically from the file. For any metadata not present in the file, please complete the fields manually.
+
+<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703114430946.png" alt="image-20260703114430946" style="zoom: 50%;" />
+
+**If you wish to publish the dataset as a public dataset, please select the corresponding option:**
+
+<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115054607.png" alt="image-20260703115054607" style="zoom:67%;" />
+
+**After entering the solvent information, click the plus icon on the right to add it to the list and confirm the entry:**
+
+<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703120422329.png" alt="image-20260703120422329" style="zoom:50%;" />
+
+If you are unsure of the exact solvent composition, select `100% Water` as the default. If the solvent is known, please select the corresponding option.
+
+Once all information is confirmed, click **Confirm** to submit the upload task:
+
+<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115249346.png" alt="image-20260703115249346" style="zoom: 50%;" />
+
+<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115800703.png" alt="image-20260703115800703" style="zoom:50%;" />
+
+During the upload, the system computes a hash of the data and compares it against the full database. If another user has already uploaded identical data, the backend will automatically reuse the existing copy, eliminating the need to upload again.
 
 ## Resuming & Retries
 
-- Upload progress (upload ID, completed parts, credential expiry) is persisted locally. If you close the page or lose connection mid-upload, reopening the upload dialog shows a **resume banner** — click it to continue from where you left off, without re-hashing or re-compressing.
-- A failed part upload retries automatically; you're only prompted if retries are exhausted.
+- The multipart upload state (including `uploadId`, completed parts, credential expiry, etc.) is persisted to local storage. If the page is closed or the network is interrupted during upload, a **resume prompt** will appear when the upload dialog is reopened. Click it to continue from the last breakpoint, without the need to re-compress or re-hash the file.
+
+<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115821860.png" alt="image-20260703115821860" style="zoom:50%;" />
+
+- If a single part upload fails, the system will automatically initiate a retry. The user is only prompted for manual intervention when retries are exhausted.
 
 ## Tips
 
-- Double-check that your `.imzML` and `.ibd` files have matching base filenames before uploading.
-- Hashing and compression for large files run in the background — you can keep browsing other pages while they finish.
-- If an upload fails, check the filename match and your network connection first, then try resuming before starting over.
+- Before uploading, please ensure that the base filenames (excluding extensions) of the `.imzML` and `.ibd` files are exactly identical.
+- Hashing and compression for large files run asynchronously in the background — you may continue browsing other pages while they complete.
+- If an upload fails, it is recommended to first verify that the filenames match and that the network is stable, and then use the resume feature to restart the upload.

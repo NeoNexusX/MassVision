@@ -12,7 +12,7 @@ SpatialXomics 是一个基于 Vue 3 + TypeScript + Vite 构建的质谱成像（
 - **路由管理**: [Vue Router](https://router.vuejs.org/)
 - **UI 组件**: [DaisyUI v5](https://daisyui.com/) + [Heroicons](https://heroicons.com/) + [Iconify](https://iconify.design/)
 - **图表可视化**: [ECharts](https://echarts.apache.org/) + [vue3-calendar-heatmap](https://github.com/IhsenBouallegue/vue3-calendar-heatmap)（GitHub 提交热力图）
-- **MSI 数据解析**: [zarrita](https://github.com/manzt/zarrita)（Zarr 格式读取）、fflate / zstddec（压缩解压）、hash-wasm（WebAssembly 哈希）
+- **MSI 数据解析**: [zarrita](https://github.com/manzt/zarrita)（Zarr 格式读取）、@zip.js/zip.js（上传打包压缩）、zstddec（zstd 解压）、hash-wasm（WebAssembly 哈希）
 - **对象存储**: [ali-oss](https://github.com/ali-sdk/ali-oss)（阿里云 OSS）
 - **HTTP 请求**: [Axios](https://axios-http.com/) + [qs](https://github.com/ljharb/qs)
 - **加密**: [Crypto-JS](https://github.com/brix/crypto-js)

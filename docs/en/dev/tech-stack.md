@@ -22,7 +22,7 @@ npm run dev   # starts both the SPA (5173) and the docs site (5174)
 | Routing | Vue Router | History mode + route guards |
 | UI | Tailwind CSS v4 + DaisyUI v5 + Iconify (offline-bundled, see [Icon Guidelines](./icon-guidelines)) | Utility-first styling and components |
 | Charts | ECharts, vue3-calendar-heatmap | Stat charts, commit heatmap |
-| MSI data | zarrita (Zarr reader), fflate / zstddec (decompression), hash-wasm (file hashing) | Parsing and verifying imzML-derived imaging data |
+| MSI data | zarrita (Zarr reader), @zip.js/zip.js (upload zip packaging), zstddec (zstd decompression), hash-wasm (file hashing) | Parsing and verifying imzML-derived imaging data |
 | Object storage | ali-oss | Alibaba Cloud OSS multipart upload / pre-signed download URLs |
 | HTTP | Axios + qs | HTTP client and query-string serialization |
 | Crypto | crypto-js | Client-side processing (e.g. password handling before transmission) |

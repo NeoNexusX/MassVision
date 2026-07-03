@@ -147,30 +147,39 @@ export async function uploadImzmlZipFileOSS({
       ...metadata,
       storage_type: 'oss',
     }
-    const preflightRes = await auth_api.post('/files/preflight', preflightPayload, { signal })
-    const preflightData = preflightRes.data || preflightRes
-    fileId = preflightData.file_id
+    let preflightData: any
+    try {
+      const preflightRes = await auth_api.post('/files/preflight', preflightPayload, { signal })
+      preflightData = preflightRes.data || preflightRes
+      fileId = preflightData.file_id
 
-    if (!fileId) {
-      throw new Error('Preflight did not return file_id')
+      if (!fileId) {
+        throw new Error('Preflight did not return file_id')
+      }
+
+      if (!preflightData.is_reuse) {
+        await checkStorageQuota(files)
+      }
+    } catch (err) {
+      // Worker is paused waiting for startCompress; it won't be GC'd on its own
+      prep.dispose()
+      throw err
     }
 
     // ── Reuse short-circuit: file already on server ──
     if (preflightData.is_reuse) {
+      prep.dispose()
       onProgress?.({
         stage: 'completed',
         percent: 100,
         message: 'File already exists on server, reused.',
       })
-      // prep.startCompress was never called → Worker gets GC'd
       return { upload_id: String(fileId), fileHash, oss_path: '', reused: true, datasetName: normalizedFilename }
     }
 
     // -----------------------------------------------------------
     // Phase 3: Compress (only if not reused)
     // -----------------------------------------------------------
-    await checkStorageQuota(files)
-
     onProgress?.({ stage: 'packing', percent: 0, message: 'Building dataset archive...' })
     zipFile = await prep.startCompress(
       {
