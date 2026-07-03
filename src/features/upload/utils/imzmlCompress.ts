@@ -56,14 +56,21 @@ export interface UploadPreparation {
     entryNames: { imzmlName: string; ibdName: string },
     onProgress?: (e: CompressProgressEvent) => void,
   ) => Promise<File>
+  /**
+   * Terminate the paused worker without compressing (preflight reuse, or a
+   * failure before compression starts). Idempotent; a no-op once compression
+   * has settled or the preparation was aborted.
+   */
+  dispose: () => void
 }
 
 /**
  * Phase 1: start the worker, wait for hash, then pause before compression.
  * Returns the hash immediately so the caller can preflight.
  *
- * Call `startCompress(entryNames)` to resume compression.
- * If you never call it (e.g. preflight reuse), the worker is terminated automatically.
+ * Call `startCompress(entryNames)` to resume compression. If you never call
+ * it (e.g. preflight reuse), call `dispose()` — a paused dedicated worker is
+ * not garbage-collected on its own.
  */
 export function prepareUpload(
   pair: ImzmlFilePair,
@@ -135,6 +142,7 @@ export function prepareUpload(
 
           resolve({
             fileHash,
+            dispose: cleanup,
             startCompress: (entryNames, onProgress) => {
               return new Promise<File>((res, rej) => {
                 const fail = (err: Error) => {

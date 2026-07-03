@@ -1,4 +1,4 @@
-import { Zip, ZipDeflate } from 'fflate'
+import { BlobReader, ZipWriter, configure } from '@zip.js/zip.js'
 import { createMD5 } from 'hash-wasm'
 
 type StartMessage = {
@@ -59,6 +59,49 @@ async function hashFiles(
 }
 
 /**
+ * Max bytes buffered between the compressor and OPFS disk writes.
+ * Large enough that compression never stalls on disk latency spikes,
+ * small enough to bound worker memory.
+ */
+const WRITE_BUFFER_HIGH_WATER = 256 * 1024 * 1024
+
+/**
+ * Wrap an OPFS writable in a WritableStream with backpressure: writes are
+ * queued so compression and disk I/O overlap, but once the queued amount
+ * reaches WRITE_BUFFER_HIGH_WATER the producer pauses until the queue drains.
+ */
+function createOpfsSink(writable: FileSystemWritableFileStream): {
+  stream: WritableStream<Uint8Array<ArrayBuffer>>
+  bytesWritten: () => number
+} {
+  let buffered = 0
+  let written = 0
+  let chain: Promise<void> = Promise.resolve()
+
+  const stream = new WritableStream<Uint8Array<ArrayBuffer>>({
+    write(chunk) {
+      buffered += chunk.byteLength
+      chain = chain
+        .then(() => writable.write(chunk))
+        .then(() => {
+          buffered -= chunk.byteLength
+          written += chunk.byteLength
+        })
+      if (buffered >= WRITE_BUFFER_HIGH_WATER) return chain
+    },
+    async close() {
+      await chain
+      await writable.close()
+    },
+    async abort(reason) {
+      await writable.abort(reason)
+    },
+  })
+
+  return { stream, bytesWritten: () => written }
+}
+
+/**
  * Phase 2: compress imzml + ibd into a ZIP in OPFS with the given entry names.
  */
 async function compressWithNames(
@@ -69,47 +112,48 @@ async function compressWithNames(
   ibdName: string,
   fileBytes: number,
 ): Promise<number> {
+  // Codecs run inline in this worker (no nested workers). Native
+  // CompressionStream is used when available; `level` applies to the JS fallback.
+  configure({ useWebWorkers: false, chunkSize })
+
   const root = await navigator.storage.getDirectory()
   const fileHandle = await root.getFileHandle('pending_upload.zip', { create: true })
   const writable = await fileHandle.createWritable()
+  const { stream, bytesWritten } = createOpfsSink(writable)
 
-  const zip = new Zip()
-  let totalCompressed = 0
-  zip.ondata = (err, data, _final) => {
-    if (err) throw err
-    const chunk = new Uint8Array(data)
-    totalCompressed += chunk.length
-    writable.write(chunk)
-  }
+  // zip64 is forced so size/offset fields stay valid past 4 GiB.
+  const zip = new ZipWriter(stream, {
+    zip64: true,
+    level: 2,
+    lastModDate: new Date('2026-01-01'),
+  })
 
   const entries: Array<{ file: File; zipName: string }> = [
     { file: imzml, zipName: imzmlName },
     { file: ibd, zipName: ibdName },
   ]
 
-  let loadedBytes = 0
-
-  for (const { file, zipName } of entries) {
-    const deflate = new ZipDeflate(zipName, { level: 2 })
-    ;(deflate as any).mtime = new Date('2026-01-01')
-    zip.add(deflate)
-
-    let offset = 0
-    while (offset < file.size) {
-      const size = Math.min(chunkSize, file.size - offset)
-      const buf = await readChunk(file, offset, size)
-      deflate.push(new Uint8Array(buf), false)
-      offset += size
-      loadedBytes += size
-      postProgress(loadedBytes, fileBytes, 'compressing')
+  try {
+    let doneBytes = 0
+    for (const { file, zipName } of entries) {
+      await zip.add(zipName, new BlobReader(file), {
+        onprogress: (progress) => {
+          postProgress(doneBytes + progress, fileBytes, 'compressing')
+        },
+      })
+      doneBytes += file.size
     }
-
-    deflate.push(new Uint8Array(0), true)
+    await zip.close()
+  } catch (err) {
+    try {
+      await writable.abort()
+    } catch {
+      /* already closed or aborted */
+    }
+    throw err
   }
 
-  zip.end()
-  await writable.close()
-  return totalCompressed
+  return bytesWritten()
 }
 
 self.onmessage = async (e: MessageEvent<WorkerMessage>) => {

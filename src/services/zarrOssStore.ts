@@ -9,8 +9,8 @@
  * Also kicks off background prefetches of neighboring chunks; prefetch
  * failures never block the main image request.
  *
- * Supported codecs: gzip (via fflate), zlib/deflate, zstd (via zstddec);
- * unsupported codecs raise a clear error.
+ * Supported codecs: gzip / zlib / deflate (via native DecompressionStream),
+ * zstd (via zstddec); unsupported codecs raise a clear error.
  *
  * Zarr layout assumed by this project:
  *   <root>/zarr.json
@@ -29,7 +29,6 @@
  *     ...
  */
 
-import { gunzip, inflate } from 'fflate'
 import { ZSTDDecoder } from 'zstddec'
 import { LruCache } from '../utils/lruCache'
 import { createOssClient } from './ossClient'
@@ -46,6 +45,25 @@ function getZstdDecoder(): Promise<ZSTDDecoder> {
     zstdDecoderPromise = decoder.init().then(() => decoder)
   }
   return zstdDecoderPromise
+}
+
+// ---------- gzip / deflate decompression (native DecompressionStream) ----------
+
+async function decompressBytes(payload: Uint8Array, codecName: string): Promise<Uint8Array> {
+  const run = async (format: 'gzip' | 'deflate' | 'deflate-raw') => {
+    const stream = new Blob([payload as BlobPart])
+      .stream()
+      .pipeThrough(new DecompressionStream(format))
+    return new Uint8Array(await new Response(stream).arrayBuffer())
+  }
+  if (codecName === 'gzip') return run('gzip')
+  // 'zlib' / 'deflate' chunks are raw deflate; fall back to the zlib-wrapped
+  // variant for data that carries the 2-byte zlib header.
+  try {
+    return await run('deflate-raw')
+  } catch {
+    return run('deflate')
+  }
 }
 
 // ---------- zarr v3 metadata types (subset) ----------
@@ -341,24 +359,10 @@ export class ZarrOssStore {
       (c: { name: string }) => ['gzip', 'zlib', 'deflate', 'zstd'].includes(c.name),
     )
     if (bytesCodec) {
-      const decompressed = await new Promise<Uint8Array>((resolve, reject) => {
-        if (bytesCodec.name === 'gzip') {
-          gunzip(payload, (err, out) => (err ? reject(err) : resolve(out)))
-        } else if (bytesCodec.name === 'zlib' || bytesCodec.name === 'deflate') {
-          inflate(payload, (err, out) => (err ? reject(err) : resolve(out)))
-        } else if (bytesCodec.name === 'zstd') {
-          getZstdDecoder()
-            .then((dec) => resolve(dec.decode(payload)))
-            .catch(reject)
-        } else {
-          reject(
-            new Error(
-              `[ZarrOssStore] unsupported bytes codec: ${bytesCodec.name}`,
-            ),
-          )
-        }
-      })
-      payload = decompressed
+      payload =
+        bytesCodec.name === 'zstd'
+          ? (await getZstdDecoder()).decode(payload)
+          : await decompressBytes(payload, bytesCodec.name)
     }
 
     // 2) Verify byte length.
@@ -378,7 +382,7 @@ export class ZarrOssStore {
     }
 
     // 3) Wrap into an ArrayBuffer to rebuild the typed array
-    // (fflate's output is a Uint8Array whose byteOffset may be non-zero).
+    // (the decoder output may be a Uint8Array whose byteOffset is non-zero).
     const ab = payload.buffer.slice(
       payload.byteOffset,
       payload.byteOffset + payload.byteLength,
@@ -486,19 +490,10 @@ export class ZarrOssStore {
         (c: { name: string }) => ['gzip', 'zlib', 'deflate', 'zstd'].includes(c.name),
       )
       if (bytesCodec) {
-        payload = await new Promise<Uint8Array>((resolve, reject) => {
-          if (bytesCodec.name === 'gzip') {
-            gunzip(payload, (err, out) => (err ? reject(err) : resolve(out)))
-          } else if (bytesCodec.name === 'zlib' || bytesCodec.name === 'deflate') {
-            inflate(payload, (err, out) => (err ? reject(err) : resolve(out)))
-          } else if (bytesCodec.name === 'zstd') {
-            getZstdDecoder()
-              .then((dec) => resolve(dec.decode(payload)))
-              .catch(reject)
-          } else {
-            reject(new Error(`[ZarrOssStore] unsupported codec: ${bytesCodec.name}`))
-          }
-        })
+        payload =
+          bytesCodec.name === 'zstd'
+            ? (await getZstdDecoder()).decode(payload)
+            : await decompressBytes(payload, bytesCodec.name)
       }
       // Compute this chunk's byte offset inside `out`.
       const chunkStart: number[] = ci.map((c, d) => c * chunkShape[d]!)
