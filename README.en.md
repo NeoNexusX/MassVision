@@ -12,7 +12,7 @@ SpatialXomics is a mass spectrometry imaging (MSI) data management and analysis 
 - **Routing**: [Vue Router](https://router.vuejs.org/)
 - **UI Components**: [DaisyUI v5](https://daisyui.com/) + [Heroicons](https://heroicons.com/) + [Iconify](https://iconify.design/)
 - **Charts & Visualization**: [ECharts](https://echarts.apache.org/) + [vue3-calendar-heatmap](https://github.com/IhsenBouallegue/vue3-calendar-heatmap) (GitHub commit heatmap)
-- **MSI Data Parsing**: [zarrita](https://github.com/manzt/zarrita) (Zarr format reader), fflate / zstddec (decompression), hash-wasm (WebAssembly hashing)
+- **MSI Data Parsing**: [zarrita](https://github.com/manzt/zarrita) (Zarr format reader), @zip.js/zip.js (upload zip packaging), zstddec (zstd decompression), hash-wasm (WebAssembly hashing)
 - **Object Storage**: [ali-oss](https://github.com/ali-sdk/ali-oss) (Alibaba Cloud OSS)
 - **HTTP Client**: [Axios](https://axios-http.com/) + [qs](https://github.com/ljharb/qs)
 - **Encryption**: [Crypto-JS](https://github.com/brix/crypto-js)
