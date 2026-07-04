@@ -4,7 +4,7 @@ import PaginationBar from '@/shared/components/PaginationBar.vue'
 import { formatBytes } from '@/shared/utils/format'
 
 const props = defineProps<{
-  activeTab: 'upload' | 'my'
+  activeTab: 'upload' | 'my' | 'public'
   uploadOpen: boolean
   datasetQuery: string
   loading: boolean
@@ -18,7 +18,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:activeTab', value: 'upload' | 'my'): void
+  (e: 'update:activeTab', value: 'upload' | 'my' | 'public'): void
   (e: 'update:datasetQuery', value: string): void
   (e: 'open-upload'): void
   (e: 'upload-success'): void
@@ -44,6 +44,11 @@ const emit = defineEmits<{
         @click.prevent="emit('update:activeTab', 'my')"
         >My Datasets</a
       >
+      <a
+        :class="['tab', activeTab === 'public' ? 'tab-active' : '']"
+        @click.prevent="emit('update:activeTab', 'public')"
+        >Public Datasets</a
+      >
     </div>
 
     <div v-if="activeTab === 'upload'">
@@ -57,7 +62,7 @@ const emit = defineEmits<{
       />
     </div>
 
-    <div v-if="activeTab === 'my'">
+    <div v-if="activeTab === 'my' || activeTab === 'public'">
       <div class="flex items-center gap-3 mb-2">
         <input
           :value="datasetQuery"

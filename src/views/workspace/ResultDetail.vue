@@ -6,12 +6,20 @@ import ResultHeader from '@/features/workspace/results/components/visuals/Result
 import IonImageSection from '@/features/workspace/results/components/IonImageSection.vue'
 import SpectrumSection from '@/features/workspace/results/components/SpectrumSection.vue'
 import OverlayControls from '@/features/workspace/results/components/OverlayControls.vue'
-import { useZarrIonImage } from '@/features/workspace/results/composables/useZarrIonImage'
+import {
+  useZarrIonImage,
+  ticMatrix,
+  pixelSpectrum,
+  loadPixelSpectrum,
+  dataModeRef,
+} from '@/features/workspace/results/composables/useZarrIonImage'
 import { useDisplayRange } from '@/features/workspace/results/composables/useDisplayRange'
 import { useOverlayData } from '@/features/workspace/results/composables/useOverlayData'
 import { useResultROI } from '@/features/workspace/results/composables/useResultROI'
 import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
+import { getSharedZarrContext } from '@/features/workspace/results/composables/useZarrIonImage'
 import { ZARR_STORE } from '@/shared/config/defaults'
+import type { DataMode } from '@/services/zarrOssStore'
 
 interface ResultDetailState {
   runId?: string
@@ -27,10 +35,28 @@ const state = history.state as ResultDetailState | null
 const runId = computed(() => state?.runId != null ? String(state.runId) : '')
 const isStale = computed(() => state?.runId == null)
 
-const { datasetName, analyzer, ionSource, pixelSize, polarity, spectrumMode, storageMode, status, methods } = useResultMeta(runId)
+// ---- 元数据 ----
+
+const {
+  datasetName,
+  analyzer,
+  ionSource,
+  pixelSize,
+  polarity,
+  spectrumMode,
+  storageMode,
+  status,
+  methods,
+  dataMode: metaDataMode,
+} = useResultMeta(runId)
+
+// ---- 可视化参数 ----
+
 const colormap = ref('inferno')
 const intensityScale = ref('linear')
 const gamma = ref(1)
+
+// ---- Zarr 数据加载 ----
 
 const zarr = useZarrIonImage()
 const {
@@ -41,11 +67,25 @@ const {
   ionCols,
   ionRows,
   onSpectrumClickByIndex,
+  isContinuous,
+  isProcessed,
 } = zarr
+
+// 当前数据模式
+const dataMode = computed<DataMode | null>(() => dataModeRef.value)
+
+// processed 模式下的图像矩阵（TIC）
+const currentIonMatrix = computed(() =>
+  isProcessed.value ? ticMatrix.value : ionMatrix.value,
+)
+
+// ---- 初始化 ----
 
 watch(runId, (id) => {
   zarr.init(id)
 }, { immediate: true })
+
+// ---- 显示范围 ----
 
 const {
   globalMin,
@@ -65,7 +105,9 @@ const {
   onStripMouseDown,
   startStripDrag,
   formatVal,
-} = useDisplayRange(ionMatrix, colormap, ionCols, ionRows)
+} = useDisplayRange(currentIonMatrix, colormap, ionCols, ionRows)
+
+// ---- ROI ----
 
 const {
   roiOverlayRef,
@@ -82,12 +124,16 @@ const {
   roiReset,
   onDraftUpdated,
   onDraftCleared,
-} = useResultROI(ionMatrix, ionCols, ionRows)
+} = useResultROI(currentIonMatrix, ionCols, ionRows)
+
+// ---- Overlay ----
 
 const { overlayMode, overlayData, overlayLoading, overlayAlpha, toggleOverlay } = useOverlayData(
   ionRows,
   ionCols,
 )
+
+// ---- 统计信息 ----
 
 const spectrumStats = computed(() => ({
   intensityRange: getIntensityRange(),
@@ -103,6 +149,17 @@ const displayInfo = computed(() => ({
   storageMode: storageMode.value,
 }))
 
+// ---- 选中像素坐标（processed 模式） ----
+
+const selectedPixelCoord = computed(() => {
+  const spec = pixelSpectrum.value
+  if (!spec) return null
+  return { x: spec.x, y: spec.y }
+})
+
+// ---- 事件处理 ----
+
+/** 重置所有控件到默认值 */
 const resetControls = () => {
   mzTolerance.value = ZARR_STORE.defaultMzTolerance
   colormap.value = 'inferno'
@@ -126,6 +183,20 @@ const onDisplayMinChange = (value: number) => {
 const onDisplayMaxChange = (value: number) => {
   displayMax.value = value
 }
+
+// ---- processed 模式：TIC 图点击 → 加载像素谱 ----
+
+async function onSelectPixel(col: number, row: number) {
+  if (!isProcessed.value) return
+  const ctx = getSharedZarrContext()
+  if (!ctx.store) return
+
+  // 在像素坐标中查找最近的像素
+  const pixelIdx = await ctx.store.findPixelByPosition(col, row)
+  if (pixelIdx >= 0) {
+    await loadPixelSpectrum(pixelIdx)
+  }
+}
 </script>
 
 <template>
@@ -141,7 +212,7 @@ const onDisplayMaxChange = (value: number) => {
     <template #main>
       <IonImageSection
         :is-stale="isStale"
-        :ion-matrix="ionMatrix"
+        :ion-matrix="currentIonMatrix"
         :display-matrix="displayMatrix"
         :selected-mz="selectedMz"
         :mz-tolerance="mzTolerance"
@@ -159,6 +230,8 @@ const onDisplayMaxChange = (value: number) => {
         :calc-handle-top="calcHandleTop"
         :clamp-pct="clampPct"
         :format-val="formatVal"
+        :data-mode="dataMode"
+        :selected-pixel-coord="selectedPixelCoord"
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
         @update:intensity-scale="intensityScale = $event"
@@ -170,6 +243,7 @@ const onDisplayMaxChange = (value: number) => {
         @start-strip-drag="startStripDrag"
         @draft-updated="onDraftUpdated"
         @draft-cleared="onDraftCleared"
+        @select-pixel="onSelectPixel"
       />
 
       <SpectrumSection
@@ -179,6 +253,7 @@ const onDisplayMaxChange = (value: number) => {
         :mz-tolerance="mzTolerance"
         :intensity-range="spectrumStats.intensityRange"
         :spectrum-mode="spectrumMode"
+        :data-mode="dataMode"
         @select-mz-index="onSpectrumClickByIndex"
       />
     </template>

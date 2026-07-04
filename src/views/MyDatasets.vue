@@ -84,6 +84,7 @@
           @view-overview="viewOverview"
           @download="handleDownloadRaw"
           @delete="handleDelete"
+          @explore="handleExplore"
           @change-size="changeSize"
           @go-to-page="goToPage"
         >
@@ -186,6 +187,10 @@ const handleDelete = async (id?: string) => {
   if (!id) return
   datasetToDelete.value = id
   isDeleteModalOpen.value = true
+}
+
+const handleExplore = (_id?: string) => {
+  // TODO: 后续实现
 }
 
 const confirmDelete = async () => {

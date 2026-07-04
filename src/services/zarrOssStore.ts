@@ -1,41 +1,36 @@
 /**
- * On-demand reader for zarr v3 data stored in Alibaba Cloud OSS, with
- * decoding. Downloads one chunk at a time and caches the last N via LRU.
+ * On-demand reader for MassFlow MSI Zarr v1.0 data stored in Alibaba Cloud OSS.
  *
- * Pipeline: STS token → OSS GET → zarr metadata → chunk path resolution
- *           → decode → ion image.
+ * New format (v1.0) supports two data layouts:
+ *   - ion-major continuous → ion image + mean spectrum (existing feature)
+ *   - pixel-major processed → TIC image + per-pixel spectrum (new feature)
  *
- * Concurrency: requests for the same chunk share a single in-flight Promise.
- * Also kicks off background prefetches of neighboring chunks; prefetch
- * failures never block the main image request.
+ * Layout (see public/zarr_schema.md):
+ *   <root>/.zattrs              — root attributes (format, spatial_shape, etc.)
+ *   <root>/metadata/.zattrs     — semantic metadata
+ *   <root>/axes/coordinates     — (n_pixels, 3) uint32, pixel coordinates
+ *   <root>/axes/mz              — shared m/z axis (continuous only)
+ *   <root>/data/.zattrs         — row_axis + encoding
+ *   <root>/data/intensity/      — 1D float32, flattened intensity values
+ *   <root>/data/offsets/        — (n_rows+1,) int64, row boundary indices
+ *   <root>/data/mz/             — per-point m/z (processed only)
+ *   <root>/stats/mean_spectrum/ — optional, pre-computed mean spectrum
  *
- * Supported codecs: gzip / zlib / deflate (via native DecompressionStream),
- * zstd (via zstddec); unsupported codecs raise a clear error.
+ * Chunk caching: intensity chunks use LRU cache (default 20 chunks).
+ * In-flight request deduplication prevents redundant OSS requests for
+ * the same chunk.
  *
- * Zarr layout assumed by this project:
- *   <root>/zarr.json
- *   <root>/mz_axis/zarr.json + chunk files
- *   <root>/ion_images/zarr.json + chunk files
- *       shape: [nMz, H, W], chunk shape typically [16, H, W]
- *
- * Chunk key encoding (zarr v3 default encoding "default"):
- *   <root>/ion_images/c<chunkIndex>/<innerChunkKey>
- *   where innerChunkKey is the dimension indices joined by the configured
- *   separator (default ".").
- *
- *   Example (ndim=3, chunk_shape=[16, H, W], full chunks):
- *     ion_images/c0/0.0.0
- *     ion_images/c1/0.0.0
- *     ...
+ * Supported codecs: gzip / zlib / deflate (native DecompressionStream),
+ * zstd (via zstddec).
  */
 
 import { ZSTDDecoder } from 'zstddec'
 import { LruCache } from '../utils/lruCache'
 import { createOssClient } from './ossClient'
-import type { OssClient, OssError } from './ossClient'
+import type { OssClient } from './ossClient'
 import type { ZarrAccessResponse } from './zarrAccessApi'
 
-// ---------- zstd decoder (singleton; WASM is initialized once) ----------
+// ---------- zstd decoder (singleton) ----------
 
 let zstdDecoderPromise: Promise<ZSTDDecoder> | null = null
 
@@ -47,7 +42,7 @@ function getZstdDecoder(): Promise<ZSTDDecoder> {
   return zstdDecoderPromise
 }
 
-// ---------- gzip / deflate decompression (native DecompressionStream) ----------
+// ---------- decompression helpers ----------
 
 async function decompressBytes(payload: Uint8Array, codecName: string): Promise<Uint8Array> {
   const run = async (format: 'gzip' | 'deflate' | 'deflate-raw') => {
@@ -57,8 +52,6 @@ async function decompressBytes(payload: Uint8Array, codecName: string): Promise<
     return new Uint8Array(await new Response(stream).arrayBuffer())
   }
   if (codecName === 'gzip') return run('gzip')
-  // 'zlib' / 'deflate' chunks are raw deflate; fall back to the zlib-wrapped
-  // variant for data that carries the 2-byte zlib header.
   try {
     return await run('deflate-raw')
   } catch {
@@ -66,26 +59,13 @@ async function decompressBytes(payload: Uint8Array, codecName: string): Promise<
   }
 }
 
-// ---------- zarr v3 metadata types (subset) ----------
+// ---------- zarr v3 metadata types ----------
 
 interface ZarrV3ArrayMetadata {
   zarr_format: 3
   node_type: 'array'
   shape: number[]
-  data_type:
-    | 'float32'
-    | 'float64'
-    | 'int32'
-    | 'int64'
-    | 'uint32'
-    | 'uint64'
-    | 'uint8'
-    | 'uint16'
-    | 'int16'
-    | 'uint16'
-    | 'int8'
-    | 'bool'
-    | string
+  data_type: string
   chunk_grid: {
     name: 'regular'
     configuration: { chunk_shape: number[] }
@@ -99,7 +79,6 @@ interface ZarrV3ArrayMetadata {
     configuration?: Record<string, unknown>
   }>
   attributes?: Record<string, unknown>
-  dimension_names?: string[]
   fill_value?: number | null
 }
 
@@ -112,189 +91,568 @@ interface ZarrV3GroupMetadata {
 // ---------- typed array helpers ----------
 
 type DType =
-  | 'float32'
-  | 'float64'
-  | 'int32'
-  | 'uint32'
-  | 'int16'
-  | 'uint16'
-  | 'int8'
-  | 'uint8'
-  | 'uint64'
-  | 'int64'
+  | 'float32' | 'float64' | 'int32' | 'uint32'
+  | 'int16' | 'uint16' | 'int8' | 'uint8'
+  | 'uint64' | 'int64' | '<f4' | '<f8' | '<u4' | '<i8'
 
-function bytesPerElement(dtype: DType): number {
-  switch (dtype) {
-    case 'float32':
-    case 'int32':
-    case 'uint32':
-      return 4
-    case 'float64':
-    case 'int64':
-    case 'uint64':
-      return 8
-    case 'int16':
-    case 'uint16':
-      return 2
-    case 'int8':
-    case 'uint8':
-      return 1
-    default:
-      return 4
+function normalizeDtype(dtype: string): DType {
+  // Handle numpy-style dtype strings
+  const map: Record<string, DType> = {
+    '<f4': 'float32', '<f8': 'float64',
+    '<u4': 'uint32', '<i8': 'int64',
+    '>f4': 'float32', '>f8': 'float64',
+  }
+  return (map[dtype] ?? dtype) as DType
+}
+
+function bytesPerElement(dtype: string): number {
+  const dt = normalizeDtype(dtype)
+  switch (dt) {
+    case 'float32': case 'int32': case 'uint32': return 4
+    case 'float64': case 'int64': case 'uint64': return 8
+    case 'int16': case 'uint16': return 2
+    case 'int8': case 'uint8': return 1
+    default: return 4
   }
 }
 
-function makeTypedArray(
-  dtype: DType,
-  buf: ArrayBuffer,
-): Float32Array | Float64Array | Int32Array | Uint32Array | Int16Array | Uint16Array | Int8Array | Uint8Array | BigInt64Array | BigUint64Array {
-  switch (dtype) {
-    case 'float32':
-      return new Float32Array(buf)
-    case 'float64':
-      return new Float64Array(buf)
-    case 'int32':
-      return new Int32Array(buf)
-    case 'uint32':
-      return new Uint32Array(buf)
-    case 'int16':
-      return new Int16Array(buf)
-    case 'uint16':
-      return new Uint16Array(buf)
-    case 'int8':
-      return new Int8Array(buf)
-    case 'uint8':
-      return new Uint8Array(buf)
-    case 'int64':
-      return new BigInt64Array(buf)
-    case 'uint64':
-      return new BigUint64Array(buf)
+function makeTypedArray(dtype: string, buf: ArrayBuffer) {
+  const dt = normalizeDtype(dtype)
+  switch (dt) {
+    case 'float32': return new Float32Array(buf)
+    case 'float64': return new Float64Array(buf)
+    case 'int32': return new Int32Array(buf)
+    case 'uint32': return new Uint32Array(buf)
+    case 'int16': return new Int16Array(buf)
+    case 'uint16': return new Uint16Array(buf)
+    case 'int8': return new Int8Array(buf)
+    case 'uint8': return new Uint8Array(buf)
+    case 'int64': return new BigInt64Array(buf)
+    case 'uint64': return new BigUint64Array(buf)
   }
 }
 
-// ---------- main store ----------
+// ---------- domain types ----------
+
+export type DataMode = 'continuous' | 'processed'
+
+/** Root attributes from /.zattrs */
+export interface RootAttrs {
+  format: string
+  format_version: string
+  write_state: string
+  coordinate_order: string[]
+  coordinate_base: number
+  spatial_shape: [number, number]
+}
+
+/** Data group attributes from /data/.zattrs */
+export interface DataAttrs {
+  row_axis: 'pixel' | 'ion'
+  encoding: 'continuous' | 'processed'
+}
+
+/** Metadata attributes from /metadata/.zattrs */
+export interface MetadataAttrs {
+  name?: string
+  version?: number
+  spectrum_count_num?: number
+  max_count_of_pixels_x?: number
+  max_count_of_pixels_y?: number
+  pixel_size_horizontal?: number
+  pixel_size_vertical?: number
+  analyzer?: string
+  ionisation_source?: string
+  polarity?: string
+  centroid_spectrum?: boolean
+  profile_spectrum?: boolean
+  continuous?: boolean
+  processed?: boolean
+  ms1_spectrum?: boolean
+  msn_spectrum?: boolean
+  filename?: string
+  [key: string]: unknown
+}
 
 export interface IonImageInfo {
   mzIndex: number
   mz: number
-  chunkIndex: number
-  localIndex: number
+  /** Row-major [height * width] */
+  matrix: Float32Array
   width: number
   height: number
-  /** row-major [H, W] */
-  matrix: Float32Array
 }
 
-export interface DecodedIonImageChunk {
-  chunkIndex: number
-  /** ndim === 3 → [chunkSize, H, W] in one Float32Array (row-major) */
-  data: Float32Array
-  chunkShape: [number, number, number]
-  width: number
-  height: number
-  /** Global mz_axis index for each mz slot in this chunk. */
-  mzIndices: number[]
-  /** mz value for each mz slot in this chunk. */
-  mzValues: number[]
+export interface PixelSpectrum {
+  pixelIndex: number
+  /** 1-based coordinate from axes/coordinates */
+  x: number
+  y: number
+  mz: Float64Array
+  intensity: Float32Array
 }
 
 export interface CacheInfo {
-  maxSize: number
-  size: number
-  keys: (string | number)[]
-  currentChunk: number | null
+  intensityChunkCacheSize: number
+  intensityChunkCacheEntries: number
+  mzChunkCacheSize: number
+  mzChunkCacheEntries: number
 }
 
-export interface ZarrOssStoreOptions {
-  /** ion_images chunk cache size; defaults to 5. */
-  ionChunkCacheSize?: number
-}
-
-interface InFlightEntry {
-  promise: Promise<DecodedIonImageChunk & { fetchMs: number; decodeMs: number }>
-  cached: boolean
-}
+// ---------- main store ----------
 
 export class ZarrOssStore {
   private access: ZarrAccessResponse
   private oss: OssClient
-  private cache: LruCache<number, DecodedIonImageChunk>
-  private inFlight = new Map<number, InFlightEntry>()
-  private currentChunk: number | null = null
 
-  // metadata
-  private ionMeta: ZarrV3ArrayMetadata | null = null
-  private mzMeta: ZarrV3ArrayMetadata | null = null
+  // Mode detection
+  private _dataMode: DataMode | null = null
+  private _rowAxis: 'pixel' | 'ion' | null = null
+
+  // Root attributes
+  private _spatialShape: [number, number] | null = null
+  private coordinateBase: number = 1
+
+  // Array metadata (zarr.json for each array)
+  private intensityMeta: ZarrV3ArrayMetadata | null = null
+  private offsetsMeta: ZarrV3ArrayMetadata | null = null
+  private dataMzMeta: ZarrV3ArrayMetadata | null = null
+  private axesMzMeta: ZarrV3ArrayMetadata | null = null
+  private coordinatesMeta: ZarrV3ArrayMetadata | null = null
   private meanSpectrumMeta: ZarrV3ArrayMetadata | null = null
 
-  // data
-  private mzAxis: Float32Array | Float64Array | null = null
-  private meanSpectrum: Float32Array | Float64Array | null = null
+  // Fully loaded small arrays (cached after first load)
+  private coordinates: Uint32Array | null = null
+  private mzAxis: Float64Array | null = null
+  private _offsets: number[] | null = null   // converted from int64
+  private meanSpectrum: Float32Array | null = null
 
-  constructor(access: ZarrAccessResponse, options: ZarrOssStoreOptions = {}) {
+  // Metadata attrs
+  private _metadataAttrs: MetadataAttrs | null = null
+
+  // Chunk caches for large 1D arrays
+  private intensityChunkCache: LruCache<number, Float32Array>
+  private mzChunkCache: LruCache<number, Float64Array>
+  private inFlightIntensity = new Map<number, Promise<Float32Array>>()
+  private inFlightMz = new Map<number, Promise<Float64Array>>()
+
+  // Derived
+  private totalIntensityPoints: number = 0
+  private totalMzPoints: number = 0
+
+  constructor(
+    access: ZarrAccessResponse,
+    options: { intensityChunkCacheSize?: number; mzChunkCacheSize?: number } = {},
+  ) {
     this.access = access
     this.oss = createOssClient(access)
-    this.cache = new LruCache<number, DecodedIonImageChunk>(options.ionChunkCacheSize ?? 5)
+    this.intensityChunkCache = new LruCache<number, Float32Array>(
+      options.intensityChunkCacheSize ?? 20,
+    )
+    this.mzChunkCache = new LruCache<number, Float64Array>(
+      options.mzChunkCacheSize ?? 5,
+    )
   }
 
-  // ---------- lifecycle ----------
 
+  // ========== public accessors ==========
+
+  get dataMode(): DataMode {
+    if (!this._dataMode) throw new Error('[ZarrOssStore] call init() first')
+    return this._dataMode
+  }
+
+  get rowAxis(): 'pixel' | 'ion' {
+    if (!this._rowAxis) throw new Error('[ZarrOssStore] call init() first')
+    return this._rowAxis
+  }
+
+  get spatialShape(): [number, number] {
+    if (!this._spatialShape) throw new Error('[ZarrOssStore] call init() first')
+    return this._spatialShape
+  }
+
+  get nRows(): number {
+    return this._offsets ? this._offsets.length - 1 : 0
+  }
+
+  get metadataAttrs(): MetadataAttrs | null {
+    return this._metadataAttrs
+  }
+
+  // ========== lifecycle ==========
+
+  /**
+   * 初始化：读取根属性、data 属性、各数组元数据。
+   * 自动判定数据模式（continuous / processed）和行轴（pixel / ion）。
+   *
+   * 属性优先从 zarr.json 的 attributes 字段读取；
+   * 如果不存在才尝试独立 .zattrs 文件（兼容其他 writer）。
+   */
   async init(): Promise<void> {
-    // Read the root zarr.json to confirm this is a group.
-    const rootMeta = await this.readJson<ZarrV3GroupMetadata>('zarr.json')
-    if (rootMeta.zarr_format !== 3 || rootMeta.node_type !== 'group') {
+    // 1) 根 zarr.json：验证 v3 group + 从中提取根属性
+    const rootZarrJson = await this.readJson<ZarrV3GroupMetadata>('zarr.json')
+    if (rootZarrJson.zarr_format !== 3 || rootZarrJson.node_type !== 'group') {
       throw new Error(
-        `[ZarrOssStore] unsupported zarr format/node_type: ${rootMeta.zarr_format}/${rootMeta.node_type}`,
+        `[ZarrOssStore] unsupported root zarr format/node_type: ${rootZarrJson.zarr_format}/${rootZarrJson.node_type}`,
       )
     }
-    this.ionMeta = await this.readJson<ZarrV3ArrayMetadata>('ion_images/zarr.json')
-    this.mzMeta = await this.readJson<ZarrV3ArrayMetadata>('mz_axis/zarr.json')
 
-    this.assertIonImagesMetadata(this.ionMeta)
-    this.assertIsV3Array(this.mzMeta, 'mz_axis')
+    const rootAttrs = rootZarrJson.attributes as unknown as RootAttrs | undefined
+    if (!rootAttrs?.format || !rootAttrs?.spatial_shape) {
+      throw new Error(
+        '[ZarrOssStore] root zarr.json missing required attributes (format, spatial_shape)',
+      )
+    }
+    this.validateRootAttrs(rootAttrs)
+    this._spatialShape = rootAttrs.spatial_shape
+    this.coordinateBase = rootAttrs.coordinate_base
+
+    // 2) data 组属性：优先 zarr.json attributes，其次 .zattrs
+    const dataAttrs = await this.readDataAttrs()
+    this._rowAxis = dataAttrs.row_axis
+    this._dataMode = dataAttrs.encoding
+
+    // 3) 读取各 data 子数组的 zarr.json 元数据
+    this.intensityMeta = await this.readArrayMeta('data/intensity')
+    this.offsetsMeta = await this.readArrayMeta('data/offsets')
+    this.totalIntensityPoints = this.intensityMeta.shape[0]!
+
+    // 5) data/mz 仅 processed 模式存在
+    if (this._dataMode === 'processed') {
+      try {
+        this.dataMzMeta = await this.readArrayMeta('data/mz')
+        this.totalMzPoints = this.dataMzMeta.shape[0]!
+      } catch {
+        throw new Error(
+          '[ZarrOssStore] processed mode requires data/mz array',
+        )
+      }
+    }
+
+    // 6) axes/mz 仅 continuous 模式存在
+    if (this._dataMode === 'continuous') {
+      try {
+        this.axesMzMeta = await this.readArrayMeta('axes/mz')
+      } catch {
+        throw new Error(
+          '[ZarrOssStore] continuous mode requires axes/mz array',
+        )
+      }
+    }
+
+    // 7) axes/coordinates 始终存在
+    this.coordinatesMeta = await this.readArrayMeta('axes/coordinates')
+
+    // 7) metadata 属性（非致命，可能不存在）
+    try {
+      const meta = await this.readJson<ZarrV3GroupMetadata>('metadata/zarr.json')
+      if (meta.attributes) {
+        this._metadataAttrs = meta.attributes as unknown as MetadataAttrs
+      }
+    } catch {
+      // metadata 组可选
+    }
+
+    // 9) stats/mean_spectrum（非致命，可能不存在）
+    try {
+      this.meanSpectrumMeta = await this.readArrayMeta('stats/mean_spectrum')
+    } catch {
+      // mean_spectrum 是可选的统计量
+    }
 
     if (import.meta.env.DEV) {
       console.table({
         bucket: this.access.bucket,
         region: this.access.region,
         folderPath: this.access.folder_path,
-        mzAxisLength: this.mzMeta.shape[0],
-        ionImagesShape: this.ionMeta.shape.join('x'),
-        ionImagesChunkShape: this.ionMeta.chunk_grid.configuration.chunk_shape.join('x'),
-        dtype: this.ionMeta.data_type,
-        codecs: (this.ionMeta.codecs ?? []).map((c) => c.name).join(',') || '(none)',
-        cacheSize: this.cache.maxSize,
+        dataMode: this._dataMode,
+        rowAxis: this._rowAxis,
+        spatialShape: this._spatialShape.join('×'),
+        totalIntensityPoints: this.totalIntensityPoints.toLocaleString(),
+        intensityDtype: this.intensityMeta.data_type,
+        intensityChunkShape: this.intensityMeta.chunk_grid.configuration.chunk_shape.join(','),
+        codecs: (this.intensityMeta.codecs ?? []).map((c) => c.name).join(',') || '(none)',
+        hasMeanSpectrum: !!this.meanSpectrumMeta,
       })
     }
   }
 
-  private assertIsV3Array(meta: ZarrV3ArrayMetadata, label: string) {
-    if (meta.zarr_format !== 3 || meta.node_type !== 'array') {
-      throw new Error(`[ZarrOssStore] ${label}: not a v3 array`)
+  // ========== data loading: common ==========
+
+  /** Load pixel coordinates. Shape (n_pixels, 3), dtype uint32, one-based. */
+  async loadCoordinates(): Promise<Uint32Array> {
+    if (this.coordinates) return this.coordinates
+    if (!this.coordinatesMeta) throw new Error('[ZarrOssStore] call init() first')
+    const ab = await this.fetchArrayFull('axes/coordinates', this.coordinatesMeta)
+    this.coordinates = new Uint32Array(ab)
+    return this.coordinates
+  }
+
+  /** Load shared m/z axis (continuous mode only). Returns null for processed mode. */
+  async loadMzAxis(): Promise<Float64Array | null> {
+    if (this._dataMode === 'processed') return null
+    if (this.mzAxis) return this.mzAxis
+    if (!this.axesMzMeta) throw new Error('[ZarrOssStore] axes/mz metadata not loaded')
+    const ab = await this.fetchArrayFull('axes/mz', this.axesMzMeta)
+    const dtype = this.axesMzMeta.data_type
+    const typed = makeTypedArray(dtype, ab)
+    this.mzAxis =
+      typed instanceof Float64Array
+        ? typed
+        : new Float64Array(typed as ArrayLike<number>)
+    return this.mzAxis
+  }
+
+  /** Load row offsets. Returns number[] (converted from int64). */
+  async loadOffsets(): Promise<number[]> {
+    if (this._offsets) return this._offsets
+    if (!this.offsetsMeta) throw new Error('[ZarrOssStore] call init() first')
+    const ab = await this.fetchArrayFull('data/offsets', this.offsetsMeta)
+    const typed = new BigInt64Array(ab)
+    this._offsets = Array.from(typed, (v) => Number(v))
+    return this._offsets
+  }
+
+  // ========== data loading: continuous mode (ion image + mean spectrum) ==========
+
+  /**
+   * Get a single ion image by m/z axis index.
+   *
+   * For ion-major continuous:
+   *   intensity[offsets[mzIdx] : offsets[mzIdx+1]] has n_pixels values.
+   *   coordinates[j] maps the j-th value to pixel position (x, y).
+   */
+  async getIonImageByMzIndex(mzIndex: number): Promise<IonImageInfo> {
+    if (this._dataMode !== 'continuous') {
+      throw new Error('[ZarrOssStore] getIonImageByMzIndex only available in continuous mode')
     }
-    const unsupported = (meta.codecs ?? []).filter(
-      (c: { name: string }) => !['bytes', 'gzip', 'zlib', 'deflate', 'zstd'].includes(c.name),
-    )
-    if (unsupported.length > 0) {
+
+    const offsets = await this.loadOffsets()
+    const mzAxis = await this.loadMzAxis()
+    if (!mzAxis) throw new Error('[ZarrOssStore] m/z axis not available')
+
+    if (mzIndex < 0 || mzIndex >= offsets.length - 1) {
       throw new Error(
-        `[ZarrOssStore] ${label}: unsupported codec: ${unsupported.map((c) => c.name).join(',')}`,
+        `[ZarrOssStore] mzIndex out of range: ${mzIndex} (total ${offsets.length - 1} ions)`,
       )
+    }
+
+    const [height, width] = this.spatialShape
+    const start = offsets[mzIndex]!
+    const end = offsets[mzIndex + 1]!
+    const nPixels = end - start
+
+    // Read the intensity slice for this ion
+    const slice = await this.readIntensitySlice(start, end)
+
+    // Map to 2D via coordinates
+    const coords = await this.loadCoordinates()
+    const matrix = new Float32Array(height * width)
+    for (let j = 0; j < nPixels; j++) {
+      const x = coords[j * 3]!
+      const y = coords[j * 3 + 1]!
+      // one-based → zero-based
+      const col = x - this.coordinateBase
+      const row = y - this.coordinateBase
+      if (row >= 0 && row < height && col >= 0 && col < width) {
+        matrix[row * width + col] = slice[j]!
+      }
+    }
+
+    return {
+      mzIndex,
+      mz: mzAxis[mzIndex]!,
+      matrix,
+      width,
+      height,
     }
   }
 
-  private assertIonImagesMetadata(meta: ZarrV3ArrayMetadata) {
-    this.assertIsV3Array(meta, 'ion_images')
-    if (meta.shape.length !== 3) {
+  /**
+   * Load pre-computed mean spectrum from stats/mean_spectrum.
+   * Returns null if not available.
+   */
+  async loadMeanSpectrum(): Promise<Float32Array | null> {
+    if (this._dataMode !== 'continuous') return null
+    if (this.meanSpectrum) return this.meanSpectrum
+    if (!this.meanSpectrumMeta) {
+      // Try to read it
+      try {
+        this.meanSpectrumMeta = await this.readArrayMeta('stats/mean_spectrum')
+      } catch {
+        return null
+      }
+    }
+    const ab = await this.fetchArrayFull('stats/mean_spectrum', this.meanSpectrumMeta)
+    const dtype = this.meanSpectrumMeta.data_type
+    const typed = makeTypedArray(dtype, ab)
+    this.meanSpectrum =
+      typed instanceof Float32Array
+        ? typed
+        : new Float32Array(typed as ArrayLike<number>)
+    return this.meanSpectrum
+  }
+
+  // ========== data loading: processed mode (TIC + per-pixel spectrum) ==========
+
+  /**
+   * Compute the TIC (Total Ion Current) image for processed mode.
+   *
+   * For pixel-major processed:
+   *   Each pixel p has intensity[offsets[p]:offsets[p+1]].
+   *   TIC[p] = sum of those intensities.
+   *   Mapped to 2D via coordinates[p].
+   *
+   * This reads the entire intensity array chunk by chunk and accumulates
+   * TIC per pixel in a single pass.
+   */
+  async computeTICImage(): Promise<Float32Array> {
+    if (this._dataMode !== 'processed') {
+      throw new Error('[ZarrOssStore] computeTICImage only available in processed mode')
+    }
+
+    const offsets = await this.loadOffsets()
+    const coords = await this.loadCoordinates()
+    const [height, width] = this.spatialShape
+    const nPixels = offsets.length - 1
+
+    // Accumulate TIC per pixel
+    const ticByPixel = new Float32Array(nPixels)
+
+    // Read intensity in chunks and accumulate
+    const cs = this.intensityMeta!.chunk_grid.configuration.chunk_shape[0]!
+    const totalChunks = Math.ceil(this.totalIntensityPoints / cs)
+
+    let globalOffset = 0 // current position in the logical intensity array
+    for (let ci = 0; ci < totalChunks; ci++) {
+      const chunk = await this.getIntensityChunk(ci)
+      const chunkStart = ci * cs
+      const chunkEnd = Math.min(chunkStart + cs, this.totalIntensityPoints)
+
+      for (let i = 0; i < chunk.length && chunkStart + i < chunkEnd; i++) {
+        const globalIdx = chunkStart + i
+        // Find which pixel this value belongs to using the offsets array
+        // Advance globalOffset until offsets[globalOffset+1] > globalIdx
+        while (globalOffset < nPixels && offsets[globalOffset + 1]! <= globalIdx) {
+          globalOffset++
+        }
+        if (globalOffset < nPixels) {
+          ticByPixel[globalOffset]! += chunk[i]!
+        }
+      }
+    }
+
+    // Map TIC values to 2D image
+    const matrix = new Float32Array(height * width)
+    for (let p = 0; p < nPixels; p++) {
+      const x = coords[p * 3]!
+      const y = coords[p * 3 + 1]!
+      const col = x - this.coordinateBase
+      const row = y - this.coordinateBase
+      if (row >= 0 && row < height && col >= 0 && col < width) {
+        matrix[row * width + col] = ticByPixel[p]!
+      }
+    }
+
+    return matrix
+  }
+
+  /**
+   * Get the spectrum for a single pixel in processed mode.
+   *
+   * For pixel-major processed:
+   *   mz = data_mz[offsets[p]:offsets[p+1]]
+   *   intensity = data_intensity[offsets[p]:offsets[p+1]]
+   */
+  async getPixelSpectrum(pixelIndex: number): Promise<PixelSpectrum | null> {
+    if (this._dataMode !== 'processed') {
+      throw new Error('[ZarrOssStore] getPixelSpectrum only available in processed mode')
+    }
+
+    const offsets = await this.loadOffsets()
+    const coords = await this.loadCoordinates()
+    const nPixels = offsets.length - 1
+
+    if (pixelIndex < 0 || pixelIndex >= nPixels) {
       throw new Error(
-        `[ZarrOssStore] ion_images: expected ndim=3 [nMz,H,W], got shape=[${meta.shape.join(',')}]`,
+        `[ZarrOssStore] pixelIndex out of range: ${pixelIndex} (total ${nPixels} pixels)`,
       )
+    }
+
+    const start = offsets[pixelIndex]!
+    const end = offsets[pixelIndex + 1]!
+    if (start === end) return null // empty spectrum
+
+    // Read intensity and mz slices in parallel
+    const [intensitySlice, mzSlice] = await Promise.all([
+      this.readIntensitySlice(start, end),
+      this.readMzSlice(start, end),
+    ])
+
+    const x = coords[pixelIndex * 3]!
+    const y = coords[pixelIndex * 3 + 1]!
+
+    return {
+      pixelIndex,
+      x,
+      y,
+      mz: mzSlice,
+      intensity: intensitySlice,
     }
   }
 
-  // ---------- OSS read helpers ----------
+  /** Find the pixel index closest to a 2D (col, row) position (zero-based). */
+  async findPixelByPosition(
+    col: number,
+    row: number,
+    tolerance: number = 1.5,
+  ): Promise<number> {
+    const coords = await this.loadCoordinates()
+    const nPixels = coords.length / 3
+    let bestIdx = -1
+    let bestDist = Infinity
+
+    for (let p = 0; p < nPixels; p++) {
+      const cx = coords[p * 3]!
+      const cy = coords[p * 3 + 1]!
+      const px = cx - this.coordinateBase
+      const py = cy - this.coordinateBase
+      const dist = Math.sqrt((px - col) ** 2 + (py - row) ** 2)
+      if (dist < bestDist) {
+        bestDist = dist
+        bestIdx = p
+      }
+    }
+
+    return bestDist <= tolerance ? bestIdx : -1
+  }
+
+  // ========== backward-compat helpers ==========
+
+  /**
+   * Returns [nMz, height, width] for continuous mode.
+   * Used by existing components that expect the old ion shape format.
+   */
+  getIonShape(): number[] | null {
+    if (this._dataMode !== 'continuous') return null
+    if (!this._spatialShape) return null
+    const offsetsLen = this._offsets ? this._offsets.length - 1 : 0
+    return [offsetsLen, this._spatialShape[0], this._spatialShape[1]]
+  }
+
+  getCacheInfo(): CacheInfo {
+    return {
+      intensityChunkCacheSize: this.intensityChunkCache.maxSize,
+      intensityChunkCacheEntries: this.intensityChunkCache.size,
+      mzChunkCacheSize: this.mzChunkCache.maxSize,
+      mzChunkCacheEntries: this.mzChunkCache.size,
+    }
+  }
+
+  // ========== internal: OSS key helpers ==========
 
   private key(relativePath: string): string {
-    // folder_path usually ends with "/"
     const root = this.access.folder_path
     const rel = relativePath.replace(/^\/+/, '')
     return root.endsWith('/') ? `${root}${rel}` : `${root}/${rel}`
@@ -313,50 +671,213 @@ export class ZarrOssStore {
     }
   }
 
-  // ---------- chunk key encoding ----------
-
-  /**
-   * Compute the OSS object key for ion_images chunk #chunkIndex.
-   *
-   * Zarr v3 default chunk key encoding:
-   *   ["c", ...chunkCoords].join(separator)   (separator defaults to "/")
-   * → for chunkIndex=5 with H/W = 0: "ion_images/c/5/0/0"
-   */
-  private computeChunkKey(chunkIndex: number): string {
-    if (!this.ionMeta) throw new Error('[ZarrOssStore] ionMeta not loaded, call init() first')
-    const enc = this.ionMeta.chunk_key_encoding
-    if (enc.name !== 'default') {
-      throw new Error(`[ZarrOssStore] unsupported chunk key encoding: ${enc.name}`)
-    }
-    const sep = enc.configuration?.separator ?? '/'
-    // Full chunk: mz dim = chunkIndex, H/W dims = 0.
-    const inner = `c${sep}${chunkIndex}${sep}0${sep}0`
-    return `ion_images/${inner}`
+  /** Read a zarr v3 array's zarr.json */
+  private async readArrayMeta(arrayPath: string): Promise<ZarrV3ArrayMetadata> {
+    const meta = await this.readJson<ZarrV3ArrayMetadata>(`${arrayPath}/zarr.json`)
+    this.assertV3Array(meta, arrayPath)
+    return meta
   }
 
-  // ---------- decode chunk bytes ----------
+  /** Read data group attributes. Tries .zattrs first, then falls back to zarr.json attributes. */
+  private async readDataAttrs(): Promise<DataAttrs> {
+    const meta = await this.readJson<ZarrV3GroupMetadata>('data/zarr.json')
+    if (!meta.attributes?.row_axis || !meta.attributes?.encoding) {
+      throw new Error(
+        '[ZarrOssStore] data/zarr.json missing required attributes (row_axis, encoding)',
+      )
+    }
+    return meta.attributes as unknown as DataAttrs
+  }
 
-  private async decodeIonImageChunk(
+  private validateRootAttrs(attrs: RootAttrs): void {
+    if (attrs.format !== 'massflow.msi_zarr') {
+      throw new Error(
+        `[ZarrOssStore] unsupported format: ${attrs.format}, expected massflow.msi_zarr`,
+      )
+    }
+    if (attrs.write_state !== 'complete') {
+      throw new Error(
+        `[ZarrOssStore] dataset write_state is "${attrs.write_state}", expected "complete"`,
+      )
+    }
+    if (!attrs.spatial_shape || attrs.spatial_shape.length !== 2) {
+      throw new Error(
+        `[ZarrOssStore] invalid spatial_shape: ${JSON.stringify(attrs.spatial_shape)}`,
+      )
+    }
+  }
+
+  private assertV3Array(meta: ZarrV3ArrayMetadata, label: string): void {
+    if (meta.zarr_format !== 3 || meta.node_type !== 'array') {
+      throw new Error(`[ZarrOssStore] ${label}: not a v3 array`)
+    }
+    const unsupported = (meta.codecs ?? []).filter(
+      (c) => !['bytes', 'gzip', 'zlib', 'deflate', 'zstd'].includes(c.name),
+    )
+    if (unsupported.length > 0) {
+      throw new Error(
+        `[ZarrOssStore] ${label}: unsupported codec: ${unsupported.map((c) => c.name).join(',')}`,
+      )
+    }
+  }
+
+  // ========== internal: chunk reading ==========
+
+  /**
+   * Read a slice [start, end) from the 1D intensity array.
+   * Uses chunk caching and in-flight deduplication.
+   */
+  private async readIntensitySlice(start: number, end: number): Promise<Float32Array> {
+    if (!this.intensityMeta) throw new Error('[ZarrOssStore] call init() first')
+    return this.read1DSlice(
+      'data/intensity',
+      this.intensityMeta,
+      start,
+      end,
+      this.intensityChunkCache,
+      this.inFlightIntensity,
+    ) as Promise<Float32Array>
+  }
+
+  /**
+   * Read a slice [start, end) from the 1D data/mz array.
+   */
+  private async readMzSlice(start: number, end: number): Promise<Float64Array> {
+    if (!this.dataMzMeta) throw new Error('[ZarrOssStore] data/mz not available')
+    return this.read1DSlice(
+      'data/mz',
+      this.dataMzMeta,
+      start,
+      end,
+      this.mzChunkCache,
+      this.inFlightMz,
+    ) as Promise<Float64Array>
+  }
+
+  /**
+   * General-purpose 1D array slice reader with chunk caching.
+   */
+  private async read1DSlice(
+    arrayPath: string,
+    meta: ZarrV3ArrayMetadata,
+    start: number,
+    end: number,
+    cache: LruCache<number, Float32Array | Float64Array>,
+    inFlight: Map<number, Promise<Float32Array | Float64Array>>,
+  ): Promise<Float32Array | Float64Array> {
+    if (start >= end) {
+      const Ctor = normalizeDtype(meta.data_type) === 'float64' ? Float64Array : Float32Array
+      return new Ctor(0)
+    }
+
+    const cs = meta.chunk_grid.configuration.chunk_shape[0]!
+    const startChunk = Math.floor(start / cs)
+    const endChunk = Math.floor((end - 1) / cs)
+    const bpe = bytesPerElement(meta.data_type)
+    const isFloat64 = bpe === 8
+
+    const result = isFloat64
+      ? new Float64Array(end - start)
+      : new Float32Array(end - start)
+    let resultOffset = 0
+
+    for (let ci = startChunk; ci <= endChunk; ci++) {
+      const chunk = await this.getOrFetchChunk(arrayPath, meta, ci, cache, inFlight)
+      const chunkStart = ci * cs
+
+      const sliceStart = Math.max(start - chunkStart, 0)
+      const sliceEnd = Math.min(end - chunkStart, chunk.length)
+      const len = sliceEnd - sliceStart
+
+      if (len > 0) {
+        ;(result as Float32Array).set(chunk.subarray(sliceStart, sliceEnd), resultOffset)
+        resultOffset += len
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * Get a single decoded chunk, using cache + in-flight deduplication.
+   */
+  private async getOrFetchChunk(
+    arrayPath: string,
+    meta: ZarrV3ArrayMetadata,
+    chunkIndex: number,
+    cache: LruCache<number, Float32Array | Float64Array>,
+    inFlight: Map<number, Promise<Float32Array | Float64Array>>,
+  ): Promise<Float32Array | Float64Array> {
+    // Check cache
+    const cached = cache.get(chunkIndex)
+    if (cached) return cached
+
+    // Check in-flight
+    const inflight = inFlight.get(chunkIndex)
+    if (inflight) return inflight
+
+    // Fetch
+    const promise = this.fetchAndDecode1DChunk(arrayPath, meta, chunkIndex)
+    inFlight.set(chunkIndex, promise)
+    try {
+      const chunk = await promise
+      cache.set(chunkIndex, chunk)
+      return chunk
+    } finally {
+      inFlight.delete(chunkIndex)
+    }
+  }
+
+  /**
+   * Fetch and decode a single chunk from a 1D zarr array.
+   */
+  private async fetchAndDecode1DChunk(
+    arrayPath: string,
+    meta: ZarrV3ArrayMetadata,
+    chunkIndex: number,
+  ): Promise<Float32Array | Float64Array> {
+    const chunkKey = this.compute1DChunkKey(meta, chunkIndex)
+    const relKey = `${arrayPath}/${chunkKey}`
+    const key = this.key(relKey)
+    const raw = await this.oss.getObjectArrayBuffer(key)
+
+    return this.decode1DChunk(meta, chunkIndex, raw)
+  }
+
+  /**
+   * Compute chunk key for a 1D array using zarr v3 default encoding.
+   * For 1D: "c/0", "c/1", "c/2", ...
+   */
+  private compute1DChunkKey(meta: ZarrV3ArrayMetadata, chunkIndex: number): string {
+    const enc = meta.chunk_key_encoding
+    if (enc.name !== 'default') {
+      throw new Error(
+        `[ZarrOssStore] unsupported chunk key encoding: ${enc.name}`,
+      )
+    }
+    const sep = enc.configuration?.separator ?? '/'
+    return `c${sep}${chunkIndex}`
+  }
+
+  /**
+   * Decode a single 1D chunk: decompress, create typed array, normalize to Float32/64.
+   */
+  private async decode1DChunk(
+    meta: ZarrV3ArrayMetadata,
     chunkIndex: number,
     raw: ArrayBuffer,
-  ): Promise<DecodedIonImageChunk> {
-    if (!this.ionMeta) throw new Error('[ZarrOssStore] ionMeta not loaded')
-    const dtype = this.ionMeta.data_type as DType
-    // Copy the metadata chunk shape — edge chunks may have fewer planes
-    // and we mutate the local copy, never the shared metadata.
-    const chunkShape = [...this.ionMeta.chunk_grid.configuration.chunk_shape] as [
-      number,
-      number,
-      number,
-    ]
-    const [cs, h, w] = chunkShape
+  ): Promise<Float32Array | Float64Array> {
+    const dtype = normalizeDtype(meta.data_type)
+    const cs = meta.chunk_grid.configuration.chunk_shape[0]!
+    const totalLen = meta.shape[0]!
+    const bpe = bytesPerElement(meta.data_type)
+    const isFloat64 = bpe === 8
 
     let payload: Uint8Array = new Uint8Array(raw)
 
-    // 1) Decompress bytes-to-bytes codec (gzip / zlib / deflate / zstd).
-    //    Array-to-bytes codecs like "bytes" are no-ops here.
-    const bytesCodec = (this.ionMeta.codecs ?? []).find(
-      (c: { name: string }) => ['gzip', 'zlib', 'deflate', 'zstd'].includes(c.name),
+    // Decompress
+    const bytesCodec = (meta.codecs ?? []).find(
+      (c) => ['gzip', 'zlib', 'deflate', 'zstd'].includes(c.name),
     )
     if (bytesCodec) {
       payload =
@@ -365,129 +886,85 @@ export class ZarrOssStore {
           : await decompressBytes(payload, bytesCodec.name)
     }
 
-    // 2) Verify byte length.
-    const bpe = bytesPerElement(dtype)
-    const gotBytes = payload.byteLength
-    if (bpe * cs * h * w !== gotBytes) {
-      // Partial chunks at the mz boundary may have fewer than `cs` planes; allow that.
-      const actualCs = Math.floor(gotBytes / (bpe * h * w))
-      if (actualCs <= 0 || actualCs > cs) {
+    // Handle edge chunk (may be smaller than cs)
+    const chunkStart = chunkIndex * cs
+    const expectedElements = Math.min(cs, totalLen - chunkStart)
+    const expectedBytes = expectedElements * bpe
+    let actualBytes = payload.byteLength
+
+    if (actualBytes !== expectedBytes) {
+      // Truncate or handle mismatch gracefully
+      const maxElements = Math.floor(actualBytes / bpe)
+      if (maxElements <= 0) {
         throw new Error(
-          `[ZarrOssStore] chunk size mismatch at chunkIndex=${chunkIndex}: ` +
-            `expected ${bpe * cs * h * w} bytes, got ${gotBytes} bytes`,
+          `[ZarrOssStore] empty chunk at chunkIndex=${chunkIndex}`,
         )
       }
-      // Edge chunk: replace the effective cs with the actual one.
-      ;(chunkShape as number[])[0] = actualCs
+      actualBytes = maxElements * bpe
     }
 
-    // 3) Wrap into an ArrayBuffer to rebuild the typed array
-    // (the decoder output may be a Uint8Array whose byteOffset is non-zero).
+    // Create typed array
     const ab = payload.buffer.slice(
       payload.byteOffset,
-      payload.byteOffset + payload.byteLength,
+      payload.byteOffset + actualBytes,
     )
-    const typed = makeTypedArray(dtype, ab as ArrayBuffer) as Float32Array | Float64Array
-    // Normalize to Float32Array for downstream consumers.
-    const normalized = typed instanceof Float32Array ? typed : Float32Array.from(typed as Float64Array)
+    const typed = makeTypedArray(meta.data_type, ab as ArrayBuffer)
 
-    // 4) Compute global mz_axis index and mz value for each plane in this chunk.
-    const mzStart = chunkIndex * cs
-    const actualCs = (chunkShape as number[])[0]!
-    const mzIndices: number[] = []
-    const mzValues: number[] = []
-    if (this.mzAxis) {
-      for (let i = 0; i < actualCs; i++) {
-        const gi = mzStart + i
-        if (gi < this.mzAxis.length) {
-          mzIndices.push(gi)
-          mzValues.push(this.mzAxis[gi]!)
-        }
-      }
-    }
-
-    return {
-      chunkIndex,
-      data: normalized,
-      chunkShape: [actualCs, h, w],
-      width: w,
-      height: h,
-      mzIndices,
-      mzValues,
-    }
-  }
-
-  // ---------- public API ----------
-
-  async loadMzAxis(): Promise<Float32Array | Float64Array> {
-    if (this.mzAxis) return this.mzAxis
-    if (!this.mzMeta) throw new Error('[ZarrOssStore] call init() first')
-    const ab = await this.fetchArrayFull('mz_axis', this.mzMeta)
-    const dtype = this.mzMeta.data_type as DType
-    const typed = makeTypedArray(dtype, ab)
-    this.mzAxis =
-      typed instanceof Float32Array || typed instanceof Float64Array
+    // Normalize to Float32Array or Float64Array
+    if (isFloat64) {
+      return typed instanceof Float64Array
         ? typed
-        : Float64Array.from(typed as ArrayLike<number>)
-    return this.mzAxis
-  }
-
-  async loadMeanSpectrum(): Promise<Float32Array | Float64Array> {
-    if (this.meanSpectrum) return this.meanSpectrum
-    if (!this.meanSpectrumMeta) {
-      this.meanSpectrumMeta = await this.readJson<ZarrV3ArrayMetadata>('mean_spectrum/zarr.json')
-      this.assertIsV3Array(this.meanSpectrumMeta, 'mean_spectrum')
+        : new Float64Array(typed as ArrayLike<number>)
     }
-    const ab = await this.fetchArrayFull('mean_spectrum', this.meanSpectrumMeta)
-    const dtype = this.meanSpectrumMeta.data_type as DType
-    const typed = makeTypedArray(dtype, ab)
-    this.meanSpectrum =
-      typed instanceof Float32Array || typed instanceof Float64Array
-        ? typed
-        : Float64Array.from(typed as ArrayLike<number>)
-    return this.meanSpectrum
+    return typed instanceof Float32Array
+      ? typed
+      : new Float32Array(typed as ArrayLike<number>)
   }
 
   /**
-   * General-purpose: read a small 1D/2D array in one shot. Downloads every
-   * chunk and concatenates them. Only used for small arrays like mz_axis.
+   * Read a small array in full (for metadata arrays like offsets, coordinates, mz_axis).
+   * Downloads all chunks and concatenates.
    */
   private async fetchArrayFull(
-    relPath: string,
+    arrayPath: string,
     meta: ZarrV3ArrayMetadata,
   ): Promise<ArrayBuffer> {
-    const total = meta.shape.reduce((a, b) => a * b, 1)
-    const bpe = bytesPerElement(meta.data_type as DType)
+    const shape = meta.shape
+    const total = shape.reduce((a, b) => a * b, 1)
+    const bpe = bytesPerElement(meta.data_type)
     const out = new Uint8Array(total * bpe)
 
     const chunkShape = meta.chunk_grid.configuration.chunk_shape
-    const dims = meta.shape.length
-    const totalChunks: number[] = meta.shape.map((s, i) => Math.ceil(s / chunkShape[i]!))
+    const ndim = shape.length
 
-    const chunkIndices: number[][] = [[]]
-    for (let d = 0; d < dims; d++) {
-      const next: number[][] = []
-      for (const prefix of chunkIndices) {
-        for (let i = 0; i < totalChunks[d]!; i++) next.push([...prefix, i])
+    // Generate all chunk indices
+    const totalChunksPerDim: number[] = shape.map((s, i) =>
+      Math.ceil(s / chunkShape[i]!),
+    )
+
+    const chunkIndices: number[][] = []
+    const generateIndices = (dim: number, prefix: number[]) => {
+      if (dim === ndim) {
+        chunkIndices.push([...prefix])
+        return
       }
-      chunkIndices.length = 0
-      chunkIndices.push(...next)
+      for (let i = 0; i < totalChunksPerDim[dim]!; i++) {
+        prefix.push(i)
+        generateIndices(dim + 1, prefix)
+        prefix.pop()
+      }
     }
+    generateIndices(0, [])
 
+    // Fetch and assemble each chunk
     for (const ci of chunkIndices) {
-      const enc = meta.chunk_key_encoding
-      let chunkKey: string
-      if (enc.name === 'default') {
-        const sep = enc.configuration?.separator ?? '/'
-        chunkKey = ['c', ...ci].join(sep)
-      } else {
-        throw new Error(`[ZarrOssStore] unsupported chunk key encoding: ${enc.name}`)
-      }
-      const chunkRelKey = `${relPath}/${chunkKey}`
+      const chunkKey = this.computeNDChunkKey(meta, ci)
+      const chunkRelKey = `${arrayPath}/${chunkKey}`
       const raw = await this.oss.getObjectArrayBuffer(this.key(chunkRelKey))
+
       let payload: Uint8Array = new Uint8Array(raw)
       const bytesCodec = (meta.codecs ?? []).find(
-        (c: { name: string }) => ['gzip', 'zlib', 'deflate', 'zstd'].includes(c.name),
+        (c) => ['gzip', 'zlib', 'deflate', 'zstd'].includes(c.name),
       )
       if (bytesCodec) {
         payload =
@@ -495,158 +972,63 @@ export class ZarrOssStore {
             ? (await getZstdDecoder()).decode(payload)
             : await decompressBytes(payload, bytesCodec.name)
       }
-      // Compute this chunk's byte offset inside `out`.
+
+      // Compute byte offset in output
       const chunkStart: number[] = ci.map((c, d) => c * chunkShape[d]!)
-      const chunkSize: number[] = ci.map((c, d) => {
-        const start = c * chunkShape[d]!
-        return Math.min(chunkShape[d]!, meta.shape[d]! - start)
-      })
-      // Simplified: only 1D is supported by this function. 2D+ is not handled here.
-      if (dims === 1) {
-        const start = chunkStart[0]! * bpe
-        out.set(payload.subarray(0, chunkSize[0]! * bpe), start)
-      } else {
-        // 2D: copy row by row.
-        if (dims === 2) {
-          const [ch, cw] = chunkShape
-          const [h, w] = chunkSize
-          for (let r = 0; r < h!; r++) {
-            const srcOff = r * ch! * bpe
-            const dstOff = ((chunkStart[0]! + r) * meta.shape[1]! + chunkStart[1]!) * bpe
-            out.set(payload.subarray(srcOff, srcOff + w! * bpe), dstOff)
-          }
-        } else {
-          throw new Error(
-            `[ZarrOssStore] fetchArrayFull only supports 1D/2D, got ndim=${dims}`,
-          )
+      const chunkSize: number[] = ci.map((c, d) =>
+        Math.min(chunkShape[d]!, shape[d]! - c * chunkShape[d]!),
+      )
+
+      if (ndim === 1) {
+        const byteOff = chunkStart[0]! * bpe
+        out.set(payload.subarray(0, chunkSize[0]! * bpe), byteOff)
+      } else if (ndim === 2) {
+        // 源行跨步 = chunk 一行有几个元素（chunkShape[1]），不是 chunkShape[0]（行数）
+        const srcRowElems = chunkShape[1]!
+        const [h, w] = chunkSize
+        const [dstStride] = shape.slice(1)
+        for (let r = 0; r < h!; r++) {
+          const srcOff = r * srcRowElems * bpe
+          const dstOff =
+            ((chunkStart[0]! + r) * dstStride! + chunkStart[1]!) * bpe
+          out.set(payload.subarray(srcOff, srcOff + w! * bpe), dstOff)
         }
+      } else {
+        throw new Error(
+          `[ZarrOssStore] fetchArrayFull only supports 1D/2D, got ndim=${ndim}`,
+        )
       }
     }
 
     return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength)
   }
 
-  /**
-   * Core entry point: lazily fetch a single ion image.
-   * Automatically goes through the LRU cache; concurrent requests for the
-   * same chunk share a single in-flight Promise.
-   */
-  async getIonImageByMzIndex(mzIndex: number): Promise<IonImageInfo> {
-    if (!this.ionMeta) throw new Error('[ZarrOssStore] call init() first')
-    if (!this.mzAxis) await this.loadMzAxis()
-
-    const totalMz = this.ionMeta.shape[0]!
-    if (mzIndex < 0 || mzIndex >= totalMz) {
+  /** Compute chunk key for N-D arrays */
+  private computeNDChunkKey(
+    meta: ZarrV3ArrayMetadata,
+    chunkIndices: number[],
+  ): string {
+    const enc = meta.chunk_key_encoding
+    if (enc.name !== 'default') {
       throw new Error(
-        `[ZarrOssStore] mzIndex out of range: ${mzIndex} (total ${totalMz})`,
+        `[ZarrOssStore] unsupported chunk key encoding: ${enc.name}`,
       )
     }
-    const chunkShape = this.ionMeta.chunk_grid.configuration.chunk_shape
-    const cs = chunkShape[0]!
-    const chunkIndex = Math.floor(mzIndex / cs)
-    const localIndex = mzIndex % cs
+    const sep = enc.configuration?.separator ?? '/'
+    return `c${sep}${chunkIndices.join(sep)}`
+  }
 
-    const t0 = performance.now()
-    const cached = this.cache.get(chunkIndex)
-    let chunk: DecodedIonImageChunk
-    let chunkCacheHit = false
-    let fetchMs = 0
-    let decodeMs = 0
-    if (cached) {
-      chunk = cached
-      chunkCacheHit = true
-    } else {
-      const inflight = this.inFlight.get(chunkIndex)
-      if (inflight) {
-        const decoded = await inflight.promise
-        chunk = decoded
-        chunkCacheHit = inflight.cached
-        fetchMs = decoded.fetchMs
-        decodeMs = decoded.decodeMs
-      } else {
-        const p = this.fetchAndDecodeChunk(chunkIndex)
-        this.inFlight.set(chunkIndex, { promise: p, cached: false })
-        let decoded: DecodedIonImageChunk & { fetchMs: number; decodeMs: number }
-        try {
-          decoded = await p
-          chunk = decoded
-        } catch (err) {
-          this.inFlight.delete(chunkIndex)
-          throw err
-        }
-        this.inFlight.delete(chunkIndex)
-        this.cache.set(chunkIndex, chunk)
-        fetchMs = decoded.fetchMs
-        decodeMs = decoded.decodeMs
-      }
-    }
-
-    this.currentChunk = chunkIndex
-
-    const [, h, w] = chunk.chunkShape
-    const planeSize = h * w
-    // Return a subarray VIEW (no copy): the caller (loadIonSliceSum) accumulates
-    // it into a target matrix immediately, so the view stays valid for the
-    // duration of the call and the chunk cannot be evicted by LRU mid-use.
-    const matrix = chunk.data.subarray(localIndex * planeSize, (localIndex + 1) * planeSize)
-
-    const info: IonImageInfo = {
-      mzIndex,
-      mz: this.mzAxis ? (this.mzAxis[mzIndex] as number) : NaN,
+  /**
+   * Get a single intensity chunk (public for cache inspection).
+   */
+  private async getIntensityChunk(chunkIndex: number): Promise<Float32Array> {
+    if (!this.intensityMeta) throw new Error('[ZarrOssStore] call init() first')
+    return (await this.getOrFetchChunk(
+      'data/intensity',
+      this.intensityMeta,
       chunkIndex,
-      localIndex,
-      width: w,
-      height: h,
-      matrix,
-    }
-
-    return info
-  }
-
-  async getIonImageChunk(chunkIndex: number): Promise<DecodedIonImageChunk> {
-    const cached = this.cache.get(chunkIndex)
-    if (cached) return cached
-    const inflight = this.inFlight.get(chunkIndex)
-    if (inflight) return inflight.promise
-    const p = this.fetchAndDecodeChunk(chunkIndex)
-    this.inFlight.set(chunkIndex, { promise: p, cached: false })
-    try {
-      const chunk = await p
-      this.inFlight.delete(chunkIndex)
-      this.cache.set(chunkIndex, chunk)
-      return chunk
-    } catch (err) {
-      this.inFlight.delete(chunkIndex)
-      throw err
-    }
-  }
-
-  private async fetchAndDecodeChunk(chunkIndex: number): Promise<DecodedIonImageChunk & { fetchMs: number; decodeMs: number }> {
-    const relKey = this.computeChunkKey(chunkIndex)
-    const key = this.key(relKey)
-    const tFetch0 = performance.now()
-    const raw = await this.oss.getObjectArrayBuffer(key)
-    const fetchMs = performance.now() - tFetch0
-    const tDecode0 = performance.now()
-    const decoded = await this.decodeIonImageChunk(chunkIndex, raw)
-    const decodeMs = performance.now() - tDecode0
-    return Object.assign(decoded, { fetchMs, decodeMs })
-  }
-
-  getCacheInfo(): CacheInfo {
-    return {
-      maxSize: this.cache.maxSize,
-      size: this.cache.size,
-      keys: this.cache.keys(),
-      currentChunk: this.currentChunk,
-    }
-  }
-
-  getIonShape(): number[] | null {
-    return this.ionMeta?.shape ?? null
-  }
-
-  getIonChunkShape(): number[] | null {
-    return this.ionMeta?.chunk_grid.configuration.chunk_shape ?? null
+      this.intensityChunkCache,
+      this.inFlightIntensity,
+    )) as Float32Array
   }
 }
