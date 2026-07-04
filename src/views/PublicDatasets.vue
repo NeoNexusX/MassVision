@@ -46,6 +46,10 @@ const viewOverview = (fileId: string) => {
   router.push({ name: 'DatasetOverview', state: { fileId, source: 'public' } })
 }
 
+const handleExplore = (_id?: string) => {
+  // TODO: 后续实现
+}
+
 // (download logic handled by composable above)
 
 const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSize } =
@@ -85,6 +89,7 @@ const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSi
           :packingIds="packingIds"
           @view-overview="viewOverview"
           @download="handleDownloadRaw"
+          @explore="handleExplore"
           @change-size="changeSize"
           @go-to-page="goToPage"
         >
