@@ -6,6 +6,9 @@ interface ResultDetailState {
   runId?: string
   processName?: string
   datasetName?: string
+  filename?: string
+  fileId?: number
+  methods?: string[]
   status?: string
 }
 
