@@ -48,7 +48,7 @@ const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
       </span>
 
       <!-- 预览图 -->
-      <HoverGallery :images="HERO_GALLERY" class="mt-[0.8em]" />
+      <HoverGallery :images="HERO_GALLERY" class="mt-[0.5em]" />
 
       <!-- 按钮组：渐变取自标题 X，字体与标语一致；尺寸全用 em，跟随场景字号缩放 -->
       <div class="mt-[1em] flex items-center gap-[0.5em]">
@@ -79,7 +79,7 @@ const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
       class="scroll-cue pointer-events-none absolute inset-x-0 bottom-1 flex justify-center leading-none text-primary"
       aria-hidden="true"
     >
-      <SvgIcon type="chevron_down" class="h-[0.4em] w-[0.4em]" />
+      <SvgIcon type="chevron_down" class="h-[0.8em] w-[0.8em]" />
     </div>
   </BaseScene>
 </template>

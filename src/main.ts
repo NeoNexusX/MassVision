@@ -44,9 +44,35 @@ async function bootstrap() {
 
 bootstrap().catch((err) => {
   console.error('Failed to start app: could not load config.json', err)
+  // 应用尚未挂载（无 router 可跳转），直接整页渲染启动失败页。
+  // 全部内联样式：此时不依赖任何组件/主题状态也能正常显示。
   const el = document.getElementById('app')
   if (el) {
-    el.innerHTML =
-      '<div style="font-family:sans-serif;padding:2rem;color:#b00">应用启动失败：无法加载 config.json，请检查该文件是否存在且为合法 JSON。</div>'
+    el.innerHTML = `
+      <div style="min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:2rem;background:#f5f6f8;color:#1f2937;font-family:'Outfit',system-ui,-apple-system,sans-serif">
+        <div style="max-width:30rem;text-align:center">
+          <h1 style="margin:0 0 0.75rem;font-size:1.75rem;font-weight:600">Something went wrong</h1>
+          <p style="margin:0 0 0.5rem;line-height:1.6;color:#4b5563">
+            The application failed to start because the server configuration could not be loaded.
+            This is not your fault &mdash; it&rsquo;s an error on our side.
+          </p>
+          <!-- 联系方式与 config.json 的 contact 块保持一致；此页恰在 config 加载失败时显示，只能写死 -->
+          <p style="margin:0 0 1.75rem;line-height:1.6;color:#4b5563">
+            Please try again in a moment, or contact the BioNet team via
+            <a href="mailto:jydong@xmu.edu.cn" style="color:#2563eb;text-decoration:underline">email</a>
+            or
+            <a href="https://files.seeusercontent.com/2026/06/03/Yw8r/Snipaste_2026-06-03_11-14-27.png"
+              target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline">WeChat</a>
+            if the problem persists.
+          </p>
+          <button onclick="location.reload()"
+            style="padding:0.6rem 1.6rem;border:0;border-radius:0.5rem;background:#2563eb;color:#fff;font-size:1rem;font-family:inherit;cursor:pointer">
+            Reload
+          </button>
+          <p style="margin:1.75rem 0 0;font-size:0.8rem;color:#9ca3af">
+            Technical detail: config.json is missing or not valid JSON.
+          </p>
+        </div>
+      </div>`
   }
 })

@@ -85,7 +85,7 @@ import type { User } from '@/features/auth/types/auth'
 import type { IconType } from '@/shared/components/svgIcons'
 import { APP_NAME } from '@/shared/config/app'
 import { getConfig, isNavVisible } from '@/shared/config/runtimeConfig'
-import type { NavItem, NavVisibility } from '@/shared/config/runtimeConfig'
+import type { NavItem, NavLinkItem, NavUserLink, NavVisibility } from '@/shared/config/runtimeConfig'
 
 const props = defineProps<{
   user: User | null
@@ -103,13 +103,21 @@ const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
 const visible = (i: NavVisibility): boolean =>
   isNavVisible(i, { isAuthenticated: !!props.user, isAdmin: props.isAdmin })
 
-const items = computed<NavItem[]>(() =>
-  getConfig()
-    .nav!.filter(visible)
+const items = computed<NavItem[]>(() => {
+  const nav = getConfig().nav!
+  // 登录后把 userMenu 的 link 项追加在主菜单尾部；未登录不追加（登录入口在 navbar 头像下拉），
+  // logout 动作也不进抽屉（drawer 形态的登出由 FAB 承担）
+  const account: NavLinkItem[] = props.user
+    ? nav.userMenu
+        .filter((i): i is NavUserLink => i.kind === 'link')
+        .map((i) => ({ ...i, kind: 'link' as const }))
+    : []
+  return [...nav.items, ...account]
+    .filter(visible)
     .map((it) =>
       it.kind === 'group' ? { ...it, children: it.children.filter(visible) } : it,
     )
     // 分组下子项被过滤光时，整组也隐藏
-    .filter((it) => it.kind !== 'group' || it.children.length > 0),
-)
+    .filter((it) => it.kind !== 'group' || it.children.length > 0)
+})
 </script>
