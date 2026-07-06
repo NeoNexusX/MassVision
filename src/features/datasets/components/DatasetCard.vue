@@ -105,6 +105,7 @@ const emit = defineEmits<{
   (e: 'view-overview', id: string): void
   (e: 'download', id: string): void
   (e: 'delete', id: string): void
+  (e: 'explore', id: string): void
 }>()
 
 const ticImageUrl = ref<string>('')
@@ -168,6 +169,15 @@ const actionItems = computed<ActionItem[]>(() => {
     })
 
   // Action buttons
+  // Explore — 所有卡片都有
+  items.push({
+    id: 'explore',
+    icon: 'search',
+    label: 'Explore',
+    colorClass: 'text-primary hover:text-primary-focus transition-colors',
+    onClick: () => emit('explore', props.dataset.id),
+  })
+
   items.push(
     {
       id: 'overview',

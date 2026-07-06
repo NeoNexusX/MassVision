@@ -1,14 +1,27 @@
 <template>
   <div class="flex flex-wrap items-center gap-3 mb-3 pt-1">
     <div>
-      <h3 class="text-lg font-semibold">Ion Image</h3>
+      <h3 class="text-lg font-semibold">{{ title }}</h3>
     </div>
     <div class="ml-auto flex flex-wrap items-center gap-2">
-      <div class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-base h-8 flex items-center">
+      <!-- m/z 显示（continuous 模式） -->
+      <div
+        v-if="dataMode === 'continuous'"
+        class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-base h-8 flex items-center"
+      >
         <span class="text-base-content/50">m/z&nbsp;</span>
         <span class="font-mono font-semibold">{{ selectedMz.toFixed(4) }}</span>
       </div>
-      <div class="flex items-center gap-1 text-base">
+      <!-- 像素坐标显示（processed 模式） -->
+      <div
+        v-if="dataMode === 'processed' && pixelCoord"
+        class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-base h-8 flex items-center"
+      >
+        <span class="text-base-content/50">Pixel&nbsp;</span>
+        <span class="font-mono font-semibold">({{ pixelCoord.x }}, {{ pixelCoord.y }})</span>
+      </div>
+      <!-- m/z 容差（仅 continuous 模式） -->
+      <div v-if="dataMode === 'continuous'" class="flex items-center gap-1 text-base">
         <span class="text-base-content/50">Tolerance &plusmn;</span>
         <input
           type="number"
@@ -19,6 +32,7 @@
           @input="$emit('update:mzTolerance', +($event.target as HTMLInputElement).value)"
         />
       </div>
+      <!-- Colormap（两种模式都可用） -->
       <select
         class="select select-sm select-bordered w-28 text-base"
         :value="colormap"
@@ -29,6 +43,7 @@
         <option value="plasma">Plasma</option>
         <option value="gray">Gray</option>
       </select>
+      <!-- 强度标度 -->
       <select
         class="select select-sm select-bordered w-28 text-base"
         :value="intensityScale"
@@ -43,11 +58,19 @@
 </template>
 
 <script setup lang="ts">
+import type { DataMode } from '@/services/zarrOssStore'
+
 defineProps<{
   selectedMz: number
   mzTolerance: number
   colormap: string
   intensityScale: string
+  /** 数据模式 */
+  dataMode?: DataMode | null
+  /** 当前选中像素坐标（processed 模式） */
+  pixelCoord?: { x: number; y: number } | null
+  /** 工具栏标题 */
+  title?: string
 }>()
 
 defineEmits<{

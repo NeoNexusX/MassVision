@@ -17,7 +17,7 @@ const props = defineProps({
   packingIds: { type: Object as PropType<Set<string>>, required: false, default: () => new Set() },
 })
 
-const emit = defineEmits(['view-overview', 'download', 'delete', 'change-size', 'go-to-page'])
+const emit = defineEmits(['view-overview', 'download', 'delete', 'explore', 'change-size', 'go-to-page'])
 
 const onChangeSize = (v: number) => emit('change-size', v)
 const onGoToPage = (p: number) => emit('go-to-page', p)
@@ -67,6 +67,7 @@ const pageSizeOptions = getConfig().pagination.pageSizeOptions
           @view-overview="$emit('view-overview', $event)"
           @download="$emit('download', $event)"
           @delete="$emit('delete', $event)"
+          @explore="$emit('explore', $event)"
         />
       </div>
     </div>

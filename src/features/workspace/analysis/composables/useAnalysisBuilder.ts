@@ -23,12 +23,12 @@ export function useAnalysisBuilder(
   // State
   const spectrumMode = ref('')
   const storageMode = ref('')
+  const selectedMethods = reactive<Record<string, string>>({})
   const { availableMethods, isFiltered, modeNotice } = usePreprocessingMethods(
     spectrumMode,
     storageMode,
+    selectedMethods,
   )
-
-  const selectedMethods = reactive<Record<string, string>>({})
   // 默认参数由方法定义生成（单一数据源，见 buildDefaultMethodParams），不再在此硬编码
   const methodParams = reactive(buildDefaultMethodParams())
 
