@@ -37,6 +37,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   const eta = ref('')
   const pickerResetKey = ref(0)
   let abortController: AbortController | null = null
+  const showPublicConfirm = ref(false)
 
   // Computed
   const formattedSize = computed(() => {
@@ -174,6 +175,24 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
       return
     }
 
+    if (metadataForm.form.value.is_public) {
+      showPublicConfirm.value = true
+      return
+    }
+
+    await doUpload()
+  }
+
+  const proceedPublicUpload = async () => {
+    showPublicConfirm.value = false
+    await doUpload()
+  }
+
+  const cancelPublicUpload = () => {
+    showPublicConfirm.value = false
+  }
+
+  const doUpload = async () => {
     startUploading('Initializing Pipeline...')
 
     try {
@@ -214,6 +233,9 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     handlePairSelected,
     handlePairError,
     confirmAndUpload,
+    proceedPublicUpload,
+    cancelPublicUpload,
+    showPublicConfirm,
     resumeUpload,
     abortUpload,
     closeModal,

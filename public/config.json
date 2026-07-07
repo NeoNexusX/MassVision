@@ -200,17 +200,17 @@
     ],
     "polarity": ["Positive", "Negative"],
     "ionSource": [
-      "AP-SMALDI5 AF",
-      "AP-SMALDI",
-      "IR-MALDESI",
-      "MALDI-2",
-      "nano-DESI",
-      "SIMS",
-      "LDI",
-      "AP-MALDI",
-      "DESI",
-      "SALDI",
       "MALDI",
+      "DESI",
+      "SIMS",
+      "AP-MALDI",
+      "AP-SMALDI",
+      "nano-DESI",
+      "LDI",
+      "SALDI",
+      "MALDI-2",
+      "LAESI",
+      "IR-MALDESI",
       "Other"
     ],
     "analyzer": [
@@ -337,6 +337,75 @@
       "Trifluoroacetic acid (TFA)",
       "Ammonium hydroxide",
       "Other"
+    ]
+  },
+
+  "ionSourceFieldRules": {
+    "defaults": {
+      "solvent":           { "required": false, "label": "Solvent",                    "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
+      "maldiMatrix":       { "required": false, "label": "MALDI Matrix" },
+      "maldiMatrixApplication": { "required": false, "label": "MALDI Matrix Application" }
+    },
+    "families": [
+      {
+        "key": "ir-maldesi",
+        "match": ["ir-maldesi", "maldesi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 50% MeOH / 50% H2O" }
+      },
+      {
+        "key": "nano-desi",
+        "match": ["nano-desi", "nanodesi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. MeOH / H2O" }
+      },
+      {
+        "key": "desi",
+        "match": ["desi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 95% MeOH / 5% H2O" }
+      },
+      {
+        "key": "ap-smaldi",
+        "match": ["ap-smaldi", "smaldi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
+        "maldiMatrix": { "required": true },
+        "maldiMatrixApplication": { "required": true }
+      },
+      {
+        "key": "ap-maldi",
+        "match": ["ap-maldi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
+        "maldiMatrix": { "required": true },
+        "maldiMatrixApplication": { "required": true }
+      },
+      {
+        "key": "maldi-2",
+        "match": ["maldi-2", "maldi2"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
+        "maldiMatrix": { "required": true },
+        "maldiMatrixApplication": { "required": true }
+      },
+      {
+        "key": "maldi",
+        "match": ["maldi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
+        "maldiMatrix": { "required": true },
+        "maldiMatrixApplication": { "required": true }
+      },
+      {
+        "key": "laesi",
+        "match": ["laesi"]
+      },
+      {
+        "key": "sims",
+        "match": ["sims"]
+      },
+      {
+        "key": "saldi",
+        "match": ["saldi"]
+      },
+      {
+        "key": "ldi",
+        "match": ["ldi"]
+      }
     ]
   }
 }

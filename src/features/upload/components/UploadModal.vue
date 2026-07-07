@@ -3,6 +3,7 @@ import ResumeUploadBanner from '@/features/upload/components/ResumeUploadBanner.
 import UploadFilePicker from '@/features/upload/components/UploadFilePicker.vue'
 import UploadMetadataForm from '@/features/upload/components/UploadMetadataForm.vue'
 import UploadProgressPanel from '@/features/upload/components/UploadProgressPanel.vue'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { useUploadFlow } from '@/features/upload/composables/useUploadFlow'
 
 defineProps<{ isOpen: boolean }>()
@@ -81,6 +82,21 @@ const upload = useUploadFlow({
         @abort="upload.abortUpload"
       />
     </div>
+
+    <ConfirmDialog
+      :open="upload.showPublicConfirm.value"
+      title="Upload as Public Dataset"
+      confirm-label="Upload Publicly"
+      danger
+      @confirm="upload.proceedPublicUpload"
+      @cancel="upload.cancelPublicUpload"
+    >
+      <span>
+        This dataset will be uploaded as <strong>public</strong> and visible to all users.
+        Are you sure you want to continue?
+      </span>
+    </ConfirmDialog>
+
     <form method="dialog" class="modal-backdrop">
       <button @click="upload.closeModal" :disabled="upload.stage.value === 'uploading'">
         close
