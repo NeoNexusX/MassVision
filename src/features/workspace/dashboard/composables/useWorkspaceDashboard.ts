@@ -25,6 +25,9 @@ export interface TaskRow {
   methods: string[]
   status: string
   created: string
+  createdDate: string
+  createdTime: string
+  createdAt: string
   errorMessage: string | null
 }
 
@@ -44,6 +47,7 @@ export function useWorkspaceDashboard() {
 
   // ── Computed ────────────────────────────────────────────────────
   function toTaskRow(p: ProcessItem): TaskRow {
+    const date = parseUtcDate(p.finished_at || p.created_at)
     return {
       id: String(p.id),
       name: `Process #${p.id}`,
@@ -52,7 +56,10 @@ export function useWorkspaceDashboard() {
       fileId: p.source_file_id,
       methods: parseAlgorithms(p.params_json),
       status: p.status,
-      created: parseUtcDate(p.finished_at || p.created_at)?.toLocaleString() ?? '',
+      created: date?.toLocaleString() ?? '',
+      createdDate: date?.toLocaleDateString() ?? '',
+      createdTime: date?.toLocaleTimeString() ?? '',
+      createdAt: p.created_at,
       errorMessage: p.error_message || null,
     }
   }
