@@ -71,6 +71,10 @@ export function mapItemToDataset(item: any, index = 0): File {
     status: item.status || 'uploading',
     isPublic: !!item.is_public,
 
+    // Visualization / Zarr
+    defaultRunId: item.default_run_id ?? null,
+    runStatus: item.run_status ?? null,
+
     spectrumMode: item.spectrum_mode || '',
     storageMode: item.storage_mode || '',
     mz: item.mz,

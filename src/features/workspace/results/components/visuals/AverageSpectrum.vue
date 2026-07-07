@@ -124,22 +124,11 @@ let nativeMouseDownX = 0
  * 只在 continuous 模式下显示；processed 模式没有共享 m/z 轴，不显示。
  */
 function buildSelectorGraphic(): unknown[] {
-  if (!chartInstance) return []
-  // processed 模式不显示选择线
-  if (props.dataMode === 'processed') {
-    return [
-      { id: 'mz-selector-line', $action: 'remove' },
-      { id: 'mz-selector-label', $action: 'remove' },
-    ]
-  }
+  // processed 模式没有共享 m/z 轴，不需要选择线
+  if (!chartInstance || props.dataMode === 'processed') return []
   const idx = props.selectedMzIndex
   const mz = props.selectedMz
-  if (idx == null || idx < 0 || mz == null) {
-    return [
-      { id: 'mz-selector-line', $action: 'remove' },
-      { id: 'mz-selector-label', $action: 'remove' },
-    ]
-  }
+  if (idx == null || idx < 0 || mz == null) return []
   const x = chartInstance.convertToPixel({ xAxisIndex: 0 }, mz)
   const gridModel = (chartInstance as any).getModel().getComponent('grid', 0)
   const gridRect = gridModel?.coordinateSystem?.getRect?.()
@@ -174,12 +163,12 @@ function buildSelectorGraphic(): unknown[] {
 }
 
 function updateSelector() {
-  if (!chartInstance) return
+  if (!chartInstance || isUnmounted || props.dataMode === 'processed') return
   chartInstance.setOption({ graphic: buildSelectorGraphic() as any })
 }
 
 function scheduleSelectorUpdate() {
-  if (selectorTimer) return
+  if (selectorTimer || props.dataMode === 'processed') return
   selectorTimer = window.setTimeout(() => {
     selectorTimer = 0
     updateSelector()
@@ -192,6 +181,7 @@ function renderChart() {
   if (isUnmounted) return
 
   // 清理旧的事件和实例
+  if (selectorTimer) { clearTimeout(selectorTimer); selectorTimer = 0 }
   if (nativeMouseDownHandler) {
     container.removeEventListener('mousedown', nativeMouseDownHandler, true)
     nativeMouseDownHandler = null
@@ -324,7 +314,8 @@ function renderChart() {
   })
   resizeObserver.observe(chartContainerRef.value!)
 
-  updateSelector()
+  // 仅 continuous 模式需要更新选择线
+  if (!isProcessed) updateSelector()
 }
 
 // ===== 生命周期 =====

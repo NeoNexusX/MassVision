@@ -15,6 +15,7 @@
  *   <root>/data/offsets/        — (n_rows+1,) int64, row boundary indices
  *   <root>/data/mz/             — per-point m/z (processed only)
  *   <root>/stats/mean_spectrum/ — optional, pre-computed mean spectrum
+ *   <root>/stats/tic/           — optional, pre-computed TIC (processed mode)
  *
  * Chunk caching: intensity chunks use LRU cache (default 20 chunks).
  * In-flight request deduplication prevents redundant OSS requests for
@@ -220,12 +221,14 @@ export class ZarrOssStore {
   private axesMzMeta: ZarrV3ArrayMetadata | null = null
   private coordinatesMeta: ZarrV3ArrayMetadata | null = null
   private meanSpectrumMeta: ZarrV3ArrayMetadata | null = null
+  private ticMeta: ZarrV3ArrayMetadata | null = null
 
   // Fully loaded small arrays (cached after first load)
   private coordinates: Uint32Array | null = null
   private mzAxis: Float64Array | null = null
   private _offsets: number[] | null = null   // converted from int64
   private meanSpectrum: Float32Array | null = null
+  private ticData: Float64Array | null = null
 
   // Metadata attrs
   private _metadataAttrs: MetadataAttrs | null = null
@@ -357,8 +360,31 @@ export class ZarrOssStore {
     // 9) stats/mean_spectrum（非致命，可能不存在）
     try {
       this.meanSpectrumMeta = await this.readArrayMeta('stats/mean_spectrum')
-    } catch {
-      // mean_spectrum 是可选的统计量
+      if (import.meta.env.DEV) {
+        console.log('[ZarrOssStore] mean_spectrum found', {
+          shape: this.meanSpectrumMeta.shape.join('×'),
+          dtype: this.meanSpectrumMeta.data_type,
+        })
+      }
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.warn('[ZarrOssStore] mean_spectrum not available — this Zarr file has no pre-computed stats.', (e as Error).message)
+      }
+    }
+
+    // 10) stats/tic（非致命，可能不存在；仅 processed 模式有意义）
+    try {
+      this.ticMeta = await this.readArrayMeta('stats/tic')
+      if (import.meta.env.DEV) {
+        console.log('[ZarrOssStore] stats/tic found', {
+          shape: this.ticMeta.shape.join('×'),
+          dtype: this.ticMeta.data_type,
+        })
+      }
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.warn('[ZarrOssStore] stats/tic not available.', (e as Error).message)
+      }
     }
 
     if (import.meta.env.DEV) {
@@ -374,6 +400,7 @@ export class ZarrOssStore {
         intensityChunkShape: this.intensityMeta.chunk_grid.configuration.chunk_shape.join(','),
         codecs: (this.intensityMeta.codecs ?? []).map((c) => c.name).join(',') || '(none)',
         hasMeanSpectrum: !!this.meanSpectrumMeta,
+        hasTIC: !!this.ticMeta,
       })
     }
   }
@@ -497,6 +524,60 @@ export class ZarrOssStore {
   // ========== data loading: processed mode (TIC + per-pixel spectrum) ==========
 
   /**
+   * Load pre-computed TIC from stats/tic and map to 2D image.
+   *
+   * This is the preferred fast path for new-format Zarr files that include
+   * pre-computed TIC stats. Falls back to computeTICImage() if stats/tic
+   * is not available.
+   *
+   * Returns null if stats/tic does not exist.
+   */
+  async loadTIC(): Promise<Float32Array | null> {
+    if (this._dataMode !== 'processed') return null
+
+    // Try to read metadata if not already loaded
+    if (!this.ticMeta) {
+      try {
+        this.ticMeta = await this.readArrayMeta('stats/tic')
+      } catch {
+        return null
+      }
+    }
+
+    // Read the full stats/tic array (single chunk, small)
+    const ab = await this.fetchArrayFull('stats/tic', this.ticMeta)
+    const dtype = this.ticMeta.data_type
+    const typed = makeTypedArray(dtype, ab)
+    this.ticData =
+      typed instanceof Float64Array
+        ? typed
+        : new Float64Array(typed as ArrayLike<number>)
+
+    // Map 1D TIC values to 2D image via coordinates
+    const coords = await this.loadCoordinates()
+    const [height, width] = this.spatialShape
+    const nPixels = coords.length / 3
+
+    const matrix = new Float32Array(height * width)
+    for (let p = 0; p < nPixels; p++) {
+      const x = coords[p * 3]!
+      const y = coords[p * 3 + 1]!
+      const col = x - this.coordinateBase
+      const row = y - this.coordinateBase
+      if (row >= 0 && row < height && col >= 0 && col < width) {
+        matrix[row * width + col] = this.ticData[p]!
+      }
+    }
+
+    return matrix
+  }
+
+  /** Whether stats/tic is available (fast path). */
+  get hasTIC(): boolean {
+    return !!this.ticMeta
+  }
+
+  /**
    * Compute the TIC (Total Ion Current) image for processed mode.
    *
    * For pixel-major processed:
@@ -504,8 +585,7 @@ export class ZarrOssStore {
    *   TIC[p] = sum of those intensities.
    *   Mapped to 2D via coordinates[p].
    *
-   * This reads the entire intensity array chunk by chunk and accumulates
-   * TIC per pixel in a single pass.
+   * Loads chunks in parallel batches to reduce network round-trips.
    */
   async computeTICImage(): Promise<Float32Array> {
     if (this._dataMode !== 'processed') {
@@ -517,28 +597,41 @@ export class ZarrOssStore {
     const [height, width] = this.spatialShape
     const nPixels = offsets.length - 1
 
-    // Accumulate TIC per pixel
-    const ticByPixel = new Float32Array(nPixels)
-
-    // Read intensity in chunks and accumulate
     const cs = this.intensityMeta!.chunk_grid.configuration.chunk_shape[0]!
     const totalChunks = Math.ceil(this.totalIntensityPoints / cs)
 
-    let globalOffset = 0 // current position in the logical intensity array
-    for (let ci = 0; ci < totalChunks; ci++) {
-      const chunk = await this.getIntensityChunk(ci)
-      const chunkStart = ci * cs
-      const chunkEnd = Math.min(chunkStart + cs, this.totalIntensityPoints)
+    // Binary search: which pixel does a global intensity index belong to?
+    const findPixel = (globalIdx: number): number => {
+      let lo = 0, hi = nPixels
+      while (lo < hi) {
+        const mid = (lo + hi) >>> 1
+        if (offsets[mid + 1]! <= globalIdx) lo = mid + 1
+        else hi = mid
+      }
+      return lo < nPixels ? lo : -1
+    }
 
-      for (let i = 0; i < chunk.length && chunkStart + i < chunkEnd; i++) {
-        const globalIdx = chunkStart + i
-        // Find which pixel this value belongs to using the offsets array
-        // Advance globalOffset until offsets[globalOffset+1] > globalIdx
-        while (globalOffset < nPixels && offsets[globalOffset + 1]! <= globalIdx) {
-          globalOffset++
-        }
-        if (globalOffset < nPixels) {
-          ticByPixel[globalOffset]! += chunk[i]!
+    const BATCH_SIZE = 6 // browser concurrent connection limit per origin
+    const ticByPixel = new Float32Array(nPixels)
+
+    for (let batchStart = 0; batchStart < totalChunks; batchStart += BATCH_SIZE) {
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
+      const batch: Promise<Float32Array>[] = []
+      for (let ci = batchStart; ci < batchEnd; ci++) {
+        batch.push(this.getIntensityChunk(ci))
+      }
+      const chunks = await Promise.all(batch)
+
+      for (let j = 0; j < chunks.length; j++) {
+        const ci = batchStart + j
+        const chunk = chunks[j]!
+        const chunkStart = ci * cs
+
+        for (let i = 0; i < chunk.length; i++) {
+          const globalIdx = chunkStart + i
+          if (globalIdx >= this.totalIntensityPoints) break
+          const p = findPixel(globalIdx)
+          if (p >= 0) ticByPixel[p]! += chunk[i]!
         }
       }
     }

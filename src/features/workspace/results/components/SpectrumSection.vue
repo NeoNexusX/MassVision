@@ -144,7 +144,13 @@ const currentStats = computed(() =>
       v-else-if="dataMode === 'processed' && !pixelSpectrum"
       class="flex-1 flex items-center justify-center text-base-content/40 text-lg"
     >
-      Click a pixel on the TIC image to view its spectrum
+      <template v-if="pixelSpectrumLoading">
+        <span class="loading loading-spinner loading-lg text-primary mr-3"></span>
+        Loading spectrum...
+      </template>
+      <template v-else>
+        Click a pixel on the TIC image to view its spectrum
+      </template>
     </div>
     <AverageSpectrum
       v-else

@@ -34,10 +34,9 @@ export function useAnalysisDatasets() {
   } = useDatasetList((filters, page, size) => listFiles(filters, page, size, true))
 
   // State
-  const activeTab = ref<'upload' | 'my' | 'public'>('my')
+  const activeTab = ref<'my' | 'public'>('my')
   const datasetQuery = ref('')
   const selectedDataset = ref<any>(null)
-  const uploadOpen = ref(false)
 
   // Derive current tab's data
   const datasets = computed(() => (activeTab.value === 'public' ? publicDatasets.value : myDatasets.value))
@@ -62,21 +61,7 @@ export function useAnalysisDatasets() {
     selectedDataset.value = dataset
   }
 
-  const onUploadSuccess = async () => {
-    await fetchMyFiles()
-    const newest = myDatasets.value[0]
-    if (newest) selectedDataset.value = newest
-    uploadOpen.value = false
-  }
-
-  const onUploadClose = () => {
-    uploadOpen.value = false
-  }
-
   // Watchers
-  watch(activeTab, (value) => {
-    if (value === 'upload') uploadOpen.value = true
-  })
 
   // Debounced server-side search
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -105,7 +90,6 @@ export function useAnalysisDatasets() {
     activeTab,
     datasetQuery,
     selectedDataset,
-    uploadOpen,
     datasets,
     loading,
     error,
@@ -116,7 +100,5 @@ export function useAnalysisDatasets() {
     goToPage,
     changeSize,
     selectDataset,
-    onUploadSuccess,
-    onUploadClose,
   }
 }

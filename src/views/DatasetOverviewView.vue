@@ -29,18 +29,15 @@ const {
   <div class="min-h-screen bg-base-200 p-4 md:p-8 font-sans">
     <div class="max-w-4xl mx-auto flex flex-col gap-6">
       <!-- 1. Top Navigation Area -->
-      <div class="flex flex-col sm:flex-row sm:items-start gap-4 mb-2">
+      <div class="flex flex-col gap-2 mb-2">
         <button
           @click="goBack"
-          class="btn btn-sm btn-ghost text-base-content/70 hover:bg-base-300 rounded-lg shrink-0 mt-1"
+          class="btn btn-ghost btn-lg text-base-content/70 hover:bg-base-300 rounded-lg shrink-0 self-start"
         >
           <svg-icon type="back" class="w-4 h-4 mr-1" />
           Back to {{ source === 'public' ? 'Public Datasets' : 'My Datasets' }}
         </button>
-        <div class="ml-1 sm:ml-4">
-          <h1 class="text-3xl font-bold text-base-content tracking-tight">Dataset Overview</h1>
-          <p class="text-base-content/60 mt-1">View detailed dataset information</p>
-        </div>
+        <h1 class="text-3xl font-bold text-base-content tracking-tight">Dataset Overview</h1>
       </div>
 
       <!-- Skeleton Loading State -->
@@ -97,7 +94,7 @@ const {
           class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6 flex flex-col md:flex-row gap-6"
         >
           <div
-            class="w-20 h-20 md:w-24 md:h-24 bg-base-200/60 rounded-2xl flex items-center justify-center flex-shrink-0 text-base-content/50 border border-base-200 overflow-hidden"
+            class="w-28 h-28 md:w-34 md:h-34 bg-base-200/60 rounded-2xl flex items-center justify-center flex-shrink-0 text-base-content/50 border border-base-200 overflow-hidden"
           >
             <img
               v-if="ticImageUrl && !ticImageError"
@@ -109,47 +106,46 @@ const {
             <div v-if="!ticImageUrl || ticImageError" class="w-full h-full" v-html="placeholderSvg"></div>
           </div>
 
-          <div class="flex-1 w-full min-w-0">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-              <h2 class="text-2xl md:text-3xl font-bold text-base-content truncate" :title="dataset.filename">
-                {{ dataset.filename }}
-              </h2>
-              <div class="flex items-center gap-2 shrink-0">
-                <button
-                  v-if="source === 'my' && !dataset.isPublic"
-                  @click="openPublicConfirm"
-                  class="btn btn-sm btn-outline btn-warning"
-                >
-                  <svg-icon type="region" class="w-4 h-4" />
-                  Make Public
-                </button>
-                <button
-                  @click="downloadCurrent"
-                  class="btn btn-sm btn-primary"
-                  :disabled="isPacking(String(dataset?.id ?? ''))"
-                >
-                  <span v-if="isPacking(String(dataset?.id ?? ''))" class="loading loading-spinner loading-xs"></span>
-                  <svg-icon v-else type="download" class="w-4 h-4" />
-                  {{ isPacking(String(dataset?.id ?? '')) ? 'Packing' : 'Download' }}
-                </button>
-                <div
-                  class="badge badge-soft shrink-0 border-0 font-medium px-3 py-3"
-                  :class="
-                    dataset.status === 'completed'
-                      ? 'badge-success bg-success/10 text-success'
-                      : dataset.status === 'uploading'
-                        ? 'badge-info bg-info/10 text-info'
-                        : dataset.status === 'failed'
-                          ? 'badge-error bg-error/10 text-error'
-                          : 'badge-neutral bg-base-200 text-base-content/70'
-                  "
-                >
-                  {{
-                    dataset.status === 'completed'
-                      ? 'Uploaded'
-                      : dataset.status === 'uploading'
-                        ? 'Uploading'
-                        : dataset.status === 'failed'
+          <div class="flex-1 w-full min-w-0 flex flex-col justify-center gap-3">
+            <h2 class="text-xl md:text-2xl font-bold text-base-content truncate" :title="dataset.filename">
+              {{ dataset.filename }}
+            </h2>
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                v-if="source === 'my' && !dataset.isPublic"
+                @click="openPublicConfirm"
+                class="btn btn-sm btn-outline btn-warning"
+              >
+                <svg-icon type="region" class="w-4 h-4" />
+                Make Public
+              </button>
+              <button
+                @click="downloadCurrent"
+                class="btn btn-sm btn-primary"
+                :disabled="isPacking(String(dataset?.id ?? ''))"
+              >
+                <span v-if="isPacking(String(dataset?.id ?? ''))" class="loading loading-spinner loading-xs"></span>
+                <svg-icon v-else type="download" class="w-4 h-4" />
+                {{ isPacking(String(dataset?.id ?? '')) ? 'Packing' : 'Download' }}
+              </button>
+              <div
+                class="badge badge-soft border-0 font-medium px-3 py-3"
+                :class="
+                  dataset.status === 'completed'
+                    ? 'badge-success bg-success/10 text-success'
+                    : dataset.status === 'uploading'
+                      ? 'badge-info bg-info/10 text-info'
+                      : dataset.status === 'failed'
+                        ? 'badge-error bg-error/10 text-error'
+                        : 'badge-neutral bg-base-200 text-base-content/70'
+                "
+              >
+                {{
+                  dataset.status === 'completed'
+                    ? 'Uploaded'
+                    : dataset.status === 'uploading'
+                      ? 'Uploading'
+                      : dataset.status === 'failed'
                           ? 'Failed'
                           : dataset.status || '—'
                   }}
@@ -157,48 +153,7 @@ const {
               </div>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
-              <div class="flex flex-col">
-                <span class="text-xs font-semibold tracking-wider text-base-content/40"
-                  >File Type</span
-                >
-                <span class="font-medium mt-1 text-base-content">{{
-                  dataset?.fileType || '—'
-                }}</span>
-              </div>
-              <div class="flex flex-col">
-                <span class="text-xs font-semibold tracking-wider text-base-content/40"
-                  >Experiment</span
-                >
-                <span class="font-medium mt-1 text-base-content">{{
-                  dataset?.experimentType || '—'
-                }}</span>
-              </div>
-              <div class="flex flex-col">
-                <span class="text-xs font-semibold tracking-wider text-base-content/40">Size</span>
-                <span class="font-medium mt-1 text-base-content">{{
-                  formatSize(dataset?.sizeBytes)
-                }}</span>
-              </div>
-              <div class="flex flex-col">
-                <span class="text-xs font-semibold tracking-wider text-base-content/40"
-                  >Spectrum Mode</span
-                >
-                <span class="font-medium mt-1 text-base-content">{{
-                  dataset?.spectrumMode || '—'
-                }}</span>
-              </div>
-              <div class="flex flex-col">
-                <span class="text-xs font-semibold tracking-wider text-base-content/40"
-                  >Storage Mode</span
-                >
-                <span class="font-medium mt-1 text-base-content">{{
-                  dataset?.storageMode || '—'
-                }}</span>
-              </div>
-            </div>
           </div>
-        </div>
 
         <!-- 3. Biological Metadata -->
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
@@ -351,12 +306,52 @@ const {
           </div>
         </div>
 
-        <!-- 6. Technical Info -->
+        <!-- 6. File Information -->
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
           <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
-            Technical Details
+            File Information
           </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
+                >File Type</span
+              >
+              <span class="text-base-content break-words">{{
+                dataset?.fileType || '—'
+              }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
+                >Experiment</span
+              >
+              <span class="text-base-content break-words">{{
+                dataset?.experimentType || '—'
+              }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
+                >Size</span
+              >
+              <span class="text-base-content break-words">{{
+                formatSize(dataset?.sizeBytes)
+              }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
+                >Spectrum Mode</span
+              >
+              <span class="text-base-content break-words">{{
+                dataset?.spectrumMode || '—'
+              }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
+                >Storage Mode</span
+              >
+              <span class="text-base-content break-words">{{
+                dataset?.storageMode || '—'
+              }}</span>
+            </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
                 >MD5 Hash</span
@@ -380,14 +375,6 @@ const {
                   </button>
                 </div>
               </div>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Total Size</span
-              >
-              <span class="text-base-content break-words">{{
-                formatSize(dataset?.sizeBytes)
-              }}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"

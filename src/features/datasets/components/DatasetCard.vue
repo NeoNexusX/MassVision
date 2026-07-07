@@ -169,14 +169,28 @@ const actionItems = computed<ActionItem[]>(() => {
     })
 
   // Action buttons
-  // Explore — 所有卡片都有
-  items.push({
-    id: 'explore',
-    icon: 'search',
-    label: 'Explore',
-    colorClass: 'text-primary hover:text-primary-focus transition-colors',
-    onClick: () => emit('explore', props.dataset.id),
-  })
+  // Explore / View — 根据是否已有可视化任务决定
+  const hasRun = !!props.dataset.defaultRunId
+
+  if (hasRun) {
+    // 已有可视化任务 → 直接查看
+    items.push({
+      id: 'explore',
+      icon: 'search',
+      label: 'Visualize',
+      colorClass: 'text-primary hover:text-primary-focus transition-colors',
+      onClick: () => emit('explore', props.dataset.id),
+    })
+  } else {
+    // 未关联可视化任务 → Explore
+    items.push({
+      id: 'explore',
+      icon: 'search',
+      label: 'Explore',
+      colorClass: 'text-primary hover:text-primary-focus transition-colors',
+      onClick: () => emit('explore', props.dataset.id),
+    })
+  }
 
   items.push(
     {
