@@ -13,7 +13,6 @@ import {
   pixelSpectrumLoading,
   pixelSpectrumError,
   loadPixelSpectrum,
-  dataModeRef,
 } from '@/features/workspace/results/composables/useZarrIonImage'
 import type { DataMode } from '@/services/zarrOssStore'
 
