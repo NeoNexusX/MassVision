@@ -18,7 +18,6 @@ const {
   size,
   pagination,
   goToPage,
-  changeSize,
   selectDataset,
   onUploadSuccess,
   onUploadClose,

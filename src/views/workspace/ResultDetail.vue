@@ -47,7 +47,6 @@ const {
   storageMode,
   status,
   methods,
-  dataMode: metaDataMode,
 } = useResultMeta(runId)
 
 // ---- 可视化参数 ----
@@ -67,7 +66,6 @@ const {
   ionCols,
   ionRows,
   onSpectrumClickByIndex,
-  isContinuous,
   isProcessed,
 } = zarr
 

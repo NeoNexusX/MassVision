@@ -1,4 +1,4 @@
-import { ref, watch, computed, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 import { metadataAttrsRef, dataModeRef } from '@/features/workspace/results/composables/useZarrIonImage'
 import type { DataMode } from '@/services/zarrOssStore'
 
