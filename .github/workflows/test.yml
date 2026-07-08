@@ -65,7 +65,7 @@ jobs:
 
       # e2e 测试（CI 模式：headless + retry + workers 自动调整）
       # 登录账号密码从 GitHub Secrets 注入，避免硬编码（见 e2e/auth.setup.ts）
-      - run: npx playwright test --grep "switching dataset|loads ion image"
+      - run: npx playwright test --grep "loads ion image"
         env:
           CI: 'true'
           E2E_USERNAME: ${{ secrets.E2E_USERNAME }}

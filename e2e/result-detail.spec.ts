@@ -31,9 +31,9 @@ test.describe('Result Detail', () => {
 
   test('loads ion image, spectrum, metadata, and responds to click', async ({ page }) => {
     await page.goto('/workspace')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first())
-      .not.toHaveText('Loading...', { timeout: 15_000 })
+      .not.toHaveText('Loading...', { timeout: 10_000 })
 
     const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
@@ -54,9 +54,9 @@ test.describe('Result Detail', () => {
     await expect(page.getByText(/peaks/)).toBeVisible()
 
     // 右侧 ColorBar 元数据（zarr 加载可能较慢）
-    await expect(page.getByText('Polarity')).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText('Analyzer')).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('Polarity')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Analyzer')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 10_000 })
 
     // 用真实鼠标点击谱图选 m/z
     await page.waitForTimeout(1000)
@@ -73,9 +73,9 @@ test.describe('Result Detail', () => {
 
   test('switches colormap and keeps ion image stable', async ({ page }) => {
     await page.goto('/workspace')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first())
-      .not.toHaveText('Loading...', { timeout: 15_000 })
+      .not.toHaveText('Loading...', { timeout: 10_000 })
 
     const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
@@ -102,9 +102,9 @@ test.describe('Cleanup', () => {
 
   test('delete completed result', async ({ page }) => {
     await page.goto('/workspace')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first())
-      .not.toHaveText('Loading...', { timeout: 15_000 })
+      .not.toHaveText('Loading...', { timeout: 10_000 })
 
     const openModal = page.locator('dialog.modal-open')
     if (await openModal.isVisible().catch(() => false)) {
