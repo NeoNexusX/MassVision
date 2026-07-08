@@ -170,7 +170,7 @@ const actionItems = computed<ActionItem[]>(() => {
 
   // Action buttons
   // Explore / View — 根据是否已有可视化任务决定
-  const hasRun = !!props.dataset.defaultRunId
+  const hasRun = props.dataset.defaultRunId != null
 
   if (hasRun) {
     // 已有可视化任务 → 直接查看

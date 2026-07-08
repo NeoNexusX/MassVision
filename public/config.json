@@ -258,6 +258,7 @@
       "Bone",
       "Eye",
       "Embryo",
+      "Fetus",
       "Whole organism",
       "Other"
     ],
@@ -306,6 +307,7 @@
     "maldiMatrix": [
       "CHCA (α-Cyano-4-hydroxycinnamic acid)",
       "DHB (2,5-Dihydroxybenzoic acid)",
+      "NEDC(N-(1-naphthyl)ethylenediamine dihydrochloride)",
       "Sinapinic acid",
       "9-AA (9-Aminoacridine)",
       "Norharmane",

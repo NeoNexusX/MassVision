@@ -558,6 +558,13 @@ export class ZarrOssStore {
     const [height, width] = this.spatialShape
     const nPixels = coords.length / 3
 
+    if (this.ticData.length < nPixels) {
+      console.warn('[ZarrOssStore] stats/tic length mismatch, falling back to computeTICImage')
+      this.ticData = null
+      this.ticMeta = null
+      return null
+    }
+
     const matrix = new Float32Array(height * width)
     for (let p = 0; p < nPixels; p++) {
       const x = coords[p * 3]!
@@ -600,19 +607,9 @@ export class ZarrOssStore {
     const cs = this.intensityMeta!.chunk_grid.configuration.chunk_shape[0]!
     const totalChunks = Math.ceil(this.totalIntensityPoints / cs)
 
-    // Binary search: which pixel does a global intensity index belong to?
-    const findPixel = (globalIdx: number): number => {
-      let lo = 0, hi = nPixels
-      while (lo < hi) {
-        const mid = (lo + hi) >>> 1
-        if (offsets[mid + 1]! <= globalIdx) lo = mid + 1
-        else hi = mid
-      }
-      return lo < nPixels ? lo : -1
-    }
-
     const BATCH_SIZE = 6 // browser concurrent connection limit per origin
     const ticByPixel = new Float32Array(nPixels)
+    let cursor = 0 // current pixel index, advances monotonically
 
     for (let batchStart = 0; batchStart < totalChunks; batchStart += BATCH_SIZE) {
       const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
@@ -630,8 +627,13 @@ export class ZarrOssStore {
         for (let i = 0; i < chunk.length; i++) {
           const globalIdx = chunkStart + i
           if (globalIdx >= this.totalIntensityPoints) break
-          const p = findPixel(globalIdx)
-          if (p >= 0) ticByPixel[p]! += chunk[i]!
+          // advance cursor to the pixel containing this globalIdx
+          while (cursor < nPixels && offsets[cursor + 1]! <= globalIdx) {
+            cursor++
+          }
+          if (cursor < nPixels) {
+            ticByPixel[cursor]! += chunk[i]!
+          }
         }
       }
     }

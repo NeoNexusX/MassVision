@@ -83,24 +83,24 @@ const upload = useUploadFlow({
       />
     </div>
 
-    <ConfirmDialog
-      :open="upload.showPublicConfirm.value"
-      title="Upload as Public Dataset"
-      confirm-label="Upload Publicly"
-      danger
-      @confirm="upload.proceedPublicUpload"
-      @cancel="upload.cancelPublicUpload"
-    >
-      <span>
-        This dataset will be uploaded as <strong>public</strong> and visible to all users.
-        Are you sure you want to continue?
-      </span>
-    </ConfirmDialog>
-
     <form method="dialog" class="modal-backdrop">
       <button @click="upload.closeModal" :disabled="upload.stage.value === 'uploading'">
         close
       </button>
     </form>
   </dialog>
+
+  <ConfirmDialog
+    :open="upload.showPublicConfirm.value"
+    title="Upload as Public Dataset"
+    confirm-label="Upload Publicly"
+    danger
+    @confirm="upload.proceedPublicUpload"
+    @cancel="upload.cancelPublicUpload"
+  >
+    <span>
+      This dataset will be uploaded as <strong>public</strong> and visible to all users.
+      Are you sure you want to continue?
+    </span>
+  </ConfirmDialog>
 </template>

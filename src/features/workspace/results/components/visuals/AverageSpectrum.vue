@@ -175,12 +175,94 @@ function scheduleSelectorUpdate() {
   }, 0)
 }
 
+/**
+ * 构建完整 ECharts options。提取为独立函数，每次 render 都用
+ * notMerge: true 传入，确保 dataZoom 缩略图与主图完全同步。
+ */
+function buildOptions(): Record<string, unknown> {
+  const isProfile = props.spectrumMode === 'profile'
+  return {
+    tooltip: {
+      trigger: 'axis',
+      formatter(params: unknown) {
+        const items = params as Array<{ data: ChartPoint; dataIndex: number }>
+        if (!items?.length) return ''
+        const [mz, intensity] = items[0]!.data
+        return `<div class="font-mono text-xs">
+            <div>m/z: <strong>${mz}</strong></div>
+            <div>Intensity: <strong>${intensity}</strong></div>
+          </div>`
+      },
+    },
+    grid: { left: 54, right: 54, top: 24, bottom: 72 },
+    xAxis: {
+      type: 'value',
+      name: 'm/z',
+      scale: true,
+      nameLocation: 'center',
+      nameGap: 28,
+      axisLabel: {},
+      axisPointer: { label: { show: false } },
+      nameTextStyle: { fontSize: 15, color: '#6b7280' },
+      axisLine: { lineStyle: { color: '#9ca3af' } },
+      axisTick: { lineStyle: { color: '#9ca3af' } },
+      splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } },
+    },
+    yAxis: {
+      type: 'value',
+      name: 'Intensity',
+      nameLocation: 'center',
+      nameGap: 48,
+      nameTextStyle: { fontSize: 17, color: '#6b7280' },
+      axisLine: { lineStyle: { color: '#9ca3af' } },
+      axisTick: { lineStyle: { color: '#9ca3af' } },
+      splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } },
+    },
+    dataZoom: [
+      { type: 'inside', xAxisIndex: 0, start: 0, end: 100 },
+      {
+        type: 'slider', xAxisIndex: 0, start: 0, end: 100,
+        height: 24, bottom: 8,
+        borderColor: '#d1d5db', fillerColor: 'rgba(59, 130, 246, 0.12)',
+        handleStyle: { color: '#3b82f6' }, textStyle: { fontSize: 13 },
+      },
+    ],
+    series: [
+      isProfile
+        ? {
+            id: 'spectrum-series',
+            type: 'line',
+            data: props.chartData,
+            showSymbol: false,
+            lineStyle: { color: '#374151', width: 2 },
+            areaStyle: { color: 'rgba(55, 65, 81, 0.06)' },
+          }
+        : {
+            id: 'spectrum-series',
+            type: 'bar',
+            data: props.chartData,
+            barWidth: 3,
+            barGap: '-100%',
+            itemStyle: { color: '#374151' },
+            large: true,
+          },
+    ],
+    animation: false,
+  }
+}
+
 function renderChart() {
   const container = chartContainerRef.value
   if (!container) { console.warn('[AverageSpectrum] No chart container'); return }
   if (isUnmounted) return
 
-  // 清理旧的事件和实例
+  // 同一帧内 onMounted + watch 都会触发，引用相同则跳过
+  if (lastData === props.chartData) return
+  lastData = props.chartData
+
+  const isProcessed = props.dataMode === 'processed'
+
+  // 清事件
   if (selectorTimer) { clearTimeout(selectorTimer); selectorTimer = 0 }
   if (nativeMouseDownHandler) {
     container.removeEventListener('mousedown', nativeMouseDownHandler, true)
@@ -193,84 +275,12 @@ function renderChart() {
   resizeObserver?.disconnect()
   resizeObserver = null
 
+  // 彻底销毁重建，保证 dataZoom 缩略图和主图完全一致
   chartInstance?.dispose()
   chartInstance = echarts.init(container)
+  chartInstance.setOption(buildOptions(), { notMerge: true })
 
-  const isProfile = props.spectrumMode === 'profile'
-  const isProcessed = props.dataMode === 'processed'
-
-  chartInstance.setOption(
-    {
-      tooltip: {
-        trigger: 'axis',
-        formatter(params: unknown) {
-          const items = params as Array<{ data: ChartPoint; dataIndex: number }>
-          if (!items?.length) return ''
-          const [mz, intensity] = items[0]!.data
-          return `<div class="font-mono text-xs">
-            <div>m/z: <strong>${mz}</strong></div>
-            <div>Intensity: <strong>${intensity}</strong></div>
-          </div>`
-        },
-      },
-      grid: { left: 64, right: 24, top: 24, bottom: 72 },
-      xAxis: {
-        type: 'value',
-        name: 'm/z',
-        scale: true,
-        nameLocation: 'center',
-        nameGap: 28,
-        axisLabel: {},
-        axisPointer: { label: { show: false } },
-        nameTextStyle: { fontSize: 15, color: '#6b7280' },
-        axisLine: { lineStyle: { color: '#9ca3af' } },
-        axisTick: { lineStyle: { color: '#9ca3af' } },
-        splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } },
-      },
-      yAxis: {
-        type: 'value',
-        name: 'Intensity',
-        nameLocation: 'center',
-        nameGap: 48,
-        nameTextStyle: { fontSize: 17, color: '#6b7280' },
-        axisLine: { lineStyle: { color: '#9ca3af' } },
-        axisTick: { lineStyle: { color: '#9ca3af' } },
-        splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } },
-      },
-      dataZoom: [
-        { type: 'inside', start: 0, end: 100 },
-        {
-          type: 'slider', start: 0, end: 100, height: 24, bottom: 8,
-          borderColor: '#d1d5db', fillerColor: 'rgba(59, 130, 246, 0.12)',
-          handleStyle: { color: '#3b82f6' }, textStyle: { fontSize: 13 },
-        },
-      ],
-      series: [
-        isProfile
-          ? {
-              id: 'spectrum-series',
-              type: 'line',
-              data: props.chartData,
-              showSymbol: false,
-              lineStyle: { color: '#374151', width: 2 },
-              areaStyle: { color: 'rgba(55, 65, 81, 0.06)' },
-            }
-          : {
-              id: 'spectrum-series',
-              type: 'bar',
-              data: props.chartData,
-              barWidth: 3,
-              barGap: '-100%',
-              itemStyle: { color: '#374151' },
-              large: true,
-            },
-      ],
-      animation: false,
-    },
-    { notMerge: true },
-  )
-
-  // ---- 点击事件（仅 continuous 模式） ----
+  // 注册事件（仅 continuous 模式）
 
   if (!isProcessed) {
     const handleMouseDown = (e: MouseEvent) => {
@@ -319,6 +329,8 @@ function renderChart() {
 }
 
 // ===== 生命周期 =====
+
+let lastData: ChartPoint[] | null = null
 
 onMounted(() => {
   if (!props.loading && !props.error && props.chartData.length > 0) {

@@ -146,7 +146,10 @@ const currentStats = computed(() =>
     >
       <template v-if="pixelSpectrumLoading">
         <span class="loading loading-spinner loading-lg text-primary mr-3"></span>
-        Loading spectrum...
+        <div class="text-center">
+          <div>Loading spectrum...</div>
+          <div class="text-sm text-base-content/40 mt-1">First load may take a moment while fetching data</div>
+        </div>
       </template>
       <template v-else>
         Click a pixel on the TIC image to view its spectrum

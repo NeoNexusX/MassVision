@@ -94,7 +94,7 @@ const {
           class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6 flex flex-col md:flex-row gap-6"
         >
           <div
-            class="w-28 h-28 md:w-34 md:h-34 bg-base-200/60 rounded-2xl flex items-center justify-center flex-shrink-0 text-base-content/50 border border-base-200 overflow-hidden"
+            class="w-28 h-28 md:w-36 md:h-36 bg-base-200/60 rounded-2xl flex items-center justify-center flex-shrink-0 text-base-content/50 border border-base-200 overflow-hidden"
           >
             <img
               v-if="ticImageUrl && !ticImageError"
@@ -106,7 +106,7 @@ const {
             <div v-if="!ticImageUrl || ticImageError" class="w-full h-full" v-html="placeholderSvg"></div>
           </div>
 
-          <div class="flex-1 w-full min-w-0 flex flex-col justify-center gap-3">
+          <div class="flex-1 w-full min-w-0 flex flex-col justify-center gap-2">
             <h2 class="text-xl md:text-2xl font-bold text-base-content truncate" :title="dataset.filename">
               {{ dataset.filename }}
             </h2>
@@ -155,10 +155,10 @@ const {
 
           </div>
 
-        <!-- 3. Biological Metadata -->
+        <!-- 3. Biological & Sample Info -->
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
           <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
-            Biological Metadata
+            Biological &amp; Sample Info
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <div class="flex flex-col">
@@ -185,15 +185,6 @@ const {
                 formatString(dataset?.condition)
               }}</span>
             </div>
-          </div>
-        </div>
-
-        <!-- 4. Sample Processing -->
-        <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
-          <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
-            Sample Processing
-          </h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
                 >Growth Conditions</span
@@ -221,43 +212,10 @@ const {
           </div>
         </div>
 
-        <!-- 5. MALDI Related Info -->
+        <!-- 5. MSI Analysis Settings -->
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
           <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
-            MALDI Information
-          </h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Matrix</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.maldiMatrix)
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Matrix Application</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.maldiMatrixApplication)
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Solvent</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.solvent)
-              }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 5b. MS Analysis Settings -->
-        <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
-          <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
-            MS Analysis Settings
+            MSI Analysis Settings
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <div class="flex flex-col">
@@ -302,6 +260,30 @@ const {
                 </template>
                 <template v-else>—</template>
               </span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
+                >Matrix</span
+              >
+              <span class="text-base-content break-words">{{
+                formatString(dataset?.maldiMatrix)
+              }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
+                >Matrix Application</span
+              >
+              <span class="text-base-content break-words">{{
+                formatString(dataset?.maldiMatrixApplication)
+              }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
+                >Solvent</span
+              >
+              <span class="text-base-content break-words">{{
+                formatString(dataset?.solvent)
+              }}</span>
             </div>
           </div>
         </div>
@@ -356,9 +338,9 @@ const {
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
                 >MD5 Hash</span
               >
-              <div class="flex items-center gap-2 max-w-full">
+              <div class="flex items-center gap-2">
                 <span
-                  class="text-base-content bg-base-200/50 px-2 py-1 rounded font-mono text-sm truncate flex-1 md:max-w-md"
+                  class="text-base-content bg-base-200/50 px-2 py-1 rounded font-mono text-sm truncate max-w-[200px]"
                   >{{ dataset?.hashMd5 || '—' }}</span
                 >
                 <div
