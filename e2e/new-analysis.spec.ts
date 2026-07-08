@@ -40,6 +40,7 @@ test.describe('New Analysis', () => {
 
     // 至少需要 2 个数据集
     const radios = page.locator('input[name="selectedDataset"]')
+    await radios.first().waitFor({ state: 'visible', timeout: 10_000 })
     const count = await radios.count()
     if (count < 2) {
       test.skip(true, `Only ${count} dataset(s), need ≥ 2 to test switching`)

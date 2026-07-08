@@ -53,10 +53,10 @@ test.describe('Result Detail', () => {
     await expect(page.getByText('Average Spectrum')).toBeVisible()
     await expect(page.getByText(/peaks/)).toBeVisible()
 
-    // 右侧 ColorBar 元数据
-    await expect(page.getByText('Polarity')).toBeVisible()
-    await expect(page.getByText('Analyzer')).toBeVisible()
-    await expect(page.getByText('Ionisation Source')).toBeVisible()
+    // 右侧 ColorBar 元数据（zarr 加载可能较慢）
+    await expect(page.getByText('Polarity')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('Analyzer')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 15_000 })
 
     // 用真实鼠标点击谱图选 m/z
     await page.waitForTimeout(1000)
