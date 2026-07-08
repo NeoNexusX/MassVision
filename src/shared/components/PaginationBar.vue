@@ -15,11 +15,11 @@
         <template v-for="(p, idx) in pageRange" :key="`pg-${idx}`">
           <button
             v-if="p !== '...'"
-            class="join-item btn h-[2em] min-h-[2em] font-medium text-[1em] bg-base-100 tabular-nums"
+            class="join-item btn h-[2em] min-h-[2em] font-medium text-[1em] bg-base-100 tabular-nums border-base-content/20"
             :class="
               currentPage === p
-                ? 'bg-base-200/80 text-base-content'
-                : 'bg-base-100 hover:bg-primary/60 text-base-content/60'
+                ? 'bg-primary text-primary-content border-primary z-10'
+                : 'hover:bg-primary/60 text-base-content/60'
             "
             @click="$emit('go-to-page', Number(p))"
           >
@@ -42,7 +42,7 @@
           type="number"
           min="1"
           :max="totalPages"
-          class="join-item input  bg-base-100 h-[2em] min-h-[2em] w-[4em] text-center text-[1em] text-base-content"
+          class="join-item input bg-base-100 border-base-content/20 h-[2em] min-h-[2em] w-[4em] text-center text-[1em] text-base-content"
           :placeholder="`${currentPage}`"
           @keydown.enter="handleJump"
         />

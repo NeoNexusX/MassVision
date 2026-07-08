@@ -9,7 +9,6 @@ const {
   activeTab,
   datasetQuery,
   selectedDataset,
-  uploadOpen,
   loading,
   error,
   datasets,
@@ -19,8 +18,6 @@ const {
   pagination,
   goToPage,
   selectDataset,
-  onUploadSuccess,
-  onUploadClose,
 } = useAnalysisDatasets()
 
 const {
@@ -63,7 +60,6 @@ const {
         <DataSourceStep
           v-model:active-tab="activeTab"
           v-model:dataset-query="datasetQuery"
-          :upload-open="uploadOpen"
           :loading="loading"
           :error="error"
           :datasets="datasets"
@@ -72,9 +68,6 @@ const {
           :page="page"
           :size="size"
           :pagination="pagination"
-          @open-upload="uploadOpen = true"
-          @upload-success="onUploadSuccess"
-          @upload-close="onUploadClose"
           @select-dataset="selectDataset"
           @go-to-page="goToPage"
           @prev-page="goToPage(page - 1)"

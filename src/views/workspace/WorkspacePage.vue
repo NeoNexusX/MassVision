@@ -1,14 +1,14 @@
 <template>
   <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 box-border overflow-x-hidden">
     <!-- Header: Title + actions -->
-    <div class="flex items-start justify-between mb-6">
+    <div class="flex flex-col sm:flex-row items-start justify-between mb-6 gap-4">
       <div>
         <h1 class="text-4xl font-semibold">Workspace</h1>
         <p class="text-lg text-base-content/60 mt-1">
           Monitor preprocessing tasks and review recent MSI results.
         </p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 flex-shrink-0">
         <router-link to="/mydatasets" class="btn btn-ghost btn-lg">Go to MyDatasets</router-link>
         <router-link to="/workspace/new" class="btn btn-primary btn-lg">New Task</router-link>
       </div>

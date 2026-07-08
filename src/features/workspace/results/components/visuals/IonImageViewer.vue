@@ -41,11 +41,11 @@
         :style="{ left: hoverPixel.x + 12 + 'px', top: hoverPixel.y + 12 + 'px' }"
       >
         <template v-if="dataMode === 'processed'">
-          ({{ hoverPixel.col }}, {{ hoverPixel.row }})
+          ({{ hoverPixel.col + 1 }}, {{ hoverPixel.row + 1 }})
           {{ hoverPixel.intensity.toExponential(2) }}
         </template>
         <template v-else>
-          ({{ hoverPixel.col }}, {{ hoverPixel.row }}) — {{ hoverPixel.intensity.toExponential(2) }}
+          ({{ hoverPixel.col + 1 }}, {{ hoverPixel.row + 1 }}) — {{ hoverPixel.intensity.toExponential(2) }}
         </template>
       </div>
       <!-- 缩放控件 -->

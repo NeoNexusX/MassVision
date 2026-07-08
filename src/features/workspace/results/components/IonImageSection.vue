@@ -57,12 +57,12 @@ const imageTitle = computed(() =>
   props.dataMode === 'processed' ? 'TIC Image' : 'Ion Image',
 )
 
-/** processed 模式下的占位提示 */
-const processedPlaceholder = computed(() =>
-  props.dataMode === 'processed' && !props.ionMatrix
-    ? 'Computing TIC image...'
-    : 'Loading ion image...',
-)
+/** 图像加载占位提示 */
+const processedPlaceholder = computed(() => {
+  if (props.dataMode === 'processed') return 'Computing TIC image, please wait a moment...'
+  if (props.dataMode === null) return 'Loading result…'
+  return 'Loading ion image, please wait a moment...'
+})
 </script>
 
 <template>

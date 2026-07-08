@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import UploadModal from '@/features/upload/components/UploadModal.vue'
 import PaginationBar from '@/shared/components/PaginationBar.vue'
 import { formatBytes } from '@/shared/utils/format'
 
 const props = defineProps<{
-  activeTab: 'upload' | 'my' | 'public'
-  uploadOpen: boolean
+  activeTab: 'my' | 'public'
   datasetQuery: string
   loading: boolean
   error: string
@@ -18,11 +16,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:activeTab', value: 'upload' | 'my' | 'public'): void
+  (e: 'update:activeTab', value: 'my' | 'public'): void
   (e: 'update:datasetQuery', value: string): void
-  (e: 'open-upload'): void
-  (e: 'upload-success'): void
-  (e: 'upload-close'): void
   (e: 'select-dataset', dataset: any): void
   (e: 'go-to-page', page: number): void
   (e: 'prev-page'): void
@@ -35,11 +30,6 @@ const emit = defineEmits<{
     <h2 class="text-3xl font-medium mb-4">Step 1: Data Source</h2>
     <div class="tabs mb-4">
       <a
-        :class="['tab', activeTab === 'upload' ? 'tab-active' : '']"
-        @click.prevent="emit('update:activeTab', 'upload')"
-        >Upload</a
-      >
-      <a
         :class="['tab', activeTab === 'my' ? 'tab-active' : '']"
         @click.prevent="emit('update:activeTab', 'my')"
         >My Datasets</a
@@ -49,17 +39,6 @@ const emit = defineEmits<{
         @click.prevent="emit('update:activeTab', 'public')"
         >Public Datasets</a
       >
-    </div>
-
-    <div v-if="activeTab === 'upload'">
-      <div class="mt-3">
-        <button class="btn btn-primary" @click="emit('open-upload')">Open Uploader</button>
-      </div>
-      <UploadModal
-        :isOpen="uploadOpen"
-        @upload-success="emit('upload-success')"
-        @close="emit('upload-close')"
-      />
     </div>
 
     <div v-if="activeTab === 'my' || activeTab === 'public'">

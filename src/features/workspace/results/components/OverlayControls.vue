@@ -27,13 +27,13 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="mt-3 pt-3 border-t border-base-200">
-    <div class="text-base font-semibold text-base-content/50 mb-2">Visualization</div>
+  <div class="mt-5 pt-4 border-t border-base-content/25">
+    <div class="text-base font-semibold text-base-content mb-2">Visualization</div>
 
     <div class="mb-3">
       <div class="flex items-center justify-between mb-1">
-        <span class="text-sm text-base-content/50">Gamma</span>
-        <span class="text-sm font-mono text-base-content/60">{{ gamma.toFixed(1) }}</span>
+        <span class="text-sm text-base-content">Gamma</span>
+        <span class="text-sm font-mono text-base-content">{{ gamma.toFixed(1) }}</span>
       </div>
       <input
         type="range"
@@ -44,7 +44,7 @@ const emit = defineEmits<{
         :value="gamma"
         @input="emit('update:gamma', +($event.target as HTMLInputElement).value)"
       />
-      <div class="flex justify-between text-xs text-base-content/40 mt-0.5">
+      <div class="flex justify-between text-xs text-base-content mt-0.5">
         <span>0.5</span>
         <span>1.0</span>
         <span>1.5</span>
@@ -79,8 +79,8 @@ const emit = defineEmits<{
     </div>
   </div>
 
-  <div class="mt-3 pt-3 border-t border-base-200">
-    <div class="flex items-center justify-between text-base font-semibold text-base-content/50 mb-2">
+  <div class="mt-5 pt-4 border-t border-base-content/25">
+    <div class="flex items-center justify-between text-base font-semibold text-base-content mb-2">
       <span>Overlay opacity</span>
       <span class="font-mono font-normal text-base">{{ Math.round(overlayAlpha / 2.55) }}%</span>
     </div>
@@ -94,8 +94,8 @@ const emit = defineEmits<{
     />
   </div>
 
-  <div class="mt-3 pt-3 border-t border-base-200">
-    <div class="text-base font-semibold text-base-content/50 mb-2">Region of interest</div>
+  <div class="mt-5 pt-4 border-t border-base-content/25">
+    <div class="text-base font-semibold text-base-content mb-2">Region of interest</div>
     <ROIPanel
       :selected-tool="roiTool"
       :draft-ready="draftReady"

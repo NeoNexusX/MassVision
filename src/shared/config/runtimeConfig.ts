@@ -46,6 +46,41 @@ export interface OptionLists {
   solvent: string[]
 }
 
+// ---- Ion Source 动态字段规则（config.json 的 ionSourceFieldRules） ----
+
+/** 单个字段的规则片段（required 及展示文案） */
+interface IonSourceFieldRuleConfig {
+  required: boolean
+  label: string
+  placeholder?: string
+}
+
+/** 一个离子源家族的匹配规则 */
+interface IonSourceFamilyConfig {
+  /** 家族标识（如 "maldi"、"desi"） */
+  key: string
+  /** 归一化后用于匹配的关键词列表，命中任一即匹配该家族 */
+  match: string[]
+  /** 覆盖默认 solvent 规则 */
+  solvent?: Partial<IonSourceFieldRuleConfig>
+  /** 覆盖默认 MALDI Matrix 规则 */
+  maldiMatrix?: Partial<IonSourceFieldRuleConfig>
+  /** 覆盖默认 MALDI Matrix Application 规则 */
+  maldiMatrixApplication?: Partial<IonSourceFieldRuleConfig>
+}
+
+/** ionSourceFieldRules 配置块 */
+interface IonSourceRulesConfig {
+  /** 三个字段的默认规则（所有字段 optional） */
+  defaults: {
+    solvent: IonSourceFieldRuleConfig
+    maldiMatrix: IonSourceFieldRuleConfig
+    maldiMatrixApplication: IonSourceFieldRuleConfig
+  }
+  /** 离子源家族列表，按顺序匹配，先命中先生效 */
+  families: IonSourceFamilyConfig[]
+}
+
 /**
  * 开发团队成员（数据存于 config.json 的 `team`，非技术同学可直接编辑、刷新即生效）。
  *
@@ -386,6 +421,8 @@ export interface AppConfig {
   fab?: FabConfig
   /** 表单下拉选项表 */
   options: OptionLists
+  /** Ion Source 动态字段规则 */
+  ionSourceFieldRules: IonSourceRulesConfig
 }
 
 let _config: AppConfig | null = null

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { DOWNLOAD_LIMIT } from '@/shared/config/defaults'
 
 export const useDownloadStore = defineStore('download', () => {
-  /** Timestamp of the last download start (ms) — cooldown begins from click, not completion */
+  /** Timestamp of the last successful download (ms) — cooldown only after success */
   const lastDownloadTime = ref(0)
   /** File ID of the last download */
   const lastDownloadId = ref('')
@@ -23,19 +23,19 @@ export const useDownloadStore = defineStore('download', () => {
     return cooldownRemaining() <= 0
   }
 
-  /** Record that a download has started — starts the cooldown immediately */
+  /** Record that a download has started */
   function startDownload(fileId: string) {
     downloading.value = true
-    lastDownloadTime.value = Date.now()
     lastDownloadId.value = fileId
   }
 
-  /** Record that a download has completed successfully */
+  /** Record that a download has completed successfully — starts the cooldown */
   function completeDownload() {
     downloading.value = false
+    lastDownloadTime.value = Date.now()
   }
 
-  /** Record that a download has failed / been cancelled */
+  /** Record that a download has failed — no cooldown, user can retry immediately */
   function failDownload() {
     downloading.value = false
   }
