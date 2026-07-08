@@ -1,6 +1,6 @@
 {
   "appName": "SpatialXomics",
-  "version": "0.0.1",
+  "version": "0.4",
   "hero": {
     "taglines": ["OPEN ↗", "FAST ▶︎▶︎", "UNIFIED ≡", "INTELLIGENT ✧"],
     "gallery": [
@@ -34,6 +34,11 @@
   },
 
   "timeline": [
+    {
+      "date": "July 26",
+      "version": "0.4",
+      "features": ["Upload/download pipeline hardened with Zarr storage update and zip compression fix"]
+    },
     {
       "date": "May 26",
       "version": "0.3",
@@ -72,25 +77,50 @@
     "repoUrl": "https://github.com/NeoNexusX/MassFlow",
     "orientation": "auto"
   },
-  "nav": [
-    { "kind": "link", "to": "/", "icon": "home", "label": "Home", "active": true },
-    {
-      "kind": "group",
-      "icon": "circle_stack",
-      "label": "Datahub",
-      "active": true,
-      "children": [
-        { "to": "/datasets", "icon": "queue_list", "label": "Public Datasets", "active": true },
-        { "to": "/mydatasets", "icon": "folder", "label": "My Datasets", "active": true, "requireAuth": true }
-      ]
+  "nav": {
+    "mode": "navbar",
+    "modeByPath": {
+      "/": "none",
+      "/login": "drawer",
+      "/register": "drawer",
+      "/workspace/results": "drawer"
     },
-    { "kind": "link", "to": "/docs/", "icon": "book", "label": "Documentation", "active": true },
-    { "kind": "link", "to": "/workspace", "icon": "code-bracket", "label": "Workspace", "active": true },
-    { "kind": "link", "to": "/profile", "icon": "user-circle", "label": "Profile", "active": true, "requireAuth": true },
-    { "kind": "link", "to": "/users", "icon": "users", "label": "Users", "active": true, "requireAdmin": true },
-    { "kind": "link", "to": "/login", "icon": "signin", "label": "Sign in", "active": true, "requireGuest": true, "closeOnClick": false },
-    { "kind": "link", "to": "/register", "icon": "user_plus", "label": "Create account", "active": true, "requireGuest": true, "closeOnClick": false }
-  ],
+    "themeToggle": true,
+    "guestHint": "Sign in",
+    "items": [
+      { "kind": "link", "to": "/", "icon": "home", "label": "Home", "active": true },
+      {
+        "kind": "group",
+        "icon": "circle_stack",
+        "label": "Datahub",
+        "active": true,
+        "children": [
+          { "to": "/datasets", "icon": "queue_list", "label": "Public Datasets", "active": true },
+          { "to": "/mydatasets", "icon": "folder", "label": "My Datasets", "active": true, "requireAuth": true }
+        ]
+      },
+      {
+        "kind": "group",
+        "icon": "code-bracket",
+        "label": "Workspace",
+        "active": true,
+        "children": [
+          { "to": "/workspace", "icon": "code-bracket", "label": "Workspace", "active": true },
+          { "to": "/workspace/new", "icon": "plus", "label": "New Analysis", "active": true }
+        ]
+      },
+      { "kind": "link", "to": "/docs/", "icon": "book", "label": "Documentation", "active": true }
+    ],
+    "userMenu": [
+      { "kind": "link", "to": "/profile", "icon": "user-circle", "label": "Profile", "active": true },
+      { "kind": "link", "to": "/users", "icon": "users", "label": "Users", "active": true, "requireAdmin": true },
+      { "kind": "action", "action": "logout", "label": "Sign out", "active": true }
+    ],
+    "guestLinks": [
+      { "to": "/login", "icon": "signin", "label": "Sign in", "active": true },
+      { "to": "/register", "icon": "user_plus", "label": "Create account", "active": true, "primary": true }
+    ]
+  },
   "fab": {
     "main": { "iconClosed": "bars3", "iconOpen": "close" },
     "items": [

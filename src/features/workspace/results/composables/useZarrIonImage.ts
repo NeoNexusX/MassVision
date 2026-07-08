@@ -15,7 +15,6 @@ import { getZarrAccess } from '@/services/zarrAccessApi'
 import {
   ZarrOssStore,
   type IonImageInfo,
-  type PixelSpectrum,
   type MetadataAttrs,
   type DataMode,
 } from '@/services/zarrOssStore'

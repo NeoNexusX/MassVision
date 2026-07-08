@@ -17,7 +17,6 @@ const {
   size,
   pagination,
   goToPage,
-  changeSize,
   selectDataset,
 } = useAnalysisDatasets()
 

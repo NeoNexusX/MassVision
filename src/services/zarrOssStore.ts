@@ -962,7 +962,6 @@ export class ZarrOssStore {
     chunkIndex: number,
     raw: ArrayBuffer,
   ): Promise<Float32Array | Float64Array> {
-    const dtype = normalizeDtype(meta.data_type)
     const cs = meta.chunk_grid.configuration.chunk_shape[0]!
     const totalLen = meta.shape[0]!
     const bpe = bytesPerElement(meta.data_type)

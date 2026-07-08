@@ -106,8 +106,8 @@ const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSi
 </script>
 
 <template>
-  <div class="min-h-screen bg-base-200 p-4 md:p-8">
-    <div class="max-w-[1680px] mx-auto">
+  <div class="min-h-screen bg-base-200">
+    <div class="max-w-[1680px] mx-auto p-4 md:p-8">
       <h1 class="text-4xl font-bold text-base-content mb-6">Public Datasets</h1>
 
       <DatasetFilterBar
