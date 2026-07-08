@@ -164,19 +164,6 @@ test.describe('New Analysis', () => {
       await page.waitForTimeout(10_000)
     }
     await expect(page.locator('table').getByText('Running')).not.toBeVisible()
-
-    // 关掉可能挡住的弹窗（CreateTaskModal / ErrorModal）
-    const openModal = page.locator('dialog.modal-open')
-    if (await openModal.isVisible().catch(() => false)) {
-      await openModal.getByRole('button').first().click()
-    }
-
-    await page.locator('table tbody tr').first()
-      .getByRole('button', { name: 'Delete' })
-      .click()
-
-    await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
-    await expect(page.locator('.toast')).toContainText('Result deleted', { timeout: 10_000 })
   })
 })
 

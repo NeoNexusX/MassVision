@@ -93,3 +93,29 @@ test.describe('Result Detail', () => {
     await expect(page.getByText('Loading ion image...')).not.toBeVisible()
   })
 })
+
+// ============================================================
+// Cleanup
+// ============================================================
+
+test.describe('Cleanup', () => {
+
+  test('delete completed result', async ({ page }) => {
+    await page.goto('/workspace')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+    await expect(page.locator('table tbody tr').first().locator('td').first())
+      .not.toHaveText('Loading...', { timeout: 15_000 })
+
+    const openModal = page.locator('dialog.modal-open')
+    if (await openModal.isVisible().catch(() => false)) {
+      await openModal.getByRole('button').first().click()
+    }
+
+    await page.locator('table tbody tr').first()
+      .getByRole('button', { name: 'Delete' })
+      .click()
+
+    await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
+    await expect(page.locator('.toast')).toContainText('Result deleted', { timeout: 10_000 })
+  })
+})
