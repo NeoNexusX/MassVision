@@ -38,6 +38,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   const pickerResetKey = ref(0)
   let abortController: AbortController | null = null
   const showPublicConfirm = ref(false)
+  const showPublicConfirm = ref(false)
 
   // Computed
   const formattedSize = computed(() => {
@@ -236,6 +237,9 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     handlePairSelected,
     handlePairError,
     confirmAndUpload,
+    proceedPublicUpload,
+    cancelPublicUpload,
+    showPublicConfirm,
     proceedPublicUpload,
     cancelPublicUpload,
     showPublicConfirm,
