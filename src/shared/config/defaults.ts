@@ -22,7 +22,7 @@ export const OSS_UPLOAD = {
 /** Zarr OSS Store 配置 */
 export const ZARR_STORE = {
   /** intensity chunk 缓存数量（LRU） */
-  intensityChunkCacheSize: 20,
+  intensityChunkCacheSize: 5,
   /** data/mz chunk 缓存数量（LRU），仅 processed 模式使用 */
   mzChunkCacheSize: 5,
   /** 默认 m/z 容差 */

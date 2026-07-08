@@ -146,6 +146,15 @@ export async function loadTICImage(): Promise<void> {
   ticError.value = null
 
   try {
+    // Fast path: use pre-computed stats/tic if available
+    const fastMatrix = await store.loadTIC()
+    if (fastMatrix) {
+      ticMatrix.value = fastMatrix
+      ticLoading.value = false
+      return
+    }
+
+    // Fallback: compute TIC by summing all intensity chunks
     const matrix = await store.computeTICImage()
     ticMatrix.value = matrix
     ticLoading.value = false

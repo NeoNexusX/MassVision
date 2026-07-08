@@ -1,15 +1,15 @@
 <template>
   <div class="card bg-base-100 shadow-sm border border-base-300 p-0 rounded-none">
     <div class="w-full overflow-x-auto">
-      <table class="table w-full table-fixed" :class="{ 'empty-table': rows.length === 0 }">
+      <table class="table w-full table-fixed min-w-[780px]" :class="{ 'empty-table': rows.length === 0 }">
         <colgroup>
+          <col style="width: 13%" />
+          <col style="width: 22%" />
+          <col style="width: 23%" />
           <col style="width: 14%" />
-          <col style="width: 22%" />
-          <col style="width: 22%" />
-          <col style="width: 12%" />
-          <col style="width: 12%" />
-          <col style="width: 9%" />
-          <col style="width: 9%" />
+          <col style="width: 16%" />
+          <col style="width: 6%" />
+          <col style="width: 6%" />
         </colgroup>
         <thead>
           <tr class="text-lg text-base-content/70">
@@ -42,13 +42,14 @@
           >
             <td class="font-medium truncate text-center" :title="r.name">{{ r.name }}</td>
             <td class="truncate text-center" :title="r.dataset">{{ r.dataset }}</td>
-            <td class="break-words whitespace-normal text-center">{{ r.methods?.join(' + ') }}</td>
+            <td class="break-words whitespace-pre-line text-center">{{ r.methods?.join(' + ') }}</td>
             <td class="text-center">
               <StatusBadge :status="normalizeStatus(r)" compact />
             </td>
             <td class="text-center">
               <div class="text-lg text-base-content/60">
-                {{ r.createdTime || r.created || '' }}
+                <div>{{ r.createdDate || '' }}</div>
+                <div>{{ r.createdTime || '' }}</div>
               </div>
             </td>
             <td class="text-center">
@@ -58,18 +59,18 @@
                 class="btn btn-ghost btn-sm btn-circle hover:bg-base-200"
                 aria-label="View"
               >
-                <svg-icon type="chevron_right" class="w-5 h-5 text-base-content/60" />
+                <svg-icon type="chevron_right" class="w-6 h-6 text-base-content/60" />
               </button>
               <span v-else class="text-base-content/30 text-sm">—</span>
             </td>
             <td class="text-center">
               <button
-                v-if="type === 'results' && ['completed', 'failed'].includes(r.status)"
+                v-if="type === 'results' && (['completed', 'failed'].includes(r.status) || isStaleRunning(r))"
                 @click.stop="$emit('delete', r.id)"
                 class="btn btn-ghost btn-sm btn-circle hover:bg-error/10 hover:text-error"
                 aria-label="Delete"
               >
-                <svg-icon type="trash" class="w-4 h-4 text-base-content/50" />
+                <svg-icon type="trash" class="w-5 h-5 text-base-content/50" />
               </button>
               <span v-else class="text-base-content/30 text-sm">—</span>
             </td>
@@ -106,6 +107,15 @@ const rowCursor = computed(() => props.cursor || 'pointer')
 const normalizeStatus = (r: any) => {
   if (!r?.status) return ''
   return r.status.toLowerCase()
+}
+
+const STALE_THRESHOLD_MS = 3 * 60 * 60 * 1000 // 3 hours
+
+const isStaleRunning = (r: any) => {
+  if (r.status !== 'processing') return false
+  if (!r.createdAt) return false
+  const elapsed = Date.now() - new Date(r.createdAt).getTime()
+  return elapsed > STALE_THRESHOLD_MS
 }
 
 const openRow = (r: any) => {

@@ -30,14 +30,14 @@ const strengthLabel = computed(() => {
 
 <template>
   <div
-    class="card max-w-md w-full flex flex-col gap-5 bg-base-100 shadow-xl p-8 rounded-box border border-base-200"
+    class="card max-w-md w-full flex flex-col gap-5 bg-base-100 shadow-xl p-8 rounded-box border border-base-200 text-[1rem]"
   >
     <div class="text-center">
       <h2 class="text-2xl font-bold">Reset Password</h2>
-      <p v-if="step === 'email'" class="text-base-content/60 mt-2 text-sm">
+      <p v-if="step === 'email'" class="text-base-content/60 mt-2 text-[0.9rem]">
         Enter your registered email to receive a verification code.
       </p>
-      <p v-else class="text-base-content/60 mt-2 text-sm">
+      <p v-else class="text-base-content/60 mt-2 text-[0.9rem]">
         Enter the verification code sent to
         <span class="font-semibold text-base-content">{{ form.email }}</span>
         and set a new password.
@@ -71,11 +71,17 @@ const strengthLabel = computed(() => {
           {{ loading.sendCode ? 'Sending...' : 'Send Verification Code' }}
         </button>
       </div>
+
+      <div class="text-center border-t border-base-200 pt-4">
+        <router-link to="/login" class="link link-hover text-secondary text-[0.9rem] font-semibold">
+          Back to Sign In
+        </router-link>
+      </div>
     </template>
 
     <!-- Step 2: Enter code + new password -->
     <template v-else>
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-4 reset-step-inputs">
         <!-- Verification code -->
         <div class="flex w-full gap-3 items-start">
           <div class="flex-grow">
@@ -158,17 +164,20 @@ const strengthLabel = computed(() => {
         </button>
       </div>
 
-      <div class="text-center">
-        <button class="btn btn-ghost btn-sm" @click="backToEmail">
+      <div class="flex items-center justify-center gap-4">
+        <button class="btn btn-ghost btn-sm text-[0.9rem]" @click="backToEmail">
           ← Change email
         </button>
+        <router-link to="/login" class="link link-hover text-secondary text-[0.9rem] font-semibold">
+          Back to Sign In
+        </router-link>
       </div>
     </template>
-
-    <div class="text-center border-t border-base-200 pt-4">
-      <router-link to="/login" class="link link-hover text-secondary text-sm font-semibold">
-        Back to Sign In
-      </router-link>
-    </div>
   </div>
 </template>
+
+<style scoped>
+.reset-step-inputs :deep(.fluid-input) {
+  font-size: 1rem;
+}
+</style>

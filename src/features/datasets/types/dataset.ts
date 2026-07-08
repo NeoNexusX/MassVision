@@ -51,6 +51,10 @@ export interface File {
   status: string // 'uploading' | 'completed' | 'failed' — from backend
   isPublic: boolean
 
+  // Visualization / Zarr
+  defaultRunId?: string | number | null  // 关联的可视化任务 run_id
+  runStatus?: string | null              // 可视化任务状态：pending/running/completed/failed
+
   // UI
   // Keep raw backend object if needed
   raw?: any

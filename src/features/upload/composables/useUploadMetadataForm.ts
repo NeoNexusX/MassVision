@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { getConfig } from '@/shared/config/runtimeConfig'
+import { getIonSourceFieldRules } from '@/features/upload/utils/ionSourceRules'
 
 export interface UploadMetadataFormState {
   experiment_type: string
@@ -39,7 +40,6 @@ const REQUIRED_FIELDS: RequiredField[] = [
   { key: 'organism_part', label: 'Organism Part' },
   { key: 'condition', label: 'Condition' },
   { key: 'sample_stabilization', label: 'Sample Stabilization' },
-  { key: 'solvent', label: 'Solvent' },
   { key: 'spectrum_mode', label: 'Spectrum Mode' },
   { key: 'storage_mode', label: 'Storage Mode' },
 ]
@@ -66,7 +66,7 @@ function createForm(): UploadMetadataFormState {
     spectrum_mode: '',
     storage_mode: '',
     mz: '',
-    is_public: false,
+    is_public: true,
   }
 }
 
@@ -120,6 +120,36 @@ export function useUploadMetadataForm() {
       }
       if (value === 'Other') {
         return `Please specify custom value for ${field.label}.`
+      }
+    }
+
+    // Dynamic ion-source-dependent validation
+    const rules = getIonSourceFieldRules(form.value.ionisation_source)
+
+    if (rules.solvent.required) {
+      const v = form.value.solvent
+      if (!v || (typeof v === 'string' && !v.trim())) {
+        return `${rules.solvent.label} is required.`
+      }
+    }
+
+    if (rules.maldiMatrix.required) {
+      const v = form.value.maldi_matrix
+      if (!v || (typeof v === 'string' && !v.trim())) {
+        return `${rules.maldiMatrix.label} is required.`
+      }
+      if (v === 'Other') {
+        return `Please specify custom value for ${rules.maldiMatrix.label}.`
+      }
+    }
+
+    if (rules.maldiMatrixApplication.required) {
+      const v = form.value.maldi_matrix_application
+      if (!v || (typeof v === 'string' && !v.trim())) {
+        return `${rules.maldiMatrixApplication.label} is required.`
+      }
+      if (v === 'Other') {
+        return `Please specify custom value for ${rules.maldiMatrixApplication.label}.`
       }
     }
     // Validate pixel size ranges
