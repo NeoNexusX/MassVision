@@ -16,9 +16,9 @@ name: Test
 
 on:
   push:
-    branches: [feature/e2e_test]
+    branches: [test]
   pull_request:
-    branches: [feature/e2e_test]
+    branches: [test]
 
 jobs:
   # ---- Job 1: 静态检查 + 单元测试 ----
@@ -65,7 +65,7 @@ jobs:
 
       # e2e 测试（CI 模式：headless + retry + workers 自动调整）
       # 登录账号密码从 GitHub Secrets 注入，避免硬编码（见 e2e/auth.setup.ts）
-      - run: npx playwright test --grep "loads ion image"
+      - run: npm run test:e2e
         env:
           CI: 'true'
           E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
