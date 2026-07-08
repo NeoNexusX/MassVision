@@ -76,9 +76,10 @@ test.describe('My Datasets', () => {
       ])
 
       await page.waitForTimeout(2000)
-      await expect(page.locator('#is_public')).not.toBeChecked()
+      // 默认勾了 public，测试文件只有 1KB 不够 10MB 门槛，取消勾选
+      await page.locator('#is_public').uncheck()
 
-      const pickLabels = ['Organism', 'Organism Part', 'Condition', 'Sample Stabilization']
+      const pickLabels = ['Organism', 'Organism Part', 'Condition', 'Sample Stabilization', 'MALDI Matrix', 'MALDI Matrix Application']
       for (const label of pickLabels) {
         const area = page.locator('.modal-box').locator(`label:has-text("${label}")`).first().locator('..')
         await area.locator('select').click()
@@ -244,8 +245,8 @@ test.describe('My Datasets', () => {
     const hasContent = await page.getByRole('button', { name: 'Download' }).isVisible().catch(() => false)
     if (hasContent) {
       await expect(page.getByText('Size', { exact: true })).toBeVisible()
-      await expect(page.getByText('MALDI Information')).toBeVisible()
-      await expect(page.getByText('Technical Details')).toBeVisible()
+      await expect(page.getByText(/Sample Info/)).toBeVisible()
+      await expect(page.getByText('File Information')).toBeVisible()
     }
 
     const backBtn = page.getByRole('button', { name: 'Back to My Datasets' })
@@ -369,8 +370,8 @@ test.describe('Public Datasets', () => {
     const hasContent = await page.getByRole('button', { name: 'Download' }).isVisible().catch(() => false)
     if (hasContent) {
       await expect(page.getByText('Size', { exact: true })).toBeVisible()
-      await expect(page.getByText('MALDI Information')).toBeVisible()
-      await expect(page.getByText('Technical Details')).toBeVisible()
+      await expect(page.getByText(/Sample Info/)).toBeVisible()
+      await expect(page.getByText('File Information')).toBeVisible()
     }
   })
 
