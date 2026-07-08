@@ -193,18 +193,21 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   }
 
   const doUpload = async () => {
+    if (!selectedPair.value) return
+    const pair = selectedPair.value
+
     startUploading('Initializing Pipeline...')
 
     try {
       const payload = metadataForm.buildMetadataPayload()
       const result = await uploadImzmlDataset({
-        files: selectedPair.value,
-        datasetName: selectedPair.value.baseName,
+        files: pair,
+        datasetName: pair.baseName,
         metadata: { ...payload, file_type: 'zip', is_public: metadataForm.form.value.is_public },
         signal: abortController!.signal,
         onProgress: handleProgress,
       })
-      finishSuccessfully(result?.datasetName || selectedPair.value.baseName, !!result?.reused)
+      finishSuccessfully(result?.datasetName || pair.baseName, !!result?.reused)
     } catch (err: any) {
       handleUploadError(err, 'Pipeline sequence failed')
     } finally {
