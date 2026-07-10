@@ -8,9 +8,11 @@ import { useDownloadProgress } from '@/features/datasets/composables/useDownload
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
 import { formatBytes } from '@/shared/utils/format'
 import { useToast } from '@/shared/composables/useToast'
+import { useAuthStore } from '@/features/auth/stores/authStore'
 
 export function useDatasetDetail() {
   const router = useRouter()
+  const auth = useAuthStore()
   const { handleDownloadRaw, isPacking } = useDownloadProgress()
   const { showToast } = useToast()
 
@@ -65,16 +67,27 @@ export function useDatasetDetail() {
     }
   }
 
+  /** 下载需要登录：未登录则提示并跳转登录页，与公开数据集列表页行为一致 */
+  const requireAuth = (): boolean => {
+    if (!auth.token) {
+      showToast('Please log in to continue.', 'warning')
+      const redirect = source.value === 'public' ? '/datasets' : '/mydatasets'
+      router.push({ path: '/login', query: { redirect } })
+      return false
+    }
+    return true
+  }
+
   const downloadCurrent = async () => {
     const targetId = dataset.value?.id ? String(dataset.value.id) : ''
     if (!targetId) return
+    if (!requireAuth()) return
     await handleDownloadRaw(targetId, {
       getFallbackFilename: () => {
         const filename = dataset.value?.filename || dataset.value?.name || undefined
         if (!filename) return undefined
         return filename.toLowerCase().endsWith('.zip') ? filename : `${filename}.zip`
       },
-      isPublic: isPublic.value,  // 公开页面不需要登录
     })
   }
 

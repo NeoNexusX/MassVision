@@ -27,6 +27,7 @@ const en = {
         items: [
           { text: 'Getting Started', link: '/guide/getting-started' },
           { text: 'Uploading Data', link: '/guide/upload-data' },
+          { text: 'Downloading Data', link: '/guide/download-data' },
           { text: 'Viewing Data', link: '/guide/view-data' },
         ],
       },
@@ -64,6 +65,7 @@ const zh = {
         items: [
           { text: '快速开始', link: '/zh/guide/getting-started' },
           { text: '上传数据', link: '/zh/guide/upload-data' },
+          { text: '下载数据', link: '/zh/guide/download-data' },
           { text: '查看数据', link: '/zh/guide/view-data' },
         ],
       },

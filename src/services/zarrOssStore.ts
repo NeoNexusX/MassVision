@@ -5,7 +5,7 @@
  *   - ion-major continuous → ion image + mean spectrum (existing feature)
  *   - pixel-major processed → TIC image + per-pixel spectrum (new feature)
  *
- * Layout (see public/zarr_schema.md):
+ * Layout:
  *   <root>/.zattrs              — root attributes (format, spatial_shape, etc.)
  *   <root>/metadata/.zattrs     — semantic metadata
  *   <root>/axes/coordinates     — (n_pixels, 3) uint32, pixel coordinates
