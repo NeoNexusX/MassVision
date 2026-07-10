@@ -176,11 +176,62 @@ function scheduleSelectorUpdate() {
 }
 
 /**
+ * 为 dataZoom 缩略图构建"保峰 + 位置对齐"的抽稀数据。
+ *
+ * 两个问题都源自 ECharts 缩略图的实现（SliderZoomView.js 的 _renderDataShadow）：
+ * 1. 默认按固定步长等间隔抽稀原始 series（每隔 N 个点取 1 个），窄峰容易一个点
+ *    都取不到而在缩略图里"消失"——所以按桶取每个桶里的峰值点代替原始点。
+ * 2. 非 time 类型坐标轴下，缩略图每个点的横坐标是按"数组下标"均匀排开的
+ *    （宽度 / 点数），完全不看该点真实的 m/z 值；主图则是按真实 m/z 值经坐标轴
+ *    换算位置。当 chartData 里因过滤零值、centroid 峰间距本就不均匀等原因产生
+ *    "空白区间"（该区间的点在数组里整个不存在，而不是值为 0）时，下标就不再和
+ *    m/z 值成比例，缩略图形状会和主图错位。所以这里按真实 m/z 值等分桶（而不是
+ *    按下标等分），每个桶固定只产出 1 个点（桶内最大值，空桶补一个强度为 0 的
+ *    占位点），让输出数组里每个点的"下标顺序"精确对应等宽的真实 m/z 区间，
+ *    ECharts 按下标均匀布点的假设才成立（残余误差 ≤ 一个桶的宽度）。
+ *
+ * 最终作为一个透明的专属 series 插到 series 数组最前面，让 ECharts 的
+ * _prepareDataShadowInfo 选中它作为缩略图的数据来源（取匹配到的第一个 series）。
+ */
+function buildShadowData(data: ChartPoint[], targetWidth: number): ChartPoint[] {
+  const bucketCount = Math.max(1, Math.floor(targetWidth))
+  // 注意：即便原始点数少于 bucketCount 也不能跳过分桶直接返回原始数据——
+  // centroid 峰间距本就不均匀，跳过分桶会让 ECharts 缩略图按"下标均匀"摆点
+  // （而不是按真实 m/z），峰位置又会和主图对不上，桶数据这一步就白做了。
+  const mzMin = data[0]![0]
+  const mzMax = data[data.length - 1]![0]
+  const span = mzMax - mzMin
+  if (!(span > 0)) return data
+
+  const result: ChartPoint[] = []
+  let i = 0
+  for (let b = 0; b < bucketCount; b++) {
+    const bucketEnd = mzMin + ((b + 1) / bucketCount) * span
+    const isLastBucket = b === bucketCount - 1
+    let maxIdx = -1
+    while (i < data.length && (isLastBucket ? data[i]![0] <= bucketEnd : data[i]![0] < bucketEnd)) {
+      if (maxIdx === -1 || data[i]![1] > data[maxIdx]![1]) maxIdx = i
+      i++
+    }
+    if (maxIdx === -1) {
+      // 该 m/z 区间内没有数据点（例如强度为零被过滤掉的空白区），补一个基线点占位，
+      // 保证后续桶的"下标顺序"依然正比于真实 m/z 位置
+      const bucketStart = mzMin + (b / bucketCount) * span
+      result.push([bucketStart, 0])
+    } else {
+      result.push(data[maxIdx]!)
+    }
+  }
+  return result
+}
+
+/**
  * 构建完整 ECharts options。提取为独立函数，每次 render 都用
  * notMerge: true 传入，确保 dataZoom 缩略图与主图完全同步。
  */
-function buildOptions(): Record<string, unknown> {
+function buildOptions(targetWidth: number): Record<string, unknown> {
   const isProfile = props.spectrumMode === 'profile'
+  const shadowData = buildShadowData(props.chartData, targetWidth)
   return {
     tooltip: {
       trigger: 'axis',
@@ -199,6 +250,13 @@ function buildOptions(): Record<string, unknown> {
       type: 'value',
       name: 'm/z',
       scale: true,
+      // 显式钉死 min/max 为数据真实范围：scale:true 默认会取"nice"整数刻度，
+      // 往往比数据实际范围更宽，主图两侧就会留出空白；而 dataZoom 缩略图的阴影
+      // 永远是按（抽稀后）数据自身的最小/最大值撑满整个滑块宽度渲染的，不认
+      // 这个 nice 范围，于是两者边缘对不齐。钉死后主图也是从数据首尾点撑满，
+      // 和缩略图口径一致。
+      min: props.chartData[0]?.[0],
+      max: props.chartData[props.chartData.length - 1]?.[0],
       nameLocation: 'center',
       nameGap: 28,
       axisLabel: {},
@@ -228,6 +286,20 @@ function buildOptions(): Record<string, unknown> {
       },
     ],
     series: [
+      // 缩略图专用透明 series：放在数组最前面，供 dataZoom 滑块的 _prepareDataShadowInfo
+      // 选中作为缩略图数据源，数据已用 buildShadowData 做过峰值保留抽稀。
+      // tooltip.show: false 避免它混入 axis 触发的 tooltip。
+      {
+        id: 'spectrum-shadow-series',
+        type: 'line',
+        data: shadowData,
+        showSymbol: false,
+        silent: true,
+        tooltip: { show: false },
+        lineStyle: { opacity: 0 },
+        areaStyle: { opacity: 0 },
+        z: -100,
+      },
       isProfile
         ? {
             id: 'spectrum-series',
@@ -245,6 +317,10 @@ function buildOptions(): Record<string, unknown> {
             barGap: '-100%',
             itemStyle: { color: '#374151' },
             large: true,
+            // xAxis.min/max 钉死在首尾数据点上，柱子中心正好卡在网格边缘，
+            // 默认裁剪会把最左/最右柱子露出网格外的那一半切掉；关掉裁剪即可
+            // 完整显示，网格外侧还有 grid.left/right 的边距可以容纳这半根柱子。
+            clip: false,
           },
     ],
     animation: false,
@@ -278,7 +354,7 @@ function renderChart() {
   // 彻底销毁重建，保证 dataZoom 缩略图和主图完全一致
   chartInstance?.dispose()
   chartInstance = echarts.init(container)
-  chartInstance.setOption(buildOptions(), { notMerge: true })
+  chartInstance.setOption(buildOptions(container.clientWidth || 800), { notMerge: true })
 
   // 注册事件（仅 continuous 模式）
 

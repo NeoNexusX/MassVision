@@ -120,10 +120,16 @@ export async function loadMeanSpectrum(): Promise<void> {
     }
 
     nMz.value = axis.length
+    // profile 模式下相邻点由折线连接，过滤掉零值会让 ECharts 在两个"幸存点"之间
+    // 画直线穿过整段空白区，凭空连出并不存在的信号，所以 profile 模式必须保留零值；
+    // centroid 模式每个峰是独立的 bar，过滤零值只是省去数万个空 bar，不影响视觉
+    const attrs = metadataAttrsRef.value
+    const isProfileMode = !!attrs?.profile_spectrum && !attrs?.centroid_spectrum
     const data: [number, number][] = []
     for (let i = 0; i < axis.length; i++) {
       const v = meanData[i]!
-      if (v !== 0 && Number.isFinite(v)) {
+      if (!Number.isFinite(v)) continue
+      if (isProfileMode || v !== 0) {
         data.push([axis[i]!, v])
       }
     }
