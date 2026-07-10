@@ -3,8 +3,9 @@ import { computed, ref, watch } from 'vue'
 import IonImageViewer from '@/features/workspace/results/components/visuals/IonImageViewer.vue'
 import ROIOverlay from '@/features/workspace/results/components/visuals/ROIOverlay.vue'
 import type { ROIType } from '@/features/workspace/results/composables/useROI'
+import type { DataMode } from '@/services/zarrOssStore'
 
-defineProps<{
+const props = defineProps<{
   isStale?: boolean
   ionMatrix: Float32Array | null
   displayMatrix: Float32Array | null
@@ -24,6 +25,10 @@ defineProps<{
   calcHandleTop: (value: number) => number
   clampPct: (value: number) => number
   formatVal: (value: number) => string
+  /** 数据模式 */
+  dataMode?: DataMode | null
+  /** 当前选中像素坐标（processed 模式） */
+  selectedPixelCoord?: { x: number; y: number } | null
 }>()
 
 const emit = defineEmits<{
@@ -38,12 +43,26 @@ const emit = defineEmits<{
   (e: 'draft-updated', draft: any): void
   (e: 'draft-cleared'): void
   (e: 'roi-overlay-ref', element: InstanceType<typeof ROIOverlay> | null): void
+  /** processed 模式：点击 TIC 图像中某个像素 */
+  (e: 'select-pixel', col: number, row: number): void
 }>()
 
 const ionViewerRef = ref<InstanceType<typeof IonImageViewer> | null>(null)
 const roiOverlayRef = ref<InstanceType<typeof ROIOverlay> | null>(null)
 
 watch(roiOverlayRef, (el) => emit('roi-overlay-ref', el ?? null))
+
+/** 根据模式选择标题 */
+const imageTitle = computed(() =>
+  props.dataMode === 'processed' ? 'TIC Image' : 'Ion Image',
+)
+
+/** 图像加载占位提示 */
+const processedPlaceholder = computed(() => {
+  if (props.dataMode === 'processed') return 'Computing TIC image, please wait a moment...'
+  if (props.dataMode === null) return 'Loading result…'
+  return 'Loading ion image, please wait a moment...'
+})
 </script>
 
 <template>
@@ -62,7 +81,7 @@ watch(roiOverlayRef, (el) => emit('roi-overlay-ref', el ?? null))
         v-else-if="!ionMatrix"
         class="flex-1 flex items-center justify-center text-base-content/40 text-lg"
       >
-        Loading ion image...
+        {{ processedPlaceholder }}
       </div>
       <div v-else class="flex-1 min-h-0 relative overflow-hidden">
         <IonImageViewer
@@ -81,10 +100,14 @@ watch(roiOverlayRef, (el) => emit('roi-overlay-ref', el ?? null))
           :overlay-data="overlayData"
           :overlay-width="ionCols"
           :overlay-height="ionRows"
+          :data-mode="dataMode"
+          :selected-pixel-coord="selectedPixelCoord"
+          :image-title="imageTitle"
           @update:mz-tolerance="emit('update:mzTolerance', $event)"
           @update:colormap="emit('update:colormap', $event)"
           @update:intensity-scale="emit('update:intensityScale', $event)"
           @reset="emit('reset-controls')"
+          @select-pixel="(col, row) => emit('select-pixel', col, row)"
         />
         <ROIOverlay
           ref="roiOverlayRef"
@@ -98,6 +121,7 @@ watch(roiOverlayRef, (el) => emit('roi-overlay-ref', el ?? null))
       </div>
     </div>
 
+    <!-- 强度条 -->
     <div class="shrink-0 flex flex-col items-center gap-1.5 w-12">
       <button
         class="text-sm text-base-content/40 hover:text-base-content"

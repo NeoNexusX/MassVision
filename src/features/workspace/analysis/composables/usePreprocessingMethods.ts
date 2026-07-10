@@ -268,9 +268,10 @@ export function buildDefaultMethodParams(): Record<string, string | number> {
 }
 
 const methodRulesByMode: Record<string, string[]> = {
-  profile_continuous: ['noise', 'baseline', 'norm', 'pick', 'align'],
+  // continuous 模式不支持峰对齐（数据未做峰提取，无法对齐）
+  profile_continuous: ['noise', 'baseline', 'norm', 'pick'],
   profile_processed: ['noise', 'baseline', 'norm', 'pick', 'align'],
-  centroid_continuous: ['norm', 'align'],
+  centroid_continuous: ['norm'],
   centroid_processed: ['norm', 'align'],
 }
 
@@ -281,29 +282,53 @@ function resolveModeKey(spectrumMode: string, storageMode: string): string {
 }
 
 export function usePreprocessingMethods(
-  // Arguments
   spectrumMode: Ref<string>,
   storageMode: Ref<string>,
+  /** 可选：已选中的方法（reactive 对象），用于判断 align 是否需要 pick 配合 */
+  selectedMethods?: Record<string, string>,
 ) {
-  // Computed
   const modeKey = computed(() => resolveModeKey(spectrumMode.value, storageMode.value))
 
   const isFiltered = computed(() => {
+    if (!spectrumMode.value && !storageMode.value) return false
     const allowed = methodRulesByMode[modeKey.value]
     return !!allowed && allowed.length < allMethodGroups.length
   })
 
   const modeNotice = computed(() => {
-    if (!isFiltered.value) return ''
-    const s = spectrumMode.value || 'profile'
-    const t = storageMode.value || 'continuous'
-    return `This dataset is ${s} + ${t}. Only compatible preprocessing methods are shown.`
+    const s = spectrumMode.value
+    const t = storageMode.value
+    if (!s && !t) return ''
+    const notices: string[] = []
+
+    notices.push(`This dataset is ${s || 'profile'} + ${t || 'continuous'}.`)
+
+    if (t.toLowerCase() === 'continuous') {
+      notices.push('Peak Alignment is not compatible with continuous storage.')
+    } else if (s.toLowerCase() === 'profile') {
+      notices.push('Peak Alignment requires Peak Picking to be selected first.')
+    }
+
+    notices.push('Only compatible preprocessing methods are shown.')
+    return notices.join(' ')
   })
 
   const availableMethods = computed<MethodGroup[]>(() => {
+    // 未选数据集：显示全部方法
+    if (!spectrumMode.value && !storageMode.value) return allMethodGroups
     const allowed = methodRulesByMode[modeKey.value]
     if (!allowed) return allMethodGroups
-    return allMethodGroups.filter((g) => allowed.includes(g.key))
+
+    return allMethodGroups.filter((g) => {
+      if (!allowed.includes(g.key)) return false
+
+      // profile 模式下，align 需要 pick 已选中才显示
+      if (g.key === 'align' && spectrumMode.value.toLowerCase() === 'profile') {
+        return !!selectedMethods?.['pick']
+      }
+
+      return true
+    })
   })
 
   return { availableMethods, isFiltered, modeNotice }

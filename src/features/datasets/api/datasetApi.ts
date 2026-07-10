@@ -113,6 +113,12 @@ export async function createProcess(payload: {
   return res.data
 }
 
+// POST /processes/raw-convert — 一键 Zarr 可视化（无需配置预处理参数）
+export async function rawConvertProcess(fileId: string | number) {
+  const res = await auth_api.post('/processes/raw-convert', { file_id: Number(fileId) })
+  return res.data
+}
+
 // GET /processes/mine?page=&size= — List my processes (paginated)
 // 后端返回 { data: [...], meta: { current_page, total_pages, total_records } }
 export async function listMyProcesses(page = 1, size = 10) {

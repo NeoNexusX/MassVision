@@ -44,15 +44,6 @@ const emit = defineEmits<{
       placeholder="Password"
     />
 
-    <div class="text-right -mt-4">
-      <router-link
-        to="/forgotpassword"
-        class="link link-hover text-xs text-base-content/70"
-      >
-        Forgot Password?
-      </router-link>
-    </div>
-
     <div class="form-control w-full mt-2">
       <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
         <span v-if="isLoading" class="loading loading-spinner"></span>
@@ -64,6 +55,13 @@ const emit = defineEmits<{
       <span class="text-[1rem]">New to {{ APP_NAME }} ?</span>
       <router-link to="/register" class="link link-hover text-secondary text-[1rem] font-semibold">
         Create an account
+      </router-link>
+      <br />
+      <router-link
+        to="/forgotpassword"
+        class="link link-hover text-[1rem] text-base-content/70"
+      >
+        Forgot Password?
       </router-link>
     </div>
   </form>

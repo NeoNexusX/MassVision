@@ -46,6 +46,41 @@ export interface OptionLists {
   solvent: string[]
 }
 
+// ---- Ion Source 动态字段规则（config.json 的 ionSourceFieldRules） ----
+
+/** 单个字段的规则片段（required 及展示文案） */
+interface IonSourceFieldRuleConfig {
+  required: boolean
+  label: string
+  placeholder?: string
+}
+
+/** 一个离子源家族的匹配规则 */
+interface IonSourceFamilyConfig {
+  /** 家族标识（如 "maldi"、"desi"） */
+  key: string
+  /** 归一化后用于匹配的关键词列表，命中任一即匹配该家族 */
+  match: string[]
+  /** 覆盖默认 solvent 规则 */
+  solvent?: Partial<IonSourceFieldRuleConfig>
+  /** 覆盖默认 MALDI Matrix 规则 */
+  maldiMatrix?: Partial<IonSourceFieldRuleConfig>
+  /** 覆盖默认 MALDI Matrix Application 规则 */
+  maldiMatrixApplication?: Partial<IonSourceFieldRuleConfig>
+}
+
+/** ionSourceFieldRules 配置块 */
+interface IonSourceRulesConfig {
+  /** 三个字段的默认规则（所有字段 optional） */
+  defaults: {
+    solvent: IonSourceFieldRuleConfig
+    maldiMatrix: IonSourceFieldRuleConfig
+    maldiMatrixApplication: IonSourceFieldRuleConfig
+  }
+  /** 离子源家族列表，按顺序匹配，先命中先生效 */
+  families: IonSourceFamilyConfig[]
+}
+
 /**
  * 开发团队成员（数据存于 config.json 的 `team`，非技术同学可直接编辑、刷新即生效）。
  *
@@ -186,6 +221,70 @@ export interface NavGroupItem extends NavVisibility {
 
 export type NavItem = NavLinkItem | NavGroupItem
 
+/** 导航形态：navbar 顶栏 / drawer 左侧抽屉 + 悬浮按钮（FAB）/ none 不渲染任何导航 */
+export type NavMode = 'navbar' | 'drawer' | 'none'
+
+/** 登录后账户菜单项：link 跳转路由（navbar 头像下拉与 drawer 菜单尾部都显示）；
+ *  action 触发动作（目前仅 logout，仅 navbar 头像下拉显示——drawer 形态的登出由 FAB 承担） */
+export interface NavUserLink extends NavChild {
+  kind: 'link'
+}
+
+export interface NavUserAction extends NavVisibility {
+  kind: 'action'
+  /** 动作类型 */
+  action: 'logout'
+  /** 显示文案 */
+  label: string
+}
+
+export type NavUserItem = NavUserLink | NavUserAction
+
+/** 未登录时的登录/注册入口（仅 navbar 头像下拉显示；drawer 形态不列登录入口） */
+export interface NavGuestLink extends NavChild {
+  /** navbar 下拉里高亮为主色，缺省普通样式 */
+  primary?: boolean
+}
+
+/**
+ * 统一导航配置（config.json 的 `nav` 块）：一份菜单数据驱动多种形态，
+ * 每个页面按 mode + modeByPath 在 navbar / drawer / none 之间选择。
+ */
+export interface NavConfig {
+  /** 全局默认形态；缺省 'drawer' */
+  mode?: NavMode
+  /** 按路由覆盖形态。key 为路径前缀（'/' 只精确匹配首页，其余按前缀匹配、最长者生效） */
+  modeByPath?: Record<string, NavMode>
+  /** navbar 形态：是否显示头像左侧的主题切换按钮，缺省 true */
+  themeToggle?: boolean
+  /** navbar 形态：未登录头像的 tooltip 文案，缺省 'Sign in' */
+  guestHint?: string
+  /** 导航菜单（两种形态共用）：link / group */
+  items: NavItem[]
+  /** 登录后的账户入口 */
+  userMenu: NavUserItem[]
+  /** 未登录时的登录/注册入口 */
+  guestLinks: NavGuestLink[]
+}
+
+/** 解析某路由应使用的导航形态：modeByPath 最长前缀命中优先，否则回退全局 mode（缺省 'drawer'） */
+export function resolveNavMode(path: string): NavMode {
+  const nav = getConfig().nav!
+  let best: NavMode | undefined
+  let bestLen = -1
+  for (const [prefix, mode] of Object.entries(nav.modeByPath ?? {})) {
+    const hit =
+      prefix === '/'
+        ? path === '/'
+        : path === prefix || path.startsWith(prefix.endsWith('/') ? prefix : `${prefix}/`)
+    if (hit && prefix.length > bestLen) {
+      bestLen = prefix.length
+      best = mode
+    }
+  }
+  return best ?? nav.mode ?? 'drawer'
+}
+
 /**
  * 悬浮按钮（NavFab）配置（config.json 的 `fab` 块）。
  *
@@ -316,12 +415,14 @@ export interface AppConfig {
   }
   /** GitHub 提交热力图（StatsScene 展示用） */
   githubHeatmap?: GithubHeatmapConfig
-  /** 侧边导航抽屉菜单项；缺省或为空数组时抽屉只显示标题 */
-  nav?: NavItem[]
+  /** 统一导航（navbar / drawer 按路由二选一）；缺省时只渲染空导航骨架 */
+  nav?: NavConfig
   /** 悬浮按钮（NavFab）；缺省时 NavFab 不渲染任何子项，但仍渲染主按钮以切换 drawer */
   fab?: FabConfig
   /** 表单下拉选项表 */
   options: OptionLists
+  /** Ion Source 动态字段规则 */
+  ionSourceFieldRules: IonSourceRulesConfig
 }
 
 let _config: AppConfig | null = null
@@ -340,7 +441,12 @@ export async function loadConfig(): Promise<AppConfig> {
   _config.hero ??= { taglines: [], gallery: [] }
   _config.features ??= { items: [] }
   _config.timeline ??= []
-  _config.nav ??= []
+  // 兼容旧格式：nav 曾是 NavItem[]（纯抽屉菜单），自动包装为统一配置
+  const rawNav = (_config as { nav?: unknown }).nav
+  if (Array.isArray(rawNav)) {
+    _config.nav = { mode: 'drawer', items: rawNav as NavItem[], userMenu: [], guestLinks: [] }
+  }
+  _config.nav ??= { items: [], userMenu: [], guestLinks: [] }
   _config.fab ??= { main: { iconClosed: 'home', iconOpen: 'close' }, items: [] }
   return _config
 }

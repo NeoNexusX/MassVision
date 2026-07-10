@@ -11,6 +11,9 @@ const METHOD_LABELS: Record<string, string> = {
 }
 
 export function parseAlgorithms(paramsJson: string): string[] {
+  if (paramsJson === '__RAW_CONVERT__') {
+    return ['Direct conversion\n(no preprocessing)']
+  }
   try {
     const params = JSON.parse(paramsJson)
     const algos = params.algorithms || params

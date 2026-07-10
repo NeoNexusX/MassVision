@@ -70,6 +70,28 @@
         @cancel="cancelDelete"
       />
 
+      <!-- Explore / Raw-Convert Confirmation -->
+      <ConfirmDialog
+        :open="showExploreConfirm"
+        title="Prepare Visualization"
+        confirm-label="Generate"
+        :loading="isConverting"
+        @confirm="explore.confirmExplore"
+        @cancel="explore.cancelExplore"
+      >
+        <p class="mb-3">This dataset hasn't been prepared for visualization. We'll generate an optimized view for fast interactive browsing.</p>
+        <ul class="text-sm text-base-content/70 space-y-1.5">
+          <li>
+            <span class="font-semibold text-base-content">Task creator:</span>
+            the task will appear in your Workspace and you'll be redirected there.
+          </li>
+          <li>
+            <span class="font-semibold text-base-content">No redirect:</span>
+            the task already exists — just wait and you can visualize it shortly.
+          </li>
+        </ul>
+      </ConfirmDialog>
+
       <div>
         <DatasetList
           :datasets="datasets"
@@ -84,6 +106,7 @@
           @view-overview="viewOverview"
           @download="handleDownloadRaw"
           @delete="handleDelete"
+          @explore="handleExplore"
           @change-size="changeSize"
           @go-to-page="goToPage"
         >
@@ -107,6 +130,7 @@ import { listUserFiles, deleteFile } from '@/features/datasets/api/datasetApi'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
 import { useDatasetListRouteState } from '@/features/datasets/composables/useDatasetListRouteState'
+import { useExploreDataset } from '@/features/datasets/composables/useExploreDataset'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import { useToast } from '@/shared/composables/useToast'
 import { useUserQuota } from '@/shared/composables/useUserQuota'
@@ -182,11 +206,20 @@ const { showToast } = useToast()
 const isDeleteModalOpen = ref(false)
 const datasetToDelete = ref<string | null>(null)
 
-const handleDelete = async (id?: string) => {
+  const explore = useExploreDataset()
+  const { showExploreConfirm, isConverting } = explore
+
+  const handleExplore = (id?: string) => {
+    if (!id) return
+    explore.handleExplore(id, datasets.value)
+  }
+
+  const handleDelete = async (id?: string) => {
   if (!id) return
   datasetToDelete.value = id
   isDeleteModalOpen.value = true
 }
+
 
 const confirmDelete = async () => {
   if (!datasetToDelete.value) return

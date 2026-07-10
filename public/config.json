@@ -1,6 +1,6 @@
 {
   "appName": "SpatialXomics",
-  "version": "0.0.1",
+  "version": "0.4",
   "hero": {
     "taglines": ["OPEN ↗", "FAST ▶︎▶︎", "UNIFIED ≡", "INTELLIGENT ✧"],
     "gallery": [
@@ -34,6 +34,11 @@
   },
 
   "timeline": [
+    {
+      "date": "July 26",
+      "version": "0.4",
+      "features": ["Upload/download pipeline hardened with Zarr storage update and zip compression fix"]
+    },
     {
       "date": "May 26",
       "version": "0.3",
@@ -72,25 +77,50 @@
     "repoUrl": "https://github.com/NeoNexusX/MassFlow",
     "orientation": "auto"
   },
-  "nav": [
-    { "kind": "link", "to": "/", "icon": "home", "label": "Home", "active": true },
-    {
-      "kind": "group",
-      "icon": "circle_stack",
-      "label": "Datahub",
-      "active": true,
-      "children": [
-        { "to": "/datasets", "icon": "queue_list", "label": "Public Datasets", "active": true },
-        { "to": "/mydatasets", "icon": "folder", "label": "My Datasets", "active": true, "requireAuth": true }
-      ]
+  "nav": {
+    "mode": "navbar",
+    "modeByPath": {
+      "/": "none",
+      "/login": "drawer",
+      "/register": "drawer",
+      "/workspace/results": "drawer"
     },
-    { "kind": "link", "to": "/docs/", "icon": "book", "label": "Documentation", "active": true },
-    { "kind": "link", "to": "/workspace", "icon": "code-bracket", "label": "Workspace", "active": true },
-    { "kind": "link", "to": "/profile", "icon": "user-circle", "label": "Profile", "active": true, "requireAuth": true },
-    { "kind": "link", "to": "/users", "icon": "users", "label": "Users", "active": true, "requireAdmin": true },
-    { "kind": "link", "to": "/login", "icon": "signin", "label": "Sign in", "active": true, "requireGuest": true, "closeOnClick": false },
-    { "kind": "link", "to": "/register", "icon": "user_plus", "label": "Create account", "active": true, "requireGuest": true, "closeOnClick": false }
-  ],
+    "themeToggle": true,
+    "guestHint": "Sign in",
+    "items": [
+      { "kind": "link", "to": "/", "icon": "home", "label": "Home", "active": true },
+      {
+        "kind": "group",
+        "icon": "circle_stack",
+        "label": "Datahub",
+        "active": true,
+        "children": [
+          { "to": "/datasets", "icon": "queue_list", "label": "Public Datasets", "active": true },
+          { "to": "/mydatasets", "icon": "folder", "label": "My Datasets", "active": true, "requireAuth": true }
+        ]
+      },
+      {
+        "kind": "group",
+        "icon": "code-bracket",
+        "label": "Workspace",
+        "active": true,
+        "children": [
+          { "to": "/workspace", "icon": "code-bracket", "label": "Workspace", "active": true },
+          { "to": "/workspace/new", "icon": "plus", "label": "New Analysis", "active": true }
+        ]
+      },
+      { "kind": "link", "to": "/docs/", "icon": "book", "label": "Documentation", "active": true }
+    ],
+    "userMenu": [
+      { "kind": "link", "to": "/profile", "icon": "user-circle", "label": "Profile", "active": true },
+      { "kind": "link", "to": "/users", "icon": "users", "label": "Users", "active": true, "requireAdmin": true },
+      { "kind": "action", "action": "logout", "label": "Sign out", "active": true }
+    ],
+    "guestLinks": [
+      { "to": "/login", "icon": "signin", "label": "Sign in", "active": true },
+      { "to": "/register", "icon": "user_plus", "label": "Create account", "active": true, "primary": true }
+    ]
+  },
   "fab": {
     "main": { "iconClosed": "bars3", "iconOpen": "close" },
     "items": [
@@ -200,17 +230,17 @@
     ],
     "polarity": ["Positive", "Negative"],
     "ionSource": [
-      "AP-SMALDI5 AF",
-      "AP-SMALDI",
-      "IR-MALDESI",
-      "MALDI-2",
-      "nano-DESI",
-      "SIMS",
-      "LDI",
-      "AP-MALDI",
-      "DESI",
-      "SALDI",
       "MALDI",
+      "DESI",
+      "SIMS",
+      "AP-MALDI",
+      "AP-SMALDI",
+      "nano-DESI",
+      "LDI",
+      "SALDI",
+      "MALDI-2",
+      "LAESI",
+      "IR-MALDESI",
       "Other"
     ],
     "analyzer": [
@@ -258,6 +288,7 @@
       "Bone",
       "Eye",
       "Embryo",
+      "Fetus",
       "Whole organism",
       "Other"
     ],
@@ -306,6 +337,7 @@
     "maldiMatrix": [
       "CHCA (α-Cyano-4-hydroxycinnamic acid)",
       "DHB (2,5-Dihydroxybenzoic acid)",
+      "NEDC(N-(1-naphthyl)ethylenediamine dihydrochloride)",
       "Sinapinic acid",
       "9-AA (9-Aminoacridine)",
       "Norharmane",
@@ -337,6 +369,75 @@
       "Trifluoroacetic acid (TFA)",
       "Ammonium hydroxide",
       "Other"
+    ]
+  },
+
+  "ionSourceFieldRules": {
+    "defaults": {
+      "solvent":           { "required": false, "label": "Solvent",                    "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
+      "maldiMatrix":       { "required": false, "label": "MALDI Matrix" },
+      "maldiMatrixApplication": { "required": false, "label": "MALDI Matrix Application" }
+    },
+    "families": [
+      {
+        "key": "ir-maldesi",
+        "match": ["ir-maldesi", "maldesi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 50% MeOH / 50% H2O" }
+      },
+      {
+        "key": "nano-desi",
+        "match": ["nano-desi", "nanodesi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. MeOH / H2O" }
+      },
+      {
+        "key": "desi",
+        "match": ["desi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 95% MeOH / 5% H2O" }
+      },
+      {
+        "key": "ap-smaldi",
+        "match": ["ap-smaldi", "smaldi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
+        "maldiMatrix": { "required": true },
+        "maldiMatrixApplication": { "required": true }
+      },
+      {
+        "key": "ap-maldi",
+        "match": ["ap-maldi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
+        "maldiMatrix": { "required": true },
+        "maldiMatrixApplication": { "required": true }
+      },
+      {
+        "key": "maldi-2",
+        "match": ["maldi-2", "maldi2"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
+        "maldiMatrix": { "required": true },
+        "maldiMatrixApplication": { "required": true }
+      },
+      {
+        "key": "maldi",
+        "match": ["maldi"],
+        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
+        "maldiMatrix": { "required": true },
+        "maldiMatrixApplication": { "required": true }
+      },
+      {
+        "key": "laesi",
+        "match": ["laesi"]
+      },
+      {
+        "key": "sims",
+        "match": ["sims"]
+      },
+      {
+        "key": "saldi",
+        "match": ["saldi"]
+      },
+      {
+        "key": "ldi",
+        "match": ["ldi"]
+      }
     ]
   }
 }

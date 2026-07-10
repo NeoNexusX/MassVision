@@ -12,8 +12,6 @@ import { defineConfig, devices } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './e2e',
-  /* 排除 new-analysis 测试，暂时不运行 */
-  testIgnore: ['**/new-analysis.spec.ts'],
   /* Maximum time one test can run for. */
   timeout: 30 * 1000,
   expect: {

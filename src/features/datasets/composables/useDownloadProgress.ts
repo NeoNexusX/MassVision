@@ -49,11 +49,16 @@ export function useDownloadProgress() {
 
     // Rate-limit check（登录和未登录都限制，防止刷带宽）
     if (!downloadStore.canDownload()) {
-      const remain = Math.ceil(downloadStore.cooldownRemaining())
-      showToast(
-        `Download is limited. Please wait ${remain}s.`,
-        'warning',
-      )
+      // 区分"正在下载"和"冷却中"
+      if (downloadStore.downloading) {
+        showToast('A download is already in progress.', 'warning')
+      } else {
+        const remain = Math.ceil(downloadStore.cooldownRemaining())
+        showToast(
+          `Download is limited. Please wait ${remain}s.`,
+          'warning',
+        )
+      }
       return
     }
 

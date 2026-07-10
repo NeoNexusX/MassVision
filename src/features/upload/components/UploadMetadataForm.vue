@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
 import IconSelect from '@/shared/components/IconSelect.vue'
 import SolventPicker from '@/features/upload/components/SolventPicker.vue'
@@ -7,7 +7,6 @@ import type {
   UploadMetadataFormState,
 } from '@/features/upload/composables/useUploadMetadataForm'
 import {
-  EXPERIMENT_TYPES,
   ORGANISMS,
   ORGANISM_PARTS,
   CONDITIONS,
@@ -23,8 +22,9 @@ import {
   SPECTRUM_MODES,
   STORAGE_MODES,
 } from '@/features/datasets/constants/datasetMetadata'
+import { getIonSourceFieldRules } from '@/features/upload/utils/ionSourceRules'
 
-defineProps<{
+const props = defineProps<{
   form: UploadMetadataFormState
   parsingMetadata: boolean
 }>()
@@ -46,6 +46,10 @@ function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
   errorRef.value = ''
   return true
 }
+
+const ionRules = computed(() =>
+  getIonSourceFieldRules(props.form.ionisation_source),
+)
 </script>
 
 <template>
@@ -61,7 +65,7 @@ function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
         <label for="is_public" class="text-lg">Make dataset public (visible to others)</label>
       </div>
 
-      <div class="divider text-lg text-base-content/50">Required</div>
+      <div class="divider text-lg text-base-content/50">Acquisition Information</div>
 
       <div
         v-if="parsingMetadata"
@@ -181,6 +185,86 @@ function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
         </div>
       </div>
 
+      <!-- Solvent: always visible, required state depends on ion source -->
+      <div class="flex flex-col">
+        <label class="label"
+          ><span class="label-text font-medium text-base-content text-xl"
+            >{{ ionRules.solvent.label }}
+            <span v-if="ionRules.solvent.required" class="text-error">*</span>
+          </span></label
+        >
+        <SolventPicker
+          v-model="form.solvent"
+          :solvent-options="SOLVENTS"
+        />
+      </div>
+
+      <div class="flex flex-col">
+        <label class="label"
+          ><span class="label-text font-medium text-base-content text-xl"
+            >{{ ionRules.maldiMatrix.label }}
+            <span v-if="ionRules.maldiMatrix.required" class="text-error">*</span>
+          </span></label
+        >
+        <SelectWithOther
+          v-model="form.maldi_matrix"
+          :options="MALDI_MATRICES"
+          placeholder="Select matrix..."
+          other-placeholder="Please specify..."
+        />
+      </div>
+
+      <div class="flex flex-col">
+        <label class="label"
+          ><span class="label-text font-medium text-base-content text-xl"
+            >{{ ionRules.maldiMatrixApplication.label }}
+            <span v-if="ionRules.maldiMatrixApplication.required" class="text-error">*</span>
+          </span></label
+        >
+        <SelectWithOther
+          v-model="form.maldi_matrix_application"
+          :options="MALDI_MATRIX_APPLICATIONS"
+          placeholder="Select application..."
+          other-placeholder="Please specify..."
+        />
+      </div>
+
+      <label class="label"
+        ><span class="label-text font-medium text-base-content text-xl"
+          >Detector resolving power</span
+        ></label
+      >
+      <div class="grid grid-cols-2 gap-3">
+        <div class="flex flex-col">
+          <label class="label"
+            ><span class="label-text font-medium text-base-content text-xl">m/z</span></label
+          >
+          <input
+            v-model="form.mz"
+            type="text"
+            inputmode="numeric"
+            class="input input-bordered w-full text-base"
+            placeholder="e.g. 200"
+          />
+        </div>
+        <div class="flex flex-col">
+          <label class="label"
+            ><span class="label-text font-medium text-base-content text-xl"
+              >Resolving Power</span
+            ></label
+          >
+          <input
+            v-model="form.resolving_power"
+            type="text"
+            inputmode="numeric"
+            class="input input-bordered w-full text-base"
+            placeholder="e.g. 140000"
+          />
+        </div>
+      </div>
+
+      <div class="divider text-lg text-base-content/50">Sample Metadata</div>
+
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content text-xl"
@@ -237,69 +321,6 @@ function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
         />
       </div>
 
-      <!-- Solvent: hidden for SIMS, optional for LAESI, required for other ion sources -->
-      <div v-if="form.ionisation_source !== 'SIMS'" class="flex flex-col">
-        <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
-            >Solvent <span v-if="form.ionisation_source !== 'LAESI'" class="text-error">*</span></span
-          ></label
-        >
-        <SolventPicker
-          v-model="form.solvent"
-          :solvent-options="SOLVENTS"
-        />
-      </div>
-
-      <div class="divider text-lg text-base-content/50">Optional</div>
-
-      <div class="flex flex-col">
-        <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
-            >Experiment Type</span
-          ></label
-        >
-        <SelectWithOther
-          v-model="form.experiment_type"
-          :options="EXPERIMENT_TYPES"
-          placeholder="Select type..."
-          other-placeholder="Please specify..."
-        />
-      </div>
-
-      <label class="label"
-        ><span class="label-text font-medium text-base-content text-xl"
-          >Detector resolving power</span
-        ></label
-      >
-      <div class="grid grid-cols-2 gap-3">
-        <div class="flex flex-col">
-          <label class="label"
-            ><span class="label-text font-medium text-base-content text-xl">m/z</span></label
-          >
-          <input
-            v-model="form.mz"
-            type="text"
-            inputmode="numeric"
-            class="input input-bordered w-full text-base"
-            placeholder="e.g. 200"
-          />
-        </div>
-        <div class="flex flex-col">
-          <label class="label"
-            ><span class="label-text font-medium text-base-content text-xl"
-              >Resolving Power</span
-            ></label
-          >
-          <input
-            v-model="form.resolving_power"
-            type="text"
-            inputmode="numeric"
-            class="input input-bordered w-full text-base"
-            placeholder="e.g. 140000"
-          />
-        </div>
-      </div>
-
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content text-xl"
@@ -328,33 +349,6 @@ function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
         />
       </div>
 
-      <div class="flex flex-col">
-        <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
-            >MALDI Matrix</span
-          ></label
-        >
-        <SelectWithOther
-          v-model="form.maldi_matrix"
-          :options="MALDI_MATRICES"
-          placeholder="Select matrix..."
-          other-placeholder="Please specify..."
-        />
-      </div>
-
-      <div class="flex flex-col">
-        <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
-            >MALDI Matrix Application</span
-          ></label
-        >
-        <SelectWithOther
-          v-model="form.maldi_matrix_application"
-          :options="MALDI_MATRIX_APPLICATIONS"
-          placeholder="Select application..."
-          other-placeholder="Please specify..."
-        />
-      </div>
     </div>
   </div>
 </template>

@@ -24,7 +24,7 @@ defineProps<{
 
     <div class="space-y-4 mt-2">
       <div
-        v-if="isFiltered"
+        v-if="modeNotice"
         class="flex items-start gap-2 p-3 rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-lg text-blue-700 dark:text-blue-300"
       >
         <span class="mt-0.5">ℹ</span>

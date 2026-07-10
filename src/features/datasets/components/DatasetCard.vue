@@ -105,6 +105,7 @@ const emit = defineEmits<{
   (e: 'view-overview', id: string): void
   (e: 'download', id: string): void
   (e: 'delete', id: string): void
+  (e: 'explore', id: string): void
 }>()
 
 const ticImageUrl = ref<string>('')
@@ -168,6 +169,29 @@ const actionItems = computed<ActionItem[]>(() => {
     })
 
   // Action buttons
+  // Explore / View — 根据是否已有可视化任务决定
+  const hasRun = props.dataset.defaultRunId != null
+
+  if (hasRun) {
+    // 已有可视化任务 → 直接查看
+    items.push({
+      id: 'explore',
+      icon: 'search',
+      label: 'Visualize',
+      colorClass: 'text-primary hover:text-primary-focus transition-colors',
+      onClick: () => emit('explore', props.dataset.id),
+    })
+  } else {
+    // 未关联可视化任务 → Explore
+    items.push({
+      id: 'explore',
+      icon: 'search',
+      label: 'Explore',
+      colorClass: 'text-primary hover:text-primary-focus transition-colors',
+      onClick: () => emit('explore', props.dataset.id),
+    })
+  }
+
   items.push(
     {
       id: 'overview',
