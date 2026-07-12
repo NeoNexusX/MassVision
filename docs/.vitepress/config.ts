@@ -100,8 +100,7 @@ export default defineConfig({
   description: 'SpatialXomics 项目文档',
   // English 为默认语言：源文件放 en/，URL 去掉 /en 前缀（服务于 /docs/）
   rewrites: { 'en/:rest*': ':rest*' },
-  // 仅忽略指向 SPA 路由的链接（如 /mydatasets、/datasets），不在 docs 目录中
-  // 这些链接在部署后由同域 nginx fallback 到 SPA，运行时正常工作
+  // ignoreDeadLinks 保持默认 false：死链即构建失败，靠修链接保证文档质量
   ignoreDeadLinks: [/^\/mydatasets/, /^\/datasets/],
   lastUpdated: true,       // 启用「最后更新时间」（读取 git 提交时间）
   markdown: {
