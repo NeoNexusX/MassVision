@@ -20,4 +20,12 @@ features:
     details: 交互式探索数据集——空间视图、按表达或元数据着色、嵌入视图，以及联动选区。
     link: /zh/guide/view-data
     linkText: 查看指南
+  - title: 下载数据
+    details: 了解如何下载数据集——支持多格式导出、下载链接生成，以及获取数据的完整步骤。
+    link: /zh/guide/download-data
+    linkText: 查看指南
+  - title: 创建分析
+    details: 在工作区创建分析任务——选择数据源、配置预处理管线（降噪、基线校正、归一化、峰提取、峰对齐），提交并跟踪分析进度。
+    link: /zh/guide/create-analysis
+    linkText: 查看指南
 ---
