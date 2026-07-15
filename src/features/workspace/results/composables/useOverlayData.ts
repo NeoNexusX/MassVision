@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from 'vue'
+import { ref, watch, onBeforeUnmount, type Ref } from 'vue'
 import { loadNpy } from '@/features/workspace/results/utils/npyParser'
 
 export type OverlayMode = 'none' | 'umap' | 'kmeans'
@@ -172,6 +172,15 @@ export function useOverlayData(
   // Watchers
   watch(overlayAlpha, () => {
     if (overlayMode.value !== 'none' && coordsCache) recomputeOverlay()
+  })
+
+  // Release cached .npy TypedArrays on unmount so they don't persist in the
+  // closure after the component is destroyed
+  onBeforeUnmount(() => {
+    coordsCache = null
+    umapEmbeddingsCache = null
+    kmeansLabelsCache = null
+    overlayData.value = null
   })
 
   return {

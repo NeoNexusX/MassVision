@@ -109,7 +109,7 @@
           { "to": "/workspace/new", "icon": "plus", "label": "New Analysis", "active": true }
         ]
       },
-      { "kind": "link", "to": "/docs/", "icon": "book", "label": "Documentation", "active": true }
+      { "kind": "link", "to": "/docs/", "icon": "book", "label": "Documentation", "active": true, "external": true }
     ],
     "userMenu": [
       { "kind": "link", "to": "/profile", "icon": "user-circle", "label": "Profile", "active": true },

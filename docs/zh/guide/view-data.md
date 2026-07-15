@@ -146,8 +146,8 @@ SpatialXomics 提供两种方式将质谱成像数据转为可交互的可视化
 
 | 模式 | 显示 | 对应数据模式 |
 |---|---|---|
-| **Centroid（质心谱）** | 柱状图，每根柱子代表一个检测到的峰 | Continuous / Processed|
-| **Profile（轮廓谱）** | 连续折线图，展示完整谱图轮廓 | Continuous / Processed |
+| **Centroid（质心谱）** | 中灰色柱状图，每根柱子代表一个检测到的峰 | Continuous / Processed|
+| **Profile（轮廓谱）** | 深灰色连续折线图，展示完整谱图轮廓 | Continuous / Processed |
 
 **Centroid（质心谱）：**
 

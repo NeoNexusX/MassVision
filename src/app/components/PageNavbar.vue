@@ -32,7 +32,17 @@
                 {{ item.label }}
               </li>
               <li v-for="child in item.children" :key="child.to">
+                <a
+                  v-if="child.external"
+                  :href="child.to"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="rounded-lg transition-colors"
+                  @click="closeDropdown"
+                  >{{ child.label }}</a
+                >
                 <router-link
+                  v-else
                   :to="child.to"
                   class="rounded-lg transition-colors"
                   active-class="!bg-primary/10 !text-primary font-medium"
@@ -42,7 +52,17 @@
               </li>
             </template>
             <li v-else :class="i > 0 ? 'mt-3' : ''">
+              <a
+                v-if="item.external"
+                :href="item.to"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="rounded-lg text-[1.05em] font-semibold transition-colors"
+                @click="closeDropdown"
+                >{{ item.label }}</a
+              >
               <router-link
+                v-else
                 :to="item.to"
                 class="rounded-lg text-[1.05em] font-semibold transition-colors"
                 active-class="!bg-primary/10 !text-primary"
@@ -79,7 +99,17 @@
             </summary>
             <ul class="z-[1] mt-2 w-[13em] whitespace-nowrap rounded-box bg-base-100 p-2 shadow-lg text-[0.9em]">
               <li v-for="child in item.children" :key="child.to">
+                <a
+                  v-if="child.external"
+                  :href="child.to"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="rounded-lg py-[0.55em] transition-colors hover:bg-base-200/60"
+                  @click="closeDetails"
+                  >{{ child.label }}</a
+                >
                 <router-link
+                  v-else
                   :to="child.to"
                   class="rounded-lg py-[0.55em] transition-colors hover:bg-base-200/60"
                   active-class="!bg-primary/10 !text-primary font-medium"
@@ -89,6 +119,14 @@
               </li>
             </ul>
           </details>
+          <a
+            v-else-if="item.external"
+            :href="item.to"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="rounded-lg px-[1em] py-[0.45em] font-medium transition-colors hover:bg-base-200/70"
+            >{{ item.label }}</a
+          >
           <router-link
             v-else
             :to="item.to"

@@ -42,7 +42,7 @@
 - 识别数据集的**质谱模式**（Profile / Centroid）与**存储模式**（Continuous / Processed）。
 - 从数据集元数据中自动填充仪器参数（如离子源、分析仪、像素尺寸等），便于后续步骤使用。
 
-> **注意**：数据集的质谱模式与存储模式会影响可用的预处理方法。例如，Continuous 模式的数据不支持峰对齐（Peak Alignment）。
+> **注意**：数据集的质谱模式与存储模式共同决定可用的预处理方法。例如，Profile 模式的数据需要先完成峰提取（Peak Picking）后才能进行峰对齐（Peak Alignment）；Centroid + Continuous 模式的数据由于所有像素已共享同一条 m/z 轴（等同于已对齐），不支持峰对齐。
 
 ---
 
@@ -99,7 +99,7 @@
 |------|------|----------|
 | **Python Backend** | 基于 Python 后端的峰对齐 | Bin Function（分箱函数：Median / Mean / Min / Max）、Min Frequency（最小频率阈值） |
 
-> **提示**：如果数据集为 **Profile 模式**，需要先选择峰提取（Peak Picking）方法后，峰对齐（Peak Alignment）选项才会出现。**Continuous 存储模式**的数据集不支持峰对齐。
+> **提示**：如果数据集为 **Profile 模式**，需要先选择峰提取（Peak Picking）方法后，峰对齐（Peak Alignment）选项才会出现。**Centroid + Processed** 模式的数据每个像素的峰各自存储在不同的 m/z 轴上，需要峰对齐来统一到公共轴；而 **Centroid + Continuous** 模式的数据所有像素本就共享同一条 m/z 轴，峰已等同于对齐过，因此不支持峰对齐。
 
 ### 模式提示
 

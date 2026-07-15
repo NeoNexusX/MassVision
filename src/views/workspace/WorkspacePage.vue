@@ -1,10 +1,10 @@
 <template>
-  <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 box-border overflow-x-hidden">
+  <div class="container mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 box-border overflow-x-hidden">
     <!-- Header: Title + actions -->
     <div class="flex flex-col sm:flex-row items-start justify-between mb-6 gap-4">
       <div>
-        <h1 class="text-4xl font-semibold">Workspace</h1>
-        <p class="text-lg text-base-content/60 mt-1">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-semibold">Workspace</h1>
+        <p class="text-sm sm:text-lg text-base-content/60 mt-1">
           Monitor preprocessing tasks and review recent MSI results.
         </p>
       </div>
@@ -38,8 +38,8 @@
 
     <!-- Main content -->
     <div class="flex flex-col gap-8">
-      <section class="bg-base-100 rounded-lg border border-base-200 shadow-sm p-6">
-        <h2 class="text-2xl font-medium mb-4">Recent Results</h2>
+      <section class="bg-base-100 rounded-lg border border-base-200 shadow-sm p-3 sm:p-4 lg:p-6">
+        <h2 class="text-xl sm:text-2xl font-medium mb-3 sm:mb-4">Recent Results</h2>
         <ResultTable :results="recentResults" :loading="loading" @delete="onDeleteClick" @view-error="showErrorModal" />
       </section>
     </div>

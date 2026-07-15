@@ -146,8 +146,8 @@ The spectrum has two display modes based on data characteristics:
 
 | Mode | Display | Data Mode |
 |---|---|---|
-| **Centroid** | Bar chart — each bar represents a detected peak | Continuous / Processed |
-| **Profile** | Continuous line chart — shows the full spectrum profile | Continuous / Processed |
+| **Centroid** | Medium gray bar chart — each bar represents a detected peak | Continuous / Processed |
+| **Profile** | Dark gray continuous line chart — shows the full spectrum profile | Continuous / Processed |
 
 **Centroid:**
 

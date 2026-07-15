@@ -42,7 +42,7 @@ Click any row in the list, or click the radio button on the right, to select a d
 - Detect the dataset's **spectrum mode** (Profile / Centroid) and **storage mode** (Continuous / Processed).
 - Auto-fill instrument parameters from the dataset metadata (e.g., ionization source, analyzer, pixel size) for use in later steps.
 
-> **Note**: The dataset's spectrum mode and storage mode affect which preprocessing methods are available. For example, datasets in Continuous mode do not support Peak Alignment.
+> **Note**: The dataset's spectrum mode and storage mode together determine which preprocessing methods are available. For example, Profile mode datasets must go through Peak Picking before Peak Alignment becomes available; Centroid + Continuous datasets already share one m/z axis across all pixels (equivalent to already being aligned), so Peak Alignment is not supported.
 
 ---
 
@@ -99,7 +99,7 @@ Aligns peaks across spectra to a common m/z axis.
 |--------|-------------|------------|
 | **Python Backend** | Python-based peak alignment | Bin Function (Median / Mean / Min / Max), Min Frequency (minimum frequency threshold for peak retention) |
 
-> **Tip**: For datasets in **Profile** mode, the Peak Alignment option only appears after a Peak Picking method is selected. Datasets in **Continuous** storage mode do not support Peak Alignment.
+> **Tip**: For datasets in **Profile** mode, the Peak Alignment option only appears after a Peak Picking method is selected. **Centroid + Processed** datasets store each pixel's peaks on its own m/z axis, so alignment to a common axis is needed. **Centroid + Continuous** datasets already share one m/z axis across all pixels, so their peaks are effectively already aligned, and Peak Alignment is not available.
 
 ### Mode Notice
 
