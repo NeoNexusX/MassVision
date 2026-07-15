@@ -3,21 +3,7 @@ import { randomBytes } from 'crypto'
 import { mkdtempSync, writeFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-
-/** 解析 "File Size:X.X KB/MB/GB" 为 MB */
-function sizeToMB(text: string | null): number {
-  if (!text) return Infinity
-  const m = text.match(/([\d.]+)\s*(KB|MB|GB|TB)/i)
-  if (!m) return Infinity
-  const v = parseFloat(m[1])
-  switch (m[2].toUpperCase()) {
-    case 'KB': return v / 1024
-    case 'MB': return v
-    case 'GB': return v * 1024
-    case 'TB': return v * 1024 * 1024
-    default: return Infinity
-  }
-}
+import { sizeToMB, ALGO_MAX_MB } from './utils.js'
 
 const MAX_DOWNLOAD_MB = 300
 
@@ -285,7 +271,53 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * Step 8 — 清理：删除第一个数据集
+   * Step 8 — Make Public：把 Step 1 上传的私有测试数据集，在其详情页转为公开
+   * 依赖：Step 1 上传的测试文件仍然存在（未被删除），且当前是 Private。
+   * 后端会按元数据重新生成文件名，不能按文件名定位卡片；默认按提交时间倒序排列，
+   * 该文件是本文件唯一会新建数据集的地方，因此它始终是第一张卡片。
+   */
+  test('make public — converts the uploaded private dataset to public from its overview page', async ({ page, browserName }) => {
+    test.skip(browserName === 'webkit', 'Linux WebKit 不支持 OPFS，没有上传的测试文件')
+
+    await page.goto('/mydatasets')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    // 只匹配数据集卡片的 h3（aria-label 以 "Dataset name:" 开头），
+    // 避免匹配到页面里始终存在于 DOM 中、只是隐藏的 ConfirmDialog 弹窗标题 h3
+    const targetCard = page.locator('h3[aria-label^="Dataset name:"]').first().locator('..').locator('..')
+    await expect(targetCard).toBeVisible({ timeout: 10_000 })
+    await expect(targetCard.getByText('Private')).toBeVisible()
+
+    await targetCard.getByRole('button', { name: 'Overview' }).click()
+    await expect(page).toHaveURL(/\/overview/)
+    await expect(page.locator('.skeleton')).toHaveCount(0, { timeout: 15_000 })
+    await expect(page.locator('h1:has-text("Dataset Overview")')).toBeVisible()
+
+    // 私有 + 自己的数据集 → 详情页显示 "Make Public" 按钮
+    const makePublicBtn = page.getByRole('button', { name: 'Make Public' })
+    await expect(makePublicBtn).toBeVisible()
+    await makePublicBtn.click()
+
+    // 二次确认弹窗（ConfirmDialog: title="Make Dataset Public", confirm-label="Make Public"）
+    await expect(page.locator('.modal-box')).toContainText('Make Dataset Public')
+    await expect(page.locator('.modal-box')).toContainText('This dataset will be moved to Public Data')
+    await page.locator('.modal-box').getByRole('button', { name: 'Make Public' }).click()
+
+    await expect(page.locator('.toast')).toContainText('Dataset is now public.')
+    // 转公开成功后按钮因 dataset.isPublic 变化而消失
+    await expect(makePublicBtn).not.toBeVisible()
+
+    // 回到 My Datasets，确认该卡片的可见性徽章变为 Public
+    await page.getByRole('button', { name: 'Back to My Datasets' }).click()
+    await expect(page).toHaveURL(/\/mydatasets/)
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    const updatedCard = page.locator('h3[aria-label^="Dataset name:"]').first().locator('..').locator('..')
+    await expect(updatedCard.getByText('Public')).toBeVisible({ timeout: 10_000 })
+  })
+
+  /**
+   * Step 9 — 清理：删除第一个数据集（Step 1 上传的测试文件）
    */
   test('delete — removes the first (newest) dataset on the page', async ({ page, browserName }) => {
     test.skip(browserName === 'webkit', 'Linux WebKit 没有上传，跳过删除避免误删真实数据')
@@ -297,6 +329,153 @@ test.describe('My Datasets', () => {
 
     await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
     await expect(page.locator('.toast')).toContainText(/deleted/)
+  })
+
+  /**
+   * Step 10 — Explore（processed 模式）：二次确认 → Workspace 创建任务（Direct conversion）
+   * → 等待完成 → 查看 TIC 图 + 逐像素谱图交互 → 清理 Workspace 中的结果
+   *
+   * 放在 Step 1 上传的测试文件被删除之后，此时账号下只剩真实数据集，
+   * 不必再排除本文件的合成测试数据，直接选第一张即可。
+   */
+  test('explore — creates direct-conversion task, verifies TIC image and per-pixel spectrum, then cleans up', async ({ page }) => {
+    test.setTimeout(300_000)
+
+    await page.goto('/mydatasets')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    const exploreBtns = page.getByRole('button', { name: 'Explore' })
+    try {
+      await exploreBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
+    } catch {
+      test.skip(true, 'No explorable (processed) dataset available')
+      return
+    }
+
+    const count = await exploreBtns.count()
+    // 算法测试只选 < ALGO_MAX_MB 的数据集，避免大文件（如 1G 上传测试数据）跑算法超时
+    const eligible: number[] = []
+    for (let i = 0; i < count; i++) {
+      const card = exploreBtns.nth(i).locator('..').locator('..')
+      const sizeText = await card.locator('p:has-text("File Size:")').innerText()
+      if (sizeToMB(sizeText) < ALGO_MAX_MB) eligible.push(i)
+    }
+    if (eligible.length === 0) {
+      test.skip(true, `No explorable dataset < ${ALGO_MAX_MB}MB available`)
+      return
+    }
+    const pick = eligible[Math.floor(Math.random() * eligible.length)]
+    await exploreBtns.nth(pick).click()
+
+    // 二次确认弹窗（ConfirmDialog: title="Prepare Visualization", confirm-label="Generate"）
+    // My Datasets 页面同时挂载了 4 个 ConfirmDialog（Upload/Upload-public/Delete/Explore），
+    // 都常驻 DOM 只是靠 class 控制显隐，必须用 .modal-open 限定当前真正打开的那一个
+    const openDialog = page.locator('dialog.modal-open .modal-box')
+    await expect(openDialog).toContainText('Prepare Visualization')
+    await openDialog.getByRole('button', { name: 'Generate' }).click()
+    await expect(page.locator('.toast')).toContainText('Task is in progress')
+
+    // 创建者 → 跳转 Workspace
+    await expect(page).toHaveURL(/\/workspace(?:\?|#|$)?/, { timeout: 30_000 })
+    await expect(page.locator('h1:has-text("Workspace")')).toBeVisible()
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+    await expect(page.locator('table tbody tr').first().locator('td').first())
+      .not.toHaveText('Loading...', { timeout: 15_000 })
+
+    // Methods 列显示 "Direct conversion (no preprocessing)"
+    const runningRow = page.locator('table tr').filter({ hasText: 'Running' }).first()
+    await expect(runningRow).toBeVisible({ timeout: 15_000 })
+    await expect(runningRow.locator('td').filter({ hasText: 'Direct conversion' })).toBeVisible()
+
+    // 轮询刷新，等待任务完成（最多 3 分钟）
+    const deadline = Date.now() + 180_000
+    while (Date.now() < deadline) {
+      await page.reload()
+      await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+      await expect(page.locator('table tbody tr').first().locator('td').first())
+        .not.toHaveText('Loading...', { timeout: 15_000 })
+      const hasRunning = (await page.locator('table').getByText('Running').count()) > 0
+      if (!hasRunning) break
+      await page.waitForTimeout(10_000)
+    }
+    await expect(page.locator('table').getByText('Running')).not.toBeVisible()
+    // Recent Results 里可能已有其他历史 Completed 记录，用 .getByText('Completed') 裸查会撞 strict mode，
+    // 直接断言最新（第一行）已经变成 Completed
+    await expect(page.locator('table tbody tr').first()).toContainText('Completed')
+
+    // 查看结果（后端按最新在前返回，刚完成的任务在第一行）
+    const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
+    await completedRow.getByRole('button', { name: 'View' }).click()
+    await expect(page).toHaveURL(/\/workspace\/results/)
+
+    // TIC 图（processed 模式绘图标题）
+    await expect(page.getByText('Computing TIC image, please wait a moment...')).not.toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('h3:has-text("TIC Image")')).toBeVisible()
+
+    // 点击前：尚未选中像素，显示引导文案
+    await expect(page.getByText('Click a pixel on the TIC image to view its spectrum')).toBeVisible()
+
+    // 定位 TIC 图可点击区域（结构与 result-detail.spec.ts 的 clickSpectrum 一致：标题 → 上 3 层 → .overflow-hidden）
+    const heading = page.locator('h3', { hasText: 'TIC Image' })
+    const imageContainer = heading.locator('..').locator('..').locator('..').locator('.overflow-hidden')
+
+    // 读取真实网格尺寸（ColorBar Statistic 区块的 "Dimensions" 行，格式 "cols × rows"），
+    // 按 IonImageViewer.vue onContainerClick 里同样的居中缩放公式换算像素中心的屏幕坐标——
+    // 图像按比例居中绘制在容器里，任意百分比点击都可能落在留白区域而不触发选中
+    const dimensionsLabel = page.getByText('Dimensions', { exact: true })
+    const dimensionsText = await dimensionsLabel.locator('..').locator('span').nth(1).innerText()
+    const dimMatch = dimensionsText.match(/(\d+)\s*×\s*(\d+)/)
+    if (!dimMatch) throw new Error(`Could not parse image dimensions from "${dimensionsText}"`)
+    const gridCols = parseInt(dimMatch[1]!, 10)
+    const gridRows = parseInt(dimMatch[2]!, 10)
+
+    function pixelCenter(box: { x: number; y: number; width: number; height: number }, col: number, row: number) {
+      const pad = 0.04
+      const availW = box.width * (1 - pad * 2)
+      const availH = box.height * (1 - pad * 2)
+      const scale = Math.min(availW / gridCols, availH / gridRows)
+      const drawW = Math.floor(gridCols * scale)
+      const drawH = Math.floor(gridRows * scale)
+      const ox = Math.floor((box.width - drawW) / 2)
+      const oy = Math.floor((box.height - drawH) / 2)
+      return {
+        x: box.x + ox + (col + 0.5) * (drawW / gridCols),
+        y: box.y + oy + (row + 0.5) * (drawH / gridRows),
+      }
+    }
+
+    // 首次点击中心像素（中心更可能在组织上、有真实谱图，且远离边界）—— 首次加载耗时较久，给较长的等待时间
+    let box = await imageContainer.boundingBox()
+    if (!box) throw new Error('TIC image container bounding box not found')
+    const centerCol = Math.floor(gridCols / 2)
+    const centerRow = Math.floor(gridRows / 2)
+    let point = pixelCenter(box, centerCol, centerRow)
+    await page.mouse.click(point.x, point.y)
+    await expect(page.getByText('Click a pixel on the TIC image to view its spectrum')).not.toBeVisible({ timeout: 60_000 })
+    await expect(page.getByText('Loading spectrum...')).not.toBeVisible({ timeout: 60_000 })
+
+    const pixelStat = page.locator('span').filter({ hasText: /^Pixel:/ })
+    const firstPixelText = await pixelStat.innerText()
+
+    // 切换到中心附近的像素（左上偏移一格），下方谱图应更新
+    box = await imageContainer.boundingBox()
+    if (!box) throw new Error('TIC image container bounding box not found')
+    point = pixelCenter(box, Math.max(0, centerCol - 1), Math.max(0, centerRow - 1))
+    await page.mouse.click(point.x, point.y)
+    await expect(page.getByText('Loading spectrum...')).not.toBeVisible({ timeout: 30_000 })
+    await expect(pixelStat).not.toHaveText(firstPixelText, { timeout: 15_000 })
+
+    // 右侧元数据面板（与 new-analysis 类似，判断该有的信息是否都在）
+    await expect(page.getByText('Polarity')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Analyzer')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 10_000 })
+
+    // 清理：回 Workspace 删除刚创建的结果
+    await page.goto('/workspace')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+    await page.locator('table tbody tr').first().getByRole('button', { name: 'Delete' }).click()
+    await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
+    await expect(page.locator('.toast')).toContainText('Result deleted', { timeout: 10_000 })
   })
 })
 
