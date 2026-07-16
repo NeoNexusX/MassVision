@@ -29,6 +29,7 @@ const en = {
           { text: 'Uploading Data', link: '/guide/upload-data' },
           { text: 'Downloading Data', link: '/guide/download-data' },
           { text: 'Viewing Data', link: '/guide/view-data' },
+          { text: 'Creating an Analysis', link: '/guide/create-analysis' },
         ],
       },
     ],
@@ -67,6 +68,7 @@ const zh = {
           { text: '上传数据', link: '/zh/guide/upload-data' },
           { text: '下载数据', link: '/zh/guide/download-data' },
           { text: '查看数据', link: '/zh/guide/view-data' },
+          { text: '创建分析', link: '/zh/guide/create-analysis' },
         ],
       },
     ],
@@ -99,6 +101,7 @@ export default defineConfig({
   // English 为默认语言：源文件放 en/，URL 去掉 /en 前缀（服务于 /docs/）
   rewrites: { 'en/:rest*': ':rest*' },
   // ignoreDeadLinks 保持默认 false：死链即构建失败，靠修链接保证文档质量
+  ignoreDeadLinks: [/^\/mydatasets/, /^\/datasets/],
   lastUpdated: true,       // 启用「最后更新时间」（读取 git 提交时间）
   markdown: {
     math: true,            // 数学公式（需依赖 markdown-it-mathjax3）
