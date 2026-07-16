@@ -90,7 +90,7 @@ test.describe('My Datasets', () => {
 
       // 轮询 Refresh Status，等第一张卡变为 Uploaded
       await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-      const deadline = Date.now() + 25_000
+      const deadline = Date.now() + 15_000
       while (Date.now() < deadline) {
         await page.getByRole('button', { name: 'Refresh Status' }).click()
         await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
@@ -101,7 +101,7 @@ test.describe('My Datasets', () => {
           .isVisible()
           .catch(() => false)
         if (!hasUploading) break
-        await page.waitForTimeout(5000)
+        await page.waitForTimeout(3000)
       }
       await expect(
         page.getByRole('button', { name: 'Delete' }).first().locator('..').getByText(/Uploaded|Failed/)

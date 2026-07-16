@@ -1,6 +1,6 @@
 {
   "appName": "SpatialXomics",
-  "version": "0.4",
+  "version": "0.5.1",
   "hero": {
     "taglines": ["OPEN ↗", "FAST ▶︎▶︎", "UNIFIED ≡", "INTELLIGENT ✧"],
     "gallery": [
@@ -35,7 +35,12 @@
 
   "timeline": [
     {
-      "date": "July 26",
+      "date": "July 10",
+      "version": "0.5.1",
+      "features": ["Refactored pages and updated documentation", "Fixed bugs"]
+    },
+    {
+      "date": "June 26",
       "version": "0.4",
       "features": ["Upload/download pipeline hardened with Zarr storage update and zip compression fix"]
     },

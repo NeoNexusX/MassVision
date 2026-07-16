@@ -155,17 +155,15 @@ const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSi
         @confirm="explore.confirmExplore"
         @cancel="explore.cancelExplore"
       >
-        <p class="mb-3">This dataset hasn't been prepared for visualization. We'll generate an optimized view for fast interactive browsing.</p>
-        <ul class="text-sm text-base-content/70 space-y-1.5">
-          <li>
-            <span class="font-semibold text-base-content">Task creator:</span>
-            the task will appear in your Workspace and you'll be redirected there.
-          </li>
-          <li>
-            <span class="font-semibold text-base-content">No redirect:</span>
-            the task already exists — just wait and you can visualize it shortly.
-          </li>
-        </ul>
+        <span class="block mb-2">This dataset hasn't been prepared for visualization yet. We'll generate an optimized view so you can explore it interactively. This may take a while.</span>
+        <a
+          href="/docs/guide/view-data"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="link link-primary text-sm"
+        >
+          Learn more about viewing data
+        </a>
       </ConfirmDialog>
     </div>
   </div>
