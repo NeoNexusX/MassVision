@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import IonImageViewer from '@/features/workspace/results/components/visuals/IonImageViewer.vue'
 import ROIOverlay from '@/features/workspace/results/components/visuals/ROIOverlay.vue'
 import type { ROIType } from '@/features/workspace/results/composables/useROI'
@@ -29,6 +29,8 @@ const props = defineProps<{
   dataMode?: DataMode | null
   /** 当前选中像素坐标（processed 模式） */
   selectedPixelCoord?: { x: number; y: number } | null
+  /** 离子图是否正在加载（切换 m/z 时） */
+  ionLoading?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -63,10 +65,41 @@ const processedPlaceholder = computed(() => {
   if (props.dataMode === null) return 'Loading result…'
   return 'Loading ion image, please wait a moment...'
 })
+
+// ---- 延迟 loading overlay：避免快速切换时一闪而过 ----
+
+const LOADING_DELAY = 250 // ms，loading 持续超过此阈值才显示 overlay
+let delayTimer: ReturnType<typeof setTimeout> | null = null
+const showLoadingOverlay = ref(false)
+
+watch(
+  () => props.ionLoading,
+  (loading) => {
+    if (loading) {
+      delayTimer = setTimeout(() => {
+        showLoadingOverlay.value = true
+      }, LOADING_DELAY)
+    } else {
+      if (delayTimer) {
+        clearTimeout(delayTimer)
+        delayTimer = null
+      }
+      showLoadingOverlay.value = false
+    }
+  },
+)
+
+// Clear any pending loading-delay timer on unmount
+onBeforeUnmount(() => {
+  if (delayTimer) {
+    clearTimeout(delayTimer)
+    delayTimer = null
+  }
+})
 </script>
 
 <template>
-  <div class="flex-1 min-h-0 flex gap-2">
+  <div class="flex gap-2 h-[50vh] min-h-[260px] lg:h-auto lg:flex-1 lg:min-h-0">
     <div
       class="flex-1 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col overflow-hidden"
     >
@@ -109,6 +142,16 @@ const processedPlaceholder = computed(() => {
           @reset="emit('reset-controls')"
           @select-pixel="(col, row) => emit('select-pixel', col, row)"
         />
+        <!-- 切换 m/z 时的加载遮罩（延迟出现，避免快速切换一闪而过） -->
+        <div
+          v-if="showLoadingOverlay && ionMatrix"
+          class="absolute inset-0 flex items-center justify-center bg-base-100/80 backdrop-blur-[2px] z-10 transition-opacity duration-200"
+        >
+          <div class="flex flex-col items-center gap-3">
+            <span class="loading loading-spinner loading-lg text-primary"></span>
+            <span class="text-base-content/70 text-lg">Updating ion image…</span>
+          </div>
+        </div>
         <ROIOverlay
           ref="roiOverlayRef"
           :tool="roiTool"

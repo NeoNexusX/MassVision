@@ -2,14 +2,14 @@
 
 This page explains how to download raw MSI data (`.imzML` / `.ibd` file pairs) from the SpatialXomics platform.
 
-## Before You Download
+## 1. Before You Download
 
 - **Login required**: You must be logged in to download. Clicking the download button while not authenticated will redirect you to the login page with a prompt.
 - **Original file pairs**: Each download delivers both the `.imzML` and `.ibd` files for the dataset.
 - **Rate limit**: A cooldown period (1 minute) is enforced between consecutive downloads to prevent excessive requests.
 - **Download quota**: Each account has a download limit managed by the administrator. Contact your admin if you exceed it.
 
-## Steps
+## 2. Steps
 
 #### 1. Download from the dataset list
 
@@ -37,7 +37,7 @@ Once clicked, a toast notification appears at the top (Downloading… / Download
 
 ![download-5](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-5.png)
 
-## Download Limits
+## 3. Download Limits
 
 - **Cooldown**: A 60-second cooldown is enforced between downloads. During the cooldown you will see "Download is limited. Please wait Xs."
 
@@ -47,7 +47,7 @@ Once clicked, a toast notification appears at the top (Downloading… / Download
 
 ![download-7](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-7.jpg)
 
-## Tips
+## 4. Tips
 
 - If nothing happens after clicking download, check whether your browser is blocking multiple-file downloads. Allow downloads for this site in your browser settings.
 - If a download fails, check your network connection first, then retry.

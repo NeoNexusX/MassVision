@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, type PropType } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, type PropType } from 'vue'
 import IonImageToolbar from './IonImageToolbar.vue'
 import { useZoomPan } from '../../composables/useZoomPan'
 import { useCanvasRenderer } from '../../composables/useCanvasRenderer'
@@ -132,6 +132,7 @@ const containerH = ref(0)
 // 区分拖拽和点击
 let mouseDownPos = { x: 0, y: 0 }
 let mouseMoved = false
+let pendingMouseUp: ((ev: MouseEvent) => void) | null = null
 
 // --- Composables ---
 const { zoom, panX, panY, resetZoom, zoomIn, zoomOut, onWheel, onPanStart } = useZoomPan(
@@ -186,8 +187,10 @@ function onContainerMouseDown(e: MouseEvent) {
       const dy = ev.clientY - mouseDownPos.y
       mouseMoved = Math.abs(dx) > 3 || Math.abs(dy) > 3
       document.removeEventListener('mouseup', onUp)
+      pendingMouseUp = null
     }
     document.addEventListener('mouseup', onUp)
+    pendingMouseUp = onUp
   }
 }
 
@@ -272,13 +275,17 @@ onMounted(() => {
   scheduleRender()
 })
 
+// Remove any pending mouseup listener if the component unmounts mid-drag
+onBeforeUnmount(() => {
+  if (pendingMouseUp) document.removeEventListener('mouseup', pendingMouseUp)
+})
+
 watch(
   () => [
     props.colormap,
     props.intensityScale,
     props.gamma,
     props.matrix,
-    props.selectedMz,
     props.displayMin,
     props.displayMax,
     props.overlayData,
