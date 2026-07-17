@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onUnmounted } from 'vue'
 import ColorBar from '@/features/workspace/results/components/visuals/ColorBar.vue'
 import ResultVisualizationLayout from '@/features/workspace/results/components/ResultVisualizationLayout.vue'
 import ResultHeader from '@/features/workspace/results/components/visuals/ResultHeader.vue'
@@ -12,12 +12,13 @@ import {
   pixelSpectrum,
   loadPixelSpectrum,
   dataModeRef,
+  getSharedZarrContext,
+  disposeZarrState,
 } from '@/features/workspace/results/composables/useZarrIonImage'
 import { useDisplayRange } from '@/features/workspace/results/composables/useDisplayRange'
 import { useOverlayData } from '@/features/workspace/results/composables/useOverlayData'
 import { useResultROI } from '@/features/workspace/results/composables/useResultROI'
 import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
-import { getSharedZarrContext } from '@/features/workspace/results/composables/useZarrIonImage'
 import { ZARR_STORE } from '@/shared/config/defaults'
 import type { DataMode } from '@/services/zarrOssStore'
 
@@ -65,6 +66,7 @@ const {
   ionMatrix,
   ionCols,
   ionRows,
+  loading,
   onSpectrumClickByIndex,
   isProcessed,
 } = zarr
@@ -82,6 +84,12 @@ const currentIonMatrix = computed(() =>
 watch(runId, (id) => {
   zarr.init(id)
 }, { immediate: true })
+
+// 离开页面时释放模块级状态，避免大数组（mzAxis、meanChartData、ticMatrix 等）
+// 和 ZarrOssStore 缓存在 SPA 导航后仍驻留内存
+onUnmounted(() => {
+  disposeZarrState()
+})
 
 // ---- 显示范围 ----
 
@@ -230,6 +238,7 @@ async function onSelectPixel(col: number, row: number) {
         :format-val="formatVal"
         :data-mode="dataMode"
         :selected-pixel-coord="selectedPixelCoord"
+        :ion-loading="loading"
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
         @update:intensity-scale="intensityScale = $event"
@@ -258,8 +267,7 @@ async function onSelectPixel(col: number, row: number) {
 
     <template #side-panel>
       <ColorBar
-        class="shrink-0 py-4"
-        :style="{ width: '340px' }"
+        class="shrink-0 py-4 w-full lg:w-[340px]"
         :colormap="colormap"
         :global-min="globalMin"
         :global-max="globalMax"

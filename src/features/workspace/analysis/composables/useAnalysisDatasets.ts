@@ -1,4 +1,4 @@
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { listUserFiles, listFiles } from '@/features/datasets/api/datasetApi'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
 
@@ -78,6 +78,15 @@ export function useAnalysisDatasets() {
         fetchMyFiles({ page: 1, size: mySize.value })
       }
     }, 300)
+  })
+
+  // Clear any pending debounced search on unmount so it can't fire
+  // fetch on a destroyed component
+  onBeforeUnmount(() => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer)
+      debounceTimer = null
+    }
   })
 
   // Lifecycle

@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, ref, watch, onBeforeUnmount, type Ref } from 'vue'
 
 const GRADIENT_STOPS: Record<string, string[]> = {
   viridis: ['#440154', '#482777', '#3f4a8a', '#31678e', '#26838f', '#1f9d8a', '#6cce5a', '#fee825'],
@@ -43,6 +43,8 @@ export function useDisplayRange(
   const displayMax = ref(1)
   const stripRef = ref<HTMLElement | null>(null)
   let stripDragDir: 'min' | 'max' | null = null
+  let activeDragMove: ((e: MouseEvent) => void) | null = null
+  let activeDragUp: (() => void) | null = null
 
   // Computed
   const stripRange = computed(() => globalMax.value - globalMin.value || 1)
@@ -148,9 +150,13 @@ export function useDisplayRange(
       stripDragDir = null
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
+      activeDragMove = null
+      activeDragUp = null
     }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
+    activeDragMove = onMove
+    activeDragUp = onUp
   }
 
   const getIntensityRange = () => {
@@ -178,6 +184,12 @@ export function useDisplayRange(
     },
     { immediate: true },
   )
+
+  // Remove any pending drag listeners if the component unmounts mid-drag
+  onBeforeUnmount(() => {
+    if (activeDragMove) document.removeEventListener('mousemove', activeDragMove)
+    if (activeDragUp) document.removeEventListener('mouseup', activeDragUp)
+  })
 
   return {
     globalMin,

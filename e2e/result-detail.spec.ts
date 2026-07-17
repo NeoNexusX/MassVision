@@ -6,6 +6,14 @@ import { test, expect, type Page } from '@playwright/test'
  * 结果详情页 /workspace/results
  *
  * 依赖：workspace 中有至少一个已完成的进程
+ *
+ * 跨文件依赖：这个"已完成的进程"由 new-analysis.spec.ts 最后一个测试
+ * （"submit, wait for completion, then delete"）创建并等待完成，但那个测试本身
+ * 不删除它——本文件的测试直接查看/操作"当前最新的 Completed 结果"，
+ * 最后由本文件末尾的 "Cleanup > delete completed result" 统一删除。
+ * 必须两个文件一起跑（按文件名字母序，new-analysis 在本文件之前）才是完整链路。
+ * 如果单独只跑本文件，Cleanup 会删除 Workspace 里"当前最新的 Completed 结果"——
+ * 若没有 new-analysis 留下的任务，可能会误删真实数据，请勿单独运行本文件。
  */
 
 /** 用真实鼠标点击 ECharts 谱图 canvas */
@@ -97,6 +105,8 @@ test.describe('Result Detail', () => {
 // ============================================================
 // Cleanup
 // ============================================================
+// 删除 new-analysis.spec.ts 创建的那个任务（见文件头的跨文件依赖说明）。
+// 不检查这一行是不是本次测试创建的，只按"最新一行"删，单独运行本文件时有误删真实数据的风险。
 
 test.describe('Cleanup', () => {
 

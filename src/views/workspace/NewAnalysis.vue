@@ -1,9 +1,17 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import DataSourceStep from '@/features/workspace/analysis/components/DataSourceStep.vue'
 import PreprocessingPipelineStep from '@/features/workspace/analysis/components/PreprocessingPipelineStep.vue'
 import AnalysisSummaryPanel from '@/features/workspace/analysis/components/AnalysisSummaryPanel.vue'
 import { useAnalysisDatasets } from '@/features/workspace/analysis/composables/useAnalysisDatasets'
 import { useAnalysisBuilder } from '@/features/workspace/analysis/composables/useAnalysisBuilder'
+
+const router = useRouter()
+
+// Jump to My Datasets and auto-open the upload modal
+const goToUploadDataset = () => {
+  router.push({ name: 'MyDatasets', query: { upload: '1' } })
+}
 
 const {
   activeTab,
@@ -46,13 +54,21 @@ const {
 
 <template>
   <div class="p-6 max-w-screen-2xl mx-auto">
-    <div class="flex items-start justify-between mb-6">
+    <div class="flex items-start justify-between mb-6 gap-4">
       <div>
         <h1 class="text-5xl font-semibold">Create New Analysis</h1>
         <p class="text-xl text-base-content/60 mt-1">
           Configure preprocessing pipeline for MSI datasets
         </p>
       </div>
+      <button
+        class="btn btn-primary shrink-0"
+        @click="goToUploadDataset"
+        title="Go to My Datasets to upload a new dataset"
+      >
+        <SvgIcon type="upload" class="w-5 h-5" />
+        Upload New Dataset
+      </button>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">

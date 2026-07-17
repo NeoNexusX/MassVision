@@ -315,7 +315,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
             data: props.chartData,
             barWidth: 3,
             barGap: '-100%',
-            itemStyle: { color: '#374151' },
+            itemStyle: { color: '#6B7280' },
             large: true,
             // xAxis.min/max 钉死在首尾数据点上，柱子中心正好卡在网格边缘，
             // 默认裁剪会把最左/最右柱子露出网格外的那一半切掉；关掉裁剪即可

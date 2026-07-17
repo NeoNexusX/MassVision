@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { rawConvertProcess } from '@/features/datasets/api/datasetApi'
+import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
 import { useToast } from '@/shared/composables/useToast'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import type { File } from '@/features/datasets/types/dataset'
@@ -79,6 +80,9 @@ export function useExploreDataset() {
           runId: String(ds.defaultRunId),
           datasetName: ds.filename || ds.name,
           fileId: Number(ds.id),
+          // defaultRunId 恒为 raw-convert 可视化任务（rawConvertProcess 创建），
+          // 其 params_json 约定为 '__RAW_CONVERT__'；与 workspace 列表解析出的 methods 一致
+          methods: parseAlgorithms('__RAW_CONVERT__'),
         },
       })
     } else {
