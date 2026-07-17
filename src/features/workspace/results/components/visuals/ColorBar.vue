@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col select-none h-full overflow-y-auto overflow-x-hidden pr-8">
+  <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto overflow-x-hidden pr-4 lg:pr-8">
     <!-- ─── Display Range ─── -->
     <div class="pt-3 border-t border-base-content/25">
       <div class="text-base font-semibold text-base-content mb-2">Display range</div>

@@ -267,8 +267,7 @@ async function onSelectPixel(col: number, row: number) {
 
     <template #side-panel>
       <ColorBar
-        class="shrink-0 py-4"
-        :style="{ width: '340px' }"
+        class="shrink-0 py-4 w-full lg:w-[340px]"
         :colormap="colormap"
         :global-min="globalMin"
         :global-max="globalMax"

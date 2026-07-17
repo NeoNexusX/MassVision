@@ -1,6 +1,6 @@
 {
   "appName": "SpatialXomics",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "hero": {
     "taglines": ["OPEN ↗", "FAST ▶︎▶︎", "UNIFIED ≡", "INTELLIGENT ✧"],
     "gallery": [
@@ -34,6 +34,11 @@
   },
 
   "timeline": [
+    {
+      "date": "July 17",
+      "version": "0.5.2",
+      "features": ["Updated documentation", "Added real file upload/download tests", "Fixed memory leak in result page", "Style adjustments on several pages"]
+    },
     {
       "date": "July 10",
       "version": "0.5.1",
