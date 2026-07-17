@@ -2,7 +2,7 @@
 
 This page explains how to create a new analysis task in the **SpatialXomics** workspace, including selecting a data source and configuring the preprocessing pipeline.
 
-## Accessing the Page
+## 1. Accessing the Page
 
 After signing in, navigate to the **Workspace** via the navigation bar and click the **New Analysis** button to enter the creation page.
 
@@ -14,7 +14,7 @@ The creation page is divided into two main areas: the configuration steps on the
 
 ---
 
-## Step 1: Data Source
+## 2. Step 1: Data Source
 
 In this step, you need to select a dataset to analyze.
 
@@ -42,11 +42,11 @@ Click any row in the list, or click the radio button on the right, to select a d
 - Detect the dataset's **spectrum mode** (Profile / Centroid) and **storage mode** (Continuous / Processed).
 - Auto-fill instrument parameters from the dataset metadata (e.g., ionization source, analyzer, pixel size) for use in later steps.
 
-> **Note**: The dataset's spectrum mode and storage mode affect which preprocessing methods are available. For example, datasets in Continuous mode do not support Peak Alignment.
+> **Note**: The dataset's spectrum mode and storage mode together determine which preprocessing methods are available. For example, Profile mode datasets must go through Peak Picking before Peak Alignment becomes available; Centroid + Continuous datasets already share one m/z axis across all pixels (equivalent to already being aligned), so Peak Alignment is not supported.
 
 ---
 
-## Step 2: Preprocessing Pipeline
+## 3. Step 2: Preprocessing Pipeline
 
 Once a dataset is selected, you configure the preprocessing pipeline. Within each method group, **only one method** may be selected (single choice). Some methods support custom parameters.
 
@@ -99,7 +99,7 @@ Aligns peaks across spectra to a common m/z axis.
 |--------|-------------|------------|
 | **Python Backend** | Python-based peak alignment | Bin Function (Median / Mean / Min / Max), Min Frequency (minimum frequency threshold for peak retention) |
 
-> **Tip**: For datasets in **Profile** mode, the Peak Alignment option only appears after a Peak Picking method is selected. Datasets in **Continuous** storage mode do not support Peak Alignment.
+> **Tip**: For datasets in **Profile** mode, the Peak Alignment option only appears after a Peak Picking method is selected. **Centroid + Processed** datasets store each pixel's peaks on its own m/z axis, so alignment to a common axis is needed. **Centroid + Continuous** datasets already share one m/z axis across all pixels, so their peaks are effectively already aligned, and Peak Alignment is not available.
 
 ### Mode Notice
 
@@ -107,7 +107,7 @@ After a dataset is selected, a blue info banner appears at the top of the prepro
 
 ---
 
-## Analysis Summary Panel
+## 4. Analysis Summary Panel
 
 The right side of the page has a fixed **Analysis Summary** panel that provides a real-time overview of the current configuration.
 
@@ -133,7 +133,7 @@ When requirements are not met, the button is grayed out with the hint *"Select d
 
 ---
 
-## Submitting the Analysis
+## 5. Submitting the Analysis
 
 After clicking **Start Analysis**, the system submits the configuration to the backend and creates an analysis task. Upon successful submission:
 
@@ -144,7 +144,7 @@ After clicking **Start Analysis**, the system submits the configuration to the b
 
 ---
 
-## Tips
+## 6. Tips
 
 - Before selecting a dataset, consider uploading the required data on the **My Datasets** page or verifying that the target data is available in **Public Datasets**.
 - Each method group in the preprocessing pipeline is **single-choice** — you can only pick one method per group, but you may switch your selection at any time.

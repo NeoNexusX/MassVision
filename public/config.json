@@ -1,6 +1,6 @@
 {
   "appName": "SpatialXomics",
-  "version": "0.4",
+  "version": "0.5.2",
   "hero": {
     "taglines": ["OPEN ↗", "FAST ▶︎▶︎", "UNIFIED ≡", "INTELLIGENT ✧"],
     "gallery": [
@@ -35,7 +35,17 @@
 
   "timeline": [
     {
-      "date": "July 26",
+      "date": "July 17",
+      "version": "0.5.2",
+      "features": ["Updated documentation", "Added real file upload/download tests", "Fixed memory leak in result page", "Style adjustments on several pages"]
+    },
+    {
+      "date": "July 10",
+      "version": "0.5.1",
+      "features": ["Refactored pages and updated documentation", "Fixed bugs"]
+    },
+    {
+      "date": "June 26",
       "version": "0.4",
       "features": ["Upload/download pipeline hardened with Zarr storage update and zip compression fix"]
     },
@@ -109,7 +119,7 @@
           { "to": "/workspace/new", "icon": "plus", "label": "New Analysis", "active": true }
         ]
       },
-      { "kind": "link", "to": "/docs/", "icon": "book", "label": "Documentation", "active": true }
+      { "kind": "link", "to": "/docs/", "icon": "book", "label": "Documentation", "active": true, "external": true }
     ],
     "userMenu": [
       { "kind": "link", "to": "/profile", "icon": "user-circle", "label": "Profile", "active": true },

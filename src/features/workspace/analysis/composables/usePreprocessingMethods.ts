@@ -267,9 +267,12 @@ export function buildDefaultMethodParams(): Record<string, string | number> {
   return params
 }
 
+// align 的可用性取决于"当前是否存在尚未统一到公共 m/z 轴的峰"：
+// - profile 数据本身还不是峰，需先选中 pick 生成峰列表后才需要（也才能）做 align；
+// - centroid + processed：各像素的峰分别存储在自己的 m/z 轴上，彼此不一致，需要 align 统一到公共轴；
+// - centroid + continuous：continuous 存储本身就代表所有像素共享同一条 m/z 轴，峰已等同于对齐过，align 不适用。
 const methodRulesByMode: Record<string, string[]> = {
-  // continuous 模式不支持峰对齐（数据未做峰提取，无法对齐）
-  profile_continuous: ['noise', 'baseline', 'norm', 'pick'],
+  profile_continuous: ['noise', 'baseline', 'norm', 'pick', 'align'],
   profile_processed: ['noise', 'baseline', 'norm', 'pick', 'align'],
   centroid_continuous: ['norm'],
   centroid_processed: ['norm', 'align'],
@@ -303,10 +306,14 @@ export function usePreprocessingMethods(
 
     notices.push(`This dataset is ${s || 'profile'} + ${t || 'continuous'}.`)
 
-    if (t.toLowerCase() === 'continuous') {
-      notices.push('Peak Alignment is not compatible with continuous storage.')
-    } else if (s.toLowerCase() === 'profile') {
+    const sMode = (s || 'profile').toLowerCase()
+    const tMode = (t || 'continuous').toLowerCase()
+    if (sMode === 'profile') {
       notices.push('Peak Alignment requires Peak Picking to be selected first.')
+    } else if (tMode === 'continuous') {
+      notices.push(
+        'Peak Alignment is not applicable: peaks already share a common m/z axis under continuous storage.',
+      )
     }
 
     notices.push('Only compatible preprocessing methods are shown.')
@@ -322,8 +329,8 @@ export function usePreprocessingMethods(
     return allMethodGroups.filter((g) => {
       if (!allowed.includes(g.key)) return false
 
-      // profile 模式下，align 需要 pick 已选中才显示
-      if (g.key === 'align' && spectrumMode.value.toLowerCase() === 'profile') {
+      // profile 模式下，align 需要 pick 已选中才显示（centroid 数据本身即为峰，无需该限制）
+      if (g.key === 'align' && (spectrumMode.value || 'profile').toLowerCase() === 'profile') {
         return !!selectedMethods?.['pick']
       }
 

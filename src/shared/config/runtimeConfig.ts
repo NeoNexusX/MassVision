@@ -193,6 +193,8 @@ export interface NavChild extends NavVisibility {
   icon: string
   /** 显示文案 */
   label: string
+  /** 是否在新标签页中打开（用 <a target="_blank"> 代替 <router-link>） */
+  external?: boolean
 }
 
 /** 顶层菜单：普通链接 */
@@ -206,6 +208,8 @@ export interface NavLinkItem extends NavVisibility {
   label: string
   /** 点击后是否关闭抽屉，默认 true（如登录/注册等可设为 false） */
   closeOnClick?: boolean
+  /** 是否在新标签页中打开（用 <a target="_blank"> 代替 <router-link>） */
+  external?: boolean
 }
 
 /** 顶层菜单：可折叠分组 */

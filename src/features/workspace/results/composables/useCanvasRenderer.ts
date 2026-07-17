@@ -179,7 +179,12 @@ export function useCanvasRenderer(
   }
 
   // Lifecycle
-  onBeforeUnmount(() => ro?.disconnect())
+  onBeforeUnmount(() => {
+    ro?.disconnect()
+    if (renderRaf) cancelAnimationFrame(renderRaf)
+    offscreen = null
+    cachedData = null
+  })
 
   return { render, scheduleRender, observeContainer }
 }

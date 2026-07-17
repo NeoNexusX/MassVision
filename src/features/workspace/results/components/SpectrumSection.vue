@@ -132,7 +132,7 @@ const currentStats = computed(() =>
 </script>
 
 <template>
-  <div class="shrink-0 h-80 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col">
+  <div class="shrink-0 h-56 lg:h-80 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col">
     <div
       v-if="isStale"
       class="flex-1 flex items-center justify-center text-base-content/40 text-lg"
@@ -171,7 +171,7 @@ const currentStats = computed(() =>
   </div>
 
   <!-- 底部统计信息 -->
-  <div class="shrink-0 flex flex-wrap gap-4 text-lg text-base-content/60 pl-4 pr-1">
+  <div class="shrink-0 flex flex-wrap gap-4 text-base lg:text-lg text-base-content/60 pl-4 pr-1">
     <span v-for="stat in currentStats" :key="stat.label">
       {{ stat.label }}:
       <strong class="text-base-content font-mono">{{ stat.value }}</strong>

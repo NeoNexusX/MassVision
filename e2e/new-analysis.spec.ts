@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { sizeToMB, ALGO_MAX_MB } from './utils.js'
 
 /**
  * NewAnalysis E2E 测试 — 真实后端
@@ -6,6 +7,13 @@ import { test, expect } from '@playwright/test'
  * 创建分析页面 /workspace/new
  *
  * 依赖：用户已登录且有至少一个 dataset
+ *
+ * 跨文件依赖：本文件最后一个测试（"submit, wait for completion, then delete"）会创建一个
+ * 分析任务并等它跑完，但不会删除——清理工作留给了 result-detail.spec.ts 末尾的
+ * "Cleanup > delete completed result"。两个文件必须一起跑（按文件名字母序，
+ * new-analysis 在 result-detail 之前）才能形成完整的创建 → 查看 → 删除链路。
+ * 如果单独只跑 result-detail.spec.ts，它的 Cleanup 测试会删除 Workspace 里
+ * "当前最新的 Completed 结果"——如果没有本文件留下的任务，可能会误删真实数据。
  */
 
 test.describe('New Analysis', () => {
@@ -126,6 +134,8 @@ test.describe('New Analysis', () => {
     await expect(page.getByText('Select dataset and configure pipeline first')).not.toBeVisible()
   })
 
+  // 注意：测试名里的 "delete" 指的是 result-detail.spec.ts 末尾的 Cleanup 测试，
+  // 本测试自己只创建任务、等待完成，不做删除（见文件头的跨文件依赖说明）
   test('submit, wait for completion, then delete', async ({ page }) => {
     test.setTimeout(180_000)
     await page.goto('/workspace/new')
@@ -135,7 +145,18 @@ test.describe('New Analysis', () => {
     const radios = page.locator('input[name="selectedDataset"]')
     await radios.first().waitFor({ state: 'visible', timeout: 10_000 })
     const count = await radios.count()
-    const pick = count > 1 ? Math.floor(Math.random() * count) : 0
+    // 算法测试只选 < ALGO_MAX_MB 的数据集，避免大文件跑算法超时
+    const eligible: number[] = []
+    for (let i = 0; i < count; i++) {
+      const li = radios.nth(i).locator('..')
+      const text = await li.innerText()
+      if (sizeToMB(text) < ALGO_MAX_MB) eligible.push(i)
+    }
+    if (eligible.length === 0) {
+      test.skip(true, `No dataset < ${ALGO_MAX_MB}MB available for analysis`)
+      return
+    }
+    const pick = eligible[Math.floor(Math.random() * eligible.length)]
     await radios.nth(pick).locator('..').click()
 
     const methodLabels = page.locator('details[open] label')

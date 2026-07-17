@@ -97,6 +97,36 @@ export function getSharedZarrContext(): SharedZarrContext {
   }
 }
 
+/**
+ * Release all module-level state. Call on ResultDetail unmount so that large
+ * TypedArrays (mzAxis, meanChartData, ticMatrix, pixelSpectrum) and the
+ * ZarrOssStore (chunk caches, in-flight requests) become GC-eligible instead
+ * of persisting for the entire SPA lifetime.
+ */
+export function disposeZarrState(): void {
+  store?.dispose()
+  store = null
+
+  mzAxisRef.value = null
+  ionDims.value = null
+  dataModeRef.value = null
+  rowAxisRef.value = null
+  metadataAttrsRef.value = null
+
+  meanChartData.value = []
+  spectrumLoading.value = false
+  spectrumError.value = null
+  nMz.value = 0
+
+  ticMatrix.value = null
+  ticLoading.value = false
+  ticError.value = null
+
+  pixelSpectrum.value = null
+  pixelSpectrumLoading.value = false
+  pixelSpectrumError.value = null
+}
+
 // ---- Mean spectrum loading (continuous mode) ----
 
 /**
@@ -113,6 +143,8 @@ export async function loadMeanSpectrum(): Promise<void> {
 
   try {
     const meanData = await store.loadMeanSpectrum()
+    // store 可能在 await 期间被 disposeZarrState() 置空（用户已离开页面）
+    if (!store) return
     if (!meanData) {
       spectrumLoading.value = false
       spectrumError.value = 'Mean spectrum not available'
@@ -154,6 +186,7 @@ export async function loadTICImage(): Promise<void> {
   try {
     // Fast path: use pre-computed stats/tic if available
     const fastMatrix = await store.loadTIC()
+    if (!store) return
     if (fastMatrix) {
       ticMatrix.value = fastMatrix
       ticLoading.value = false
@@ -162,6 +195,7 @@ export async function loadTICImage(): Promise<void> {
 
     // Fallback: compute TIC by summing all intensity chunks
     const matrix = await store.computeTICImage()
+    if (!store) return
     ticMatrix.value = matrix
     ticLoading.value = false
   } catch (e) {
@@ -183,6 +217,7 @@ export async function loadPixelSpectrum(pixelIndex: number): Promise<void> {
 
   try {
     const spectrum = await store.getPixelSpectrum(pixelIndex)
+    if (!store) return
     if (!spectrum) {
       pixelSpectrumLoading.value = false
       pixelSpectrumError.value = 'Empty spectrum for this pixel'
@@ -306,7 +341,10 @@ export function useZarrIonImage() {
     if (dataModeRef.value !== 'continuous') return
     loading.value = true
     selectedMzIndex.value = idx
-    ionMatrix.value = await loadIonSliceSum(findMzRangeIndices(idx, mzTolerance.value))
+    const matrix = await loadIonSliceSum(findMzRangeIndices(idx, mzTolerance.value))
+    // store 可能在 await 期间被 disposeZarrState() 置空
+    if (!store) return
+    ionMatrix.value = matrix
     loading.value = false
   }
 
@@ -340,6 +378,7 @@ export function useZarrIonImage() {
     ready.value = false
 
     // Reset all state
+    store?.dispose()
     store = null
     mzAxisRef.value = null
     ionDims.value = null
@@ -365,33 +404,38 @@ export function useZarrIonImage() {
 
     try {
       const access = await getZarrAccess(runId)
-      store = new ZarrOssStore(access, {
+      const s = new ZarrOssStore(access, {
         intensityChunkCacheSize: ZARR_STORE.intensityChunkCacheSize,
       })
-      await store.init()
+      store = s
+      await s.init()
+      // 如果 await 期间发生了 disposeZarrState()（用户离开页面）或重新 init()，放弃本次加载
+      if (store !== s) return
 
       // Set mode and row axis
-      dataModeRef.value = store.dataMode
-      rowAxisRef.value = store.rowAxis
-      metadataAttrsRef.value = store.metadataAttrs
+      dataModeRef.value = s.dataMode
+      rowAxisRef.value = s.rowAxis
+      metadataAttrsRef.value = s.metadataAttrs
 
       // Set spatial dimensions
-      const [height, width] = store.spatialShape
+      const [height, width] = s.spatialShape
       ionDims.value = { width, height }
 
-      if (store.dataMode === 'continuous') {
+      if (s.dataMode === 'continuous') {
         // Load shared m/z axis
-        const mzAxis = await store.loadMzAxis()
+        const mzAxis = await s.loadMzAxis()
+        if (store !== s) return
         mzAxisRef.value = mzAxis
 
         // Set ion shape for backward compat
-        const shape = store.getIonShape()
+        const shape = s.getIonShape()
         if (shape) {
           ionDims.value = { width: shape[2]!, height: shape[1]! }
         }
 
         ready.value = true
         await loadDefaultImage()
+        if (store !== s) return
         loadMeanSpectrum() // background
       } else {
         // Processed mode: load TIC image

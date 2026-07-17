@@ -2,7 +2,7 @@
 
 SpatialXomics offers two ways to turn mass spectrometry imaging data into interactive visualizations:
 
-## Two Visualization Methods
+## 1. Two Visualization Methods
 
 ### One-Click Visualization (Explore / Raw-Convert) — Recommended
 
@@ -32,40 +32,32 @@ Create an analysis task manually in the Workspace, choosing your own algorithms 
 
 **Use cases**: Fine-grained control over the preprocessing pipeline, comparing algorithm performance, reproducing analysis workflows.
 
-**Steps:**
+For the detailed steps (selecting a data source, configuring the preprocessing pipeline, submitting the task, etc.), see [Creating an Analysis](/guide/create-analysis). Once the task completes, click **View** in the Workspace task list to open the result page.
 
-1. Go to the **Workspace** and click **New Task**.
-2. Select the target dataset.
-3. Configure the preprocessing pipeline step by step: noise reduction, baseline correction, normalization, peak picking, and peak alignment — each step supports different algorithms with adjustable parameters.
-4. Review the summary panel and click **Start Analysis** to submit.
-5. Wait for the task to complete, then click **View** to open the result page.
-
-![view-4](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/view-4.png)
-
-> Regardless of the method, the final interactive visualization interface (ion image, spectrum, ROI, cluster overlays, etc.) is identical. The sections below cover how to use the result page.
+> Regardless of the method, the final interactive visualization interface (ion image, spectrum, ROI, etc.) is identical. The sections below cover how to use the result page.
 
 ---
 
-## Entering the Result Page
+## 2. Entering the Result Page
 
 After generating a visualization through either method above, tasks with a `completed` status in the **Workspace** task list will show a **View** button. Click it to enter the result page.
 
 ![view-5](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/view-5.png)
 
-> The result page is at `/workspace/results` and requires login. Tasks with a `processing` or `failed` status cannot be viewed yet.
+> The result page is at `/workspace/results` and requires login. Tasks with a `processing` status cannot be viewed yet; for `failed` tasks, click to view the error reason.
 
-## Page Layout
+## 3. Page Layout
 
 The result page uses a two-column layout:
 
 - **Left main area**: Ion image or TIC image at the top (with toolbar and zoom controls), spectrum at the bottom (with summary stats).
-- **Right panel (ColorBar)**: Display range adjustment, statistical histogram, dataset metadata, preprocessing methods, and UMAP / KMeans / ROI overlay controls.
+- **Right panel**: Display range adjustment, statistical histogram, dataset metadata, preprocessing methods, and ROI overlay controls.
 
 ![view-6](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/view-6.png)
 
 ---
 
-## Data Modes
+## 4. Data Modes
 
 The result page supports two data viewing modes, determined by the dataset's storage mode:
 
@@ -78,7 +70,7 @@ Interactions differ between the two modes, as explained in the sections below.
 
 ---
 
-## Ion Image
+## 5. Ion Image
 
 ### Basic Operations
 
@@ -102,7 +94,7 @@ The toolbar above the image provides the following controls:
 | Intensity Scale | Switch between Linear or Log scale | Both |
 | Reset | Reset all image parameters (tolerance, colormap, scale, gamma, display range) | Both |
 
-> **About Tolerance**: Due to instrument precision, the same ion may be measured at slightly different m/z values across runs. Tolerance defines the acceptable deviation for matching — for example, with a tolerance of 0.01 and a selected m/z of 889.58, signals in the range 889.57 ~ 889.59 are considered the same ion. Smaller tolerance means stricter matching; larger tolerance widens the match window. Adjust based on your data's precision.
+> **About Tolerance**: Tolerance defines the acceptable deviation for m/z matching — for example, with a tolerance of 0.01 and a selected m/z of 889.58, signals in the range 889.57 ~ 889.59 are considered the same ion. Smaller tolerance means stricter matching; larger tolerance widens the match window.
 
 ![view-8](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/view-8.png)
 
@@ -130,15 +122,15 @@ The **Visualization** section in the right panel provides a Gamma slider, rangin
 
 ### Pixel Click in Processed Mode
 
-In Processed / TIC mode, clicking a pixel in the image loads that pixel's spectrum (see the Spectrum section below). The system distinguishes between dragging and clicking (movement over 3px is treated as a drag and does not trigger selection).
+In Processed / TIC mode, clicking a pixel in the image loads that pixel's spectrum (see the Spectrum section below).
 
 ![view-11](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/view-11.png)
 
 ---
 
-## Spectrum
+## 6. Spectrum
 
-The spectrum is rendered with ECharts, located below the ion image.
+The spectrum is located below the ion image.
 
 ### Spectrum Modes
 
@@ -146,8 +138,8 @@ The spectrum has two display modes based on data characteristics:
 
 | Mode | Display | Data Mode |
 |---|---|---|
-| **Centroid** | Bar chart — each bar represents a detected peak | Continuous / Processed |
-| **Profile** | Continuous line chart — shows the full spectrum profile | Continuous / Processed |
+| **Centroid** | Medium gray bar chart — each bar represents a detected peak | Continuous / Processed |
+| **Profile** | Dark gray continuous line chart — shows the full spectrum profile | Continuous / Processed |
 
 **Centroid:**
 
@@ -176,7 +168,7 @@ For example, clicking the peak at m/z 889.5810 in the spectrum will automaticall
 
 ### Zooming & Browsing
 
-- **Built-in zoom**: ECharts supports drag-to-select region zooming (dataZoom).
+- **Built-in zoom**: Supports drag-to-select region zooming.
 - **Bottom slider**: Drag the slider handles to adjust the X-axis (m/z) display range.
 
 ### Summary Statistics
@@ -196,16 +188,15 @@ If spectrum loading fails, an error message and **Retry** button are displayed. 
 
 ---
 
-## Right Panel (ColorBar)
+## 7. Right Panel
 
 ### Display Range
 
 - Shows the current Min / Max intensity values and their corresponding percentiles.
-- Percentile labels are derived via binary search on sorted values.
 
 ### Statistical Histogram
 
-- A 10-bin intensity distribution histogram (Canvas-rendered).
+- An intensity distribution histogram.
 - Red marker lines indicate the position of the current displayMin / displayMax within the distribution.
 - Text stats: **Dimensions** (total pixel count), **Non-zero** (non-zero pixel ratio), **TIC** (total ion current).
 
@@ -230,7 +221,7 @@ Lists the preprocessing methods applied to this dataset during analysis.
 
 ---
 
-## ROI Analysis
+## 8. ROI Analysis
 
 Draw regions of interest on the ion image to focus statistical analysis or comparison on specific tissue areas.
 
@@ -270,38 +261,9 @@ After confirming an ROI, the image automatically switches to **Viewing ROI** mod
 
 ---
 
-## UMAP / KMeans Cluster Overlay
-
-Overlay dimensionality reduction and clustering results as color layers on the ion image to quickly identify groups of pixels with similar metabolic/chemical profiles within the same tissue section.
-
-### UMAP Overlay
-
-- Maps the 3D UMAP embedding coordinates to RGB color channels, giving each pixel a unique color with smooth gradients.
-- Regions with similar metabolic features appear in similar colors.
-
-### KMeans Overlay
-
-- Uses a 20-color palette to assign colors to cluster labels.
-- Default cluster count K=5, displayed as discrete color blocks.
-
-### Control Panel
-
-The right panel provides the following controls:
-
-| Control | Description |
-|---|---|
-| UMAP button | Toggle UMAP overlay on / off (click again to close) |
-| KMeans button | Toggle KMeans overlay on / off (click again to close) |
-| Opacity slider | Adjust overlay transparency (0 ~ 100%) for comparison with the underlying ion image |
-
-- ROI and cluster overlays can be enabled simultaneously. Adjust layer order and opacity for the best contrast.
-
----
-
-## Tips
+## 9. Usage Tips
 
 - Selection between the ion image and spectrum is bidirectional — making it easy to home in on an m/z of interest.
-- ROI and cluster overlays can be enabled together; adjust layer order and opacity for the clearest contrast.
 - The zoom center follows your cursor — position the mouse precisely to zoom into the area of interest.
-- The dataZoom slider at the bottom of the spectrum is ideal for quickly navigating m/z ranges, especially for wide mass range data.
-- Result page data comes from Zarr-format preprocessed files. Initial loading may take a few seconds — please be patient.
+- The slider at the bottom of the spectrum is ideal for quickly navigating m/z ranges, especially for wide mass range data.
+- Initial loading may take a few seconds — please be patient.

@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, onBeforeUnmount } from 'vue'
 
 export function useZoomPan(
   // Arguments
@@ -9,6 +9,10 @@ export function useZoomPan(
   const zoom = ref(1)
   const panX = ref(0)
   const panY = ref(0)
+
+  // Track active document listeners so they can be removed on unmount
+  let activePanMove: ((e: MouseEvent) => void) | null = null
+  let activePanUp: (() => void) | null = null
 
   // Methods
   function resetZoom() {
@@ -69,10 +73,20 @@ export function useZoomPan(
     const onUp = () => {
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
+      activePanMove = null
+      activePanUp = null
     }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
+    activePanMove = onMove
+    activePanUp = onUp
   }
+
+  // Remove any pending pan listeners if the component unmounts mid-drag
+  onBeforeUnmount(() => {
+    if (activePanMove) document.removeEventListener('mousemove', activePanMove)
+    if (activePanUp) document.removeEventListener('mouseup', activePanUp)
+  })
 
   return { zoom, panX, panY, resetZoom, zoomIn, zoomOut, setZoom, onWheel, onPanStart }
 }

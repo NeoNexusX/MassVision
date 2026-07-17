@@ -205,6 +205,7 @@ export interface CacheInfo {
 export class ZarrOssStore {
   private access: ZarrAccessResponse
   private oss: OssClient
+  private _disposed = false
 
   // Mode detection
   private _dataMode: DataMode | null = null
@@ -255,6 +256,24 @@ export class ZarrOssStore {
     this.mzChunkCache = new LruCache<number, Float64Array>(
       options.mzChunkCacheSize ?? 5,
     )
+  }
+
+  /**
+   * Release all cached data and mark the store as disposed.
+   * After calling this, the store should not be used again.
+   */
+  dispose(): void {
+    this._disposed = true
+    this.intensityChunkCache.clear()
+    this.mzChunkCache.clear()
+    this.inFlightIntensity.clear()
+    this.inFlightMz.clear()
+    this.coordinates = null
+    this.mzAxis = null
+    this._offsets = null
+    this.meanSpectrum = null
+    this.ticData = null
+    this._metadataAttrs = null
   }
 
 
@@ -372,18 +391,20 @@ export class ZarrOssStore {
       }
     }
 
-    // 10) stats/tic（非致命，可能不存在；仅 processed 模式有意义）
-    try {
-      this.ticMeta = await this.readArrayMeta('stats/tic')
-      if (import.meta.env.DEV) {
-        console.log('[ZarrOssStore] stats/tic found', {
-          shape: this.ticMeta.shape.join('×'),
-          dtype: this.ticMeta.data_type,
-        })
-      }
-    } catch (e) {
-      if (import.meta.env.DEV) {
-        console.warn('[ZarrOssStore] stats/tic not available.', (e as Error).message)
+    // 10) stats/tic（仅 processed 模式存在）
+    if (this._dataMode === 'processed') {
+      try {
+        this.ticMeta = await this.readArrayMeta('stats/tic')
+        if (import.meta.env.DEV) {
+          console.log('[ZarrOssStore] stats/tic found', {
+            shape: this.ticMeta.shape.join('×'),
+            dtype: this.ticMeta.data_type,
+          })
+        }
+      } catch (e) {
+        if (import.meta.env.DEV) {
+          console.warn('[ZarrOssStore] stats/tic not available.', (e as Error).message)
+        }
       }
     }
 
@@ -600,7 +621,11 @@ export class ZarrOssStore {
     }
 
     const offsets = await this.loadOffsets()
+    if (this._disposed) return new Float32Array(0)
+
     const coords = await this.loadCoordinates()
+    if (this._disposed) return new Float32Array(0)
+
     const [height, width] = this.spatialShape
     const nPixels = offsets.length - 1
 
@@ -612,12 +637,15 @@ export class ZarrOssStore {
     let cursor = 0 // current pixel index, advances monotonically
 
     for (let batchStart = 0; batchStart < totalChunks; batchStart += BATCH_SIZE) {
+      if (this._disposed) return new Float32Array(0)
+
       const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
       const batch: Promise<Float32Array>[] = []
       for (let ci = batchStart; ci < batchEnd; ci++) {
         batch.push(this.getIntensityChunk(ci))
       }
       const chunks = await Promise.all(batch)
+      if (this._disposed) return new Float32Array(0)
 
       for (let j = 0; j < chunks.length; j++) {
         const ci = batchStart + j
