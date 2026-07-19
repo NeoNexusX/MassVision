@@ -10,7 +10,7 @@ import {
   resetSessionForReupload,
 } from './uploadResume'
 import { checkStorageQuota } from './quotaCheck'
-import { OSS_UPLOAD, ENV } from '@/shared/config'
+import { OSS_UPLOAD } from '@/shared/config'
 import { generateDatasetFilename } from './filenameGenerator'
 
 // Module-level refs for external abort
@@ -219,7 +219,7 @@ export async function uploadImzmlZipFileOSS({
   onProgress?.({ stage: 'uploading', percent: 0, message: 'Uploading to server...' })
 
   const region = `oss-${ossData.oss_region_id}`
-  const clientOptions: any = {
+  const client = new OSS({
     region,
     accessKeyId: ossData.oss_sts_token.AccessKeyId,
     accessKeySecret: ossData.oss_sts_token.AccessKeySecret,
@@ -227,11 +227,7 @@ export async function uploadImzmlZipFileOSS({
     authorizationV4: true,
     bucket: ossData.oss_bucket,
     timeout: OSS_UPLOAD.timeout,
-  }
-  if (ENV.ossEndpoint) {
-    clientOptions.endpoint = ENV.ossEndpoint
-  }
-  const client = new OSS(clientOptions)
+  })
   currentOssClient = client
 
   // Save session immediately (normal path only) so it's available even if user refreshes before first progress callback
