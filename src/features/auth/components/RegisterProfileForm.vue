@@ -19,10 +19,10 @@ defineProps<{
 
 <template>
   <div
-    class="w-full lg:w-1/2 p-8 md:p-10 pb-8 flex flex-col flex-1 min-h-0 bg-base-200/50 dark:bg-base-200/20"
+    class="w-full lg:w-1/2 p-5 sm:p-8 md:p-10 pb-8 flex flex-col flex-1 min-h-0 bg-base-200/50 dark:bg-base-200/20"
   >
     <div class="min-h-[72px] mb-4">
-      <h3 class="text-2xl font-bold flex items-center gap-2">
+      <h3 class="text-[1.5em] font-bold flex items-center gap-2">
         Researcher Profile
       </h3>
       <p class="text-base-content/60 text-base mt-3">Complete your professional details</p>

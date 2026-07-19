@@ -53,16 +53,16 @@ const {
 </script>
 
 <template>
-  <div class="p-6 max-w-screen-2xl mx-auto">
-    <div class="flex items-start justify-between mb-6 gap-4">
+  <div class="p-4 sm:p-6 max-w-screen-2xl mx-auto page-type">
+    <div class="flex flex-col sm:flex-row items-start justify-between mb-6 gap-4">
       <div>
-        <h1 class="text-5xl font-semibold">Create New Analysis</h1>
-        <p class="text-xl text-base-content/60 mt-1">
+        <h1 class="page-title font-semibold">Create New Analysis</h1>
+        <p class="page-subtitle text-base-content/60 mt-1">
           Configure preprocessing pipeline for MSI datasets
         </p>
       </div>
       <button
-        class="btn btn-primary shrink-0"
+        class="btn btn-primary shrink-0 w-full sm:w-auto"
         @click="goToUploadDataset"
         title="Go to My Datasets to upload a new dataset"
       >

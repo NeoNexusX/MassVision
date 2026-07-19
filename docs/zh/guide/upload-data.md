@@ -2,53 +2,101 @@
 
 本页介绍如何将质谱成像（MSI）数据上传至 SpatialXomics 平台。
 
-## 1. 支持的格式
+## 1. 支持格式
 
-- **imzML 数据对**：`.imzML`（元数据 / 谱图索引）与 `.ibd`（二进制谱图数据）需成对上传，且两个文件必须**主文件名相同**（仅扩展名不同），否则无法完成配对识别。
+平台支持 **imzML 数据对**上传，即 `.imzML`（元数据 / 谱图索引）与 `.ibd`（二进制谱图数据）两个文件需成对上传，且主文件名必须完全一致（仅扩展名不同）。
 
 ## 2. 操作步骤
 
-#### 1.点击右侧按钮，登录个人账号
+### 2.1 进入上传页面
 
-![image-20260703113729368](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703113729368.png)
+登录后，通过导航栏进入 **我的数据集（My Datasets）** 页面，点击 **Upload New Dataset** 按钮，打开上传弹窗。
 
-#### 2.进入个人数据集页面，点击 **上传** 按钮，打开上传弹窗。
+![进入上传](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/1.png)
 
-![image-20260703113834009](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703113834009.png)
+### 2.2 选择文件
 
-#### 3.选择本地的 `.imzML` 与 `.ibd` 文件对（支持点击选择或拖拽上传），并补全数据集元信息（如分析仪类型、离子源、像素尺寸等）。
+点击 **Choose Files** 按钮，同时选中本地的 `.imzML` 和 `.ibd` 文件。系统会自动校验两个文件是否配对（主文件名一致），并在下方显示文件名与总大小。
 
-![image-20260703114021254](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703114021254.png)
+![选择文件](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/2.png)
 
-#### 4.填写数据集元信息：系统会优先从文件中自动解析并填充已有字段，对于文件中未提供的元数据，需手动补充。
+### 2.3 填写元数据
 
-<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703114430946.png" alt="image-20260703114430946" style="zoom: 50%;" />
+文件选择后，系统会自动解析 imzML 文件中的元数据，并预填以下字段（如 Polarity、Ionisation Source、Analyzer、Pixel Size 等）。对于文件中未包含的元数据，需手动补充。
 
-**如需将数据集发布为公开数据集，请勾选对应选项：**
+![填写元数据](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/3.png)
 
-<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115054607.png" alt="image-20260703115054607" style="zoom:67%;" />
+![填写元数据](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/4.png)
 
-**填写溶剂信息后，请点击右侧加号添加至列表，以确认该项已加入：**
+元数据分为两组：
 
-<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703120422329.png" alt="image-20260703120422329" style="zoom:50%;" />
+**采集信息（Acquisition Information）**
 
-若无法确定具体溶剂，建议选择 `100% Water` 作为默认项；如已知溶剂组成，请选择对应的选项。
+| 字段 | 说明 |
+|------|------|
+| Polarity | 极性（正离子 / 负离子模式） |
+| Ionisation Source | 离子源类型 |
+| Analyzer | 分析仪类型 |
+| Pixel Size X / Y | 像素尺寸（μm），范围 1–200 |
+| Spectrum Mode | 质谱模式（Profile / Centroid） |
+| Storage Mode | 存储模式（Continuous / Processed） |
+| Solvent | 溶剂组成（见下方"添加溶剂"说明） |
+| MALDI Matrix | MALDI 基质（当离子源为 MALDI 时需填写） |
+| MALDI Matrix Application | 基质施加方式（当离子源为 MALDI 时需填写） |
+| Detector Resolving Power | 检测器分辨率（m/z 与 Resolving Power，选填） |
 
-确认信息无误后，点击 **确认** 即可提交上传任务：
+**样本信息（Sample Metadata）**
 
-<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115249346.png" alt="image-20260703115249346" style="zoom: 50%;" />
+| 字段 | 说明 |
+|------|------|
+| Organism | 生物体种类 |
+| Organism Part | 组织部位 |
+| Condition | 样本状态 |
+| Sample Stabilization | 样本稳定化方式 |
+| Sample Growth Conditions | 培养条件（选填） |
+| Tissue Modification | 组织修饰（选填） |
 
-<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115800703.png" alt="image-20260703115800703" style="zoom:50%;" />
+> 带 \* 号的字段为必填项。
 
-上传过程中，系统会计算数据哈希并与全量数据库进行比对：若已有其他用户上传过相同数据，后台将自动复用既有副本，无需重复上传。
+#### 添加溶剂
+
+溶剂通过 **Solvent Picker** 组件添加：在百分比输入框中输入数值（1–100），在下拉框中选择溶剂类型，点击右侧 **+** 按钮即可添加至列表。支持添加多种溶剂组合。若无法确定具体溶剂，保留默认的 `100% Water` 即可。
+
+![添加溶剂](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703120422329.png)
+
+### 2.4 设置公开/私有
+
+勾选 **Make dataset public (visible to others)** 复选框可将数据集发布为公开数据集，所有用户均可查看。不勾选则仅自己可见。
+
+![公开选项](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115054607.png)
+
+> 若选择公开，点击确认提交后会弹出二次确认对话框，确认后数据集将对所有用户可见。
+
+### 2.5 提交上传
+
+确认信息无误后，点击 **Confirm & Upload** 按钮提交上传。
+
+![确认提交](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115249346.png)
+
+系统随后进入上传进度界面，显示当前进度百分比、上传速度和预计剩余时间。如需取消，可点击 **Abort Upload** 按钮。
+
+![上传进度](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115800703.png)
+
+上传过程中，系统会自动检测数据是否与服务器已有数据重复：若已有其他用户上传过相同数据，后台将直接复用既有副本，无需重复上传，大幅节省时间。
 
 ## 3. 续传与重试
 
-- 上传过程中的分片状态（`uploadId`、已完成分片、凭证有效期等）会持久化至本地存储。若上传过程中关闭页面或网络中断，再次打开上传弹窗时将出现 **续传提示**，点击即可从上次断点继续，无需重新压缩或重新计算哈希。
+### 断点续传
 
-<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115821860.png" alt="image-20260703115821860" style="zoom:50%;" />
+上传过程中若关闭页面或网络中断，再次打开上传弹窗时会出现 **续传提示**，点击 **Resume** 即可从上次断点继续，无需重新选择文件或填写元数据。
 
-- 单个分片上传失败时，系统将自动发起重试；仅在重试仍失败的情况下，才会提示用户介入处理。
+![续传提示](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115821860.png)
+
+点击 **Discard** 则会清除续传状态，下次需重新上传。
+
+### 自动重试
+
+单个分片上传失败时，系统会自动发起重试；仅在多次重试仍失败的情况下，才会提示用户介入处理。
 
 ## 4. 小贴士
 

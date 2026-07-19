@@ -1,21 +1,21 @@
 <template>
   <div
-    class="flex-1 w-full flex flex-col justify-center items-center py-8 px-4 sm:px-6 lg:px-8 bg-base-200"
+    class="flex-1 w-full flex flex-col justify-center items-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8 bg-base-200 page-type"
   >
     <!-- Main Content -->
     <div class="w-full max-w-7xl">
       <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden flex flex-col">
         <!-- Header / Banner -->
-        <div class="max-h-36 shrink-0 bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center px-8 py-8">
+        <div class="max-h-36 shrink-0 bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center px-4 sm:px-8 py-6 sm:py-8">
 
           <h1
-            class="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
+            class="page-title font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
           >
             Profile
           </h1>
         </div>
 
-        <div class="card-body p-8 space-y-6">
+        <div class="card-body p-4 sm:p-8 space-y-6">
           <!-- User Avatar & Basic Info -->
           <div class="flex flex-col gap-6 mb-6">
             <div class="flex flex-col sm:flex-row gap-6 items-center">
@@ -36,17 +36,17 @@
                   <IconInput label="Identity" :model-value="formData.identity" readonly />
 
                   <!-- Email (read-only, changed via modal) -->
-                  <div class="flex items-end gap-3">
+                  <div class="flex flex-col sm:flex-row sm:items-end gap-3">
                     <IconInput class="flex-[3]" label="Email" :model-value="formData.email" readonly />
-                    <button class="flex-[2] btn whitespace-nowrap" type="button" @click="openEmailModal">
+                    <button class="sm:flex-[2] btn whitespace-nowrap w-full sm:w-auto" type="button" @click="openEmailModal">
                       Change Email
                     </button>
                   </div>
 
                   <!-- Password (via modal) -->
-                  <div class="flex items-end gap-3">
+                  <div class="flex flex-col sm:flex-row sm:items-end gap-3">
                     <IconInput class="flex-[3]" label="Password" model-value="••••••••" readonly />
-                    <button class="flex-[2] btn whitespace-nowrap" type="button" @click="openPasswordModal">
+                    <button class="sm:flex-[2] btn whitespace-nowrap w-full sm:w-auto" type="button" @click="openPasswordModal">
                       Change Password
                     </button>
                   </div>
@@ -58,8 +58,8 @@
           <div class="divider text-xl">Quota Usage</div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="text-lg lg:text-xl text-base-content/60 mb-1">Storage Upload</div>
-              <div class="text-lg font-semibold">
+              <div class="text-[1em] lg:text-[1.1em] text-base-content/60 mb-1">Storage Upload</div>
+              <div class="text-[1em] font-semibold">
                 {{ quota.uploadUsed }} / {{ quota.uploadMax }}
               </div>
               <progress
@@ -69,8 +69,8 @@
               ></progress>
             </div>
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="text-lg lg:text-xl text-base-content/60 mb-1">Files</div>
-              <div class="text-lg font-semibold">{{ quota.fileCount }} / {{ quota.maxFiles }}</div>
+              <div class="text-[1em] lg:text-[1.1em] text-base-content/60 mb-1">Files</div>
+              <div class="text-[1em] font-semibold">{{ quota.fileCount }} / {{ quota.maxFiles }}</div>
               <progress
                 class="progress progress-secondary w-full mt-2"
                 :value="quota.filePercent"
@@ -78,8 +78,8 @@
               ></progress>
             </div>
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="text-lg lg:text-xl text-base-content/60 mb-1">Processing</div>
-              <div class="text-lg font-semibold">{{ quota.procUsed }} / {{ quota.procMax }}</div>
+              <div class="text-[1em] lg:text-[1.1em] text-base-content/60 mb-1">Processing</div>
+              <div class="text-[1em] font-semibold">{{ quota.procUsed }} / {{ quota.procMax }}</div>
               <progress
                 class="progress progress-accent w-full mt-2"
                 :value="quota.procPercent"
@@ -87,8 +87,8 @@
               ></progress>
             </div>
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="text-lg lg:text-xl text-base-content/60 mb-1">Downloads</div>
-              <div class="text-lg font-semibold">{{ quota.downloadUsed }} / {{ quota.downloadMax }}</div>
+              <div class="text-[1em] lg:text-[1.1em] text-base-content/60 mb-1">Downloads</div>
+              <div class="text-[1em] font-semibold">{{ quota.downloadUsed }} / {{ quota.downloadMax }}</div>
               <progress
                 class="progress progress-info w-full mt-2"
                 :value="quota.downloadPercent"
