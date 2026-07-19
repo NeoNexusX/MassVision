@@ -20,15 +20,15 @@ defineProps<{
 
 <template>
   <div
-    class="w-full lg:w-1/2 p-8 md:p-10 flex flex-col flex-1 min-h-0 border-b lg:border-b-0 lg:border-r border-base-200"
+    class="w-full lg:w-1/2 p-5 sm:p-8 md:p-10 flex flex-col flex-1 min-h-0 border-b lg:border-b-0 lg:border-r border-base-200"
   >
     <div class="min-h-[72px] mb-4">
       <h2
-        class="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
+        class="page-title font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
       >
       Create Account
      </h2>
-      <p class="text-base-content/70 mt-5  mb-5 text-lg ">Join {{ APP_NAME }} for scientific data analysis</p>
+      <p class="page-subtitle text-base-content/70 mt-5 mb-5">Join {{ APP_NAME }} for scientific data analysis</p>
     </div>
 
     <div class="flex flex-col gap-5">
@@ -106,7 +106,7 @@ defineProps<{
       </div>
       <div class="min-h-[56px] flex items-start">
         <div class="form-control w-full">
-          <div class="flex w-full gap-3 items-start">
+          <div class="flex flex-col sm:flex-row w-full gap-3 items-start">
             <div class="flex-grow">
               <IconInput
                 v-model="form.verify_code"
@@ -124,7 +124,7 @@ defineProps<{
             <button
               type="button"
               @click="sendVerificationCode"
-              class="btn btn-neutral min-w-[100px]"
+              class="btn btn-neutral w-full sm:w-auto sm:min-w-[100px]"
               :disabled="isCountdownActive || loading.sendCode || isExhausted"
               :class="{ 'opacity-50 cursor-not-allowed': isExhausted }"
               :title="isExhausted ? 'Too many requests for now' : ''"

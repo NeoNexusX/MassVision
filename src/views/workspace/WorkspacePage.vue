@@ -1,16 +1,16 @@
 <template>
-  <div class="container mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 box-border overflow-x-hidden">
+  <div class="container mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 box-border overflow-x-hidden page-type">
     <!-- Header: Title + actions -->
     <div class="flex flex-col sm:flex-row items-start justify-between mb-6 gap-4">
       <div>
-        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-semibold">Workspace</h1>
-        <p class="text-sm sm:text-lg text-base-content/60 mt-1">
+        <h1 class="page-title font-semibold">Workspace</h1>
+        <p class="page-subtitle text-base-content/60 mt-1">
           Monitor preprocessing tasks and review recent MSI results.
         </p>
       </div>
-      <div class="flex items-center gap-3 flex-shrink-0">
-        <router-link to="/mydatasets" class="btn btn-ghost btn-lg">Go to MyDatasets</router-link>
-        <router-link to="/workspace/new" class="btn btn-primary btn-lg">New Task</router-link>
+      <div class="flex flex-col sm:flex-row items-center gap-3 flex-shrink-0 w-full sm:w-auto">
+        <router-link to="/mydatasets" class="btn btn-ghost btn-md sm:btn-lg w-full sm:w-auto">Go to MyDatasets</router-link>
+        <router-link to="/workspace/new" class="btn btn-primary btn-md sm:btn-lg w-full sm:w-auto">New Task</router-link>
       </div>
     </div>
 

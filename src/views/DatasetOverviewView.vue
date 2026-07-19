@@ -26,18 +26,18 @@ const {
 </script>
 
 <template>
-  <div class="min-h-screen bg-base-200 p-4 md:p-8 font-sans">
+  <div class="min-h-screen bg-base-200 p-4 md:p-8 font-sans page-type">
     <div class="max-w-4xl mx-auto flex flex-col gap-6">
       <!-- 1. Top Navigation Area -->
       <div class="flex flex-col gap-2 mb-2">
         <button
           @click="goBack"
-          class="btn btn-ghost btn-lg text-base-content/70 hover:bg-base-300 rounded-lg shrink-0 self-start"
+          class="btn btn-ghost btn-md sm:btn-lg text-[1em] text-base-content/70 hover:bg-base-300 rounded-lg shrink-0 self-start"
         >
           <svg-icon type="back" class="w-4 h-4 mr-1" />
           Back to {{ source === 'public' ? 'Public Datasets' : 'My Datasets' }}
         </button>
-        <h1 class="text-3xl font-bold text-base-content tracking-tight">Dataset Overview</h1>
+        <h1 class="page-title font-bold text-base-content tracking-tight">Dataset Overview</h1>
       </div>
 
       <!-- Skeleton Loading State -->
