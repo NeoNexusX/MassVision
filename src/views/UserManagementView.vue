@@ -40,14 +40,14 @@ const {
 </script>
 
 <template>
-  <div class="min-h-screen bg-base-200 font-sans">
+  <div class="min-h-screen bg-base-200 font-sans page-type">
     <!-- Main Content -->
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-8">
       <!-- 1. Top Banner -->
-      <div class="flex items-start justify-between mb-6">
+      <div class="flex flex-col sm:flex-row items-start justify-between gap-4 mb-6">
         <div>
-          <h1 class="text-4xl font-semibold text-base-content">User Management</h1>
-          <p class="text-lg text-base-content/60 mt-1">View and manage registered users across regions.</p>
+          <h1 class="page-title font-semibold text-base-content">User Management</h1>
+          <p class="page-subtitle text-base-content/60 mt-1">View and manage registered users across regions.</p>
         </div>
         <button
           class="btn btn-primary rounded-lg shadow-sm border-none"

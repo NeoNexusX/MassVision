@@ -107,8 +107,8 @@ const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSi
 
 <template>
   <div class="min-h-screen bg-base-200">
-    <div class="max-w-[1680px] mx-auto p-4 md:p-8">
-      <h1 class="text-4xl font-bold text-base-content mb-6">Public Datasets</h1>
+    <div class="max-w-[1680px] mx-auto p-4 md:p-8 page-type">
+      <h1 class="page-title font-bold text-base-content mb-6">Public Datasets</h1>
 
       <DatasetFilterBar
         :show-add-filter="true"

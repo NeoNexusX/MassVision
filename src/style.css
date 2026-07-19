@@ -40,6 +40,20 @@
   height: 1.5em;
 }
 
+/* 页面字号沿用导航栏的流体基准，标题与副标题在手机端主动收敛。 */
+.page-type {
+  font-size: clamp(1rem, 0.92rem + 0.4vw, 1.25rem);
+}
+
+.page-title {
+  font-size: clamp(2rem, 1.5rem + 1.7vw, 3rem);
+  line-height: 1.15;
+}
+
+.page-subtitle {
+  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.25rem);
+}
+
 /* ---------- 场景叙事：进场动画（v-reveal 指令）---------- */
 .reveal {
   opacity: 0;

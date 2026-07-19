@@ -1,11 +1,11 @@
 <template>
-  <div class="min-h-screen bg-base-200 p-4 md:p-8">
+  <div class="min-h-screen bg-base-200 p-4 md:p-8 page-type">
     <div class="max-w-[1680px] mx-auto">
-      <h1 class="text-[3em] font-bold text-base-content mb-6 px-3">
+      <h1 class="page-title font-bold text-base-content mb-6 px-3">
         My Datasets
       </h1>
 
-      <div v-if="quota" class="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-6 mb-4 text-xl text-base-content/80">
+      <div v-if="quota" class="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-3 md:gap-6 mb-4 text-[1em] text-base-content/80">
         <span class="px-3 whitespace-nowrap"
           >Storage
           <strong class="text-base-content"

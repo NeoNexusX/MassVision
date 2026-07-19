@@ -1,8 +1,8 @@
 <template>
-  <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-4 w-full sm:w-auto">
     <div
       v-if="totalPages > 0"
-      class="flex items-center gap-3"
+      class="flex flex-wrap sm:flex-nowrap items-center justify-center gap-2 sm:gap-3 w-full sm:w-auto"
     >
       <div class="join">
         <button
@@ -36,7 +36,7 @@
         </button>
       </div>
 
-      <div class="join ">
+      <div class="join">
         <input
           v-model="jumpInput"
           type="number"
