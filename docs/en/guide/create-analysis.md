@@ -146,7 +146,7 @@ After clicking **Start Analysis**, the system submits the configuration to the b
 
 ## 6. Tips
 
-- Before selecting a dataset, consider uploading the required data on the **My Datasets** page or verifying that the target data is available in **Public Datasets**.
+- Before selecting a dataset, consider uploading the required data on the [**My Datasets**](https://spatialxomics.bionet.pro/mydatasets) page or verifying that the target data is available in [**Public Datasets**](https://spatialxomics.bionet.pro/datasets).
 - Each method group in the preprocessing pipeline is **single-choice** — you can only pick one method per group, but you may switch your selection at any time.
 - If you are unsure about a parameter's meaning, hover over its label to see a tooltip; the default values usually produce good results.
 - Analysis execution time depends on the data size and the complexity of the selected methods — please be patient while it runs.

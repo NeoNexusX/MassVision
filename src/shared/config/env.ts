@@ -12,4 +12,6 @@ const env = import.meta.env
 export const ENV = {
   /** 后端 API 基地址；开发环境经 vite proxy 转发到真实后端 */
   apiBase: env.VITE_API_BASE || '/api',
+  /** OSS 加速域名（可选）；为空则使用默认 region 拼接 */
+  ossEndpoint: env.VITE_OSS_ENDPOINT || '',
 } as const
