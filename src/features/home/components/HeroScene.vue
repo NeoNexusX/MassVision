@@ -51,10 +51,10 @@ const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
       <HoverGallery :images="HERO_GALLERY" class="mt-[0.5em]" />
 
       <!-- 按钮组：渐变取自标题 X，字体与标语一致；尺寸全用 em，跟随场景字号缩放 -->
-      <div class="mt-[1em] flex items-center gap-[0.5em]">
+      <div class="mt-[1em] flex flex-col items-center gap-3 sm:flex-row sm:gap-[0.5em]">
         <RouterLink
           to="/register"
-          class="btn h-[2.5em] gap-[0.5em]
+          class="btn h-[2.5em] w-[min(18rem,calc(100vw-3rem))] justify-center gap-[0.5em] sm:w-auto
           rounded-full border-none bg-gradient-to-bl
           from-[var(--brand-accent)] to-primary px-[1.6em] text-[max(0.22em,1rem)]
           font-['Outfit',sans-serif] font-bold
@@ -64,7 +64,7 @@ const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
 
         <RouterLink
           to="/datasets"
-          class="btn h-[2.5em] gap-[0.5em]
+          class="btn h-[2.5em] w-[min(18rem,calc(100vw-3rem))] justify-center gap-[0.5em] sm:w-auto
           rounded-full border-none bg-gradient-to-bl
           from-[var(--brand-accent)] to-secondary px-[1.6em] text-[max(0.22em,1rem)]
           font-['Outfit',sans-serif] font-bold

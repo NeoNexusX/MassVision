@@ -36,7 +36,7 @@ const profileFormProps = computed(() => ({
 </script>
 
 <template>
-  <div class="flex-1 w-full flex items-center justify-center p-8 bg-base-200/30">
+  <div class="flex-1 w-full flex items-center justify-center p-4 sm:p-8 bg-base-200/30 page-type">
     <div
       class="card max-w-5xl w-full bg-base-100 shadow-2xl rounded-2xl overflow-visible border border-base-200"
     >

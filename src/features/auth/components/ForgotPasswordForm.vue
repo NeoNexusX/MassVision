@@ -30,10 +30,10 @@ const strengthLabel = computed(() => {
 
 <template>
   <div
-    class="card max-w-md w-full flex flex-col gap-5 bg-base-100 shadow-xl p-8 rounded-box border border-base-200 text-[1rem]"
+    class="card max-w-md w-full flex flex-col gap-5 bg-base-100 shadow-xl p-5 sm:p-8 rounded-box border border-base-200 text-[1em]"
   >
     <div class="text-center">
-      <h2 class="text-2xl font-bold">Reset Password</h2>
+      <h2 class="text-[1.5em] font-bold">Reset Password</h2>
       <p v-if="step === 'email'" class="text-base-content/60 mt-2 text-[0.9rem]">
         Enter your registered email to receive a verification code.
       </p>

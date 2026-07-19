@@ -26,8 +26,8 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="bg-base-100 rounded-lg border border-base-200 p-6 shadow-sm">
-    <h2 class="text-3xl font-medium mb-4">Step 1: Data Source</h2>
+  <section class="bg-base-100 rounded-lg border border-base-200 p-4 sm:p-6 shadow-sm">
+    <h2 class="text-[1.5em] font-medium mb-4">Step 1: Data Source</h2>
     <div class="tabs mb-4">
       <a
         :class="['tab', activeTab === 'my' ? 'tab-active' : '']"
@@ -42,15 +42,18 @@ const emit = defineEmits<{
     </div>
 
     <div v-if="activeTab === 'my' || activeTab === 'public'">
-      <div class="flex items-center gap-3 mb-2">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
         <input
           :value="datasetQuery"
           @input="emit('update:datasetQuery', ($event.target as HTMLInputElement).value)"
           placeholder="Search..."
-          class="input input-bordered w-48"
+          class="input input-bordered w-full sm:w-48"
         />
-        <div v-if="meta.total_pages > 0" class="flex items-center gap-3 ml-auto">
-          <span class="text-base text-base-content/60 whitespace-nowrap tabular-nums"
+        <div
+          v-if="meta.total_pages > 0"
+          class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full sm:w-auto sm:ml-auto"
+        >
+          <span class="text-[1em] text-base-content/60 whitespace-nowrap tabular-nums"
             >Page {{ meta.current_page }} / {{ meta.total_pages }} &mdash;
             {{ meta.total_records }} records</span
           >
@@ -61,6 +64,7 @@ const emit = defineEmits<{
             :from="(meta.current_page - 1) * size + 1"
             :to="Math.min(meta.current_page * size, meta.total_records)"
             :page-range="pagination"
+            class="w-full sm:w-auto"
             @prev-page="emit('prev-page')"
             @next-page="emit('next-page')"
             @go-to-page="(p) => emit('go-to-page', p)"
