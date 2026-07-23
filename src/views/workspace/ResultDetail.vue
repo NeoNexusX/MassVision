@@ -134,7 +134,7 @@ const {
 
 // ---- Overlay ----
 
-const { overlayMode, overlayData, overlayLoading, overlayAlpha, toggleOverlay } = useOverlayData(
+const { umapVisible, kmeansVisible, overlayData, overlayLoading, umapAlpha, kmeansAlpha, toggleOverlay } = useOverlayData(
   ionRows,
   ionCols,
 )
@@ -282,9 +282,12 @@ async function onSelectPixel(col: number, row: number) {
       >
         <template #actions>
           <OverlayControls
-            v-model:overlay-alpha="overlayAlpha"
-            :overlay-mode="overlayMode"
+            v-model:umap-alpha="umapAlpha"
+            v-model:kmeans-alpha="kmeansAlpha"
+            :umap-visible="umapVisible"
+            :kmeans-visible="kmeansVisible"
             :overlay-loading="overlayLoading"
+            :storage-mode="storageMode"
             :roi-tool="roiTool"
             :draft-ready="draftReady"
             :viewing-roi="viewingROI"

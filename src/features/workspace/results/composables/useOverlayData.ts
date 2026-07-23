@@ -1,7 +1,7 @@
 import { ref, watch, onBeforeUnmount, type Ref } from 'vue'
 import { loadNpy } from '@/features/workspace/results/utils/npyParser'
 
-export type OverlayMode = 'none' | 'umap' | 'kmeans'
+export type OverlayKind = 'umap' | 'kmeans'
 
 const TAB20 = [
   [31, 119, 180],
@@ -53,16 +53,43 @@ function toInt32Array(data: unknown) {
   return data as Int32Array
 }
 
+// Source-over composite of `top` over `base` (either may be null). Both
+// overlays cover the same pixels, so blending lets UMAP and KMeans stay
+// visible at once — KMeans on top, UMAP showing through its transparency.
+function blendOverlays(
+  base: Uint8ClampedArray | null,
+  top: Uint8ClampedArray | null,
+) {
+  if (!base) return top
+  if (!top) return base
+  const out = new Uint8ClampedArray(base.length)
+  for (let i = 0; i < base.length; i += 4) {
+    const ta = top[i + 3]! / 255
+    const ba = base[i + 3]! / 255
+    const a = ta + ba * (1 - ta)
+    if (a === 0) continue
+    out[i] = (top[i]! * ta + base[i]! * ba * (1 - ta)) / a
+    out[i + 1] = (top[i + 1]! * ta + base[i + 1]! * ba * (1 - ta)) / a
+    out[i + 2] = (top[i + 2]! * ta + base[i + 2]! * ba * (1 - ta)) / a
+    out[i + 3] = a * 255
+  }
+  return out
+}
+
 export function useOverlayData(
   // Arguments
   ionRows: Ref<number>,
   ionCols: Ref<number>,
 ) {
-  // State
-  const overlayMode = ref<OverlayMode>('none')
+  // State — UMAP and KMeans are independent: both can be on at once.
+  const umapVisible = ref(false)
+  const kmeansVisible = ref(false)
   const overlayData = ref<Uint8ClampedArray | null>(null)
   const overlayLoading = ref(false)
-  const overlayAlpha = ref(77)
+  // Independent overlay opacity per mode so the user can tune UMAP and KMeans
+  // separately (stored as 0-255 alpha; 77 ≈ 30%).
+  const umapAlpha = ref(77)
+  const kmeansAlpha = ref(77)
 
   let coordsCache: Int32Array | null = null
   let umapEmbeddingsCache: Float32Array | null = null
@@ -114,7 +141,7 @@ export function useOverlayData(
       rgba[offset] = ((umapEmbeddingsCache[i * 3]! - embeddingMin) / embeddingRange) * 255
       rgba[offset + 1] = ((umapEmbeddingsCache[i * 3 + 1]! - embeddingMin) / embeddingRange) * 255
       rgba[offset + 2] = ((umapEmbeddingsCache[i * 3 + 2]! - embeddingMin) / embeddingRange) * 255
-      rgba[offset + 3] = overlayAlpha.value
+      rgba[offset + 3] = umapAlpha.value
     }
     return rgba
   }
@@ -148,30 +175,30 @@ export function useOverlayData(
       rgba[offset] = color[0]!
       rgba[offset + 1] = color[1]!
       rgba[offset + 2] = color[2]!
-      rgba[offset + 3] = overlayAlpha.value
+      rgba[offset + 3] = kmeansAlpha.value
     }
     return rgba
   }
 
   const recomputeOverlay = () => {
-    if (overlayMode.value === 'umap') overlayData.value = computeUmapOverlay()
-    else if (overlayMode.value === 'kmeans') overlayData.value = computeKmeansOverlay()
+    const umap = umapVisible.value ? computeUmapOverlay() : null
+    const kmeans = kmeansVisible.value ? computeKmeansOverlay() : null
+    overlayData.value = blendOverlays(umap, kmeans)
   }
 
-  const toggleOverlay = async (mode: OverlayMode) => {
-    if (overlayMode.value === mode) {
-      overlayMode.value = 'none'
-      overlayData.value = null
-      return
-    }
-    overlayMode.value = mode
-    await ensureOverlayData()
+  const toggleOverlay = async (kind: OverlayKind) => {
+    const visible = kind === 'umap' ? umapVisible : kmeansVisible
+    visible.value = !visible.value
+    if (visible.value) await ensureOverlayData()
     recomputeOverlay()
   }
 
-  // Watchers
-  watch(overlayAlpha, () => {
-    if (overlayMode.value !== 'none' && coordsCache) recomputeOverlay()
+  // Watchers - recompute only when the affected overlay is visible
+  watch(umapAlpha, () => {
+    if (umapVisible.value && coordsCache) recomputeOverlay()
+  })
+  watch(kmeansAlpha, () => {
+    if (kmeansVisible.value && coordsCache) recomputeOverlay()
   })
 
   // Release cached .npy TypedArrays on unmount so they don't persist in the
@@ -184,10 +211,12 @@ export function useOverlayData(
   })
 
   return {
-    overlayMode,
+    umapVisible,
+    kmeansVisible,
     overlayData,
     overlayLoading,
-    overlayAlpha,
+    umapAlpha,
+    kmeansAlpha,
     toggleOverlay,
     recomputeOverlay,
   }
