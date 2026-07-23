@@ -113,9 +113,9 @@
 import { computed } from 'vue'
 import type { User } from '@/features/auth/types/auth'
 import type { IconType } from '@/shared/components/svgIcons'
-import { APP_NAME } from '@/shared/config/app'
-import { getConfig, isNavVisible } from '@/shared/config/runtimeConfig'
-import type { NavItem, NavLinkItem, NavUserLink, NavVisibility } from '@/shared/config/runtimeConfig'
+import { BRAND_PARTS } from '@/shared/config/app'
+import { getConfig, filterNavItems } from '@/shared/config/runtimeConfig'
+import type { NavItem, NavLinkItem, NavUserLink } from '@/shared/config/runtimeConfig'
 
 const props = defineProps<{
   user: User | null
@@ -125,13 +125,7 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { default: false })
 
 // 与 Hero 标题一致：把大写 X 拆出做浅蓝→深蓝渐变；没有 X 时回退为完整名称
-const xIndex = APP_NAME.indexOf('X')
-const namePre = xIndex >= 0 ? APP_NAME.slice(0, xIndex) : APP_NAME
-const nameX = xIndex >= 0 ? APP_NAME[xIndex] : ''
-const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
-
-const visible = (i: NavVisibility): boolean =>
-  isNavVisible(i, { isAuthenticated: !!props.user, isAdmin: props.isAdmin })
+const { pre: namePre, x: nameX, post: namePost } = BRAND_PARTS
 
 const items = computed<NavItem[]>(() => {
   const nav = getConfig().nav!
@@ -142,12 +136,9 @@ const items = computed<NavItem[]>(() => {
         .filter((i): i is NavUserLink => i.kind === 'link')
         .map((i) => ({ ...i, kind: 'link' as const }))
     : []
-  return [...nav.items, ...account]
-    .filter(visible)
-    .map((it) =>
-      it.kind === 'group' ? { ...it, children: it.children.filter(visible) } : it,
-    )
-    // 分组下子项被过滤光时，整组也隐藏
-    .filter((it) => it.kind !== 'group' || it.children.length > 0)
+  return filterNavItems([...nav.items, ...account], {
+    isAuthenticated: !!props.user,
+    isAdmin: props.isAdmin,
+  })
 })
 </script>

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { AdminUser, UserListFilters } from '@/features/users/api/userAdminApi'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
-import PaginationBar from '@/shared/components/PaginationBar.vue'
+import PaginationFooter from '@/shared/components/PaginationFooter.vue'
 import { getRegionName } from '@/shared/utils/regionOptions'
-import { getConfig } from '@/shared/config/runtimeConfig'
 
 defineProps<{
   users: AdminUser[]
@@ -22,13 +21,9 @@ defineEmits<{
   (e: 'search'): void
   (e: 'reset-filters'): void
   (e: 'open-drawer', user: AdminUser): void
-  (e: 'prev-page'): void
-  (e: 'next-page'): void
   (e: 'go-to-page', page: number): void
   (e: 'change-size', size: number): void
 }>()
-
-const pageSizeOptions = getConfig().pagination.pageSizeOptions
 </script>
 
 <template>
@@ -173,32 +168,16 @@ const pageSizeOptions = getConfig().pagination.pageSizeOptions
       </table>
     </div>
 
-    <div class="p-4 border-t border-base-200 bg-base-200/50">
-      <div class="flex flex-wrap items-center gap-4 justify-end">
-        <div class="flex items-center gap-2">
-          <label class="whitespace-nowrap text-base text-base-content/60">Per page</label>
-          <select
-            :value="pageSize"
-            @change="(e) => $emit('change-size', Number((e.target as HTMLSelectElement).value))"
-            class="select select-bordered text-base pl-3 pr-8"
-          >
-            <option v-for="opt in pageSizeOptions" :key="opt" :value="opt">{{ opt }}</option>
-          </select>
-        </div>
-
-        <PaginationBar
-          :current-page="currentPage"
-          :total-pages="totalPages"
-          :total-items="totalItems"
-          :from="from"
-          :to="to"
-          :page-range="pageRange"
-          class="!justify-center"
-          @prev-page="$emit('prev-page')"
-          @next-page="$emit('next-page')"
-          @go-to-page="(p) => $emit('go-to-page', p)"
-        />
-      </div>
-    </div>
+    <PaginationFooter
+      variant="compact"
+      :show-page-text="false"
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      :total-items="totalItems"
+      :size="pageSize"
+      :page-range="pageRange"
+      @go-to-page="(p) => $emit('go-to-page', p)"
+      @change-size="(s) => $emit('change-size', s)"
+    />
   </div>
 </template>

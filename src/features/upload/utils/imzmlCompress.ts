@@ -23,28 +23,6 @@ export interface CompressOptions {
   signal?: AbortSignal
 }
 
-export interface CompressResult {
-  file: File
-  fileHash: string
-}
-
-/**
- * Full pipeline: hash → compress (for resume or when hash is not needed early).
- * Kept for backward compatibility with resume flow.
- */
-export async function compressImzmlToOPFS(
-  pair: ImzmlFilePair,
-  options?: CompressOptions & { getEntryNames?: (hash: string) => { imzmlName: string; ibdName: string } },
-): Promise<CompressResult> {
-  const { fileHash, startCompress } = await prepareUpload(pair, options)
-  const names = options?.getEntryNames?.(fileHash) ?? {
-    imzmlName: pair.imzml.name,
-    ibdName: pair.ibd.name,
-  }
-  const file = await startCompress(names)
-  return { file, fileHash }
-}
-
 // ────────────────────────────────────────────────────────────
 // Two-phase upload preparation
 // ────────────────────────────────────────────────────────────
@@ -87,6 +65,30 @@ export function prepareUpload(
   let lastReportTime = 0
   let lastPhase: string | undefined
 
+  // Shared progress handling: reset on phase change, throttle to 100ms.
+  const makeProgressHandler = (cb: (e: CompressProgressEvent) => void) => {
+    return (msg: { phase?: CompressProgressEvent['phase']; loaded: number }) => {
+      if (lastPhase && msg.phase !== lastPhase) {
+        tracker.reset()
+        lastReportTime = 0
+      }
+      lastPhase = msg.phase
+      const now = Date.now()
+      if (now - lastReportTime > 100) {
+        const { speedStr, etaStr } = tracker.update(msg.loaded, totalBytes)
+        cb({
+          loadedBytes: msg.loaded,
+          totalBytes,
+          percent: Math.min(100, Math.round((msg.loaded / totalBytes) * 100)),
+          phase: msg.phase,
+          speedStr,
+          etaStr,
+        })
+        lastReportTime = now
+      }
+    }
+  }
+
   return new Promise((resolve, reject) => {
     let settled = false
 
@@ -115,24 +117,7 @@ export function prepareUpload(
       switch (msg.type) {
         case 'progress': {
           if (!options?.onProgress) break
-          if (lastPhase && msg.phase !== lastPhase) {
-            tracker.reset()
-            lastReportTime = 0
-          }
-          lastPhase = msg.phase
-          const now = Date.now()
-          if (now - lastReportTime > 100) {
-            const { speedStr, etaStr } = tracker.update(msg.loaded, totalBytes)
-            options.onProgress({
-              loadedBytes: msg.loaded,
-              totalBytes,
-              percent: Math.min(100, Math.round((msg.loaded / totalBytes) * 100)),
-              phase: msg.phase,
-              speedStr,
-              etaStr,
-            })
-            lastReportTime = now
-          }
+          makeProgressHandler(options.onProgress)(msg)
           break
         }
 
@@ -165,24 +150,7 @@ export function prepareUpload(
                   const m = ev.data
 
                   if (m.type === 'progress' && onProgress) {
-                    if (lastPhase && m.phase !== lastPhase) {
-                      tracker.reset()
-                      lastReportTime = 0
-                    }
-                    lastPhase = m.phase
-                    const now = Date.now()
-                    if (now - lastReportTime > 100) {
-                      const { speedStr, etaStr } = tracker.update(m.loaded, totalBytes)
-                      onProgress({
-                        loadedBytes: m.loaded,
-                        totalBytes,
-                        percent: Math.min(100, Math.round((m.loaded / totalBytes) * 100)),
-                        phase: m.phase,
-                        speedStr,
-                        etaStr,
-                      })
-                      lastReportTime = now
-                    }
+                    makeProgressHandler(onProgress)(m)
                     return
                   }
 

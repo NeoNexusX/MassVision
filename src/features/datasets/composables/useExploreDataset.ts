@@ -1,10 +1,10 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
 import { rawConvertProcess } from '@/features/datasets/api/datasetApi'
 import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
 import { useToast } from '@/shared/composables/useToast'
 import { useAuthStore } from '@/features/auth/stores/authStore'
+import { extractBackendError } from '@/shared/api/httpClient'
 import type { File } from '@/features/datasets/types/dataset'
 
 export function useExploreDataset() {
@@ -51,9 +51,7 @@ export function useExploreDataset() {
         })
       }
     } catch (error) {
-      const message = axios.isAxiosError(error)
-        ? (error.response?.data?.message || error.message)
-        : 'Failed to create visualization task'
+      const message = extractBackendError(error, 'Failed to create visualization task')
       showToast(message, 'error')
       console.error('raw-convert failed:', error)
     } finally {

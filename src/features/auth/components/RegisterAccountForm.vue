@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import IconInput from '@/shared/components/IconInput.vue'
 import { APP_NAME } from '@/shared/config/app'
+import { passwordStrengthLabel } from '@/features/auth/utils/passwordStrength'
 
-defineProps<{
+const props = defineProps<{
   form: Record<string, any>
   errors: Record<string, string>
   patterns: Record<string, string>
@@ -16,6 +18,8 @@ defineProps<{
   clearError: (field: any) => void
   sendVerificationCode: () => void
 }>()
+
+const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
 </script>
 
 <template>
@@ -84,9 +88,7 @@ defineProps<{
           ></progress>
           <div class="flex justify-between text-xs mb-2 opacity-70">
             <span>Strength</span>
-            <span>{{
-              ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][passwordScore - 1] || 'Please Input'
-            }}</span>
+            <span>{{ strengthLabel }}</span>
           </div>
         </div>
       </div>

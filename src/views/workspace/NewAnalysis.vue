@@ -34,13 +34,11 @@ const {
   modeNotice,
   selectedMethods,
   methodParams,
-  quotaStorage,
   submitting,
   canSubmit,
   pipelineSummary,
   msSettingsList,
   statusBadge,
-  estimateTimeDisplay,
   buildParamKey,
   getParam,
   onIntInput,
@@ -104,11 +102,6 @@ const {
           :on-float-input="onFloatInput"
           :on-num-blur="onNumBlur"
         />
-
-        <details v-if="false" class="bg-base-100 rounded-lg border border-base-200 p-6 shadow-sm">
-          <summary class="text-3xl font-medium mb-2 list-none">Step 3: Annotation Settings</summary>
-          <div class="mt-4 text-lg text-base-content/60">Annotation settings placeholder</div>
-        </details>
       </div>
 
       <AnalysisSummaryPanel
@@ -116,8 +109,6 @@ const {
         :pipeline-summary="pipelineSummary"
         :ms-settings-list="msSettingsList"
         :selected-dataset="selectedDataset"
-        :estimate-time-display="estimateTimeDisplay"
-        :quota-storage="quotaStorage"
         :can-submit="canSubmit"
         :submitting="submitting"
         @submit="submit"

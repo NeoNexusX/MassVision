@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import IconInput from '@/shared/components/IconInput.vue'
+import { passwordStrengthLabel } from '@/features/auth/utils/passwordStrength'
 
 const props = defineProps<{
   form: Record<string, string>
@@ -21,11 +22,7 @@ const props = defineProps<{
 }>()
 
 /** 密码强度标签文案 */
-const strengthLabel = computed(() => {
-  return (
-    ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][props.passwordScore - 1] || 'Please Input'
-  )
-})
+const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
 </script>
 
 <template>

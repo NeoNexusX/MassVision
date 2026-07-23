@@ -1,4 +1,4 @@
-import OSS from 'ali-oss'
+import type OSS from 'ali-oss'
 import { ProgressTracker, type ImzmlFilePair, type UnifiedUploadProgress } from './imzmlHelper'
 import { prepareUpload, type UploadPreparation } from './imzmlCompress'
 import { auth_api } from '@/shared/api/httpClient'
@@ -231,6 +231,8 @@ export async function uploadImzmlZipFileOSS({
   if (ENV.ossEndpoint) {
     clientOptions.endpoint = ENV.ossEndpoint
   }
+  // Deferred: ali-oss is only needed when an upload actually starts
+  const { default: OSS } = await import('ali-oss')
   const client = new OSS(clientOptions)
   currentOssClient = client
 

@@ -15,6 +15,30 @@ const BACKEND_ALGORITHM_KEYS: Record<string, string> = {
   align: 'peak_align',
 }
 
+/**
+ * 读取某方法的参数写入 params：text/float 类型的空值（'' / undefined / 'none'）跳过，
+ * 其余取用户输入，缺省回落到参数默认值。align 与通用分支共用。
+ */
+function collectParams(
+  options: BuildProcessPayloadOptions,
+  groupKey: string,
+  methodId: string,
+  method: any,
+  params: Record<string, any>,
+) {
+  if (!method?.params) return
+  for (const param of method.params) {
+    const value = options.methodParams[buildParamKey(groupKey, methodId, param.key)]
+    if (
+      (param.type === 'text' || param.type === 'float') &&
+      (value === '' || value === undefined || value === 'none')
+    ) {
+      continue
+    }
+    params[param.key] = value ?? param.default
+  }
+}
+
 export function buildProcessPayload(options: BuildProcessPayloadOptions) {
   const algorithms: Record<string, any> = {}
 
@@ -30,18 +54,7 @@ export function buildProcessPayload(options: BuildProcessPayloadOptions) {
       const method = group.methods.find((item: any) => item.id === methodId)
       const params: Record<string, any> = {}
 
-      if (method?.params) {
-        for (const param of method.params) {
-          const value = options.methodParams[buildParamKey(group.key, methodId, param.key)]
-          if (
-            (param.type === 'text' || param.type === 'float') &&
-            (value === '' || value === undefined || value === 'none')
-          ) {
-            continue
-          }
-          params[param.key] = value ?? param.default
-        }
-      }
+      collectParams(options, group.key, methodId, method, params)
 
       params.units = 'ppm'
       params.binratio = 2
@@ -60,18 +73,7 @@ export function buildProcessPayload(options: BuildProcessPayloadOptions) {
 
     const params: Record<string, any> = { method: methodId }
 
-    if (method.params) {
-      for (const param of method.params) {
-        const value = options.methodParams[buildParamKey(group.key, methodId, param.key)]
-        if (
-          (param.type === 'text' || param.type === 'float') &&
-          (value === '' || value === undefined || value === 'none')
-        ) {
-          continue
-        }
-        params[param.key] = value ?? param.default
-      }
-    }
+    collectParams(options, group.key, methodId, method, params)
 
     if (backendKey === 'peak_pick') {
       params.backend = 'python'

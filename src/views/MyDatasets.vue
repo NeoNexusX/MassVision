@@ -71,24 +71,12 @@
       />
 
       <!-- Explore / Raw-Convert Confirmation -->
-      <ConfirmDialog
+      <ExploreConfirmDialog
         :open="showExploreConfirm"
-        title="Prepare Visualization"
-        confirm-label="Generate"
         :loading="isConverting"
         @confirm="explore.confirmExplore"
         @cancel="explore.cancelExplore"
-      >
-        <span class="block mb-2">This dataset hasn't been prepared for visualization yet. We'll generate an optimized view so you can explore it interactively. This may take a while.</span>
-        <a
-          href="/docs/guide/view-data"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="link link-primary text-sm"
-        >
-          Learn more about viewing data
-        </a>
-      </ConfirmDialog>
+      />
 
       <div>
         <DatasetList
@@ -124,10 +112,10 @@ import DatasetList from '@/features/datasets/components/DatasetList.vue'
 import DatasetFilterBar from '@/features/datasets/components/DatasetFilterBar.vue'
 import UploadModal from '@/features/upload/components/UploadModal.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import ExploreConfirmDialog from '@/features/datasets/components/ExploreConfirmDialog.vue'
 import { listUserFiles, deleteFile } from '@/features/datasets/api/datasetApi'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
-import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
-import { useDatasetListRouteState } from '@/features/datasets/composables/useDatasetListRouteState'
+import { useDatasetListPage } from '@/features/datasets/composables/useDatasetListPage'
 import { useExploreDataset } from '@/features/datasets/composables/useExploreDataset'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import { useToast } from '@/shared/composables/useToast'
@@ -137,6 +125,8 @@ import { createDefaultDatasetFilters } from '@/features/datasets/constants/datas
 // Use composable for datasets (fetch/map/pagination/sort)
 const initialFilters = createDefaultDatasetFilters()
 
+const auth = useAuthStore()
+
 const fetcher = async (f: Record<string, any>, p: number, s: number) => {
   // ensure username is set for MyDatasets
   const username = auth.user?.username || ''
@@ -144,6 +134,10 @@ const fetcher = async (f: Record<string, any>, p: number, s: number) => {
   return await listUserFiles(body, p, s)
 }
 
+// Quota
+const { quota, fetchQuota } = useUserQuota()
+
+// 列表装配（取数/筛选/分页/Overview 跳转）；`handleSort` 由模板直接使用
 const {
   datasets,
   loading,
@@ -151,23 +145,24 @@ const {
   meta,
   page,
   size,
-  fetchFiles,
-  applyFilters,
-  handleSort,
-  goToPage: dsGoToPage,
-  changeSize: dsChangeSize,
   pagination,
-} = useDatasetList(fetcher, {
+  fetchFiles,
+  handleSort,
+  handleSearch,
+  handleStatusFilter,
+  handleApplyFilters,
+  goToPage,
+  changeSize,
+  refreshCurrentPage,
+  viewOverview,
+} = useDatasetListPage(fetcher, {
+  source: 'my',
   defaultFilters: initialFilters,
-  initialSort: 'submission_time',
-  initialDesc: true,
+  onMountedReady: fetchQuota,
 })
 
 const router = useRouter()
 const route = useRoute()
-const auth = useAuthStore()
-
-// `handleSort` is provided by the composable and used directly in the template.
 
 // UI handlers used by the filter bar and cards
 const isUploadOpen = ref(false)
@@ -184,16 +179,13 @@ onMounted(() => {
   }
 })
 
-// Quota
-const { quota, fetchQuota } = useUserQuota()
-
 // Download progress handler (shared via composable)
 const { handleDownloadRaw, packingIds } = useDownloadProgress()
 
 // Upload success: refresh list to get backend status
 const handleUploadSuccess = (_datasetName: string) => {
   isUploadOpen.value = false
-  fetchFiles({ page: page.value, size: size.value })
+  refreshCurrentPage()
   fetchQuota()
 }
 
@@ -214,20 +206,19 @@ const { showToast } = useToast()
 const isDeleteModalOpen = ref(false)
 const datasetToDelete = ref<string | null>(null)
 
-  const explore = useExploreDataset()
-  const { showExploreConfirm, isConverting } = explore
+const explore = useExploreDataset()
+const { showExploreConfirm, isConverting } = explore
 
-  const handleExplore = (id?: string) => {
-    if (!id) return
-    explore.handleExplore(id, datasets.value)
-  }
+const handleExplore = (id?: string) => {
+  if (!id) return
+  explore.handleExplore(id, datasets.value)
+}
 
-  const handleDelete = async (id?: string) => {
+const handleDelete = async (id?: string) => {
   if (!id) return
   datasetToDelete.value = id
   isDeleteModalOpen.value = true
 }
-
 
 const confirmDelete = async () => {
   if (!datasetToDelete.value) return
@@ -255,24 +246,6 @@ const cancelDelete = () => {
   isDeleteModalOpen.value = false
   datasetToDelete.value = null
 }
-
-const viewOverview = (fileId: string) => {
-  router.push({ name: 'DatasetOverview', state: { fileId, source: 'my' } })
-}
-
-// pagination is provided by the `useDatasetList` composable (already destructured above)
-const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSize } =
-  useDatasetListRouteState({
-    page,
-    size,
-    meta,
-    auth,
-    fetchFiles,
-    applyFilters,
-    goToPage: dsGoToPage,
-    changeSize: dsChangeSize,
-    onMountedReady: fetchQuota,
-  })
 </script>
 
 <style scoped>

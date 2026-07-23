@@ -223,9 +223,9 @@ import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
-import { APP_NAME } from '@/shared/config/app'
+import { BRAND_PARTS } from '@/shared/config/app'
 import { useTheme } from '@/shared/composables/useTheme'
-import { getConfig, isNavVisible } from '@/shared/config/runtimeConfig'
+import { getConfig, isNavVisible, filterNavItems } from '@/shared/config/runtimeConfig'
 import type {
   NavGuestLink,
   NavItem,
@@ -241,10 +241,7 @@ const { isDark, toggleTheme } = useTheme()
 const isAuthenticated = computed(() => !!user.value)
 
 // 与 NavDrawer 一致：把大写 X 拆出做渐变，没有 X 时回退为完整名称
-const xIndex = APP_NAME.indexOf('X')
-const namePre = xIndex >= 0 ? APP_NAME.slice(0, xIndex) : APP_NAME
-const nameX = xIndex >= 0 ? APP_NAME[xIndex] : ''
-const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
+const { pre: namePre, x: nameX, post: namePost } = BRAND_PARTS
 
 const initials = computed(() => user.value?.username?.slice(0, 2).toUpperCase() ?? '')
 
@@ -257,10 +254,10 @@ const visible = (i: NavVisibility): boolean =>
 
 // 与 NavDrawer 相同的过滤规则：先过滤自身再过滤 children，子项被过滤光的分组整组隐藏
 const items = computed<NavItem[]>(() =>
-  navbar.value.items
-    .filter(visible)
-    .map((it) => (it.kind === 'group' ? { ...it, children: it.children.filter(visible) } : it))
-    .filter((it) => it.kind !== 'group' || it.children.length > 0),
+  filterNavItems(navbar.value.items, {
+    isAuthenticated: isAuthenticated.value,
+    isAdmin: isAdmin.value,
+  }),
 )
 
 const userItems = computed<NavUserItem[]>(() => navbar.value.userMenu.filter(visible))

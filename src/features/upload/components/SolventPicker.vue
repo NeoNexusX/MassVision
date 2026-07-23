@@ -21,7 +21,9 @@
 
       <!-- Solvent select -->
       <div class="flex flex-col flex-[2]">
-        <div class="label py-1 invisible" aria-hidden="true">&nbsp;</div>
+        <div class="label py-1 invisible" aria-hidden="true">
+          <span class="label-text text-base">&nbsp;</span>
+        </div>
         <SelectWithOther
           v-model="selectedSolvent"
           :options="solventOptions"
@@ -33,7 +35,9 @@
 
       <!-- Add button -->
       <div class="flex flex-col shrink-0">
-        <div class="label py-1 invisible" aria-hidden="true">&nbsp;</div>
+        <div class="label py-1 invisible" aria-hidden="true">
+          <span class="label-text text-base">&nbsp;</span>
+        </div>
         <button
           class="btn btn-primary btn-square"
           @click="addSolvent"

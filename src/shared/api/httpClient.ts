@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios'
-import { ENV, STORAGE_KEYS } from '@/shared/config'
+import { ENV } from '@/shared/config'
+import { authStorage } from '@/features/auth/services/authStorage'
 
 // Top-level Response body
 interface ErrorResponse {
@@ -89,7 +90,7 @@ const auth_api = axios.create({ baseURL: ENV.apiBase })
 
 // Inject auth token
 auth_api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(STORAGE_KEYS.accessToken)
+  const token = authStorage.getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -104,7 +105,9 @@ const api = axios.create({ baseURL: ENV.apiBase })
 // Public API response interceptor
 api.interceptors.response.use((response) => response, error_catch)
 
-export function extractBackendError(error: any): string {
+export function extractBackendError(error: any, fallback?: string): string {
+  // Non-axios throws carry no backend payload; use the caller's fallback when given.
+  if (fallback !== undefined && !axios.isAxiosError(error)) return fallback
   const candidate =
     error?.response?.data?.detail ??
     error?.response?.data?.message ??
