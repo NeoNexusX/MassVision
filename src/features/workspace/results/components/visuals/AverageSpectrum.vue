@@ -42,8 +42,28 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts/core'
+import { LineChart, BarChart } from 'echarts/charts'
+import {
+  GridComponent,
+  TooltipComponent,
+  DataZoomInsideComponent,
+  DataZoomSliderComponent,
+  GraphicComponent,
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import type { DataMode } from '@/services/zarrOssStore'
+
+echarts.use([
+  LineChart,
+  BarChart,
+  GridComponent,
+  TooltipComponent,
+  DataZoomInsideComponent,
+  DataZoomSliderComponent,
+  GraphicComponent,
+  CanvasRenderer,
+])
 
 type ChartPoint = [number, number]
 

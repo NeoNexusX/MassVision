@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch, nextTick } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts/core'
+import { PieChart } from 'echarts/charts'
+import { TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import { useTheme } from '@/shared/composables/useTheme'
 import type { DatasetCategoryItem } from '../api/statsApi'
+
+echarts.use([PieChart, TooltipComponent, CanvasRenderer])
 
 /**
  * 分类分布环形图（ECharts pie + 内空心 donut）。分类分布、离子源类型分布共用此组件。

@@ -54,7 +54,6 @@ function parseNpy(buffer: ArrayBuffer): NpyResult {
   if (magic !== '\x93NUMPY') throw new Error('Not a valid .npy file')
 
   const major = view.getUint8(6)
-  // const minor = view.getUint8(7)
 
   let headerLen: number
   let headerStart: number

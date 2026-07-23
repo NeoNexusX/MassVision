@@ -8,8 +8,6 @@ import {
   getVisitsStats,
   type DatasetCategoryItem,
   type DatasetCategoryStats,
-  type PlatformOverviewStats,
-  type VisitsStats,
 } from '../api/statsApi'
 
 /**
@@ -77,19 +75,22 @@ export function useAnalyzerStats() {
   return useCategoryDistribution(getAnalyzerStats, 'Failed to load analyzer stats')
 }
 
-// 平台总览（总用户 / 总数据集 / 总下载）
-export function usePlatformOverview() {
+/**
+ * 单值统计（平台总览 / 访问量）通用三态封装：loading / error / data + onMounted 加载。
+ * 与 useCategoryDistribution 同一骨架，只是注入不同的 fetcher。
+ */
+function useRemoteStat<T>(fetcher: () => Promise<T>, errorMessage: string) {
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const stats = ref<PlatformOverviewStats | null>(null)
+  const stats = ref<T | null>(null)
 
   async function load() {
     loading.value = true
     error.value = null
     try {
-      stats.value = await getPlatformOverview()
+      stats.value = await fetcher()
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to load platform overview'
+      error.value = e instanceof Error ? e.message : errorMessage
       stats.value = null
     } finally {
       loading.value = false
@@ -101,26 +102,12 @@ export function usePlatformOverview() {
   return { loading, error, stats, reload: load }
 }
 
+// 平台总览（总用户 / 总数据集 / 总下载）
+export function usePlatformOverview() {
+  return useRemoteStat(getPlatformOverview, 'Failed to load platform overview')
+}
+
 // 全站访问量（当日 / 当月 / 总计）
 export function useVisitsStats() {
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-  const stats = ref<VisitsStats | null>(null)
-
-  async function load() {
-    loading.value = true
-    error.value = null
-    try {
-      stats.value = await getVisitsStats()
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to load visits stats'
-      stats.value = null
-    } finally {
-      loading.value = false
-    }
-  }
-
-  onMounted(load)
-
-  return { loading, error, stats, reload: load }
+  return useRemoteStat(getVisitsStats, 'Failed to load visits stats')
 }

@@ -170,6 +170,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
+import { parseUtcDate } from '@/shared/utils/date'
 
 const props = defineProps<{
   title?: string
@@ -219,9 +220,8 @@ const STALE_THRESHOLD_MS = 3 * 60 * 60 * 1000 // 3 hours
 
 const isStaleRunning = (r: any) => {
   if (r.status !== 'processing') return false
-  if (!r.createdAt) return false
-  const hasTz = /Z|[+-]\d{2}:?\d{2}$/.test(r.createdAt)
-  const date = new Date(hasTz ? r.createdAt : r.createdAt.replace(' ', 'T') + 'Z')
+  const date = parseUtcDate(r.createdAt)
+  if (!date) return false
   const elapsed = Date.now() - date.getTime()
   return elapsed > STALE_THRESHOLD_MS
 }

@@ -185,6 +185,21 @@ export function isNavVisible(
   return true
 }
 
+/**
+ * 过滤导航菜单（navbar 与 drawer 共用同一份规则）：
+ * 先按可见性过滤顶层项，再过滤分组的 children；子项被过滤光的分组整组隐藏。
+ */
+export function filterNavItems(
+  items: NavItem[],
+  ctx: { isAuthenticated: boolean; isAdmin?: boolean },
+): NavItem[] {
+  const visible = (i: NavVisibility): boolean => isNavVisible(i, ctx)
+  return items
+    .filter(visible)
+    .map((it) => (it.kind === 'group' ? { ...it, children: it.children.filter(visible) } : it))
+    .filter((it) => it.kind !== 'group' || it.children.length > 0)
+}
+
 /** 分组下的二级菜单项 */
 export interface NavChild extends NavVisibility {
   /** 路由地址 */

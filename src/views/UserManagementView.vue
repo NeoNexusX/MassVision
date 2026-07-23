@@ -29,8 +29,6 @@ const {
   promptDeleteUser,
   cancelDeleteUser,
   executeDeleteUser,
-  prevPage,
-  nextPage,
   goToPage,
   changeSize,
   quotaLimits,
@@ -89,8 +87,6 @@ const {
         @search="handleSearch"
         @reset-filters="resetFilters"
         @open-drawer="openDrawer"
-        @prev-page="prevPage"
-        @next-page="nextPage"
         @go-to-page="goToPage"
         @change-size="changeSize"
       />

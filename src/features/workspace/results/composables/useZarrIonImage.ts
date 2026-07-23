@@ -14,7 +14,6 @@ import { computed, ref, shallowRef } from 'vue'
 import { getZarrAccess } from '@/services/zarrAccessApi'
 import {
   ZarrOssStore,
-  type IonImageInfo,
   type MetadataAttrs,
   type DataMode,
 } from '@/services/zarrOssStore'
@@ -98,15 +97,10 @@ export function getSharedZarrContext(): SharedZarrContext {
 }
 
 /**
- * Release all module-level state. Call on ResultDetail unmount so that large
- * TypedArrays (mzAxis, meanChartData, ticMatrix, pixelSpectrum) and the
- * ZarrOssStore (chunk caches, in-flight requests) become GC-eligible instead
- * of persisting for the entire SPA lifetime.
+ * Reset the module-level refs (no store disposal — callers handle the store).
+ * Shared by disposeZarrState() and the composable's init() reset block.
  */
-export function disposeZarrState(): void {
-  store?.dispose()
-  store = null
-
+function resetModuleState(): void {
   mzAxisRef.value = null
   ionDims.value = null
   dataModeRef.value = null
@@ -116,7 +110,6 @@ export function disposeZarrState(): void {
   meanChartData.value = []
   spectrumLoading.value = false
   spectrumError.value = null
-  nMz.value = 0
 
   ticMatrix.value = null
   ticLoading.value = false
@@ -125,6 +118,20 @@ export function disposeZarrState(): void {
   pixelSpectrum.value = null
   pixelSpectrumLoading.value = false
   pixelSpectrumError.value = null
+}
+
+/**
+ * Release all module-level state. Call on ResultDetail unmount so that large
+ * TypedArrays (mzAxis, meanChartData, ticMatrix, pixelSpectrum) and the
+ * ZarrOssStore (chunk caches, in-flight requests) become GC-eligible instead
+ * of persisting for the entire SPA lifetime.
+ */
+export function disposeZarrState(): void {
+  store?.dispose()
+  store = null
+
+  resetModuleState()
+  nMz.value = 0
 }
 
 // ---- Mean spectrum loading (continuous mode) ----
@@ -258,17 +265,27 @@ function findMzRangeIndices(targetIdx: number, tolerance: number): number[] {
 // ---- Helper: load ion image slice sum (continuous mode) ----
 
 async function loadIonSliceSum(indices: number[]): Promise<Float32Array | null> {
-  if (!store || !indices.length || !ionDims.value) return null
+  const s = store
+  if (!s || !indices.length || !ionDims.value) return null
   const { width, height } = ionDims.value
   const size = width * height
+  // Fetch all tolerance-bin indices in parallel; each keeps its own
+  // error tolerance (skip + warn) exactly as the serial version did.
+  const results = await Promise.all(
+    indices.map(async (idx) => {
+      try {
+        return await s.getIonImageByMzIndex(idx)
+      } catch (e) {
+        console.warn(`[useZarrIonImage] skip mzIndex=${idx}:`, (e as Error).message)
+        return null
+      }
+    }),
+  )
+  // Sum in index order — identical accumulation order to the serial loop
   const sum = new Float32Array(size)
-  for (const idx of indices) {
-    try {
-      const info: IonImageInfo = await store.getIonImageByMzIndex(idx)
-      for (let i = 0; i < size; i++) sum[i]! += info.matrix[i]!
-    } catch (e) {
-      console.warn(`[useZarrIonImage] skip mzIndex=${idx}:`, (e as Error).message)
-    }
+  for (const info of results) {
+    if (!info) continue
+    for (let i = 0; i < size; i++) sum[i]! += info.matrix[i]!
   }
   return sum
 }
@@ -341,7 +358,12 @@ export function useZarrIonImage() {
     if (dataModeRef.value !== 'continuous') return
     loading.value = true
     selectedMzIndex.value = idx
-    const matrix = await loadIonSliceSum(findMzRangeIndices(idx, mzTolerance.value))
+    // 钳位容差到 [min, max]，防止外部传入越界值导致空区间或全表扫描
+    const tol = Math.min(
+      ZARR_STORE.maxMzTolerance,
+      Math.max(ZARR_STORE.minMzTolerance, mzTolerance.value),
+    )
+    const matrix = await loadIonSliceSum(findMzRangeIndices(idx, tol))
     // store 可能在 await 期间被 disposeZarrState() 置空
     if (!store) return
     ionMatrix.value = matrix
@@ -380,27 +402,8 @@ export function useZarrIonImage() {
     // Reset all state
     store?.dispose()
     store = null
-    mzAxisRef.value = null
-    ionDims.value = null
     ionMatrix.value = null
-    dataModeRef.value = null
-    rowAxisRef.value = null
-    metadataAttrsRef.value = null
-
-    // Reset mean spectrum state
-    meanChartData.value = []
-    spectrumLoading.value = false
-    spectrumError.value = null
-
-    // Reset TIC state
-    ticMatrix.value = null
-    ticLoading.value = false
-    ticError.value = null
-
-    // Reset per-pixel spectrum state
-    pixelSpectrum.value = null
-    pixelSpectrumLoading.value = false
-    pixelSpectrumError.value = null
+    resetModuleState()
 
     try {
       const access = await getZarrAccess(runId)

@@ -118,9 +118,6 @@ export function useUserManagement() {
     fetchUsers()
   }
 
-  const prevPage = () => goToPage(currentPage.value - 1)
-  const nextPage = () => goToPage(currentPage.value + 1)
-
   const changeSize = (newSize: number) => {
     pageSize.value = newSize
     currentPage.value = 1
@@ -240,8 +237,6 @@ export function useUserManagement() {
     resetFilters,
     handleSearch,
     goToPage,
-    prevPage,
-    nextPage,
     changeSize,
     openDrawer,
     closeDrawer,

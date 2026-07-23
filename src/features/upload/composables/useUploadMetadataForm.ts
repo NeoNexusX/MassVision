@@ -70,6 +70,17 @@ function createForm(): UploadMetadataFormState {
   }
 }
 
+/**
+ * Pixel-size rule shared by the blur check in UploadMetadataForm.vue and the
+ * submit check in validateMetadata below: empty passes (required-ness is
+ * reported separately), otherwise the value must be an integer in [1, 200].
+ */
+export function isValidPixelSize(value: string): boolean {
+  if (!value) return true
+  const num = Number(value)
+  return !(isNaN(num) || !Number.isInteger(num) || num < 1 || num > 200)
+}
+
 export function useUploadMetadataForm() {
   // State
   const form = ref(createForm())
@@ -126,41 +137,32 @@ export function useUploadMetadataForm() {
     // Dynamic ion-source-dependent validation
     const rules = getIonSourceFieldRules(form.value.ionisation_source)
 
-    if (rules.solvent.required) {
-      const v = form.value.solvent
-      if (!v || (typeof v === 'string' && !v.trim())) {
-        return `${rules.solvent.label} is required.`
+    // Solvent only checks presence; the MALDI fields additionally reject 'Other'.
+    const dynamicFields = [
+      { rule: rules.solvent, value: form.value.solvent, rejectOther: false },
+      { rule: rules.maldiMatrix, value: form.value.maldi_matrix, rejectOther: true },
+      {
+        rule: rules.maldiMatrixApplication,
+        value: form.value.maldi_matrix_application,
+        rejectOther: true,
+      },
+    ]
+    for (const { rule, value, rejectOther } of dynamicFields) {
+      if (!rule.required) continue
+      if (!value || (typeof value === 'string' && !value.trim())) {
+        return `${rule.label} is required.`
+      }
+      if (rejectOther && value === 'Other') {
+        return `Please specify custom value for ${rule.label}.`
       }
     }
 
-    if (rules.maldiMatrix.required) {
-      const v = form.value.maldi_matrix
-      if (!v || (typeof v === 'string' && !v.trim())) {
-        return `${rules.maldiMatrix.label} is required.`
-      }
-      if (v === 'Other') {
-        return `Please specify custom value for ${rules.maldiMatrix.label}.`
-      }
-    }
-
-    if (rules.maldiMatrixApplication.required) {
-      const v = form.value.maldi_matrix_application
-      if (!v || (typeof v === 'string' && !v.trim())) {
-        return `${rules.maldiMatrixApplication.label} is required.`
-      }
-      if (v === 'Other') {
-        return `Please specify custom value for ${rules.maldiMatrixApplication.label}.`
-      }
-    }
     // Validate pixel size ranges
     for (const key of ['pixel_size_horizontal', 'pixel_size_vertical'] as const) {
       const val = form.value[key]
-      if (val) {
-        const num = Number(val)
-        if (isNaN(num) || !Number.isInteger(num) || num < 1 || num > 200) {
-          const label = key === 'pixel_size_horizontal' ? 'Pixel Size X (μm)' : 'Pixel Size Y (μm)'
-          return `${label} must be an integer between 1 and 200.`
-        }
+      if (val && !isValidPixelSize(val)) {
+        const label = key === 'pixel_size_horizontal' ? 'Pixel Size X (μm)' : 'Pixel Size Y (μm)'
+        return `${label} must be an integer between 1 and 200.`
       }
     }
     return ''

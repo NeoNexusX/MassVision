@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import BaseScene from './BaseScene.vue'
 import HoverGallery from '@/shared/components/HoverGallery.vue'
-import { APP_NAME } from '@/shared/config/app'
+import { BRAND_PARTS } from '@/shared/config/app'
 import { getConfig } from '@/shared/config/runtimeConfig'
 
 const { taglines: HERO_TAGLINES, gallery: HERO_GALLERY = [] } = getConfig().hero
@@ -10,10 +10,7 @@ const { taglines: HERO_TAGLINES, gallery: HERO_GALLERY = [] } = getConfig().hero
 const rotateDuration = `${HERO_TAGLINES.length * 2000}ms`
 
 // 把中间的大写 X 单独拆出来，做浅蓝→深蓝渐变；没有 X 时回退为完整名称
-const xIndex = APP_NAME.indexOf('X')
-const namePre = xIndex >= 0 ? APP_NAME.slice(0, xIndex) : APP_NAME
-const nameX = xIndex >= 0 ? APP_NAME[xIndex] : ''
-const namePost = xIndex >= 0 ? APP_NAME.slice(xIndex + 1) : ''
+const { pre: namePre, x: nameX, post: namePost } = BRAND_PARTS
 </script>
 
 <template>

@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import {
+  passwordScore as scorePassword,
+  passwordProgressClass,
+  passwordStrengthLabel,
+} from '@/features/auth/utils/passwordStrength'
 
 const props = defineProps<{
   isOpen: boolean
@@ -19,27 +24,11 @@ const mismatch = computed(() =>
   props.confirmPassword !== '' && props.newPassword !== props.confirmPassword,
 )
 
-const passwordScore = computed(() => {
-  const p = props.newPassword
-  if (!p) return 0
-  const checks = [
-    p.length >= 8,
-    p.length >= 12,
-    /[A-Z]/.test(p),
-    /[0-9]/.test(p),
-    /[^a-zA-Z0-9]/.test(p),
-  ]
-  return checks.filter(Boolean).length
-})
+const passwordScore = computed(() => scorePassword(props.newPassword))
 
-const progressBarClass = computed(() => {
-  const classes = ['progress-error', 'progress-warning', 'progress-warning', 'progress-success', 'progress-success']
-  return classes[passwordScore.value - 1] || 'progress-error'
-})
+const progressBarClass = computed(() => passwordProgressClass(passwordScore.value))
 
-const strengthLabel = computed(() => {
-  return ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][passwordScore.value - 1] || 'Please Input'
-})
+const strengthLabel = computed(() => passwordStrengthLabel(passwordScore.value))
 </script>
 
 <template>

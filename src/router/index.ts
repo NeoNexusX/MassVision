@@ -1,9 +1,4 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
-import Login from '../views/LoginView.vue'
-import Home from '../views/HomeView.vue'
-import UserProfileView from '../views/UserProfileView.vue'
-import PublicDatasets from '../views/PublicDatasets.vue'
-import MyDatasets from '../views/MyDatasets.vue'
 import { authStorage } from '@/features/auth/services/authStorage'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 
@@ -11,17 +6,17 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home,
+    component: () => import('../views/HomeView.vue'),
   },
   {
     path: '/datasets',
     name: 'PublicDatasets',
-    component: PublicDatasets,
+    component: () => import('../views/PublicDatasets.vue'),
   },
   {
     path: '/mydatasets',
     name: 'MyDatasets',
-    component: MyDatasets,
+    component: () => import('../views/MyDatasets.vue'),
     meta: { requiresAuth: true },
   },
   {
@@ -32,7 +27,7 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: Login,
+    component: () => import('../views/LoginView.vue'),
   },
   {
     path: '/register',
@@ -53,7 +48,7 @@ const routes = [
   {
     path: '/profile',
     name: 'Profile',
-    component: UserProfileView,
+    component: () => import('../views/UserProfileView.vue'),
     meta: { requiresAuth: true },
   },
   {
