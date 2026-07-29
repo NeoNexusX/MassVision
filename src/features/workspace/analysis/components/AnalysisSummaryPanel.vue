@@ -6,8 +6,6 @@ defineProps<{
   pipelineSummary: Array<{ key: string; title: string; method: string; present: boolean }>
   msSettingsList: Array<{ key: string; label: string; value: string }>
   selectedDataset: any
-  estimateTimeDisplay: string
-  quotaStorage: string
   canSubmit: boolean
   submitting: boolean
 }>()
@@ -70,18 +68,6 @@ const emit = defineEmits<{
             </div>
           </div>
           <div v-else class="text-lg text-base-content/40">No dataset selected</div>
-        </div>
-
-        <!-- TODO: Est. time 功能暂未实现，先隐藏 -->
-        <div v-if="false" class="border-t border-base-200/70 px-5 py-4">
-          <div class="text-lg font-medium text-base-content/60 mb-2">Est. time</div>
-          <div class="text-lg font-medium text-base-content">{{ estimateTimeDisplay }}</div>
-          <div class="text-base text-base-content/50 mt-2 space-y-1">
-            <div class="flex items-center justify-between">
-              <span>Storage</span>
-              <span class="text-base-content font-medium">{{ quotaStorage }}</span>
-            </div>
-          </div>
         </div>
 
         <div class="border-t border-base-200/70 px-5 py-4">

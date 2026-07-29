@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import type { PropType } from 'vue'
 import DatasetCard from '@/features/datasets/components/DatasetCard.vue'
-import PaginationBar from '@/shared/components/PaginationBar.vue'
-import { getConfig } from '@/shared/config/runtimeConfig'
+import PaginationFooter from '@/shared/components/PaginationFooter.vue'
 import type { File } from '@/features/datasets/types/dataset'
 
-const props = defineProps({
+defineProps({
   datasets: { type: Array as PropType<File[]>, required: true },
   loading: { type: Boolean, required: true },
   error: { type: String, required: true },
@@ -21,9 +20,6 @@ const emit = defineEmits(['view-overview', 'download', 'delete', 'explore', 'cha
 
 const onChangeSize = (v: number) => emit('change-size', v)
 const onGoToPage = (p: number) => emit('go-to-page', p)
-
-// 「每页条数」选项来自 config.json（pagination.pageSizeOptions），不写死在组件
-const pageSizeOptions = getConfig().pagination.pageSizeOptions
 </script>
 
 <template>
@@ -73,43 +69,16 @@ const pageSizeOptions = getConfig().pagination.pageSizeOptions
     </div>
 
     <!-- Pagination -->
-    <div
+    <PaginationFooter
       v-if="datasets.length"
-      class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4"
-    >
-      <div class="text-[1.1em] text-base-content text-center sm:text-left ml-2">
-        Page <span class="font-medium">{{ meta.current_page }}</span> of
-        <span class="font-medium">{{ meta.total_pages }}</span> —
-        <span class="font-medium">{{ meta.total_records }}</span> records
-      </div>
-      
-      <div class="flex flex-wrap items-center gap-4 mr-2">
-        <div class="flex items-center gap-2">
-          <label class="whitespace-nowrap text-[1.1em] text-base-content/60">Per page</label>
-          <select
-            :value="size"
-            @change="(e) => onChangeSize(Number((e.target as HTMLSelectElement).value))"
-            class="select select-sm select-bordered text-[1.1em] pl-3 pr-8"
-          >
-            <option v-for="opt in pageSizeOptions" :key="opt" :value="opt">{{ opt }}</option>
-          </select>
-        </div>
-
-        <PaginationBar
-          :current-page="meta.current_page"
-          :total-pages="meta.total_pages"
-          :total-items="meta.total_records"
-          :from="(meta.current_page - 1) * size + 1"
-          :to="Math.min(meta.current_page * size, meta.total_records)"
-          :page-range="pagination"
-          class="!justify-center"
-          @prev-page="() => onGoToPage(meta.current_page - 1)"
-          @next-page="() => onGoToPage(meta.current_page + 1)"
-          @go-to-page="onGoToPage"
-        >
-        </PaginationBar>
-      </div>
-    </div>
+      :current-page="meta.current_page"
+      :total-pages="meta.total_pages"
+      :total-items="meta.total_records"
+      :size="size"
+      :page-range="pagination"
+      @go-to-page="onGoToPage"
+      @change-size="onChangeSize"
+    />
   </div>
 </template>
 

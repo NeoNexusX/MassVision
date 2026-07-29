@@ -45,39 +45,15 @@
     </div>
 
     <!-- Pagination -->
-    <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="text-[1.1em] text-base-content text-center sm:text-left ml-2">
-        Page <span class="font-medium">{{ meta.current_page }}</span> of
-        <span class="font-medium">{{ meta.total_pages }}</span> —
-        <span class="font-medium">{{ meta.total_records }}</span> records
-      </div>
-
-      <div class="flex flex-wrap items-center gap-4 mr-2">
-        <div class="flex items-center gap-2">
-          <label class="whitespace-nowrap text-[1.1em] text-base-content/60">Per page</label>
-          <select
-            :value="size"
-            @change="(e) => changeSize(Number((e.target as HTMLSelectElement).value))"
-            class="select select-sm select-bordered text-[1.1em] pl-3 pr-8"
-          >
-            <option v-for="opt in pageSizeOptions" :key="opt" :value="opt">{{ opt }}</option>
-          </select>
-        </div>
-
-        <PaginationBar
-          :current-page="meta.current_page"
-          :total-pages="meta.total_pages"
-          :total-items="meta.total_records"
-          :from="(meta.current_page - 1) * size + 1"
-          :to="Math.min(meta.current_page * size, meta.total_records)"
-          :page-range="pagination"
-          class="!justify-center"
-          @prev-page="() => goToPage(meta.current_page - 1)"
-          @next-page="() => goToPage(meta.current_page + 1)"
-          @go-to-page="goToPage"
-        />
-      </div>
-    </div>
+    <PaginationFooter
+      :current-page="meta.current_page"
+      :total-pages="meta.total_pages"
+      :total-items="meta.total_records"
+      :size="size"
+      :page-range="pagination"
+      @go-to-page="goToPage"
+      @change-size="changeSize"
+    />
 
     <CreateTaskModal v-model:open="createOpen" @created="onCreated" />
 
@@ -114,14 +90,11 @@ import ResultTable from '@/features/workspace/dashboard/components/ResultTable.v
 import CreateTaskModal from '@/features/workspace/dashboard/components/CreateTaskModal.vue'
 import SummaryCard from '@/features/workspace/dashboard/components/SummaryCard.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
-import PaginationBar from '@/shared/components/PaginationBar.vue'
+import PaginationFooter from '@/shared/components/PaginationFooter.vue'
 import { useWorkspaceDashboard } from '@/features/workspace/dashboard/composables/useWorkspaceDashboard'
 import { useToast } from '@/shared/composables/useToast'
-import { getConfig } from '@/shared/config/runtimeConfig'
 
 const { createOpen, recentResults, summary, loading, deletingId, size, meta, pagination, onCreated, goToPage, changeSize, deleteResult } = useWorkspaceDashboard()
-
-const pageSizeOptions = getConfig().pagination.pageSizeOptions
 
 // Delete
 const { showToast } = useToast()

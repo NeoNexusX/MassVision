@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useDatasetDetail } from '@/features/datasets/composables/useDatasetDetail'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import InfoField from '@/features/datasets/components/InfoField.vue'
 
 const {
   source,
@@ -161,54 +162,18 @@ const {
             Biological &amp; Sample Info
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Organism</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.organism)
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Organism Part</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.organismPart)
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Condition</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.condition)
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Growth Conditions</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.sampleGrowthConditions)
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Stabilization</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.sampleStabilization)
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Tissue Modification</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.tissueModification)
-              }}</span>
-            </div>
+            <InfoField label="Organism">{{ formatString(dataset?.organism) }}</InfoField>
+            <InfoField label="Organism Part">{{ formatString(dataset?.organismPart) }}</InfoField>
+            <InfoField label="Condition">{{ formatString(dataset?.condition) }}</InfoField>
+            <InfoField label="Growth Conditions">{{
+              formatString(dataset?.sampleGrowthConditions)
+            }}</InfoField>
+            <InfoField label="Stabilization">{{
+              formatString(dataset?.sampleStabilization)
+            }}</InfoField>
+            <InfoField label="Tissue Modification">{{
+              formatString(dataset?.tissueModification)
+            }}</InfoField>
           </div>
         </div>
 
@@ -218,73 +183,29 @@ const {
             MSI Analysis Settings
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Polarity</span
+            <InfoField label="Polarity">{{ dataset?.polarity || '—' }}</InfoField>
+            <InfoField label="Ionisation Source">{{ dataset?.ionSource || '—' }}</InfoField>
+            <InfoField label="Analyzer">{{ dataset?.analyzer || '—' }}</InfoField>
+            <InfoField label="Pixel Size">
+              <template
+                v-if="dataset?.pixelSizeHorizontal != null || dataset?.pixelSizeVertical != null"
               >
-              <span class="text-base-content break-words">{{ dataset?.polarity || '—' }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Ionisation Source</span
-              >
-              <span class="text-base-content break-words">{{ dataset?.ionSource || '—' }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Analyzer</span
-              >
-              <span class="text-base-content break-words">{{ dataset?.analyzer || '—' }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Pixel Size</span
-              >
-              <span class="text-base-content break-words">
-                <template
-                  v-if="dataset?.pixelSizeHorizontal != null || dataset?.pixelSizeVertical != null"
-                >
-                  {{ dataset?.pixelSizeHorizontal ?? '—' }} ×
-                  {{ dataset?.pixelSizeVertical ?? '—' }} μm
-                </template>
-                <template v-else>—</template>
-              </span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Resolving Power</span
-              >
-              <span class="text-base-content break-words">
-                <template v-if="dataset?.mz != null || dataset?.resolvingPower != null">
-                  at m/z {{ dataset?.mz ?? '—' }}, {{ dataset?.resolvingPower ?? '—' }}
-                </template>
-                <template v-else>—</template>
-              </span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Matrix</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.maldiMatrix)
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Matrix Application</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.maldiMatrixApplication)
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Solvent</span
-              >
-              <span class="text-base-content break-words">{{
-                formatString(dataset?.solvent)
-              }}</span>
-            </div>
+                {{ dataset?.pixelSizeHorizontal ?? '—' }} ×
+                {{ dataset?.pixelSizeVertical ?? '—' }} μm
+              </template>
+              <template v-else>—</template>
+            </InfoField>
+            <InfoField label="Resolving Power">
+              <template v-if="dataset?.mz != null || dataset?.resolvingPower != null">
+                at m/z {{ dataset?.mz ?? '—' }}, {{ dataset?.resolvingPower ?? '—' }}
+              </template>
+              <template v-else>—</template>
+            </InfoField>
+            <InfoField label="Matrix">{{ formatString(dataset?.maldiMatrix) }}</InfoField>
+            <InfoField label="Matrix Application">{{
+              formatString(dataset?.maldiMatrixApplication)
+            }}</InfoField>
+            <InfoField label="Solvent">{{ formatString(dataset?.solvent) }}</InfoField>
           </div>
         </div>
 
@@ -294,46 +215,11 @@ const {
             File Information
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >File Type</span
-              >
-              <span class="text-base-content break-words">{{
-                dataset?.fileType || '—'
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Experiment</span
-              >
-              <span class="text-base-content break-words">{{
-                dataset?.experimentType || '—'
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Size</span
-              >
-              <span class="text-base-content break-words">{{
-                formatSize(dataset?.sizeBytes)
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Spectrum Mode</span
-              >
-              <span class="text-base-content break-words">{{
-                dataset?.spectrumMode || '—'
-              }}</span>
-            </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Storage Mode</span
-              >
-              <span class="text-base-content break-words">{{
-                dataset?.storageMode || '—'
-              }}</span>
-            </div>
+            <InfoField label="File Type">{{ dataset?.fileType || '—' }}</InfoField>
+            <InfoField label="Experiment">{{ dataset?.experimentType || '—' }}</InfoField>
+            <InfoField label="Size">{{ formatSize(dataset?.sizeBytes) }}</InfoField>
+            <InfoField label="Spectrum Mode">{{ dataset?.spectrumMode || '—' }}</InfoField>
+            <InfoField label="Storage Mode">{{ dataset?.storageMode || '—' }}</InfoField>
             <div class="flex flex-col">
               <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
                 >MD5 Hash</span
@@ -358,14 +244,9 @@ const {
                 </div>
               </div>
             </div>
-            <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
-                >Submitted By</span
-              >
-              <span class="text-base-content break-words">{{
-                dataset?.submitter || dataset?.raw?.first_uploaded_by || '—'
-              }}</span>
-            </div>
+            <InfoField label="Submitted By">{{
+              dataset?.submitter || dataset?.raw?.first_uploaded_by || '—'
+            }}</InfoField>
           </div>
         </div>
       </template>

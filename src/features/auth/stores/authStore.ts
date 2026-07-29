@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { auth_api } from '@/shared/api/httpClient'
 import { authStorage } from '@/features/auth/services/authStorage'
-import { logoutApi } from '@/features/auth/api/authApi'
+import { getCurrentUser, logoutApi } from '@/features/auth/api/authApi'
 
 interface User {
   username: string
@@ -22,8 +21,9 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchUser() {
     if (!token.value) return
     try {
-      const response = await auth_api.get('/user')
-      user.value = response.data
+      const response = await getCurrentUser()
+      // UsrProfile has no implicit index signature; cast to the store's User shape.
+      user.value = response.data as unknown as User
     } catch (error: any) {
       // Only logout on 401 Unauthorized; transient errors keep the session.
       if (error.response?.status === 401) {

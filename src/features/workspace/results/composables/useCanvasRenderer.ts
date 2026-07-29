@@ -1,5 +1,6 @@
 import { onBeforeUnmount, type Ref } from 'vue'
 import { buildLUT } from '../utils/colormapLut'
+import { computeFitTransform } from '../utils/fitTransform'
 
 interface CanvasRendererOptions {
   canvasRef: Ref<HTMLCanvasElement | null>
@@ -30,15 +31,18 @@ export function useCanvasRenderer(
   let ro: ResizeObserver | null = null
   // Cached offscreen canvas — reused across renders
   let offscreen: HTMLCanvasElement | null = null
+  // Cached ImageData buffer for the offscreen canvas — reused while dims match
+  let imageData: ImageData | null = null
 
   function updateCachedData(data: Float32Array) {
     if (cachedData === data) return
     cachedData = data
-    const allVals: number[] = []
-    for (let i = 0; i < data.length; i++) allVals.push(data[i]!)
-    allVals.sort((a, b) => a - b)
-    cachedP1 = allVals[Math.floor(allVals.length * 0.01)] ?? allVals[0] ?? 0
-    cachedP95 = allVals[Math.floor(allVals.length * 0.95)] ?? allVals[allVals.length - 1] ?? 1
+    // Sort a Float32Array copy with the native typed-array numeric sort —
+    // identical ordering to (a, b) => a - b for the finite, non-negative
+    // intensity values handled here, without per-comparison JS callbacks.
+    const sorted = data.slice().sort()
+    cachedP1 = sorted[Math.floor(sorted.length * 0.01)] ?? sorted[0] ?? 0
+    cachedP95 = sorted[Math.floor(sorted.length * 0.95)] ?? sorted[sorted.length - 1] ?? 1
   }
 
   function render() {
@@ -79,25 +83,21 @@ export function useCanvasRenderer(
 
     const gamma = opts.gamma.value
 
-    // 4% padding on each side so the image doesn't touch container edges
-    const pad = 0.04
-    const availW = W * (1 - pad * 2)
-    const availH = H * (1 - pad * 2)
-    const scaleVal = Math.min(availW / cols, availH / rows)
-    const drawW = Math.floor(cols * scaleVal)
-    const drawH = Math.floor(rows * scaleVal)
-    const ox = Math.floor((W - drawW) / 2)
-    const oy = Math.floor((H - drawH) / 2)
+    // Fit image into container with shared geometry (padding, scale, origin)
+    const { scaleVal, drawW, drawH, ox, oy } = computeFitTransform(W, H, cols, rows)
 
     // Render to 1:1 offscreen canvas — no anti-alias gaps, no cell expansion.
     if (!offscreen || offscreen.width !== cols || offscreen.height !== rows) {
       offscreen = document.createElement('canvas')
       offscreen.width = cols
       offscreen.height = rows
+      imageData = null
     }
     const offCtx = offscreen.getContext('2d')!
-    const offData = offCtx.createImageData(cols, rows)
-    const buf = offData.data
+    // Reuse the ImageData buffer while dimensions are unchanged; every pixel
+    // is rewritten below (background pre-fill + value pass) before putImageData.
+    if (!imageData) imageData = offCtx.createImageData(cols, rows)
+    const buf = imageData.data
 
     // Pre-fill with background
     for (let i = 0; i < buf.length; i += 4) {
@@ -128,7 +128,7 @@ export function useCanvasRenderer(
         buf[pi + 3] = 255
       }
     }
-    offCtx.putImageData(offData, 0, 0)
+    offCtx.putImageData(imageData, 0, 0)
 
     // Blit offscreen → main canvas: drawImage handles DPR, centering, scaling.
     ctx.drawImage(offscreen, ox, oy, drawW, drawH)
@@ -183,6 +183,7 @@ export function useCanvasRenderer(
     ro?.disconnect()
     if (renderRaf) cancelAnimationFrame(renderRaf)
     offscreen = null
+    imageData = null
     cachedData = null
   })
 

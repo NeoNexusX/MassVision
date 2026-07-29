@@ -35,7 +35,14 @@ const COLORMAP_TABLE: Record<string, [number, number, number][]> = {
   ],
 }
 
+// LUTs are pure functions of the colormap name — cache by name so repeated
+// renders don't rebuild 256 stops every frame. Callers must treat the
+// returned array as read-only.
+const lutCache = new Map<string, [number, number, number][]>()
+
 export function buildLUT(name: string): [number, number, number][] {
+  const cached = lutCache.get(name)
+  if (cached) return cached
   const stops = (COLORMAP_TABLE[name] ?? COLORMAP_TABLE.viridis)!
   const lut: [number, number, number][] = new Array(256)
   for (let i = 0; i < 256; i++) {
@@ -51,5 +58,6 @@ export function buildLUT(name: string): [number, number, number][] {
       Math.round(a[2] + (b[2] - a[2]) * frac),
     ]
   }
+  lutCache.set(name, lut)
   return lut
 }

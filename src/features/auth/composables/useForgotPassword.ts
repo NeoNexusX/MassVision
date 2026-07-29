@@ -1,17 +1,16 @@
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCountdown } from '@/shared/composables/useCountdown'
-import { sendEmailCode } from '@/features/auth/api/authApi'
+import { useSendEmailCode } from '@/shared/composables/useSendEmailCode'
 import { api } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
-import { getConfig } from '@/shared/config/runtimeConfig'
 import { SESSION_KEYS } from '@/shared/config'
+import { VALIDATION_PATTERNS } from '@/features/auth/constants/validationPatterns'
+import {
+  passwordScore as scorePassword,
+  passwordProgressClass,
+} from '@/features/auth/utils/passwordStrength'
 
-const patterns = {
-  email: '^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$',
-  password: '^(?=.*[a-zA-Z])(?=.*\\d).{8,25}$',
-  verify_code: '^[0-9]{6}$',
-}
+const patterns = { ...VALIDATION_PATTERNS }
 
 export function useForgotPassword() {
   const router = useRouter()
@@ -20,12 +19,12 @@ export function useForgotPassword() {
     count: countdown,
     isActive: isCountdownActive,
     isExhausted,
-    start: startCountdown,
-  } = useCountdown(
-    getConfig().verification.countdownSeconds,
-    SESSION_KEYS.forgotPasswordCodeAttempts,
-    getConfig().verification.maxAttempts,
-  )
+    sendCode: sendCodeRequest,
+  } = useSendEmailCode({
+    sessionKey: SESSION_KEYS.forgotPasswordCodeAttempts,
+    purpose: 'reset_password',
+    successMessage: 'Verification code sent! Check your email.',
+  })
 
   // ── State ──────────────────────────────────────────────────────────────
 
@@ -53,29 +52,9 @@ export function useForgotPassword() {
 
   // ── Password strength ─────────────────────────────────────────────────
 
-  const passwordScore = computed(() => {
-    const p = form.new_password
-    if (!p) return 0
-    const checks = [
-      p.length >= 8,
-      p.length >= 12,
-      /[A-Z]/.test(p),
-      /[0-9]/.test(p),
-      /[^a-zA-Z0-9]/.test(p),
-    ]
-    return checks.filter(Boolean).length
-  })
+  const passwordScore = computed(() => scorePassword(form.new_password))
 
-  const progressBarClass = computed(() => {
-    const classes = [
-      'progress-error',
-      'progress-warning',
-      'progress-warning',
-      'progress-success',
-      'progress-success',
-    ]
-    return classes[passwordScore.value - 1] || 'progress-error'
-  })
+  const progressBarClass = computed(() => passwordProgressClass(passwordScore.value))
 
   // ── Validation ────────────────────────────────────────────────────────
 
@@ -125,32 +104,23 @@ export function useForgotPassword() {
 
   /** 发送验证码 → 进入第二步 */
   async function sendCode() {
-    if (isExhausted.value) {
-      showToast(
-        'Maximum verification code requests reached for this session. Please try again later.',
-        'error',
-      )
-      return
-    }
-
-    validateField('email')
-    if (errors.email) {
-      showToast('Please enter a valid email address', 'error')
-      return
-    }
-
-    loading.sendCode = true
-    try {
-      await sendEmailCode(form.email, 'reset_password')
-      showToast('Verification code sent! Check your email.', 'success')
-      startCountdown()
-      step.value = 'reset'
-    } catch (error: any) {
-      console.error('Send code error:', error.message)
-      showToast(error.message || 'Failed to send verification code', 'error')
-    } finally {
-      loading.sendCode = false
-    }
+    await sendCodeRequest(form.email, {
+      validate: () => {
+        validateField('email')
+        if (errors.email) {
+          showToast('Please enter a valid email address', 'error')
+          return false
+        }
+        return true
+      },
+      setLoading: (value) => {
+        loading.sendCode = value
+      },
+      onSuccess: () => {
+        step.value = 'reset'
+      },
+      onError: (error) => console.error('Send code error:', error.message),
+    })
   }
 
   /** 提交重置密码 */

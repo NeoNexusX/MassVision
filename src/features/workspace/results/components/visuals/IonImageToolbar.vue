@@ -27,9 +27,10 @@
           type="number"
           class="input input-sm input-bordered w-20 font-mono text-base"
           :value="mzTolerance"
-          step="0.001"
-          min="0.001"
-          @input="$emit('update:mzTolerance', +($event.target as HTMLInputElement).value)"
+          step="any"
+          :min="ZARR_STORE.minMzTolerance"
+          :max="ZARR_STORE.maxMzTolerance"
+          @input="onToleranceInput"
         />
       </div>
       <!-- Colormap（两种模式都可用） -->
@@ -59,6 +60,7 @@
 
 <script setup lang="ts">
 import type { DataMode } from '@/services/zarrOssStore'
+import { ZARR_STORE } from '@/shared/config/defaults'
 
 defineProps<{
   selectedMz: number
@@ -73,10 +75,19 @@ defineProps<{
   title?: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'update:mzTolerance', v: number): void
   (e: 'update:colormap', v: string): void
   (e: 'update:intensityScale', v: string): void
   (e: 'reset'): void
 }>()
+
+/** 容差输入钳位到 [min, max]；空输入/NaN 时回退到下限，避免触发 NaN 加载 */
+function onToleranceInput(e: Event) {
+  const raw = Number((e.target as HTMLInputElement).value)
+  const v = Number.isNaN(raw)
+    ? ZARR_STORE.minMzTolerance
+    : Math.min(ZARR_STORE.maxMzTolerance, Math.max(ZARR_STORE.minMzTolerance, raw))
+  emit('update:mzTolerance', v)
+}
 </script>

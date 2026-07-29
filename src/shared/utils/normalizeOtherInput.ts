@@ -12,11 +12,6 @@
 const MAX_LENGTH = 50
 const ALLOWED_RE = /^[A-Za-z0-9\s\-_/(),.]*$/
 
-export interface OtherInputState {
-  value: string
-  error: string
-}
-
 export function normalizeOtherInput(raw: string): string {
   return raw
     .trim()
@@ -45,15 +40,4 @@ export function validateOtherInput(value: string): string {
   }
 
   return ''
-}
-
-export function sanitizeOtherInput(raw: string): OtherInputState {
-  const trimmed = normalizeOtherInput(raw)
-  const error = validateOtherInput(trimmed)
-
-  if (error) {
-    return { value: trimmed, error }
-  }
-
-  return { value: toTitleCase(trimmed), error: '' }
 }

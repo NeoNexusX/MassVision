@@ -1,15 +1,18 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCurrentUser, sendEmailCode, updateUserProfile } from '@/features/auth/api/authApi'
+import { getCurrentUser, updateUserProfile } from '@/features/auth/api/authApi'
 import { useToast } from '@/shared/composables/useToast'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import { extractBackendError } from '@/shared/api/httpClient'
-import { useCountdown } from '@/shared/composables/useCountdown'
+import { useSendEmailCode } from '@/shared/composables/useSendEmailCode'
 import { useUserQuota } from '@/shared/composables/useUserQuota'
 import { positionOptions } from '@/shared/constants/profileOptions'
 import { getRegionOptions } from '@/shared/utils/regionOptions'
 import { SESSION_KEYS } from '@/shared/config'
-import { getConfig } from '@/shared/config/runtimeConfig'
+import {
+  PROFILE_EMAIL_PATTERN,
+  VALIDATION_PATTERNS,
+} from '@/features/auth/constants/validationPatterns'
 import type { UsrProfileUpdate } from '@/features/auth/types/auth'
 
 const regionOptions = getRegionOptions()
@@ -24,12 +27,12 @@ export function useUserProfileForm() {
     count: codeCooldown,
     isActive: isCooldownActive,
     isExhausted,
-    start: startCodeCooldown,
-  } = useCountdown(
-    getConfig().verification.countdownSeconds,
-    SESSION_KEYS.profileEmailCode,
-    getConfig().verification.maxAttempts,
-  )
+    sendCode: sendCodeRequest,
+  } = useSendEmailCode({
+    sessionKey: SESSION_KEYS.profileEmailCode,
+    purpose: 'update',
+    successMessage: 'Verification code sent to email',
+  })
 
   // State
   const loading = ref(false)
@@ -87,25 +90,18 @@ export function useUserProfileForm() {
   }
 
   const sendVerificationCode = async () => {
-    if (isExhausted.value) {
-      showToast('Maximum verification code requests reached for this session. Please try again later.', 'error')
-      return
-    }
-
-    if (!newEmail.value || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(newEmail.value)) {
-      showToast('Please enter a valid email address', 'warning')
-      return
-    }
-    try {
-      sendingCode.value = true
-      await sendEmailCode(newEmail.value, 'update')
-      showToast('Verification code sent to email', 'success')
-      startCodeCooldown()
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to send verification code', 'error')
-    } finally {
-      sendingCode.value = false
-    }
+    await sendCodeRequest(newEmail.value, {
+      validate: () => {
+        if (!newEmail.value || !new RegExp(PROFILE_EMAIL_PATTERN).test(newEmail.value)) {
+          showToast('Please enter a valid email address', 'warning')
+          return false
+        }
+        return true
+      },
+      setLoading: (value) => {
+        sendingCode.value = value
+      },
+    })
   }
 
   const submitEmailChange = async () => {
@@ -150,7 +146,7 @@ export function useUserProfileForm() {
       return
     }
 
-    const passwordPattern = /^(?=.*[a-zA-Z])(?=.*\d).{8,25}$/
+    const passwordPattern = new RegExp(VALIDATION_PATTERNS.password)
     if (!passwordPattern.test(pw)) {
       showToast('Password must be 8-25 characters with at least one letter and one number', 'error')
       return

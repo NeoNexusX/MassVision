@@ -48,26 +48,6 @@
       "date": "July 10",
       "version": "0.5.1",
       "features": ["Refactored pages and updated documentation", "Fixed bugs"]
-    },
-    {
-      "date": "June 26",
-      "version": "0.4",
-      "features": ["Upload/download pipeline hardened with Zarr storage update and zip compression fix"]
-    },
-    {
-      "date": "May 26",
-      "version": "0.3",
-      "features": ["Home page design completed"]
-    },
-    {
-      "date": "April 26",
-      "version": "0.2",
-      "features": ["Dataset part basically completed"]
-    },
-    {
-      "date": "March 26",
-      "version": "0.1",
-      "features": ["Core framework completed"]
     }
   ],
 
