@@ -35,6 +35,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import type { ROIType, DraftROI, ROIPoint } from '@/features/workspace/results/composables/useROI'
+import { computeFitTransform } from '@/features/workspace/results/utils/fitTransform'
 
 const props = defineProps<{
   tool: ROIType | null
@@ -91,7 +92,8 @@ const handlePos = computed(() => {
 })
 
 // ─── Coordinate helpers ───
-const PAD = 0.04 // must match useCanvasRenderer.ts
+// Shared fit geometry lives in utils/fitTransform.ts (single source of truth
+// for the canvas renderer, ion-image viewer, and this overlay).
 
 /** Get the element used for coordinate calculation — use targetEl if provided, else parentElement */
 function getCoordEl(): HTMLElement | null {
@@ -110,22 +112,14 @@ function getScale() {
     return { ox: 0, oy: 0, scale: 1, W: 0, H: 0 }
 
   const cr = canvasEl.getBoundingClientRect()
-  const padW = cr.width * (1 - PAD * 2)
-  const padH = cr.height * (1 - PAD * 2)
-  const s = Math.min(padW / props.imageWidth, padH / props.imageHeight)
-  const drawW = Math.floor(props.imageWidth * s)
-  const drawH = Math.floor(props.imageHeight * s)
-
-  // Image origin relative to canvas container
-  const canvasOx = Math.floor((cr.width - drawW) / 2)
-  const canvasOy = Math.floor((cr.height - drawH) / 2)
+  const fit = computeFitTransform(cr.width, cr.height, props.imageWidth, props.imageHeight)
 
   // Translate to overlay container's coordinate space
   const or = overlayEl.getBoundingClientRect()
   return {
-    ox: (cr.left - or.left) + canvasOx,
-    oy: (cr.top - or.top) + canvasOy,
-    scale: s,
+    ox: cr.left - or.left + fit.ox,
+    oy: cr.top - or.top + fit.oy,
+    scale: fit.scaleVal,
     W: or.width,
     H: or.height,
   }

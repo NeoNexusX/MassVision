@@ -8,16 +8,19 @@ const GRADIENT_STOPS: Record<string, string[]> = {
 }
 
 function computeRange(matrix: Float32Array) {
-  const nonZero: number[] = []
+  // Collect non-zero values, then sort a Float32Array copy with the native
+  // typed-array numeric sort (identical ordering to (a, b) => a - b for the
+  // finite, non-negative intensity values we handle here).
+  const nonZeroVals: number[] = []
   for (let i = 0; i < matrix.length; i++) {
     const v = matrix[i]!
-    if (v > 0) nonZero.push(v)
+    if (v > 0) nonZeroVals.push(v)
   }
-  if (!nonZero.length) return { displayMin: 0, displayMax: 1, dataMax: 1, sorted: [] as number[] }
-  nonZero.sort((a, b) => a - b)
-  const p95 = nonZero[Math.floor(nonZero.length * 0.95)] ?? nonZero[nonZero.length - 1]!
-  const dataMax = nonZero[nonZero.length - 1]!
-  return { displayMin: 0, displayMax: p95, dataMax, sorted: nonZero }
+  if (!nonZeroVals.length) return { displayMin: 0, displayMax: 1, dataMax: 1, sorted: [] as number[] }
+  const sortedF32 = Float32Array.from(nonZeroVals).sort()
+  const p95 = sortedF32[Math.floor(sortedF32.length * 0.95)] ?? sortedF32[sortedF32.length - 1]!
+  const dataMax = sortedF32[sortedF32.length - 1]!
+  return { displayMin: 0, displayMax: p95, dataMax, sorted: Array.from(sortedF32) }
 }
 
 function formatIonValue(value: number): string {

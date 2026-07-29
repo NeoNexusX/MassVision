@@ -21,19 +21,25 @@ export function useZoomPan(
     panY.value = 0
   }
 
-  function setZoom(newZoom: number) {
+  /**
+   * Shared clamp/scale/pan/reset-if-1 logic for zooming anchored at (mx, my)
+   * in container coordinates.
+   */
+  function zoomAt(mx: number, my: number, newZoom: number) {
     const clamped = Math.max(1, Math.min(40, newZoom))
     if (clamped === zoom.value) return
-    const cx = containerW() / 2
-    const cy = containerH() / 2
     const scale = clamped / zoom.value
-    panX.value = cx - scale * (cx - panX.value)
-    panY.value = cy - scale * (cy - panY.value)
+    panX.value = mx - scale * (mx - panX.value)
+    panY.value = my - scale * (my - panY.value)
     zoom.value = clamped
     if (zoom.value === 1) {
       panX.value = 0
       panY.value = 0
     }
+  }
+
+  function setZoom(newZoom: number) {
+    zoomAt(containerW() / 2, containerH() / 2, newZoom)
   }
 
   function zoomIn() {
@@ -50,15 +56,7 @@ export function useZoomPan(
     const mx = e.clientX - rect.left
     const my = e.clientY - rect.top
     const factor = e.deltaY < 0 ? 1.2 : 1 / 1.2
-    const newZoom = Math.max(1, Math.min(40, zoom.value * factor))
-    const scale = newZoom / zoom.value
-    panX.value = mx - scale * (mx - panX.value)
-    panY.value = my - scale * (my - panY.value)
-    zoom.value = newZoom
-    if (zoom.value === 1) {
-      panX.value = 0
-      panY.value = 0
-    }
+    zoomAt(mx, my, zoom.value * factor)
   }
 
   function onPanStart(e: MouseEvent, containerRef: HTMLElement | null) {

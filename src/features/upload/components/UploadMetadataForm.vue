@@ -3,8 +3,9 @@ import { computed, ref } from 'vue'
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
 import IconSelect from '@/shared/components/IconSelect.vue'
 import SolventPicker from '@/features/upload/components/SolventPicker.vue'
-import type {
-  UploadMetadataFormState,
+import {
+  isValidPixelSize,
+  type UploadMetadataFormState,
 } from '@/features/upload/composables/useUploadMetadataForm'
 import {
   ORGANISMS,
@@ -34,12 +35,7 @@ const pixelSizeYError = ref('')
 
 function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
   const errorRef = field === 'horizontal' ? pixelSizeXError : pixelSizeYError
-  if (!value) {
-    errorRef.value = ''
-    return true
-  }
-  const num = Number(value)
-  if (isNaN(num) || !Number.isInteger(num) || num < 1 || num > 200) {
+  if (!isValidPixelSize(value)) {
     errorRef.value = 'Pixel size must be an integer between 1 and 200'
     return false
   }

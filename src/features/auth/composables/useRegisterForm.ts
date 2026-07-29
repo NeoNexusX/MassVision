@@ -1,21 +1,25 @@
 import { computed, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCountdown } from '@/shared/composables/useCountdown'
-import { usrSignupApi, sendEmailCode } from '@/features/auth/api/authApi'
+import { useSendEmailCode } from '@/shared/composables/useSendEmailCode'
+import { usrSignupApi } from '@/features/auth/api/authApi'
 import type { UsrSignup } from '@/features/auth/types/auth'
 import { useToast } from '@/shared/composables/useToast'
 import { positionOptions, researchFieldOptions } from '@/shared/constants/profileOptions'
 import { getRegionOptions } from '@/shared/utils/regionOptions'
 import { SESSION_KEYS } from '@/shared/config'
-import { getConfig } from '@/shared/config/runtimeConfig'
+import { VALIDATION_PATTERNS } from '@/features/auth/constants/validationPatterns'
+import {
+  passwordScore as scorePassword,
+  passwordProgressClass,
+} from '@/features/auth/utils/passwordStrength'
 
 const regionOptions = getRegionOptions()
 
 const patterns = {
   username: '^[A-Za-z0-9_\\-]{3,30}$',
-  email: '^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$',
-  password: '^(?=.*[a-zA-Z])(?=.*\\d).{8,25}$',
-  verify_code: '^[0-9]{6}$',
+  email: VALIDATION_PATTERNS.email,
+  password: VALIDATION_PATTERNS.password,
+  verify_code: VALIDATION_PATTERNS.verify_code,
   url:
     '^(https?:\\/\\/)?' +
     '((([a-z\\d]([a-z\\d\\-]*[a-z\\d])*)\\.)+[a-z]{2,}|' +
@@ -114,12 +118,12 @@ export function useRegisterForm() {
     count: countdown,
     isActive: isCountdownActive,
     isExhausted,
-    start: startCountdown,
-  } = useCountdown(
-    getConfig().verification.countdownSeconds,
-    SESSION_KEYS.registerCodeAttempts,
-    getConfig().verification.maxAttempts,
-  )
+    sendCode: sendCodeRequest,
+  } = useSendEmailCode({
+    sessionKey: SESSION_KEYS.registerCodeAttempts,
+    purpose: 'register',
+    successMessage: 'Verification code sent!',
+  })
 
   // State
   const form = reactive({
@@ -152,30 +156,9 @@ export function useRegisterForm() {
 
   const loading = reactive({ register: false, sendCode: false })
 
-  const passwordScore = computed(() => {
-    const p = form.password
-    if (!p) return 0
+  const passwordScore = computed(() => scorePassword(form.password))
 
-    const checks = [
-      p.length >= 8,
-      p.length >= 12,
-      /[A-Z]/.test(p),
-      /[0-9]/.test(p),
-      /[^a-zA-Z0-9]/.test(p),
-    ]
-    return checks.filter(Boolean).length
-  })
-
-  const progressBarClass = computed(() => {
-    const classes = [
-      'progress-error',
-      'progress-warning',
-      'progress-warning',
-      'progress-success',
-      'progress-success',
-    ]
-    return classes[passwordScore.value - 1] || 'progress-error'
-  })
+  const progressBarClass = computed(() => passwordProgressClass(passwordScore.value))
 
   // Methods
   const clearError = (field: RegField) => {
@@ -197,33 +180,21 @@ export function useRegisterForm() {
   }
 
   const sendVerificationCode = async () => {
-    if (isExhausted.value) {
-      showToast(
-        'Maximum verification code requests reached for this session. Please try again later.',
-        'error',
-      )
-      return
-    }
-    
     const accountFields: RegField[] = ['username', 'email', 'password', 'confirm_password']
-    accountFields.forEach((field) => validateField(field))
-    
-    if (accountFields.some((field) => errors[field])) {
-      showToast('Please complete the account information correctly before sending the code', 'error')
-      return
-    }
-    
-    loading.sendCode = true
-    try {
-      await sendEmailCode(form.email)
-      showToast('Verification code sent!', 'success')
-      startCountdown()
-    } catch (error: any) {
-      console.error('Send code error:', error.message)
-      showToast(error.message || 'Failed to send verification code', 'error')
-    } finally {
-      loading.sendCode = false
-    }
+    await sendCodeRequest(form.email, {
+      validate: () => {
+        accountFields.forEach((field) => validateField(field))
+        if (accountFields.some((field) => errors[field])) {
+          showToast('Please complete the account information correctly before sending the code', 'error')
+          return false
+        }
+        return true
+      },
+      setLoading: (value) => {
+        loading.sendCode = value
+      },
+      onError: (error) => console.error('Send code error:', error.message),
+    })
   }
 
   const register = async () => {

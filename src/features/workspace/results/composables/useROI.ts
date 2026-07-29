@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { ref, shallowRef, markRaw, type Ref } from 'vue'
 
 export type ROIType = 'rectangle' | 'freehand'
 
@@ -40,7 +40,10 @@ export function useROI(
   // State
   const selectedTool = ref<ROIType | null>(null)
   const draft = ref<DraftROI | null>(null)
-  const confirmedROIs = ref<ConfirmedROI[]>([])
+  // shallowRef: ROI masks are large boolean[][] arrays — deep-proxying them
+  // costs significant memory/CPU. All updates below are replace-style, and
+  // consumers only read, so shallow reactivity is behavior-identical.
+  const confirmedROIs = shallowRef<ConfirmedROI[]>([])
 
   let nextId = 1
   let nextColorIdx = 0
@@ -152,7 +155,7 @@ export function useROI(
     if (pixelCount === 0) return null
 
     const stats = computeStats(matrix, w, h, mask)
-    const roi: ConfirmedROI = {
+    const roi: ConfirmedROI = markRaw({
       id: `roi-${nextId++}`,
       type: draftROI.type,
       label: label ?? `ROI ${nextId - 1}`,
@@ -160,9 +163,9 @@ export function useROI(
       mask,
       stats,
       spectrum: null,
-    }
+    })
     nextColorIdx++
-    confirmedROIs.value.push(roi)
+    confirmedROIs.value = [...confirmedROIs.value, roi]
     clearDraft()
     return roi
   }

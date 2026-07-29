@@ -6,10 +6,10 @@ import {
   buildParamKey,
   buildDefaultMethodParams,
 } from '@/features/workspace/analysis/composables/usePreprocessingMethods'
-import { createProcess, getUserQuota, type UserQuota } from '@/features/datasets/api/datasetApi'
-import { formatBytes } from '@/shared/utils/format'
+import { createProcess } from '@/features/datasets/api/datasetApi'
 import { extractBackendError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
+import { useUserQuota } from '@/shared/composables/useUserQuota'
 import { buildProcessPayload } from '@/features/workspace/analysis/services/buildProcessPayload'
 
 export function useAnalysisBuilder(
@@ -47,8 +47,8 @@ export function useAnalysisBuilder(
     pixelSize: false,
   })
 
-  const quota = ref<UserQuota | null>(null)
-  const quotaLoading = ref(false)
+  // 配额状态复用共享的 useUserQuota（取数逻辑一致）；quotaTasks 在此派生
+  const { quotaData: quota, loading: quotaLoading, fetchQuota } = useUserQuota()
   const submitting = ref(false)
 
   allMethodGroups.forEach((group) => {
@@ -131,16 +131,6 @@ export function useAnalysisBuilder(
     text: summaryReady.value ? 'Ready' : 'Incomplete',
     cls: summaryReady.value ? 'badge badge-success' : 'badge badge-warning',
   }))
-
-  const estimateTimeDisplay = computed(() => {
-    if (totalSelectedCount.value === 0) return 'Waiting for configuration'
-    return `${totalSelectedCount.value * 3}–${totalSelectedCount.value * 5} min`
-  })
-
-  const quotaStorage = computed(() => {
-    if (!quota.value) return '—'
-    return `${formatBytes(quota.value.total_processed_size_bytes)} / ${quota.value.max_processing_size_gb} GB`
-  })
 
   const quotaTasks = computed(() => {
     if (!quota.value) return '—'
@@ -244,17 +234,6 @@ export function useAnalysisBuilder(
     }
   }
 
-  const fetchQuota = async () => {
-    quotaLoading.value = true
-    try {
-      quota.value = await getUserQuota()
-    } catch {
-      /* ignore */
-    } finally {
-      quotaLoading.value = false
-    }
-  }
-
   const submit = async () => {
     if (!canSubmit.value || submitting.value) return
     submitting.value = true
@@ -295,7 +274,6 @@ export function useAnalysisBuilder(
     analysisForm,
     quota,
     quotaLoading,
-    quotaStorage,
     quotaTasks,
     submitting,
     totalSelectedCount,
@@ -303,7 +281,6 @@ export function useAnalysisBuilder(
     pipelineSummary,
     msSettingsList,
     statusBadge,
-    estimateTimeDisplay,
     buildParamKey,
     getParam,
     setParam,

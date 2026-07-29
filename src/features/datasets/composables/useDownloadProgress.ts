@@ -2,7 +2,7 @@ import { reactive } from 'vue'
 import { ossDownloadAndSave, ossDownloadRaw } from '@/features/datasets/utils/downloadHelper'
 import { useDownloadStore } from '@/features/datasets/stores/downloadStore'
 import { useToast } from '@/shared/composables/useToast'
-import axios from 'axios'
+import { extractBackendError } from '@/shared/api/httpClient'
 
 const packingIds = reactive(new Set<string>())
 
@@ -25,9 +25,7 @@ export function useDownloadProgress() {
       removeToast(toastId)
     } catch (error) {
       removeToast(toastId)
-      const message = axios.isAxiosError(error)
-        ? (error.response?.data?.message || error.message)
-        : 'Failed to download file'
+      const message = extractBackendError(error, 'Failed to download file')
       showToast(message, 'error')
       console.error('Download error:', error)
     } finally {
@@ -73,9 +71,7 @@ export function useDownloadProgress() {
     } catch (error) {
       downloadStore.failDownload()
       removeToast(toastId)
-      const message = axios.isAxiosError(error)
-        ? (error.response?.data?.message || error.message)
-        : 'Failed to download file'
+      const message = extractBackendError(error, 'Failed to download file')
       showToast(message, 'error')
       console.error('Download error:', error)
     } finally {

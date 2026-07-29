@@ -87,6 +87,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, type PropType } from 
 import IonImageToolbar from './IonImageToolbar.vue'
 import { useZoomPan } from '../../composables/useZoomPan'
 import { useCanvasRenderer } from '../../composables/useCanvasRenderer'
+import { computeFitTransform, fitPointToMatrixCell } from '../../utils/fitTransform'
 import type { DataMode } from '@/services/zarrOssStore'
 
 const props = defineProps({
@@ -209,21 +210,13 @@ function onContainerClick(e: MouseEvent) {
   if (!data || !data.length || !cols || !rows) return
 
   const W = rect.width, H = rect.height
-  const pad = 0.04
-  const availW = W * (1 - pad * 2)
-  const availH = H * (1 - pad * 2)
-  const scaleVal = Math.min(availW / cols, availH / rows)
-  const drawW = Math.floor(cols * scaleVal)
-  const drawH = Math.floor(rows * scaleVal)
-  const ox = Math.floor((W - drawW) / 2)
-  const oy = Math.floor((H - drawH) / 2)
+  const t = computeFitTransform(W, H, cols, rows)
 
   const mx = e.clientX - rect.left
   const my = e.clientY - rect.top
   const cx = (mx - panX.value) / zoom.value
   const cy = (my - panY.value) / zoom.value
-  const col = Math.floor((cx - ox) * cols / drawW)
-  const row = Math.floor((cy - oy) * rows / drawH)
+  const { col, row } = fitPointToMatrixCell(cx, cy, t, cols, rows)
 
   if (row >= 0 && row < rows && col >= 0 && col < cols) {
     emit('select-pixel', col, row)
@@ -241,20 +234,12 @@ function onHover(e: MouseEvent) {
   const rows = props.matrixRows
   if (!data || !data.length || !cols || !rows) return
   const W = rect.width, H = rect.height
-  const pad = 0.04
-  const availW = W * (1 - pad * 2)
-  const availH = H * (1 - pad * 2)
-  const scaleVal = Math.min(availW / cols, availH / rows)
-  const drawW = Math.floor(cols * scaleVal)
-  const drawH = Math.floor(rows * scaleVal)
-  const ox = Math.floor((W - drawW) / 2)
-  const oy = Math.floor((H - drawH) / 2)
+  const t = computeFitTransform(W, H, cols, rows)
   const mx = e.clientX - rect.left
   const my = e.clientY - rect.top
   const cx = (mx - panX.value) / zoom.value
   const cy = (my - panY.value) / zoom.value
-  const col = Math.floor((cx - ox) * cols / drawW)
-  const row = Math.floor((cy - oy) * rows / drawH)
+  const { col, row } = fitPointToMatrixCell(cx, cy, t, cols, rows)
   if (row >= 0 && row < rows && col >= 0 && col < cols) {
     hoverPixel.value = { x: mx, y: my, row, col, intensity: data[row * cols + col]! }
   } else {
@@ -291,7 +276,6 @@ watch(
     props.overlayData,
   ],
   () => scheduleRender(),
-  { deep: true },
 )
 
 defineExpose({ canvasContainer: containerRef })

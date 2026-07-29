@@ -9,7 +9,7 @@
  * - Never prints token cleartext
  */
 
-import OSS from 'ali-oss'
+import type OSS from 'ali-oss'
 import type { ZarrAccessResponse } from './zarrAccessApi'
 
 /** Unified error type; the UI layer switches on `.code` to render a hint. */
@@ -93,18 +93,30 @@ export function createOssClient(access: ZarrAccessResponse): OssClient {
     throw new Error('[ossClient] invalid ZarrAccessResponse: missing sts_token.AccessKeyId')
   }
 
-  const client = new OSS({
-    region: `oss-${access.region}`,
-    bucket: access.bucket,
-    accessKeyId: access.sts_token.AccessKeyId,
-    accessKeySecret: access.sts_token.AccessKeySecret,
-    stsToken: access.sts_token.SecurityToken,
-    authorizationV4: true,
-    secure: true,
-  })
+  // Deferred: ali-oss is a large dependency — import it lazily on first use
+  // instead of at module load time. The client is created once and reused.
+  let clientPromise: Promise<OSS> | null = null
+  function getClient(): Promise<OSS> {
+    if (!clientPromise) {
+      clientPromise = import('ali-oss').then(
+        (mod) =>
+          new mod.default({
+            region: `oss-${access.region}`,
+            bucket: access.bucket,
+            accessKeyId: access.sts_token.AccessKeyId,
+            accessKeySecret: access.sts_token.AccessKeySecret,
+            stsToken: access.sts_token.SecurityToken,
+            authorizationV4: true,
+            secure: true,
+          }),
+      )
+    }
+    return clientPromise
+  }
 
   async function getObjectArrayBuffer(key: string): Promise<ArrayBuffer> {
     if (!key) throw new Error('[ossClient] getObjectArrayBuffer: key is required')
+    const client = await getClient()
     try {
       const result = await client.get(key)
       const content = result.content
@@ -132,6 +144,7 @@ export function createOssClient(access: ZarrAccessResponse): OssClient {
   }
 
   async function listObjects(prefix: string, maxKeys = 200): Promise<string[]> {
+    const client = await getClient()
     try {
       const out: string[] = []
       let marker: string | undefined
