@@ -9,10 +9,13 @@
 import { ref, computed } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import type { RegionOption } from '@/features/workspace/results/composables/useRegionComparison'
+import type { DataMode } from '@/services/zarrOssStore'
 import { rgbCss, type RGB } from '@/features/workspace/results/utils/regionPalette'
 
 const props = defineProps<{
   regions: RegionOption[]
+  dataMode?: DataMode | null
+  spectrumMode?: string
   regionAId: string | null
   regionBId: string | null
   minDetectionRate: number
@@ -38,6 +41,8 @@ const emit = defineEmits<{
 
 const expanded = ref(false)
 const noRegions = computed(() => props.regions.length < 2)
+const isCentroid = computed(() => props.spectrumMode === 'centroid')
+const isComparisonAvailable = computed(() => isCentroid.value)
 const colorACss = computed(() => rgbCss(props.colorA))
 const colorBCss = computed(() => rgbCss(props.colorB))
 
@@ -76,13 +81,16 @@ function onNoiseFloor(e: Event) {
 
     <!-- Expanded content -->
     <div v-if="expanded" class="px-3 pb-2.5 space-y-2">
+      <div v-if="!isComparisonAvailable" class="text-sm text-base-content/60 leading-relaxed">
+        Region comparison is only available for centroid data
+      </div>
       <!-- No regions hint -->
-      <div v-if="noRegions" class="text-xs text-base-content/50 leading-relaxed">
+      <div v-else-if="noRegions" class="text-xs text-base-content/50 leading-relaxed">
         Run KMeans or create ROIs first to compare two regions.
       </div>
 
       <!-- Region selectors -->
-      <template v-else>
+      <template v-else-if="isComparisonAvailable">
         <div class="space-y-1.5">
           <div class="flex items-center gap-2">
             <span class="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[10px] text-white font-bold" :style="{ backgroundColor: colorACss }">A</span>
@@ -186,7 +194,7 @@ function onNoiseFloor(e: Event) {
       </template>
     </div>
 
-    <div class="mt-3 border-t border-base-300 pt-3">
+    <div v-if="expanded" class="mt-3 border-t border-base-300 pt-3">
       <slot name="preview" />
     </div>
   </div>

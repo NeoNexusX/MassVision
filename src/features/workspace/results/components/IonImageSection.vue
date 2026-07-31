@@ -101,7 +101,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex gap-2 h-[55vh] min-h-[400px] shrink-0">
+  <div class="flex gap-2 h-[50vh] min-h-[360px] shrink-0">
     <div
       class="flex-1 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col overflow-hidden"
     >

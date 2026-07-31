@@ -595,6 +595,10 @@ export class ZarrOssStore {
    * Compute one normalization denominator per pixel from all spectra.
    * TIC uses the sum of intensities; RMS uses sqrt(mean(square intensity)).
    * The expensive scan is intentionally called only when the user selects it.
+   *
+   * Both data modes use the same batched chunk scan: read intensity chunks
+   * in parallel batches (mirroring streamIonStats), use a monotonic cursor
+   * to map each value to its pixel, then accumulate per-pixel statistics.
    */
   async computePixelNormalization(mode: 'tic' | 'rms'): Promise<Float32Array> {
     const offsets = await this.loadOffsets()
@@ -604,46 +608,55 @@ export class ZarrOssStore {
     const sumSquares = mode === 'rms' ? new Float64Array(nPixels) : null
     const counts = mode === 'rms' ? new Uint32Array(nPixels) : null
 
-    if (this._dataMode === 'processed') {
-      const nRows = offsets.length - 1
-      const cs = this.intensityMeta!.chunk_grid.configuration.chunk_shape[0]!
-      const totalChunks = Math.ceil(this.totalIntensityPoints / cs)
-      const BATCH_SIZE = 6
-      let cursor = 0
-      for (let batchStart = 0; batchStart < totalChunks; batchStart += BATCH_SIZE) {
-        if (this._disposed) return new Float32Array(0)
-        const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
-        const chunks = await Promise.all(
-          Array.from({ length: batchEnd - batchStart }, (_, j) => this.getIntensityChunk(batchStart + j)),
-        )
-        for (let j = 0; j < chunks.length; j++) {
-          const chunk = chunks[j]!
-          const chunkStart = (batchStart + j) * cs
-          for (let i = 0; i < chunk.length; i++) {
-            const globalIdx = chunkStart + i
-            if (globalIdx >= this.totalIntensityPoints) break
-            while (cursor < nRows && offsets[cursor + 1]! <= globalIdx) cursor++
-            if (cursor >= nRows) continue
-            const value = chunk[i]!
-            sums[cursor]! += value
-            if (sumSquares) sumSquares[cursor]! += value * value
-            if (counts) counts[cursor]!++
+    // Unified batched scan for both modes.
+    // cursor = current row (ion for continuous, pixel for processed).
+    const nRows = offsets.length - 1
+    const cs = this.intensityMeta!.chunk_grid.configuration.chunk_shape[0]!
+    const totalChunks = Math.ceil(this.totalIntensityPoints / cs)
+    const BATCH_SIZE = 12
+    let cursor = 0
+
+    for (let batchStart = 0; batchStart < totalChunks; batchStart += BATCH_SIZE) {
+      if (this._disposed) return new Float32Array(0)
+
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
+      const chunks = await Promise.all(
+        Array.from({ length: batchEnd - batchStart }, (_, j) => this.getIntensityChunk(batchStart + j)),
+      )
+      if (this._disposed) return new Float32Array(0)
+
+      for (let j = 0; j < chunks.length; j++) {
+        const chunk = chunks[j]!
+        const chunkStart = (batchStart + j) * cs
+
+        for (let i = 0; i < chunk.length; i++) {
+          const globalIdx = chunkStart + i
+          if (globalIdx >= this.totalIntensityPoints) break
+          const value = chunk[i]!
+          if (!Number.isFinite(value)) continue
+
+          // Advance cursor to the row containing globalIdx
+          while (cursor + 1 < nRows && offsets[cursor + 1]! <= globalIdx) {
+            cursor++
+          }
+
+          // Derive the pixel index:
+          //   continuous (ion-major): pixelIdx = position within the ion's slice
+          //   processed (pixel-major): cursor IS the pixel index
+          const pixelIdx = this._dataMode === 'processed'
+            ? cursor
+            : globalIdx - offsets[cursor]!
+
+          if (pixelIdx >= 0 && pixelIdx < nPixels) {
+            sums[pixelIdx]! += value
+            if (sumSquares) sumSquares[pixelIdx]! += value * value
+            if (counts) counts[pixelIdx]!++
           }
         }
       }
-    } else {
-      // Continuous data is ion-major: every ion slice has one value per pixel.
-      const nIons = offsets.length - 1
-      for (let ion = 0; ion < nIons; ion++) {
-        if (this._disposed) return new Float32Array(0)
-        const slice = await this.readIntensitySlice(offsets[ion]!, offsets[ion + 1]!)
-        for (let pixel = 0; pixel < Math.min(nPixels, slice.length); pixel++) {
-          const value = slice[pixel]!
-          sums[pixel]! += value
-          if (sumSquares) sumSquares[pixel]! += value * value
-          if (counts) counts[pixel]!++
-        }
-      }
+
+      // Yield to keep the UI responsive between batches
+      await new Promise((r) => setTimeout(r, 0))
     }
 
     const result = new Float32Array(nPixels)
@@ -965,17 +978,17 @@ export class ZarrOssStore {
     const chunkStart = chunkIndex * cs
     const expectedElements = Math.min(cs, totalLen - chunkStart)
     const expectedBytes = expectedElements * bpe
-    let actualBytes = payload.byteLength
+    const actualBytes = payload.byteLength
 
     if (actualBytes !== expectedBytes) {
-      // Truncate or handle mismatch gracefully
-      const maxElements = Math.floor(actualBytes / bpe)
-      if (maxElements <= 0) {
+      if (actualBytes < expectedBytes) {
         throw new Error(
-          `[ZarrOssStore] empty chunk at chunkIndex=${chunkIndex}`,
+          `[ZarrOssStore] corrupt chunk at chunkIndex=${chunkIndex}: expected ${expectedBytes} bytes, got ${actualBytes}`,
         )
       }
-      actualBytes = maxElements * bpe
+      throw new Error(
+        `[ZarrOssStore] invalid chunk at chunkIndex=${chunkIndex}: expected ${expectedBytes} bytes, got ${actualBytes}`,
+      )
     }
 
     // Create typed array

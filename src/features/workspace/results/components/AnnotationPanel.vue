@@ -29,6 +29,8 @@ const props = defineProps<{
   selectMzIndex: (idx: number) => void | Promise<void>
   /** Currently selected m/z axis index (drives active-row highlight). */
   selectedMzIndex: number
+  /** Current spectrum mode; annotations require continuous centroid data. */
+  spectrumMode?: string
 }>()
 
 const emit = defineEmits<{
@@ -70,6 +72,7 @@ function collapse() {
 }
 
 const hasData = computed(() => importedRows.value.length > 0)
+const isAnnotationAvailable = computed(() => props.spectrumMode === 'centroid' && spectrumAvailable.value)
 
 function isActive(row: { matchedIndex: number | null }): boolean {
   return row.matchedIndex != null && row.matchedIndex === props.selectedMzIndex
@@ -251,7 +254,11 @@ function copyName(name: string) {
           Import CSV
         </button>
 
-        <div v-if="!spectrumAvailable" class="text-sm text-warning flex items-start gap-1.5">
+        <div v-if="!isAnnotationAvailable" class="text-sm text-warning flex items-start gap-1.5">
+          <SvgIcon type="warning" class="w-4 h-4 shrink-0 mt-0.5" />
+          <span>Annotation is only available for continuous centroid data.</span>
+        </div>
+        <div v-else-if="!spectrumAvailable" class="text-sm text-warning flex items-start gap-1.5">
           <SvgIcon type="warning" class="w-4 h-4 shrink-0 mt-0.5" />
           <span>Average spectrum not loaded - m/z matching unavailable for this result.</span>
         </div>

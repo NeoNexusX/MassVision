@@ -136,7 +136,9 @@ export function disposeZarrState(): void {
   store?.dispose()
   store = null
 
+  normalizationRequestId++
   normalizationCache.clear()
+  normalizationPending.clear()
   resetModuleState()
   nMz.value = 0
 }
@@ -330,6 +332,11 @@ export function findClosestPeak(mz: number, tolerance: number): number {
 }
 
 const normalizationCache = new Map<'tic' | 'rms', Float32Array>()
+const normalizationPending = new Map<
+  'tic' | 'rms',
+  { store: ZarrOssStore; promise: Promise<Float32Array> }
+>()
+let normalizationRequestId = 0
 
 // ---- Main composable ----
 
@@ -341,6 +348,7 @@ export function useZarrIonImage() {
   const normalizationFactors = shallowRef<Float32Array | null>(null)
   const normalizationLoading = ref(false)
   const normalizationError = ref<string | null>(null)
+  let normalizationRequestId = 0
   const loading = ref(false)
   const error = ref<string | null>(null)
   const ready = ref(false)
@@ -387,25 +395,55 @@ export function useZarrIonImage() {
 
   const loadNormalization = async (mode: 'tic' | 'rms') => {
     if (!store || !ready.value) return
+    const requestId = ++normalizationRequestId
+    const requestStore = store
+    normalizationFactors.value = null
     const cached = normalizationCache.get(mode)
     if (cached) {
-      normalizationFactors.value = cached
+      if (requestId === normalizationRequestId && store === requestStore) {
+        normalizationFactors.value = cached
+      }
       return
     }
     normalizationLoading.value = true
     normalizationError.value = null
     try {
-      const factors = await store.computePixelNormalization(mode)
-      if (!store) return
+      const pending = normalizationPending.get(mode)
+      let promise = pending && pending.store === requestStore
+        ? pending.promise
+        : null
+      if (!promise) {
+        promise = requestStore.computePixelNormalization(mode)
+        const trackedPromise = promise.finally(() => {
+          if (normalizationPending.get(mode)?.promise === trackedPromise) {
+            normalizationPending.delete(mode)
+          }
+        })
+        normalizationPending.set(mode, { store: requestStore, promise: trackedPromise })
+      }
+      const factors = await promise
+      if (store !== requestStore) return
       normalizationCache.set(mode, factors)
+      // The computation is independent of the selected m/z. If the user switched
+      // back to Linear while it was running, keep the cache but don't re-apply it.
+      if (requestId !== normalizationRequestId) return
       normalizationFactors.value = factors
     } catch (e) {
+      if (store !== requestStore) return
       normalizationError.value = e instanceof Error ? e.message : String(e)
+      if (requestId !== normalizationRequestId) return
       normalizationFactors.value = null
     } finally {
-      normalizationLoading.value = false
+      if (requestId === normalizationRequestId) normalizationLoading.value = false
     }
   }
+  const clearNormalization = () => {
+    normalizationRequestId++
+    normalizationFactors.value = null
+    normalizationError.value = null
+    normalizationLoading.value = false
+  }
+
   const onSpectrumClickByIndex = async (idx: number) => {
     if (!mzAxisRef.value || !ready.value) return
     if (idx < 0 || idx >= mzAxisRef.value.length) return
@@ -438,7 +476,9 @@ export function useZarrIonImage() {
     // Reset all state
     store?.dispose()
     store = null
+    normalizationRequestId++
     normalizationCache.clear()
+    normalizationPending.clear()
     normalizationFactors.value = null
     normalizationError.value = null
     ionMatrix.value = null
@@ -512,6 +552,7 @@ export function useZarrIonImage() {
     onSpectrumClickByIndex,
     loadForMzIndex,
     loadNormalization,
+    clearNormalization,
     normalizationFactors,
     normalizationLoading,
     normalizationError,

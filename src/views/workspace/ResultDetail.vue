@@ -81,6 +81,7 @@ const {
   onSpectrumClickByIndex,
   isProcessed,
   loadNormalization,
+  clearNormalization,
   normalizationFactors,
   normalizationLoading,
   normalizationError,
@@ -206,7 +207,7 @@ const {
   confirmedROIs: confirmedROIs as any,
   ionCols,
   ionRows,
-  onSelectMzIndex: onSpectrumClickByIndex,
+  onSelectMzIndex: handleSelectMzIndex,
   setComparisonOverlay,
 })
 
@@ -255,6 +256,19 @@ const selectedPixelCoord = computed(() => {
 })
 
 // ---- 事件处理 ----
+
+/**
+ * 切换 m/z 时重置强度标度为 linear。
+ * RMS/TIC 归一化因子是按像素计算的，切换 m/z 后应回到 linear 避免混淆；
+ * 归一化因子缓存仍然保留，用户重新选 RMS/TIC 时无需重新计算。
+ */
+async function handleSelectMzIndex(idx: number) {
+  if (intensityScale.value !== 'linear') {
+    intensityScale.value = 'linear'
+    clearNormalization()
+  }
+  await onSpectrumClickByIndex(idx)
+}
 
 /** 重置所有控件到默认值 */
 const resetControls = () => {
@@ -309,8 +323,9 @@ async function onSelectPixel(col: number, row: number) {
     <template #left-panel>
       <AnnotationPanel
         v-model:expanded="annotationExpanded"
-        :select-mz-index="onSpectrumClickByIndex"
+        :select-mz-index="handleSelectMzIndex"
         :selected-mz-index="selectedMzIndex"
+        :spectrum-mode="spectrumMode"
       />
     </template>
 
@@ -344,6 +359,7 @@ async function onSelectPixel(col: number, row: number) {
         @update:intensity-scale="async (value) => {
           intensityScale = value
           if (value === 'rms' || value === 'tic') await loadNormalization(value)
+          else clearNormalization()
         }"
         @reset-controls="resetControls"
         @reset-range="resetRange"
@@ -364,7 +380,7 @@ async function onSelectPixel(col: number, row: number) {
         :intensity-range="spectrumStats.intensityRange"
         :spectrum-mode="spectrumMode"
         :data-mode="dataMode"
-        @select-mz-index="onSpectrumClickByIndex"
+        @select-mz-index="handleSelectMzIndex"
       />
 
       <!-- Region comparison: controls + preview (left) and results table (right) -->
@@ -372,6 +388,8 @@ async function onSelectPixel(col: number, row: number) {
         <div ref="compareColumnRef" class="lg:w-[340px] shrink-0 flex flex-col lg:self-start">
           <CompareRegionsPanel
             :regions="cmpAvailableRegions"
+            :data-mode="dataMode"
+            :spectrum-mode="spectrumMode"
             v-model:region-a-id="cmpRegionAId"
             v-model:region-b-id="cmpRegionBId"
             v-model:min-detection-rate="cmpMinDetectionRate"
