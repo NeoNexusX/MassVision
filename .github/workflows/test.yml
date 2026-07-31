@@ -16,9 +16,9 @@ name: Test
 
 on:
   push:
-    branches: [test]
+    branches: [feature/umap_kmeans]
   pull_request:
-    branches: [test]
+    branches: [feature/umap_kmeans]
 
 jobs:
   # ---- Job 1: 静态检查 + 单元测试 ----
@@ -45,9 +45,6 @@ jobs:
   e2e:
     needs: check
     runs-on: ubuntu-latest
-    env:
-      E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
-      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
     steps:
       - uses: actions/checkout@v5
 
@@ -66,18 +63,13 @@ jobs:
         env:
           VITE_API_BASE: /api
 
-      # 上游分支具备 Secrets 时运行完整 e2e；Fork PR 不会获得 Secrets，改跑无需凭据的回归集。
-      - name: Run full e2e tests
-        if: ${{ env.E2E_USERNAME != '' && env.E2E_PASSWORD != '' }}
-        run: npm run test:e2e
+      # e2e 测试（CI 模式：headless + retry + workers 自动调整）
+      # 登录账号密码从 GitHub Secrets 注入，避免硬编码（见 e2e/auth.setup.ts）
+      - run: npm run test:e2e
         env:
           CI: 'true'
-
-      - name: Run fork-safe e2e tests
-        if: ${{ env.E2E_USERNAME == '' || env.E2E_PASSWORD == '' }}
-        run: npx playwright test e2e/responsive.spec.ts --project=chromium --no-deps
-        env:
-          CI: 'true'
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
 
       # 保留测试报告以便排查
       - uses: actions/upload-artifact@v5
@@ -86,3 +78,4 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+

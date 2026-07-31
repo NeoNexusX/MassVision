@@ -25,113 +25,21 @@
  * zstd (via zstddec).
  */
 
-import { ZSTDDecoder } from 'zstddec'
 import { LruCache } from '../utils/lruCache'
 import { createOssClient } from './ossClient'
 import type { OssClient } from './ossClient'
 import type { ZarrAccessResponse } from './zarrAccessApi'
-
-// ---------- zstd decoder (singleton) ----------
-
-let zstdDecoderPromise: Promise<ZSTDDecoder> | null = null
-
-function getZstdDecoder(): Promise<ZSTDDecoder> {
-  if (!zstdDecoderPromise) {
-    const decoder = new ZSTDDecoder()
-    zstdDecoderPromise = decoder.init().then(() => decoder)
-  }
-  return zstdDecoderPromise
-}
-
-// ---------- decompression helpers ----------
-
-async function decompressBytes(payload: Uint8Array, codecName: string): Promise<Uint8Array> {
-  const run = async (format: 'gzip' | 'deflate' | 'deflate-raw') => {
-    const stream = new Blob([payload as BlobPart])
-      .stream()
-      .pipeThrough(new DecompressionStream(format))
-    return new Uint8Array(await new Response(stream).arrayBuffer())
-  }
-  if (codecName === 'gzip') return run('gzip')
-  try {
-    return await run('deflate-raw')
-  } catch {
-    return run('deflate')
-  }
-}
-
-// ---------- zarr v3 metadata types ----------
-
-interface ZarrV3ArrayMetadata {
-  zarr_format: 3
-  node_type: 'array'
-  shape: number[]
-  data_type: string
-  chunk_grid: {
-    name: 'regular'
-    configuration: { chunk_shape: number[] }
-  }
-  chunk_key_encoding: {
-    name: 'default' | string
-    configuration?: { separator?: string }
-  }
-  codecs?: Array<{
-    name: string
-    configuration?: Record<string, unknown>
-  }>
-  attributes?: Record<string, unknown>
-  fill_value?: number | null
-}
-
-interface ZarrV3GroupMetadata {
-  zarr_format: 3
-  node_type: 'group'
-  attributes?: Record<string, unknown>
-}
-
-// ---------- typed array helpers ----------
-
-type DType =
-  | 'float32' | 'float64' | 'int32' | 'uint32'
-  | 'int16' | 'uint16' | 'int8' | 'uint8'
-  | 'uint64' | 'int64' | '<f4' | '<f8' | '<u4' | '<i8'
-
-function normalizeDtype(dtype: string): DType {
-  // Handle numpy-style dtype strings
-  const map: Record<string, DType> = {
-    '<f4': 'float32', '<f8': 'float64',
-    '<u4': 'uint32', '<i8': 'int64',
-    '>f4': 'float32', '>f8': 'float64',
-  }
-  return (map[dtype] ?? dtype) as DType
-}
-
-function bytesPerElement(dtype: string): number {
-  const dt = normalizeDtype(dtype)
-  switch (dt) {
-    case 'float32': case 'int32': case 'uint32': return 4
-    case 'float64': case 'int64': case 'uint64': return 8
-    case 'int16': case 'uint16': return 2
-    case 'int8': case 'uint8': return 1
-    default: return 4
-  }
-}
-
-function makeTypedArray(dtype: string, buf: ArrayBuffer) {
-  const dt = normalizeDtype(dtype)
-  switch (dt) {
-    case 'float32': return new Float32Array(buf)
-    case 'float64': return new Float64Array(buf)
-    case 'int32': return new Int32Array(buf)
-    case 'uint32': return new Uint32Array(buf)
-    case 'int16': return new Int16Array(buf)
-    case 'uint16': return new Uint16Array(buf)
-    case 'int8': return new Int8Array(buf)
-    case 'uint8': return new Uint8Array(buf)
-    case 'int64': return new BigInt64Array(buf)
-    case 'uint64': return new BigUint64Array(buf)
-  }
-}
+import {
+  normalizeDtype,
+  bytesPerElement,
+  makeTypedArray,
+  decodePayload,
+  computeNDChunkKey,
+  assertV3Array,
+  readFullArray,
+  type ZarrV3ArrayMetadata,
+  type ZarrV3GroupMetadata,
+} from './zarrCodecs'
 
 // ---------- domain types ----------
 
@@ -684,8 +592,70 @@ export class ZarrOssStore {
   }
 
   /**
-   * Get the spectrum for a single pixel in processed mode.
-   *
+   * Compute one normalization denominator per pixel from all spectra.
+   * TIC uses the sum of intensities; RMS uses sqrt(mean(square intensity)).
+   * The expensive scan is intentionally called only when the user selects it.
+   */
+  async computePixelNormalization(mode: 'tic' | 'rms'): Promise<Float32Array> {
+    const offsets = await this.loadOffsets()
+    const coords = await this.loadCoordinates()
+    const nPixels = coords.length / 3
+    const sums = new Float64Array(nPixels)
+    const sumSquares = mode === 'rms' ? new Float64Array(nPixels) : null
+    const counts = mode === 'rms' ? new Uint32Array(nPixels) : null
+
+    if (this._dataMode === 'processed') {
+      const nRows = offsets.length - 1
+      const cs = this.intensityMeta!.chunk_grid.configuration.chunk_shape[0]!
+      const totalChunks = Math.ceil(this.totalIntensityPoints / cs)
+      const BATCH_SIZE = 6
+      let cursor = 0
+      for (let batchStart = 0; batchStart < totalChunks; batchStart += BATCH_SIZE) {
+        if (this._disposed) return new Float32Array(0)
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
+        const chunks = await Promise.all(
+          Array.from({ length: batchEnd - batchStart }, (_, j) => this.getIntensityChunk(batchStart + j)),
+        )
+        for (let j = 0; j < chunks.length; j++) {
+          const chunk = chunks[j]!
+          const chunkStart = (batchStart + j) * cs
+          for (let i = 0; i < chunk.length; i++) {
+            const globalIdx = chunkStart + i
+            if (globalIdx >= this.totalIntensityPoints) break
+            while (cursor < nRows && offsets[cursor + 1]! <= globalIdx) cursor++
+            if (cursor >= nRows) continue
+            const value = chunk[i]!
+            sums[cursor]! += value
+            if (sumSquares) sumSquares[cursor]! += value * value
+            if (counts) counts[cursor]!++
+          }
+        }
+      }
+    } else {
+      // Continuous data is ion-major: every ion slice has one value per pixel.
+      const nIons = offsets.length - 1
+      for (let ion = 0; ion < nIons; ion++) {
+        if (this._disposed) return new Float32Array(0)
+        const slice = await this.readIntensitySlice(offsets[ion]!, offsets[ion + 1]!)
+        for (let pixel = 0; pixel < Math.min(nPixels, slice.length); pixel++) {
+          const value = slice[pixel]!
+          sums[pixel]! += value
+          if (sumSquares) sumSquares[pixel]! += value * value
+          if (counts) counts[pixel]!++
+        }
+      }
+    }
+
+    const result = new Float32Array(nPixels)
+    for (let i = 0; i < nPixels; i++) {
+      result[i] = mode === 'tic'
+        ? sums[i]!
+        : Math.sqrt(sumSquares![i]! / Math.max(1, counts![i]!))
+    }
+    return this.mapPixelsToMatrix(result, nPixels, coords)
+  }
+
+  /**
    * For pixel-major processed:
    *   mz = data_mz[offsets[p]:offsets[p+1]]
    *   intensity = data_intensity[offsets[p]:offsets[p+1]]
@@ -790,7 +760,7 @@ export class ZarrOssStore {
   /** Read a zarr v3 array's zarr.json */
   private async readArrayMeta(arrayPath: string): Promise<ZarrV3ArrayMetadata> {
     const meta = await this.readJson<ZarrV3ArrayMetadata>(`${arrayPath}/zarr.json`)
-    this.assertV3Array(meta, arrayPath)
+    assertV3Array(meta, arrayPath)
     return meta
   }
 
@@ -819,20 +789,6 @@ export class ZarrOssStore {
     if (!attrs.spatial_shape || attrs.spatial_shape.length !== 2) {
       throw new Error(
         `[ZarrOssStore] invalid spatial_shape: ${JSON.stringify(attrs.spatial_shape)}`,
-      )
-    }
-  }
-
-  private assertV3Array(meta: ZarrV3ArrayMetadata, label: string): void {
-    if (meta.zarr_format !== 3 || meta.node_type !== 'array') {
-      throw new Error(`[ZarrOssStore] ${label}: not a v3 array`)
-    }
-    const unsupported = (meta.codecs ?? []).filter(
-      (c) => !['bytes', 'gzip', 'zlib', 'deflate', 'zstd'].includes(c.name),
-    )
-    if (unsupported.length > 0) {
-      throw new Error(
-        `[ZarrOssStore] ${label}: unsupported codec: ${unsupported.map((c) => c.name).join(',')}`,
       )
     }
   }
@@ -987,29 +943,7 @@ export class ZarrOssStore {
    * the encoding/separator handling in one place.
    */
   private compute1DChunkKey(meta: ZarrV3ArrayMetadata, chunkIndex: number): string {
-    return this.computeNDChunkKey(meta, [chunkIndex])
-  }
-
-  /**
-   * Decompress a raw chunk payload according to the array's bytes codec
-   * (gzip / zlib / deflate / zstd). Pass-through when no codec is set.
-   */
-  private async decodePayload(
-    meta: ZarrV3ArrayMetadata,
-    raw: ArrayBuffer,
-  ): Promise<Uint8Array> {
-    let payload: Uint8Array = new Uint8Array(raw)
-
-    const bytesCodec = (meta.codecs ?? []).find(
-      (c) => ['gzip', 'zlib', 'deflate', 'zstd'].includes(c.name),
-    )
-    if (bytesCodec) {
-      payload =
-        bytesCodec.name === 'zstd'
-          ? (await getZstdDecoder()).decode(payload)
-          : await decompressBytes(payload, bytesCodec.name)
-    }
-    return payload
+    return computeNDChunkKey(meta, [chunkIndex])
   }
 
   /**
@@ -1025,7 +959,7 @@ export class ZarrOssStore {
     const bpe = bytesPerElement(meta.data_type)
     const isFloat64 = bpe === 8
 
-    const payload = await this.decodePayload(meta, raw)
+    const payload = await decodePayload(meta, raw)
 
     // Handle edge chunk (may be smaller than cs)
     const chunkStart = chunkIndex * cs
@@ -1064,89 +998,20 @@ export class ZarrOssStore {
 
   /**
    * Read a small array in full (for metadata arrays like offsets, coordinates, mz_axis).
-   * Downloads all chunks and concatenates.
+   * Downloads all chunks and concatenates (shared zarrCodecs assembler).
    */
   private async fetchArrayFull(
     arrayPath: string,
     meta: ZarrV3ArrayMetadata,
   ): Promise<ArrayBuffer> {
-    const shape = meta.shape
-    const total = shape.reduce((a, b) => a * b, 1)
-    const bpe = bytesPerElement(meta.data_type)
-    const out = new Uint8Array(total * bpe)
-
-    const chunkShape = meta.chunk_grid.configuration.chunk_shape
-    const ndim = shape.length
-
-    // Generate all chunk indices
-    const totalChunksPerDim: number[] = shape.map((s, i) =>
-      Math.ceil(s / chunkShape[i]!),
-    )
-
-    const chunkIndices: number[][] = []
-    const generateIndices = (dim: number, prefix: number[]) => {
-      if (dim === ndim) {
-        chunkIndices.push([...prefix])
-        return
-      }
-      for (let i = 0; i < totalChunksPerDim[dim]!; i++) {
-        prefix.push(i)
-        generateIndices(dim + 1, prefix)
-        prefix.pop()
-      }
-    }
-    generateIndices(0, [])
-
-    // Fetch and assemble each chunk
-    for (const ci of chunkIndices) {
-      const chunkKey = this.computeNDChunkKey(meta, ci)
-      const chunkRelKey = `${arrayPath}/${chunkKey}`
-      const raw = await this.oss.getObjectArrayBuffer(this.key(chunkRelKey))
-      const payload = await this.decodePayload(meta, raw)
-
-      // Compute byte offset in output
-      const chunkStart: number[] = ci.map((c, d) => c * chunkShape[d]!)
-      const chunkSize: number[] = ci.map((c, d) =>
-        Math.min(chunkShape[d]!, shape[d]! - c * chunkShape[d]!),
-      )
-
-      if (ndim === 1) {
-        const byteOff = chunkStart[0]! * bpe
-        out.set(payload.subarray(0, chunkSize[0]! * bpe), byteOff)
-      } else if (ndim === 2) {
-        // 源行跨步 = chunk 一行有几个元素（chunkShape[1]），不是 chunkShape[0]（行数）
-        const srcRowElems = chunkShape[1]!
-        const [h, w] = chunkSize
-        const [dstStride] = shape.slice(1)
-        for (let r = 0; r < h!; r++) {
-          const srcOff = r * srcRowElems * bpe
-          const dstOff =
-            ((chunkStart[0]! + r) * dstStride! + chunkStart[1]!) * bpe
-          out.set(payload.subarray(srcOff, srcOff + w! * bpe), dstOff)
-        }
-      } else {
-        throw new Error(
-          `[ZarrOssStore] fetchArrayFull only supports 1D/2D, got ndim=${ndim}`,
-        )
-      }
-    }
-
-    return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength)
-  }
-
-  /** Compute chunk key for N-D arrays */
-  private computeNDChunkKey(
-    meta: ZarrV3ArrayMetadata,
-    chunkIndices: number[],
-  ): string {
-    const enc = meta.chunk_key_encoding
-    if (enc.name !== 'default') {
-      throw new Error(
-        `[ZarrOssStore] unsupported chunk key encoding: ${enc.name}`,
-      )
-    }
-    const sep = enc.configuration?.separator ?? '/'
-    return `c${sep}${chunkIndices.join(sep)}`
+    const out = await readFullArray(meta, arrayPath, async (coords) => {
+      const chunkKey = computeNDChunkKey(meta, coords)
+      const raw = await this.oss.getObjectArrayBuffer(this.key(`${arrayPath}/${chunkKey}`))
+      return decodePayload(meta, raw)
+    })
+    // readFullArray allocates with `new Uint8Array(totalBytes)`, so the
+    // underlying buffer is always a plain ArrayBuffer (never SharedArrayBuffer).
+    return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength) as ArrayBuffer
   }
 
   /**
@@ -1161,5 +1026,128 @@ export class ZarrOssStore {
       this.intensityChunkCache,
       this.inFlightIntensity,
     )) as Float32Array
+  }
+
+  // ========== region comparison ==========
+
+  /**
+   * Build a 1D pixel-index mask from a 2D raster mask.
+   *
+   * The intensity array stores each ion's pixel values in the order of
+   * axes/coordinates (j-th value ↔ coordinates[j]). A 2D raster mask
+   * (indexed by [row * width + col]) must be converted to this 1D
+   * coordinates order so the streaming scan can look up mask[j] in O(1).
+   */
+  async buildPixelMask(
+    raster: Uint8Array,
+  ): Promise<{ mask: Uint8Array; pixelCount: number }> {
+    const coords = await this.loadCoordinates()
+    const [height, width] = this.spatialShape
+    const nPixels = coords.length / 3
+    const mask = new Uint8Array(nPixels)
+    let count = 0
+    for (let j = 0; j < nPixels; j++) {
+      const col = coords[j * 3]! - this.coordinateBase
+      const row = coords[j * 3 + 1]! - this.coordinateBase
+      if (row < 0 || row >= height || col < 0 || col >= width) continue
+      if (raster[row * width + col]!) {
+        mask[j] = 1
+        count++
+      }
+    }
+    return { mask, pixelCount: count }
+  }
+
+  /**
+   * Stream through ALL intensity chunks and accumulate per-ion statistics
+   * (sum, sumSq, count of non-zero pixels) for one or more pixel masks.
+   *
+   * For each non-zero intensity value at global index g:
+   *   ion   = the i where offsets[i] <= g < offsets[i+1]  (monotonic cursor)
+   *   pixel = g - offsets[ion]  (pixel index j, same j as in the mask)
+   *   For each region r: if mask[r][j], accumulate sum/sumSq/count.
+   *
+   * Chunks are fetched directly (no LRU cache) to avoid polluting the small
+   * cache used by single-ion image loads. In-flight dedup is not needed -
+   * each chunk is read exactly once in the sequential scan.
+   */
+  async streamIonStats(
+    masks: Uint8Array[],
+    onProgress?: (done: number, total: number) => void,
+    isCancelled?: () => boolean,
+  ): Promise<{ sum: Float64Array; sumSq: Float64Array; count: Int32Array }[]> {
+    if (this._dataMode !== 'continuous') {
+      throw new Error('[ZarrOssStore] streamIonStats only available in continuous mode')
+    }
+    if (!this.intensityMeta || !this.offsetsMeta) {
+      throw new Error('[ZarrOssStore] call init() first')
+    }
+    if (!masks.length) return []
+
+    const offsets = await this.loadOffsets()
+    if (this._disposed) return []
+    const nIons = offsets.length - 1
+    const maskLen = masks[0]!.length
+
+    // Per-region accumulators
+    const results = masks.map(() => ({
+      sum: new Float64Array(nIons),
+      sumSq: new Float64Array(nIons),
+      count: new Int32Array(nIons),
+    }))
+
+    const cs = this.intensityMeta.chunk_grid.configuration.chunk_shape[0]!
+    const totalChunks = Math.ceil(this.totalIntensityPoints / cs)
+    const BATCH_SIZE = 12
+
+    let cursor = 0 // current ion index, advances monotonically
+
+    for (let batchStart = 0; batchStart < totalChunks; batchStart += BATCH_SIZE) {
+      if (this._disposed) return results
+      if (isCancelled?.()) return results
+
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
+      const batch: Promise<Float32Array | Float64Array>[] = []
+      for (let ci = batchStart; ci < batchEnd; ci++) {
+        batch.push(this.fetchAndDecode1DChunk('data/intensity', this.intensityMeta, ci))
+      }
+      const chunks = (await Promise.all(batch)) as Float32Array[]
+      if (this._disposed) return results
+      if (isCancelled?.()) return results
+
+      for (let k = 0; k < chunks.length; k++) {
+        const ci = batchStart + k
+        const chunk = chunks[k]!
+        const chunkStart = ci * cs
+
+        for (let i = 0; i < chunk.length; i++) {
+          const globalIdx = chunkStart + i
+          if (globalIdx >= this.totalIntensityPoints) break
+          const v = chunk[i]!
+          if (v === 0 || !Number.isFinite(v)) continue
+
+          // Advance cursor to the ion containing globalIdx
+          while (cursor + 1 < nIons && offsets[cursor + 1]! <= globalIdx) {
+            cursor++
+          }
+          const pixelIdx = globalIdx - offsets[cursor]!
+          if (pixelIdx < 0 || pixelIdx >= maskLen) continue
+
+          for (let r = 0; r < masks.length; r++) {
+            if (masks[r]![pixelIdx]!) {
+              results[r]!.sum[cursor]! += v
+              results[r]!.sumSq[cursor]! += v * v
+              results[r]!.count[cursor]!++
+            }
+          }
+        }
+      }
+
+      onProgress?.(batchEnd, totalChunks)
+      // Yield to keep the UI responsive between batches
+      await new Promise((r) => setTimeout(r, 0))
+    }
+
+    return results
   }
 }
