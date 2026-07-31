@@ -415,9 +415,7 @@ test.describe('My Datasets', () => {
     // 点击前：尚未选中像素，显示引导文案
     await expect(page.getByText('Click a pixel on the TIC image to view its spectrum')).toBeVisible()
 
-    // 定位 TIC 图可点击区域（结构与 result-detail.spec.ts 的 clickSpectrum 一致：标题 → 上 3 层 → .overflow-hidden）
-    const heading = page.locator('h3', { hasText: 'TIC Image' })
-    const imageContainer = heading.locator('..').locator('..').locator('..').locator('.overflow-hidden')
+    const imageContainer = page.getByTestId('ion-image-viewer')
 
     // 读取真实网格尺寸（ColorBar Statistic 区块的 "Dimensions" 行，格式 "cols × rows"），
     // 按 IonImageViewer.vue onContainerClick 里同样的居中缩放公式换算像素中心的屏幕坐标——
