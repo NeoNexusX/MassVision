@@ -31,7 +31,7 @@
         </button>
       </div>
       <button v-if="showReset" class="btn btn-sm btn-warning w-full text-sm mt-1.5" @click="$emit('reset')">
-        ↺ Reset
+        + New
       </button>
       <div v-if="draftReady" class="text-sm text-base-content mt-1">
         Selection ready — confirm or drag handles to adjust
@@ -57,7 +57,7 @@
           v-for="roi in rois"
           :key="roi.id"
           class="rounded-lg border p-2"
-          :style="{ borderColor: roi.color + '40', background: roi.color + '08' }"
+          :style="{ borderColor: cssWithAlpha(roi.color, 0.25), background: cssWithAlpha(roi.color, 0.03) }"
         >
           <div class="flex items-center justify-between mb-1">
             <span class="font-semibold text-base" :style="{ color: roi.color }">{{
@@ -101,6 +101,8 @@
 </template>
 
 <script setup lang="ts">
+import { cssWithAlpha } from '@/features/workspace/results/utils/regionPalette'
+
 defineProps<{
   selectedTool: string | null
   draftReady: boolean

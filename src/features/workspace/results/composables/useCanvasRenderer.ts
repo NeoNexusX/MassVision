@@ -31,6 +31,9 @@ export function useCanvasRenderer(
   let ro: ResizeObserver | null = null
   // Cached offscreen canvas — reused across renders
   let offscreen: HTMLCanvasElement | null = null
+  // Cached offscreen canvas for the overlay — same trick, keeps overlay
+  // compositing per-pixel (see the overlay note in render())
+  let overlayCanvas: HTMLCanvasElement | null = null
   // Cached ImageData buffer for the offscreen canvas — reused while dims match
   let imageData: ImageData | null = null
 
@@ -133,25 +136,27 @@ export function useCanvasRenderer(
     // Blit offscreen → main canvas: drawImage handles DPR, centering, scaling.
     ctx.drawImage(offscreen, ox, oy, drawW, drawH)
 
-    // Overlay
+    // Overlay: paint the RGBA buffer into its own 1:1 canvas, then blit once.
+    // The old per-pixel fillRect used ceil(scaleVal)-sized rects at
+    // floor(c*scaleVal) origins, so with a fractional scale adjacent rects
+    // overlapped and semi-transparent pixels were composited TWICE in the
+    // overlap - visible as darker stripes / uneven opacity. putImageData keeps
+    // every pixel independent, and the single drawImage composites each
+    // overlay pixel over the ion image exactly once.
     const overlay = opts.overlayData.value
     const ow = opts.overlayWidth.value
     const oh = opts.overlayHeight.value
-    if (overlay && ow && oh) {
-      for (let r = 0; r < oh; r++) {
-        for (let c = 0; c < ow; c++) {
-          const off = (r * ow + c) * 4
-          const a = overlay[off + 3]!
-          if (a === 0) continue
-          ctx.fillStyle = `rgba(${overlay[off]!},${overlay[off + 1]!},${overlay[off + 2]!},${(a / 255).toFixed(2)})`
-          ctx.fillRect(
-            ox + Math.floor(c * scaleVal),
-            oy + Math.floor(r * scaleVal),
-            Math.ceil(scaleVal),
-            Math.ceil(scaleVal),
-          )
-        }
+    if (overlay && ow && oh && overlay.length === ow * oh * 4) {
+      if (!overlayCanvas || overlayCanvas.width !== ow || overlayCanvas.height !== oh) {
+        overlayCanvas = document.createElement('canvas')
+        overlayCanvas.width = ow
+        overlayCanvas.height = oh
       }
+      const oCtx = overlayCanvas.getContext('2d')!
+      const oData = oCtx.createImageData(ow, oh)
+      oData.data.set(overlay)
+      oCtx.putImageData(oData, 0, 0)
+      ctx.drawImage(overlayCanvas, ox, oy, Math.floor(ow * scaleVal), Math.floor(oh * scaleVal))
     }
   }
 
@@ -183,6 +188,7 @@ export function useCanvasRenderer(
     ro?.disconnect()
     if (renderRaf) cancelAnimationFrame(renderRaf)
     offscreen = null
+    overlayCanvas = null
     imageData = null
     cachedData = null
   })

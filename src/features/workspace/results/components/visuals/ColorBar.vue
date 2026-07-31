@@ -1,7 +1,18 @@
 <template>
-  <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto overflow-x-hidden pr-4 lg:pr-8">
-    <!-- ─── Display Range ─── -->
+  <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto scrollbar-thin overflow-x-hidden pr-4 lg:pr-8">
+    <!-- ─── Info ─── -->
     <div class="pt-3 border-t border-base-content/25">
+      <div class="text-base font-semibold text-base-content mb-2">Info</div>
+      <div class="space-y-1.5 text-base text-base-content">
+        <div v-for="row in infoRows" :key="row.label" class="flex justify-between">
+          <span>{{ row.label }}</span>
+          <span class="font-mono text-base-content">{{ row.value }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Display Range ─── -->
+    <div class="mt-5 pt-4 border-t border-base-content/25">
       <div class="text-base font-semibold text-base-content mb-2">Display range</div>
       <div class="space-y-2">
         <div class="flex items-center gap-2">
@@ -55,17 +66,6 @@
       </div>
     </div>
 
-    <!-- ─── Info ─── -->
-    <div class="mt-5 pt-4 border-t border-base-content/25">
-      <div class="text-base font-semibold text-base-content mb-2">Info</div>
-      <div class="space-y-1.5 text-base text-base-content">
-        <div v-for="row in infoRows" :key="row.label" class="flex justify-between">
-          <span>{{ row.label }}</span>
-          <span class="font-mono text-base-content">{{ row.value }}</span>
-        </div>
-      </div>
-    </div>
-
     <!-- ─── Preprocessing ─── -->
     <div v-if="methods.length" class="mt-5 pt-4 border-t border-base-content/25">
       <div class="text-base font-semibold text-base-content mb-2">Preprocessing</div>
@@ -73,7 +73,7 @@
         <div
           v-for="m in methods"
           :key="m"
-          class="text-base text-base-content flex items-center gap-1.5"
+          class="text-base text-base-content flex items-center gap-1.5 whitespace-nowrap"
         >
           <span class="w-1 h-1 rounded-full bg-blue-400"></span>
           {{ m }}

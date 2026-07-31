@@ -132,7 +132,7 @@ const currentStats = computed(() =>
 </script>
 
 <template>
-  <div class="shrink-0 h-56 lg:h-80 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col">
+  <div class="shrink-0 h-56 lg:h-[19rem] card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col">
     <div
       v-if="isStale"
       class="flex-1 flex items-center justify-center text-base-content/40 text-lg"

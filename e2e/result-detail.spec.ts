@@ -19,7 +19,7 @@ import { test, expect, type Page } from '@playwright/test'
 /** 用真实鼠标点击 ECharts 谱图 canvas */
 async function clickSpectrum(page: Page) {
   // 从 Average Spectrum 标题找到谱图容器
-  const heading = page.getByText('Average Spectrum')
+  const heading = page.getByRole('heading', { name: 'Average Spectrum' })
   // 结构：h3 → div → div.header → div.root → .overflow-hidden
   const chart = heading.locator('..').locator('..').locator('..').locator('.overflow-hidden')
 
@@ -58,7 +58,7 @@ test.describe('Result Detail', () => {
     await expect(page.getByText('Loading average spectrum...')).not.toBeVisible({ timeout: 30_000 })
 
     // 平均谱图
-    await expect(page.getByText('Average Spectrum')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Average Spectrum' })).toBeVisible()
     await expect(page.getByText(/peaks/)).toBeVisible()
 
     // 右侧 ColorBar 元数据（zarr 加载可能较慢）
@@ -75,7 +75,7 @@ test.describe('Result Detail', () => {
     await page.waitForTimeout(1000)
 
     // 确认点击后页面没崩：谱图在、ion image 没退到 Loading
-    await expect(page.getByText('Average Spectrum')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Average Spectrum' })).toBeVisible()
     await expect(page.getByText('Loading ion image...')).not.toBeVisible()
   })
 
@@ -93,7 +93,7 @@ test.describe('Result Detail', () => {
     await expect(page.getByText('Loading ion image...')).not.toBeVisible({ timeout: 30_000 })
 
     // 切换到 Viridis
-    const colormapSelect = page.locator('select').first()
+    const colormapSelect = page.getByTestId('colormap-select')
     await colormapSelect.selectOption('viridis')
     await page.waitForTimeout(500)
 
