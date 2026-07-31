@@ -30,14 +30,22 @@ export interface ZarrAccessResponse {
   expires_in: number
 }
 
+/** Which zarr to access: ion image ('algorithm') or UMAP/KMeans ('clustering'). */
+export type ZarrType = 'algorithm' | 'clustering'
+
 /**
  * Fetch the zarr OSS access credentials for a given run.
  * Note: do not console.log the raw response — the STS secret fields
  * (AccessKeySecret, SecurityToken) are sensitive.
  */
-export async function getZarrAccess(runId: string): Promise<ZarrAccessResponse> {
+export async function getZarrAccess(
+  runId: string,
+  zarrType: ZarrType = 'algorithm',
+): Promise<ZarrAccessResponse> {
   if (!runId) throw new Error('[zarrAccessApi] runId is required')
-  const { data } = await auth_api.get<ZarrAccessResponse>(`/processes/${runId}/zarr`)
+  const { data } = await auth_api.get<ZarrAccessResponse>(`/processes/${runId}/zarr`, {
+    params: { zarr_type: zarrType },
+  })
   if (!data?.sts_token?.AccessKeyId) {
     throw new Error('[zarrAccessApi] invalid zarr access response: missing sts_token')
   }
