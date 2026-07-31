@@ -12,8 +12,10 @@
       @update:colormap="$emit('update:colormap', $event)"
       @update:intensity-scale="$emit('update:intensityScale', $event)"
       @reset="$emit('reset')"
+      @download="exportPng"
     />
     <div
+      data-testid="ion-image-viewer"
       ref="containerRef"
       class="relative flex-1 min-h-0 bg-base-200 rounded-lg border border-base-300 overflow-hidden"
       :class="containerCursorClass"
@@ -277,6 +279,20 @@ watch(
   ],
   () => scheduleRender(),
 )
+
+/** Export the current canvas content as a PNG download. */
+function exportPng() {
+  const canvas = canvasRef.value
+  if (!canvas) return
+  const dataUrl = canvas.toDataURL('image/png')
+  const link = document.createElement('a')
+  const mzLabel = props.dataMode === 'continuous'
+    ? `_mz_${props.selectedMz.toFixed(4)}`
+    : ''
+  link.download = `ion_image${mzLabel}.png`
+  link.href = dataUrl
+  link.click()
+}
 
 defineExpose({ canvasContainer: containerRef })
 </script>
