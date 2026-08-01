@@ -52,8 +52,8 @@
         @change="$emit('update:intensityScale', ($event.target as HTMLSelectElement).value)"
       >
         <option value="linear">Linear</option>
-        <option value="rms">RMS</option>
-        <option value="tic">TIC</option>
+        <option v-if="dataMode !== 'processed'" value="rms">RMS</option>
+        <option v-if="dataMode !== 'processed'" value="tic">TIC</option>
         <option value="log">Log</option>
       </select>
       <button class="btn btn-sm btn-ghost text-base" @click="$emit('reset')">Reset</button>

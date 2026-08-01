@@ -17,13 +17,19 @@ const props = defineProps<{
   /** Identity colors for the selected A/B regions. */
   regionAColor?: string
   regionBColor?: string
+  /** Shared expand state - opening either panel opens both. */
+  expanded: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'select-mz', ionIndex: number): void
+  (e: 'update:expanded', v: boolean): void
 }>()
 
-const expanded = ref(true)
+function toggle() {
+  emit('update:expanded', !props.expanded)
+}
+
 const categoryFilter = ref<ComparisonCategory | 'all'>('all')
 const sortKey = ref<'ratio' | 'meanA' | 'meanB' | 'mz' | 'detA' | 'detB'>('ratio')
 const sortDir = ref<'desc' | 'asc'>('desc')
@@ -113,7 +119,7 @@ const pagedResults = computed(() => {
 // results are immediately visible.
 watch(() => props.results.length, (length) => {
   page.value = 0
-  if (length > 0) expanded.value = true
+  if (length > 0) emit('update:expanded', true)
 })
 
 // ---------- formatters ----------
@@ -200,7 +206,7 @@ function onFilterChange(e: Event) {
     <!-- Collapsible header bar -->
     <div
       class="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-base-200/60 select-none"
-      @click.stop="expanded = !expanded"
+      @click.stop="toggle"
     >
       <SvgIcon
         :type="expanded ? 'chevron_down' : 'chevron_right'"
