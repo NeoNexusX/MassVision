@@ -35,6 +35,7 @@
       </div>
       <!-- Colormap（两种模式都可用） -->
       <select
+        data-testid="colormap-select"
         class="select select-sm select-bordered w-28 text-base"
         :value="colormap"
         @change="$emit('update:colormap', ($event.target as HTMLSelectElement).value)"
@@ -51,9 +52,15 @@
         @change="$emit('update:intensityScale', ($event.target as HTMLSelectElement).value)"
       >
         <option value="linear">Linear</option>
+        <option v-if="dataMode !== 'processed'" value="rms">RMS</option>
+        <option v-if="dataMode !== 'processed'" value="tic">TIC</option>
         <option value="log">Log</option>
       </select>
       <button class="btn btn-sm btn-ghost text-base" @click="$emit('reset')">Reset</button>
+      <button class="btn btn-sm btn-ghost text-base gap-1" title="Export current view as PNG" @click="$emit('download')">
+        <SvgIcon type="download" class="w-4 h-4" />
+        PNG
+      </button>
     </div>
   </div>
 </template>
@@ -61,6 +68,7 @@
 <script setup lang="ts">
 import type { DataMode } from '@/services/zarrOssStore'
 import { ZARR_STORE } from '@/shared/config/defaults'
+import SvgIcon from '@/shared/components/SvgIcon.vue'
 
 defineProps<{
   selectedMz: number
@@ -80,6 +88,7 @@ const emit = defineEmits<{
   (e: 'update:colormap', v: string): void
   (e: 'update:intensityScale', v: string): void
   (e: 'reset'): void
+  (e: 'download'): void
 }>()
 
 /** 容差输入钳位到 [min, max]；空输入/NaN 时回退到下限，避免触发 NaN 加载 */

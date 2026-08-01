@@ -31,6 +31,8 @@ const props = defineProps<{
   selectedPixelCoord?: { x: number; y: number } | null
   /** 离子图是否正在加载（切换 m/z 时） */
   ionLoading?: boolean
+  /** 归一化计算是否进行中 */
+  normalizationLoading?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -99,7 +101,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex gap-2 h-[50vh] min-h-[260px] lg:h-auto lg:flex-1 lg:min-h-0">
+  <div class="flex gap-2 h-[50vh] min-h-[360px] shrink-0">
     <div
       class="flex-1 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col overflow-hidden"
     >
@@ -142,6 +144,16 @@ onBeforeUnmount(() => {
           @reset="emit('reset-controls')"
           @select-pixel="(col, row) => emit('select-pixel', col, row)"
         />
+        <!-- 归一化计算遮罩 -->
+        <div
+          v-if="normalizationLoading"
+          class="absolute inset-0 flex items-center justify-center bg-base-100/80 backdrop-blur-[2px] z-20"
+        >
+          <div class="flex flex-col items-center gap-3">
+            <span class="loading loading-spinner loading-lg text-primary"></span>
+            <span class="text-base-content/70 text-lg">Computing normalization…</span>
+          </div>
+        </div>
         <!-- 切换 m/z 时的加载遮罩（延迟出现，避免快速切换一闪而过） -->
         <div
           v-if="showLoadingOverlay && ionMatrix"

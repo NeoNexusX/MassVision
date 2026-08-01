@@ -1,4 +1,5 @@
 import { ref, shallowRef, markRaw, type Ref } from 'vue'
+import { roiColorAt, rgbCss } from '@/features/workspace/results/utils/regionPalette'
 
 export type ROIType = 'rectangle' | 'freehand'
 
@@ -47,7 +48,8 @@ export function useROI(
 
   let nextId = 1
   let nextColorIdx = 0
-  const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
+  // ROI colors come from the shared region palette, starting past the slots
+  // KMeans can occupy - a ROI never shares a color with any cluster.
 
   // Methods
   function selectTool(type: ROIType | null) {
@@ -159,7 +161,7 @@ export function useROI(
       id: `roi-${nextId++}`,
       type: draftROI.type,
       label: label ?? `ROI ${nextId - 1}`,
-      color: colors[nextColorIdx % colors.length]!,
+      color: rgbCss(roiColorAt(nextColorIdx)),
       mask,
       stats,
       spectrum: null,

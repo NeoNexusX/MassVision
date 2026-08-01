@@ -41,6 +41,11 @@ export const metadataAttrsRef = shallowRef<MetadataAttrs | null>(null)
 // ---- Mean spectrum state (continuous mode) ----
 
 export const meanChartData = shallowRef<[number, number][]>([])
+/** Raw mean-spectrum intensities aligned with {@link mzAxisRef}. Unlike
+ *  {@link meanChartData} (which drops zero/NaN points for charting), this is
+ *  the unfiltered array - used for per-peak intensity lookup such as the
+ *  annotation-CSV m/z matching (see useAnnotationMatch). */
+export const meanSpectrumRef = shallowRef<Float32Array | null>(null)
 export const spectrumLoading = ref(false)
 export const spectrumError = ref<string | null>(null)
 export const nMz = ref(0)
@@ -108,6 +113,7 @@ function resetModuleState(): void {
   metadataAttrsRef.value = null
 
   meanChartData.value = []
+  meanSpectrumRef.value = null
   spectrumLoading.value = false
   spectrumError.value = null
 
@@ -130,6 +136,9 @@ export function disposeZarrState(): void {
   store?.dispose()
   store = null
 
+  normalizationRequestId++
+  normalizationCache.clear()
+  normalizationPending.clear()
   resetModuleState()
   nMz.value = 0
 }
@@ -159,6 +168,9 @@ export async function loadMeanSpectrum(): Promise<void> {
     }
 
     nMz.value = axis.length
+    // Keep the raw intensity array for O(1) intensity lookup by m/z index
+    // (annotation matching). meanChartData below is filtered for charting.
+    meanSpectrumRef.value = meanData
     // profile 模式下相邻点由折线连接，过滤掉零值会让 ECharts 在两个"幸存点"之间
     // 画直线穿过整段空白区，凭空连出并不存在的信号，所以 profile 模式必须保留零值；
     // centroid 模式每个峰是独立的 bar，过滤零值只是省去数万个空 bar，不影响视觉
@@ -319,6 +331,13 @@ export function findClosestPeak(mz: number, tolerance: number): number {
   return -1
 }
 
+const normalizationCache = new Map<'tic' | 'rms', Float32Array>()
+const normalizationPending = new Map<
+  'tic' | 'rms',
+  { store: ZarrOssStore; promise: Promise<Float32Array> }
+>()
+let normalizationRequestId = 0
+
 // ---- Main composable ----
 
 export function useZarrIonImage() {
@@ -326,6 +345,9 @@ export function useZarrIonImage() {
   const selectedMzIndex = ref(0)
   const mzTolerance = ref<number>(ZARR_STORE.defaultMzTolerance)
   const ionMatrix = ref<Float32Array | null>(null)
+  const normalizationFactors = shallowRef<Float32Array | null>(null)
+  const normalizationLoading = ref(false)
+  const normalizationError = ref<string | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const ready = ref(false)
@@ -370,6 +392,57 @@ export function useZarrIonImage() {
     loading.value = false
   }
 
+  const loadNormalization = async (mode: 'tic' | 'rms') => {
+    if (!store || !ready.value) return
+    const requestId = ++normalizationRequestId
+    const requestStore = store
+    normalizationFactors.value = null
+    const cached = normalizationCache.get(mode)
+    if (cached) {
+      if (requestId === normalizationRequestId && store === requestStore) {
+        normalizationFactors.value = cached
+      }
+      return
+    }
+    normalizationLoading.value = true
+    normalizationError.value = null
+    try {
+      const pending = normalizationPending.get(mode)
+      let promise = pending && pending.store === requestStore
+        ? pending.promise
+        : null
+      if (!promise) {
+        promise = requestStore.computePixelNormalization(mode)
+        const trackedPromise = promise.finally(() => {
+          if (normalizationPending.get(mode)?.promise === trackedPromise) {
+            normalizationPending.delete(mode)
+          }
+        })
+        normalizationPending.set(mode, { store: requestStore, promise: trackedPromise })
+      }
+      const factors = await promise
+      if (store !== requestStore) return
+      normalizationCache.set(mode, factors)
+      // The computation is independent of the selected m/z. If the user switched
+      // back to Linear while it was running, keep the cache but don't re-apply it.
+      if (requestId !== normalizationRequestId) return
+      normalizationFactors.value = factors
+    } catch (e) {
+      if (store !== requestStore) return
+      normalizationError.value = e instanceof Error ? e.message : String(e)
+      if (requestId !== normalizationRequestId) return
+      normalizationFactors.value = null
+    } finally {
+      if (requestId === normalizationRequestId) normalizationLoading.value = false
+    }
+  }
+  const clearNormalization = () => {
+    normalizationRequestId++
+    normalizationFactors.value = null
+    normalizationError.value = null
+    normalizationLoading.value = false
+  }
+
   const onSpectrumClickByIndex = async (idx: number) => {
     if (!mzAxisRef.value || !ready.value) return
     if (idx < 0 || idx >= mzAxisRef.value.length) return
@@ -402,6 +475,11 @@ export function useZarrIonImage() {
     // Reset all state
     store?.dispose()
     store = null
+    normalizationRequestId++
+    normalizationCache.clear()
+    normalizationPending.clear()
+    normalizationFactors.value = null
+    normalizationError.value = null
     ionMatrix.value = null
     resetModuleState()
 
@@ -472,6 +550,11 @@ export function useZarrIonImage() {
     // Continuous mode
     onSpectrumClickByIndex,
     loadForMzIndex,
+    loadNormalization,
+    clearNormalization,
+    normalizationFactors,
+    normalizationLoading,
+    normalizationError,
 
     // Processed mode
     selectedPixelIndex,

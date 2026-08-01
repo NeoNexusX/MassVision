@@ -207,7 +207,7 @@ const METHOD_COLOR_MAP: Record<string, string> = {
     'bg-violet-100 text-violet-700 dark:bg-violet-400/20 dark:text-violet-300',
   'Peak Alignment':
     'bg-rose-100 text-rose-700 dark:bg-rose-400/20 dark:text-rose-300',
-  'Direct conversion\n(no preprocessing)':
+  'Direct conversion (no preprocessing)':
     'bg-base-200 text-base-content/60 dark:bg-base-300 dark:text-base-content/50',
 }
 
