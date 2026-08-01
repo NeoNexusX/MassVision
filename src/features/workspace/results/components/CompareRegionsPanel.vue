@@ -6,7 +6,7 @@
  * thresholds, and kick off the comparison scan. Collapsible like the results
  * table so the user can reclaim vertical space once configured.
  */
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import type { RegionOption } from '@/features/workspace/results/composables/useRegionComparison'
 import type { DataMode } from '@/services/zarrOssStore'
@@ -28,6 +28,8 @@ const props = defineProps<{
   /** Actual colors of the selected A/B regions (fallback gray when unselected). */
   colorA: RGB
   colorB: RGB
+  /** Shared expand state - opening either panel opens both. */
+  expanded: boolean
 }>()
 
 const emit = defineEmits<{
@@ -35,11 +37,15 @@ const emit = defineEmits<{
   (e: 'update:regionBId', v: string | null): void
   (e: 'update:minDetectionRate', v: number): void
   (e: 'update:noiseFloorPercentile', v: number): void
+  (e: 'update:expanded', v: boolean): void
   (e: 'compare'): void
   (e: 'cancel'): void
 }>()
 
-const expanded = ref(false)
+function toggle() {
+  emit('update:expanded', !props.expanded)
+}
+
 const noRegions = computed(() => props.regions.length < 2)
 const isCentroid = computed(() => props.spectrumMode === 'centroid')
 const isComparisonAvailable = computed(() => isCentroid.value)
@@ -65,7 +71,7 @@ function onNoiseFloor(e: Event) {
     <!-- Collapsible header bar -->
     <div
       class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-200/60 select-none"
-      @click.stop="expanded = !expanded"
+      @click.stop="toggle"
     >
       <SvgIcon
         :type="expanded ? 'chevron_down' : 'chevron_right'"

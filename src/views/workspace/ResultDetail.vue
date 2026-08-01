@@ -216,6 +216,10 @@ const cmpThumbnail = computed(() => cmpBuildThumbnailRegions())
 const compareColumnRef = ref<HTMLElement | null>(null)
 const compareColumnHeight = ref<number | null>(null)
 let compareColumnResizeObserver: ResizeObserver | null = null
+// Shared expand state for the compare-regions panel and the results table:
+// opening either opens both. Their visibility is already coupled via the
+// height sync below, so the toggle states must be coupled too.
+const comparisonExpanded = ref(false)
 
 function syncCompareColumnHeight() {
   compareColumnHeight.value = compareColumnRef.value?.getBoundingClientRect().height ?? null
@@ -258,15 +262,12 @@ const selectedPixelCoord = computed(() => {
 // ---- 事件处理 ----
 
 /**
- * 切换 m/z 时重置强度标度为 linear。
- * RMS/TIC 归一化因子是按像素计算的，切换 m/z 后应回到 linear 避免混淆；
- * 归一化因子缓存仍然保留，用户重新选 RMS/TIC 时无需重新计算。
+ * 切换 m/z：直接加载新离子的 slice，保持当前强度标度。
+ * RMS/TIC 归一化因子是 per-pixel、跨所有离子计算的，与当前 ion 无关，
+ * 因此切 m/z 时无需回到 linear--缓存的归一化因子会通过 normalizedIonMatrix
+ * 自动套用到新离子图上，不重新计算。
  */
 async function handleSelectMzIndex(idx: number) {
-  if (intensityScale.value !== 'linear') {
-    intensityScale.value = 'linear'
-    clearNormalization()
-  }
   await onSpectrumClickByIndex(idx)
 }
 
@@ -394,6 +395,7 @@ async function onSelectPixel(col: number, row: number) {
             v-model:region-b-id="cmpRegionBId"
             v-model:min-detection-rate="cmpMinDetectionRate"
             v-model:noise-floor-percentile="cmpNoiseFloorPercentile"
+            v-model:expanded="comparisonExpanded"
             :comparing="cmpComparing"
             :progress="cmpProgress"
             :error="cmpError"
@@ -427,6 +429,7 @@ async function onSelectPixel(col: number, row: number) {
             :filter-stats="cmpFilterStats"
             :region-a-color="rgbCss(cmpColorA)"
             :region-b-color="rgbCss(cmpColorB)"
+            v-model:expanded="comparisonExpanded"
             @select-mz="cmpSelectMz"
           />
         </div>
