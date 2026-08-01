@@ -561,9 +561,12 @@ export class ZarrOssStore {
       if (this._disposed) return new Float32Array(0)
 
       const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
-      const batch: Promise<Float32Array>[] = []
+      // Fetch chunks directly (bypass the LRU cache): each chunk is read once
+      // in this scan, so caching it would only evict other chunks. Mirrors
+      // streamIonStats / computePixelNormalization.
+      const batch: Promise<Float32Array | Float64Array>[] = []
       for (let ci = batchStart; ci < batchEnd; ci++) {
-        batch.push(this.getIntensityChunk(ci))
+        batch.push(this.fetchAndDecode1DChunk('data/intensity', this.intensityMeta!, ci))
       }
       const chunks = await Promise.all(batch)
       if (this._disposed) return new Float32Array(0)
@@ -620,8 +623,13 @@ export class ZarrOssStore {
       if (this._disposed) return new Float32Array(0)
 
       const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
+      // Fetch chunks directly (bypass the LRU cache): each chunk is read once
+      // in this scan, so caching it would only evict the single-ion image's
+      // chunks. Mirrors streamIonStats.
       const chunks = await Promise.all(
-        Array.from({ length: batchEnd - batchStart }, (_, j) => this.getIntensityChunk(batchStart + j)),
+        Array.from({ length: batchEnd - batchStart }, (_, j) =>
+          this.fetchAndDecode1DChunk('data/intensity', this.intensityMeta!, batchStart + j),
+        ),
       )
       if (this._disposed) return new Float32Array(0)
 
@@ -974,27 +982,26 @@ export class ZarrOssStore {
 
     const payload = await decodePayload(meta, raw)
 
-    // Handle edge chunk (may be smaller than cs)
+    // Handle edge chunk: it may be smaller than cs (unpadded) or padded to
+    // the full chunk_shape by the writer (trailing fill beyond the array's
+    // valid length). Only a chunk that is too small is genuinely corrupt; a
+    // padded edge chunk is valid data + trailing fill and is truncated here,
+    // the same way readFullArray ignores trailing padding.
     const chunkStart = chunkIndex * cs
     const expectedElements = Math.min(cs, totalLen - chunkStart)
     const expectedBytes = expectedElements * bpe
     const actualBytes = payload.byteLength
 
-    if (actualBytes !== expectedBytes) {
-      if (actualBytes < expectedBytes) {
-        throw new Error(
-          `[ZarrOssStore] corrupt chunk at chunkIndex=${chunkIndex}: expected ${expectedBytes} bytes, got ${actualBytes}`,
-        )
-      }
+    if (actualBytes < expectedBytes) {
       throw new Error(
-        `[ZarrOssStore] invalid chunk at chunkIndex=${chunkIndex}: expected ${expectedBytes} bytes, got ${actualBytes}`,
+        `[ZarrOssStore] corrupt chunk at chunkIndex=${chunkIndex}: expected ${expectedBytes} bytes, got ${actualBytes}`,
       )
     }
 
-    // Create typed array
+    // Create typed array (truncated to the valid length when the chunk was padded)
     const ab = payload.buffer.slice(
       payload.byteOffset,
-      payload.byteOffset + actualBytes,
+      payload.byteOffset + expectedBytes,
     )
     const typed = makeTypedArray(meta.data_type, ab as ArrayBuffer)
 
@@ -1025,20 +1032,6 @@ export class ZarrOssStore {
     // readFullArray allocates with `new Uint8Array(totalBytes)`, so the
     // underlying buffer is always a plain ArrayBuffer (never SharedArrayBuffer).
     return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength) as ArrayBuffer
-  }
-
-  /**
-   * Get a single intensity chunk (public for cache inspection).
-   */
-  private async getIntensityChunk(chunkIndex: number): Promise<Float32Array> {
-    if (!this.intensityMeta) throw new Error('[ZarrOssStore] call init() first')
-    return (await this.getOrFetchChunk(
-      'data/intensity',
-      this.intensityMeta,
-      chunkIndex,
-      this.intensityChunkCache,
-      this.inFlightIntensity,
-    )) as Float32Array
   }
 
   // ========== region comparison ==========

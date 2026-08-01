@@ -348,7 +348,6 @@ export function useZarrIonImage() {
   const normalizationFactors = shallowRef<Float32Array | null>(null)
   const normalizationLoading = ref(false)
   const normalizationError = ref<string | null>(null)
-  let normalizationRequestId = 0
   const loading = ref(false)
   const error = ref<string | null>(null)
   const ready = ref(false)
