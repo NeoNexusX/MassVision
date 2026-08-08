@@ -1,6 +1,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getFileMetadata, getFileImages, pickImageUrl, setFilePublic } from '@/features/datasets/api/datasetApi'
+import { getFileMetadata, getFileImages, setFilePublic } from '@/features/datasets/api/datasetApi'
+import { pickImageUrl } from '@/features/datasets/utils/imageUtils'
 import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
 import type { File } from '@/features/datasets/types/dataset'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'

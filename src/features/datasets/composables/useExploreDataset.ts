@@ -3,7 +3,7 @@ import { useRouter } from 'vue-router'
 import { rawConvertProcess } from '@/features/datasets/api/datasetApi'
 import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
 import { useToast } from '@/shared/composables/useToast'
-import { useAuthStore } from '@/features/auth/stores/authStore'
+import { useAuthStore } from '@/shared/auth/authStore'
 import { extractBackendError } from '@/shared/api/httpClient'
 import type { File } from '@/features/datasets/types/dataset'
 

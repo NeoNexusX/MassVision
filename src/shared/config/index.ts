@@ -8,7 +8,7 @@
  *
  * 用法：
  *   import { ENV, STORAGE_KEYS } from '@/shared/config'
- *   import { APP_NAME } from '@/shared/config/app'          // 直接导入，避免触发模块级 getConfig()
+ *   import { getAppName } from '@/shared/config/appName'     // 直接导入，避免触发模块级 getConfig()
  *   import { getConfig } from '@/shared/config/runtimeConfig'   // 读分页/验证码/选项等运行时配置
  */
 export { ENV } from './env'

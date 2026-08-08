@@ -1,12 +1,19 @@
 <template>
-  <div class="flex flex-col h-full">
+  <div
+    :class="[
+      // Small screens
+      'flex h-[320px] flex-col',
+      // Desktop
+      'lg:h-full',
+    ]"
+  >
     <!-- 标题区 -->
     <div class="flex items-center gap-3 mb-3">
-      <div>
-        <h3 class="text-lg font-semibold">{{ title }}</h3>
-        <p class="text-sm text-base-content/50">{{ description }}</p>
-      </div>
-      <div v-if="!loading && !error && showPeakCount" class="ml-auto text-base text-base-content/50 font-mono">
+      <h3 class="text-lg font-semibold">{{ title }}</h3>
+      <div
+        v-if="!loading && !error && showPeakCount"
+        class="ml-auto text-base text-base-content/50 font-mono"
+      >
         {{ peakCountLabel }}
       </div>
     </div>
@@ -14,7 +21,7 @@
     <!-- 加载中 -->
     <div
       v-if="loading"
-      class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-300"
+      class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-content/30"
     >
       <span class="loading loading-spinner loading-lg text-primary"></span>
       <p class="text-lg text-base-content/60">{{ loadingText }}</p>
@@ -23,7 +30,7 @@
     <!-- 错误 -->
     <div
       v-else-if="error"
-      class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-300"
+      class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-content/30"
     >
       <div class="text-error text-4xl">!</div>
       <p class="text-lg text-error font-semibold">Failed to load data</p>
@@ -36,7 +43,7 @@
       v-else
       data-testid="average-spectrum-chart"
       ref="chartContainerRef"
-      class="flex-1 min-h-0 bg-base-100 rounded-lg border border-base-300 overflow-hidden"
+      class="flex-1 min-h-0 bg-base-100  overflow-hidden"
     ></div>
   </div>
 </template>
@@ -53,7 +60,9 @@ import {
   GraphicComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import type { DataMode } from '@/services/zarrOssStore'
+import type { DataMode } from '@/services/zarr/types/zarr'
+import { useTheme } from '@/shared/composables/useTheme'
+import { resolveSpectrumPalette } from '../../types/spectrumTheme'
 
 echarts.use([
   LineChart,
@@ -95,6 +104,33 @@ const emit = defineEmits<{
 
 const chartContainerRef = ref<HTMLDivElement | null>(null)
 
+// ---- 底部垂直布局预算（px）----
+// grid.bottom 取各项之和而非写死值，保证轴名/刻度不被 dataZoom 滑块遮挡
+const CHART_LAYOUT = {
+  /** 刻度数字带（ECharts 默认 12px 字号，渲染 ~9px） */
+  axisLabelBand: 10,
+  /** "m/z" 轴名字号，需与 xAxis.nameTextStyle.fontSize 一致 */
+  axisNameFont: 15,
+  /** 轴名空隙，需与 xAxis.nameGap 一致 */
+  axisNameMargin: 16,
+  /** 滑块厚度，需与 dataZoom slider.height 一致 */
+  zoomHeight: 24,
+  /** 滑块底距，需与 dataZoom slider.bottom 一致 */
+  zoomBottom: 8,
+} as const
+
+/** grid.bottom：以上各项之和 */
+const GRID_BOTTOM =
+  CHART_LAYOUT.axisLabelBand +
+  CHART_LAYOUT.axisNameFont +
+  CHART_LAYOUT.axisNameMargin +
+  CHART_LAYOUT.zoomHeight +
+  CHART_LAYOUT.zoomBottom
+
+/** 当前主题对应的整套图表配色（ECharts 不读 CSS 变量，需随主题重建 options） */
+const { isDark } = useTheme()
+const palette = computed(() => resolveSpectrumPalette(isDark.value ? 'dark' : 'light'))
+
 /** 谱图标题 */
 const title = computed(() => {
   if (props.dataMode === 'processed' && props.pixelInfo) {
@@ -103,24 +139,16 @@ const title = computed(() => {
   return props.dataMode === 'processed' ? 'Spectrum' : 'Average Spectrum'
 })
 
-/** 描述文本 */
-const description = computed(() => {
-  if (props.dataMode === 'processed') {
-    return props.pixelInfo
-      ? `Per-pixel spectrum at (${props.pixelInfo.x}, ${props.pixelInfo.y})`
-      : 'Click a pixel on the TIC image to view its spectrum'
-  }
-  return 'Mean intensity from all ion images'
-})
-
 /** 加载中文本 */
 const loadingText = computed(() =>
   props.dataMode === 'processed' ? 'Loading spectrum...' : 'Loading average spectrum...',
 )
 
 /** 是否显示峰数 */
-const showPeakCount = computed(() =>
-  props.dataMode !== 'processed' || (props.dataMode === 'processed' && props.chartData.length > 0),
+const showPeakCount = computed(
+  () =>
+    props.dataMode !== 'processed' ||
+    (props.dataMode === 'processed' && props.chartData.length > 0),
 )
 
 /** 峰数标签 */
@@ -164,7 +192,7 @@ function buildSelectorGraphic(): unknown[] {
       z: 100,
       silent: true,
       shape: { x1: x, y1: topY, x2: x, y2: bottomY },
-      style: { stroke: '#ef4444', lineWidth: 1.5 },
+      style: { stroke: palette.value.selector, lineWidth: 1.5 },
     },
     {
       id: 'mz-selector-label',
@@ -174,7 +202,7 @@ function buildSelectorGraphic(): unknown[] {
       position: [x + 4, topY - 2],
       style: {
         text: label,
-        fill: '#ef4444',
+        fill: palette.value.selector,
         font: '12px monospace',
         textAlign: 'left',
         textVerticalAlign: 'bottom',
@@ -253,6 +281,7 @@ function buildShadowData(data: ChartPoint[], targetWidth: number): ChartPoint[] 
 function buildOptions(targetWidth: number): Record<string, unknown> {
   const isProfile = props.spectrumMode === 'profile'
   const shadowData = buildShadowData(props.chartData, targetWidth)
+  const colors = palette.value
   return {
     tooltip: {
       trigger: 'axis',
@@ -266,7 +295,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
           </div>`
       },
     },
-    grid: { left: 54, right: 54, top: 24, bottom: 72 },
+    grid: { left: 54, right: 54, top: 16, bottom: GRID_BOTTOM },
     xAxis: {
       type: 'value',
       name: 'm/z',
@@ -279,31 +308,43 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
       min: props.chartData[0]?.[0],
       max: props.chartData[props.chartData.length - 1]?.[0],
       nameLocation: 'center',
-      nameGap: 28,
-      axisLabel: {},
+      nameGap: CHART_LAYOUT.axisNameMargin,
+      axisLabel: { color: colors.axis.label },
       axisPointer: { label: { show: false } },
-      nameTextStyle: { fontSize: 15, color: '#6b7280' },
-      axisLine: { lineStyle: { color: '#9ca3af' } },
-      axisTick: { lineStyle: { color: '#9ca3af' } },
-      splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } },
+      nameTextStyle: {
+        fontSize: CHART_LAYOUT.axisNameFont,
+        color: colors.axis.nameText,
+        fontFamily: '"Times New Roman", Times, serif',
+        fontStyle: 'italic',
+      },
+      axisLine: { lineStyle: { color: colors.axis.line } },
+      axisTick: { lineStyle: { color: colors.axis.line } },
+      splitLine: { lineStyle: { color: colors.axis.splitLine, type: 'dashed' } },
     },
     yAxis: {
       type: 'value',
       name: 'Intensity',
       nameLocation: 'center',
       nameGap: 48,
-      nameTextStyle: { fontSize: 17, color: '#6b7280' },
-      axisLine: { lineStyle: { color: '#9ca3af' } },
-      axisTick: { lineStyle: { color: '#9ca3af' } },
-      splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } },
+      axisLabel: { color: colors.axis.label },
+      nameTextStyle: { fontSize: 17, color: colors.axis.nameText },
+      axisLine: { lineStyle: { color: colors.axis.line } },
+      axisTick: { lineStyle: { color: colors.axis.line } },
+      splitLine: { lineStyle: { color: colors.axis.splitLine, type: 'dashed' } },
     },
     dataZoom: [
       { type: 'inside', xAxisIndex: 0, start: 0, end: 100 },
       {
-        type: 'slider', xAxisIndex: 0, start: 0, end: 100,
-        height: 24, bottom: 8,
-        borderColor: '#d1d5db', fillerColor: 'rgba(59, 130, 246, 0.12)',
-        handleStyle: { color: '#3b82f6' }, textStyle: { fontSize: 13 },
+        type: 'slider',
+        xAxisIndex: 0,
+        start: 0,
+        end: 100,
+        height: CHART_LAYOUT.zoomHeight,
+        bottom: CHART_LAYOUT.zoomBottom,
+        borderColor: colors.dataZoom.border,
+        fillerColor: colors.dataZoom.filler,
+        handleStyle: { color: colors.dataZoom.handle },
+        textStyle: { fontSize: 13 },
       },
     ],
     series: [
@@ -327,8 +368,8 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
             type: 'line',
             data: props.chartData,
             showSymbol: false,
-            lineStyle: { color: '#374151', width: 2 },
-            areaStyle: { color: 'rgba(55, 65, 81, 0.06)' },
+            lineStyle: { color: colors.series.line, width: 2 },
+            areaStyle: { color: colors.series.area },
           }
         : {
             id: 'spectrum-series',
@@ -336,7 +377,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
             data: props.chartData,
             barWidth: 3,
             barGap: '-100%',
-            itemStyle: { color: '#6B7280' },
+            itemStyle: { color: colors.bar },
             large: true,
             // xAxis.min/max 钉死在首尾数据点上，柱子中心正好卡在网格边缘，
             // 默认裁剪会把最左/最右柱子露出网格外的那一半切掉；关掉裁剪即可
@@ -350,7 +391,10 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
 
 function renderChart() {
   const container = chartContainerRef.value
-  if (!container) { console.warn('[AverageSpectrum] No chart container'); return }
+  if (!container) {
+    console.warn('[AverageSpectrum] No chart container')
+    return
+  }
   if (isUnmounted) return
 
   // 同一帧内 onMounted + watch 都会触发，引用相同则跳过
@@ -360,7 +404,10 @@ function renderChart() {
   const isProcessed = props.dataMode === 'processed'
 
   // 清事件
-  if (selectorTimer) { clearTimeout(selectorTimer); selectorTimer = 0 }
+  if (selectorTimer) {
+    clearTimeout(selectorTimer)
+    selectorTimer = 0
+  }
   if (nativeMouseDownHandler) {
     container.removeEventListener('mousedown', nativeMouseDownHandler, true)
     nativeMouseDownHandler = null
@@ -398,7 +445,8 @@ function renderChart() {
       if (!gridRect || !axisExtent) return
       if (px < gridRect.x || px > gridRect.x + gridRect.width) return
 
-      const mz = axisExtent[0] + ((px - gridRect.x) / gridRect.width) * (axisExtent[1] - axisExtent[0])
+      const mz =
+        axisExtent[0] + ((px - gridRect.x) / gridRect.width) * (axisExtent[1] - axisExtent[0])
       if (!Number.isFinite(mz)) return
 
       const tolerance = ((axisExtent[1] - axisExtent[0]) / gridRect.width) * 10
@@ -437,8 +485,14 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   isUnmounted = true
-  if (selectorTimer) { clearTimeout(selectorTimer); selectorTimer = 0 }
-  if (onDataZoom) { chartInstance?.off('datazoom', onDataZoom); onDataZoom = null }
+  if (selectorTimer) {
+    clearTimeout(selectorTimer)
+    selectorTimer = 0
+  }
+  if (onDataZoom) {
+    chartInstance?.off('datazoom', onDataZoom)
+    onDataZoom = null
+  }
   if (nativeMouseDownHandler && chartContainerRef.value) {
     chartContainerRef.value.removeEventListener('mousedown', nativeMouseDownHandler, true)
     nativeMouseDownHandler = null
@@ -482,4 +536,13 @@ watch(
     }
   },
 )
+
+// 主题切换时强制重建：lastData 短路会跳过相同数据的渲染，需先置空；
+// notMerge: true 的 setOption 会整体替换旧配色，无残留
+watch(isDark, () => {
+  if (props.chartData.length > 0 && !isUnmounted && !props.loading) {
+    lastData = null
+    renderChart()
+  }
+})
 </script>

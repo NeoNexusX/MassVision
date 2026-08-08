@@ -1,5 +1,5 @@
 /**
- * Zarr OSS access types & backend API.
+ * Zarr OSS access backend API.
  *
  * Backend endpoint:
  *   GET /processes/{run_id}/zarr
@@ -10,32 +10,11 @@
  */
 
 import { auth_api } from '@/shared/api/httpClient'
-
-interface ZarrStsToken {
-  AccessKeyId: string
-  AccessKeySecret: string
-  SecurityToken: string
-  /** ISO 8601, e.g. "2026-06-02T09:06:20Z" */
-  Expiration: string
-}
-
-export interface ZarrAccessResponse {
-  /** OSS zarr directory prefix, e.g. "processed/run_45.zarr/" */
-  folder_path: string
-  bucket: string
-  /** OSS region, e.g. "cn-hangzhou" */
-  region: string
-  sts_token: ZarrStsToken
-  /** Token lifetime in seconds, as agreed with the backend. */
-  expires_in: number
-}
-
-/** Which zarr to access: ion image ('algorithm') or UMAP/KMeans ('clustering'). */
-export type ZarrType = 'algorithm' | 'clustering'
+import type { ZarrAccessResponse, ZarrType } from '../types/zarr'
 
 /**
  * Fetch the zarr OSS access credentials for a given run.
- * Note: do not console.log the raw response — the STS secret fields
+ * Note: do not console.log the raw response - the STS secret fields
  * (AccessKeySecret, SecurityToken) are sensitive.
  */
 export async function getZarrAccess(

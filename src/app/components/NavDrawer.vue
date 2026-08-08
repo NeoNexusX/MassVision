@@ -111,9 +111,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { User } from '@/features/auth/types/auth'
+import type { User } from '@/shared/auth/types'
 import type { IconType } from '@/shared/components/svgIcons'
-import { BRAND_PARTS } from '@/shared/config/app'
+import { getBrandParts } from '@/shared/config/appName'
 import { getConfig, filterNavItems } from '@/shared/config/runtimeConfig'
 import type { NavItem, NavLinkItem, NavUserLink } from '@/shared/config/runtimeConfig'
 
@@ -125,7 +125,7 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { default: false })
 
 // 与 Hero 标题一致：把大写 X 拆出做浅蓝→深蓝渐变；没有 X 时回退为完整名称
-const { pre: namePre, x: nameX, post: namePost } = BRAND_PARTS
+const { pre: namePre, x: nameX, post: namePost } = getBrandParts()
 
 const items = computed<NavItem[]>(() => {
   const nav = getConfig().nav!

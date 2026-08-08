@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import type { DataMode } from '@/services/zarrOssStore'
+import type { DataMode } from '@/services/zarr/types/zarr'
 import { ZARR_STORE } from '@/shared/config/defaults'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 

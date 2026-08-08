@@ -117,9 +117,7 @@ function paintMask(
   outline: boolean,
 ) {
   const at = (r: number, col: number): boolean =>
-    Array.isArray(mask)
-      ? !!mask[r]?.[col]
-      : !!mask[r * w + col]
+    Array.isArray(mask) ? !!mask[r]?.[col] : !!mask[r * w + col]
 
   for (let r = 0; r < h; r++) {
     for (let col = 0; col < w; col++) {
@@ -127,8 +125,14 @@ function paintMask(
       let a = alpha
       if (outline) {
         const edge =
-          r === 0 || col === 0 || r === h - 1 || col === w - 1 ||
-          !at(r - 1, col) || !at(r + 1, col) || !at(r, col - 1) || !at(r, col + 1)
+          r === 0 ||
+          col === 0 ||
+          r === h - 1 ||
+          col === w - 1 ||
+          !at(r - 1, col) ||
+          !at(r + 1, col) ||
+          !at(r, col - 1) ||
+          !at(r, col + 1)
         if (edge) a = 1
       }
       const off = (r * w + col) * 4
@@ -154,7 +158,6 @@ function draw() {
   const dpr = window.devicePixelRatio || 1
   canvas.width = Math.round(cw * dpr)
   canvas.height = Math.round(ch * dpr)
-  canvas.style.width = cw + 'px'
   canvas.style.height = ch + 'px'
 
   const ctx = canvas.getContext('2d')
@@ -201,7 +204,7 @@ watch(
     <div ref="containerRef" class="px-3 pb-2">
       <canvas
         ref="canvasRef"
-        class="w-full rounded-md border border-base-300 block"
+        class="block w-full max-w-full rounded-md border border-base-300"
         style="image-rendering: pixelated"
       />
     </div>

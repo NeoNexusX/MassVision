@@ -9,8 +9,6 @@ import { vReveal } from './shared/directives/reveal'
 import { loadConfig } from './shared/config/runtimeConfig'
 import { initTheme } from './shared/composables/useTheme'
 
-// Apply theme before mounting to avoid a flash of the wrong theme (FOUC).
-initTheme()
 
 /**
  * 启动顺序很关键：必须先 await loadConfig() 拉到 config.json，再动态导入 App 与 router。
@@ -18,6 +16,8 @@ initTheme()
  * 下游模块无需关心加载时序。
  */
 async function bootstrap() {
+  // Apply theme before mounting to avoid a flash of the wrong theme (FOUC).
+  initTheme()
   const config = await loadConfig()
 
   // 标题取自运行时 config.json 的 appName（index.html 里的静态标题仅作 JS 执行前兜底）

@@ -1,19 +1,19 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCurrentUser, updateUserProfile } from '@/features/auth/api/authApi'
+import { getCurrentUser, updateUserProfile } from '@/shared/auth/authApi'
 import { useToast } from '@/shared/composables/useToast'
-import { useAuthStore } from '@/features/auth/stores/authStore'
+import { useAuthStore } from '@/shared/auth/authStore'
 import { extractBackendError } from '@/shared/api/httpClient'
 import { useSendEmailCode } from '@/shared/composables/useSendEmailCode'
 import { useUserQuota } from '@/shared/composables/useUserQuota'
-import { positionOptions } from '@/shared/constants/profileOptions'
+import { getPositionOptions } from '@/shared/constants/profileOptions'
 import { getRegionOptions } from '@/shared/utils/regionOptions'
 import { SESSION_KEYS } from '@/shared/config'
 import {
   PROFILE_EMAIL_PATTERN,
   VALIDATION_PATTERNS,
 } from '@/features/auth/constants/validationPatterns'
-import type { UsrProfileUpdate } from '@/features/auth/types/auth'
+import type { UsrProfileUpdate } from '@/shared/auth/types'
 
 const regionOptions = getRegionOptions()
 
@@ -233,7 +233,7 @@ export function useUserProfileForm() {
 
   return {
     loading,
-    positionOptions,
+    positionOptions: getPositionOptions(),
     regionOptions,
     formData,
     isEmailModalOpen,

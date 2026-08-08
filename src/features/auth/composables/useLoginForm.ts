@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/features/auth/stores/authStore'
-import { login as loginApi } from '@/features/auth/api/authApi'
+import { useAuthStore } from '@/shared/auth/authStore'
+import { login as loginApi } from '@/shared/auth/authApi'
 import { extractBackendError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
 

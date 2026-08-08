@@ -221,9 +221,9 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { useAuthStore } from '@/features/auth/stores/authStore'
+import { useAuthStore } from '@/shared/auth/authStore'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
-import { BRAND_PARTS } from '@/shared/config/app'
+import { getBrandParts } from '@/shared/config/appName'
 import { useTheme } from '@/shared/composables/useTheme'
 import { getConfig, isNavVisible, filterNavItems } from '@/shared/config/runtimeConfig'
 import type {
@@ -241,7 +241,7 @@ const { isDark, toggleTheme } = useTheme()
 const isAuthenticated = computed(() => !!user.value)
 
 // 与 NavDrawer 一致：把大写 X 拆出做渐变，没有 X 时回退为完整名称
-const { pre: namePre, x: nameX, post: namePost } = BRAND_PARTS
+const { pre: namePre, x: nameX, post: namePost } = getBrandParts()
 
 const initials = computed(() => user.value?.username?.slice(0, 2).toUpperCase() ?? '')
 

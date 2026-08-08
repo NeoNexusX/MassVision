@@ -11,12 +11,11 @@
  */
 
 import { computed, ref, shallowRef } from 'vue'
-import { getZarrAccess } from '@/services/zarrAccessApi'
+import { getZarrAccess } from '@/services/zarr/api/zarrAccessApi'
 import {
   ZarrOssStore,
-  type MetadataAttrs,
-  type DataMode,
-} from '@/services/zarrOssStore'
+} from '@/services/zarr/zarrOssStore'
+import type { MetadataAttrs, DataMode } from '@/services/zarr/types/zarr'
 import { ZARR_STORE } from '@/shared/config/defaults'
 
 // ---- Module-level shared state ----

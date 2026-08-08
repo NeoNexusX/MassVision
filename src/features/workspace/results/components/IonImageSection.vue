@@ -3,7 +3,7 @@ import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import IonImageViewer from '@/features/workspace/results/components/visuals/IonImageViewer.vue'
 import ROIOverlay from '@/features/workspace/results/components/visuals/ROIOverlay.vue'
 import type { ROIType } from '@/features/workspace/results/composables/useROI'
-import type { DataMode } from '@/services/zarrOssStore'
+import type { DataMode } from '@/services/zarr/types/zarr'
 
 const props = defineProps<{
   isStale?: boolean
@@ -101,9 +101,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex gap-2 h-[50vh] min-h-[360px] shrink-0">
+  <!-- 桌面端与谱图按 5:2 分高、硬底线 360px；移动端自然高 -->
+  <div class="flex gap-2 p-4 min-h-[360px] shrink-0 lg:h-auto lg:flex-[5]">
     <div
-      class="flex-1 card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col overflow-hidden"
+      class="flex-1 card bg-base-100 rounded-xl p-4 flex flex-col overflow-hidden"
     >
       <div
         v-if="isStale"

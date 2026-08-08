@@ -93,7 +93,8 @@ import type { File } from '@/features/datasets/types/dataset'
 import type { IconType } from '@/shared/components/svgIcons'
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
 import { formatBytes } from '@/shared/utils/format'
-import { getFileImages, pickImageUrl } from '@/features/datasets/api/datasetApi'
+import { getFileImages } from '@/features/datasets/api/datasetApi'
+import { pickImageUrl } from '@/features/datasets/utils/imageUtils'
 
 const props = defineProps<{
   dataset: File
