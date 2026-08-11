@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios'
 import { ENV } from '@/shared/config'
-import { authStorage } from '@/features/auth/services/authStorage'
+import { authStorage } from '@/shared/auth/authStorage'
 
 // Top-level Response body
 interface ErrorResponse {

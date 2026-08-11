@@ -4,9 +4,8 @@ import { useTheme } from '@/shared/composables/useTheme'
 import {
   fetchCommitHeatmap,
   toDateStr,
-  type FetchCommitHeatmapOptions,
-  type HeatValue,
 } from '../api/githubApi'
+import type { FetchCommitHeatmapOptions, HeatValue } from '@/features/home/types/github'
 
 // 颜色梯度：库的 getColorIndex 返回 0~5，必须给满 6 个颜色。
 // 索引：0=无数据(区间外) 1=当天 0 条 2/3/4=低/中/高 5=达到 max。

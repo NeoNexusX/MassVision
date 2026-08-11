@@ -11,11 +11,8 @@
  */
 import { ref, watch } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
-import {
-  searchPubChemByName,
-  PubChemNotFoundError,
-  type PubChemCompound,
-} from '@/services/pubchemApi'
+import { searchPubChemByName } from '@/services/pubchem/api/pubchemApi'
+import { PubChemNotFoundError, type PubChemCompound } from '@/services/pubchem/types/pubchem'
 
 const props = defineProps<{
   open: boolean

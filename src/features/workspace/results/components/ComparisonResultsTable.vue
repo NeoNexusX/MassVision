@@ -226,7 +226,7 @@ watch(
 
 <template>
   <div
-    class="w-full rounded-xl border border-base-300 bg-base-100 overflow-hidden flex flex-col self-stretch"
+    class="w-full rounded-xl border-2 border-base-content/30 bg-base-100 overflow-hidden flex flex-col self-stretch"
         :class="expanded ? 'h-full min-h-0' : 'h-auto self-start'"
   >
     <!-- Collapsible header bar -->
@@ -242,7 +242,7 @@ watch(
       <span class="text-lg text-base-content whitespace-nowrap shrink-0">
         {{ results.length }} ions
       </span>
-      <span v-if="!results.length" class="text-lg text-black whitespace-nowrap overflow-hidden text-ellipsis min-w-0" title="Select two regions and click Compare to view comparison results.">
+      <span v-if="!results.length" class="text-base text-base-content">
         Select two regions and click Compare to view comparison results.
       </span>
       <span v-if="filterStats.filtered > 0" class="text-lg text-base-content whitespace-nowrap overflow-hidden text-ellipsis min-w-0" :title="`(${filterStats.filtered} filtered from ${filterStats.total})`">
@@ -257,7 +257,7 @@ watch(
         <div class="flex items-center gap-3 flex-wrap mb-3">
         <!-- Category filter -->
         <div class="flex items-center gap-1.5">
-          <span class="text-lg text-black">Filter</span>
+          <span class="text-base text-base-content">Filter</span>
           <select
             :value="categoryFilter"
             class="select select-bordered select-sm text-base"
@@ -269,7 +269,7 @@ watch(
           </select>
         </div>
 
-        <span class="text-lg text-black">
+        <span class="text-base text-base-content">
           Showing {{ filteredResults.length }} of {{ results.length }}
         </span>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch, onUnmounted, nextTick } from 'vue'
 import ColorBar from '@/features/workspace/results/components/visuals/ColorBar.vue'
 import ResultVisualizationLayout from '@/features/workspace/results/components/ResultVisualizationLayout.vue'
 import ResultHeader from '@/features/workspace/results/components/visuals/ResultHeader.vue'
@@ -28,7 +28,7 @@ import { ZARR_STORE } from '@/shared/config/defaults'
 import { rgbCss } from '@/features/workspace/results/utils/regionPalette'
 import { fetchReferenceRois, decodeRleMask } from '@/features/workspace/results/utils/referenceRois'
 import { useToast } from '@/shared/composables/useToast'
-import type { DataMode } from '@/services/zarrOssStore'
+import type { DataMode } from '@/services/zarr/types/zarr'
 
 interface ResultDetailState {
   runId?: string
@@ -77,8 +77,7 @@ const intensityScale = ref('linear')
 const gamma = ref(1)
 
 // ---- Annotation CSV import panel (left) ----
-// Expanded by default on desktop; collapsed on small screens so the drawer
-// doesn't cover the ion image on page load.
+// Collapsed by default on all screens (desktop: thin rail; mobile: off-canvas drawer).
 const annotationExpanded = ref(false)
 
 // ---- Zarr 数据加载 ----
@@ -100,10 +99,7 @@ const {
 const dataMode = computed<DataMode | null>(() => dataModeRef.value)
 
 // processed 模式下的图像矩阵（TIC）
-const currentIonMatrix = computed(() =>
-  isProcessed.value ? ticMatrix.value : ionMatrix.value,
-)
-
+const currentIonMatrix = computed(() => (isProcessed.value ? ticMatrix.value : ionMatrix.value))
 
 // ---- 初始化 ----
 
@@ -303,27 +299,16 @@ async function importReferenceRois() {
   }
 }
 
-const compareColumnRef = ref<HTMLElement | null>(null)
-const compareColumnHeight = ref<number | null>(null)
-let compareColumnResizeObserver: ResizeObserver | null = null
-// Shared expand state for the compare-regions panel and the results table:
-// opening either opens both. Their visibility is already coupled via the
-// height sync below, so the toggle states must be coupled too.
+const compareSectionRef = ref<HTMLElement | null>(null)
+// compare 面板与结果表共享展开状态。
 const comparisonExpanded = ref(false)
 
-function syncCompareColumnHeight() {
-  compareColumnHeight.value = compareColumnRef.value?.getBoundingClientRect().height ?? null
-}
-
-onMounted(() => {
-  if (compareColumnRef.value) {
-    compareColumnResizeObserver = new ResizeObserver(syncCompareColumnHeight)
-    compareColumnResizeObserver.observe(compareColumnRef.value)
-    syncCompareColumnHeight()
-  }
+// 展开 compare 时将中列平滑滚到该区域顶部，展示完整控件和结果。
+watch(comparisonExpanded, async (expanded) => {
+  if (!expanded) return
+  await nextTick()
+  compareSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 })
-
-onUnmounted(() => compareColumnResizeObserver?.disconnect())
 
 // ---- 统计信息 ----
 
@@ -398,14 +383,6 @@ async function onSelectPixel(col: number, row: number) {
 
 <template>
   <ResultVisualizationLayout>
-    <template #top-bar>
-      <ResultHeader
-        class="pl-4"
-        :dataset-name="datasetName"
-        :status="status"
-      />
-    </template>
-
     <template #left-panel>
       <AnnotationPanel
         v-model:expanded="annotationExpanded"
@@ -415,7 +392,8 @@ async function onSelectPixel(col: number, row: number) {
       />
     </template>
 
-    <template #main>
+    <template #viz>
+      <ResultHeader class="shrink-0" :dataset-name="datasetName" :status="status" />
       <IonImageSection
         :is-stale="isStale"
         :ion-matrix="currentIonMatrix"
@@ -463,10 +441,17 @@ async function onSelectPixel(col: number, row: number) {
         :data-mode="dataMode"
         @select-mz-index="handleSelectMzIndex"
       />
+    </template>
 
-      <!-- Region comparison: controls + preview (left) and results table (right) -->
-      <div class="w-full flex flex-col items-stretch lg:flex-row gap-4 lg:items-stretch">
-        <div ref="compareColumnRef" class="lg:w-[340px] shrink-0 flex flex-col lg:self-start">
+    <template #compare>
+      <!-- Region comparison：左 controls+preview，右结果表。
+           桌面端折叠栏保留在首屏，展开后由中列承载滚动。 -->
+      <div
+        ref="compareSectionRef"
+        class="w-full flex flex-col items-stretch gap-4 lg:flex-row lg:items-stretch"
+      >
+        <!-- 左侧正常参与文档流，它的自然高度决定整个 compare 区域的高度。 -->
+        <div class="w-full min-w-0 flex flex-col lg:w-0 lg:flex-[2_1_0%]">
           <CompareRegionsPanel
             :regions="cmpAvailableRegions"
             :data-mode="dataMode"
@@ -502,11 +487,10 @@ async function onSelectPixel(col: number, row: number) {
             </template>
           </CompareRegionsPanel>
         </div>
-        <div
-          class="flex-1 min-w-0 self-start"
-          :style="compareColumnHeight ? { height: `${compareColumnHeight}px` } : undefined"
-        >
+        <!-- 桌面端右侧不参与父容器高度计算，只填满左侧确定的共享高度。 -->
+        <div class="w-full min-w-0 lg:relative lg:w-0 lg:flex-[5_1_0%] lg:min-h-0">
           <ComparisonResultsTable
+            class="lg:absolute lg:inset-0"
             :results="cmpResults"
             :selected-mz-index="selectedMzIndex"
             :filter-stats="cmpFilterStats"

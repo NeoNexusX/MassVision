@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import IconInput from '@/shared/components/IconInput.vue'
-import { APP_NAME } from '@/shared/config/app'
+import { getAppName } from '@/shared/config/appName'
 
 defineProps<{
   username: string
@@ -52,7 +52,7 @@ const emit = defineEmits<{
     </div>
 
     <div class="text-center">
-      <span class="text-[1rem]">New to {{ APP_NAME }} ?</span>
+      <span class="text-[1rem]">New to {{ getAppName() }} ?</span>
       <router-link to="/register" class="link link-hover text-secondary text-[1rem] font-semibold">
         Create an account
       </router-link>

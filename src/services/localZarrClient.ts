@@ -12,7 +12,7 @@
  * logic (e.g. v1.0 data/ vs v1.1 ion_image/ group detection) works unchanged.
  */
 
-import { OssError, type OssClient } from './ossClient'
+import { OssError, type OssClient } from './zarr/ossClient'
 
 export function createLocalZarrClient(baseUrl: string): OssClient {
   if (!baseUrl) throw new Error('[localZarrClient] baseUrl is required')

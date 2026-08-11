@@ -35,81 +35,23 @@
  * zstd (via zstddec).
  */
 
-import { LruCache } from '../utils/lruCache'
+import { LruCache } from '@/shared/utils/lruCache'
 import { createOssClient, OssError } from './ossClient'
 import type { OssClient } from './ossClient'
-import type { ZarrAccessResponse } from './zarrAccessApi'
-import {
-  normalizeDtype,
-  bytesPerElement,
-  makeTypedArray,
-  decodePayload,
-  computeNDChunkKey,
-  assertV3Array,
-  readFullArray,
-  type ZarrV3ArrayMetadata,
-  type ZarrV3GroupMetadata,
-} from './zarrCodecs'
-
-// ---------- domain types ----------
-
-export type DataMode = 'continuous' | 'processed'
-
-/** Root attributes from /.zattrs */
-export interface RootAttrs {
-  format: string
-  format_version: string
-  write_state: string
-  coordinate_order: string[]
-  coordinate_base: number
-  spatial_shape: [number, number]
-}
-
-/** Data group attributes from /data/.zattrs */
-export interface DataAttrs {
-  row_axis: 'pixel' | 'ion'
-  encoding: 'continuous' | 'processed'
-}
-
-/** Metadata attributes from /metadata/.zattrs */
-export interface MetadataAttrs {
-  name?: string
-  version?: number
-  spectrum_count_num?: number
-  max_count_of_pixels_x?: number
-  max_count_of_pixels_y?: number
-  pixel_size_horizontal?: number
-  pixel_size_vertical?: number
-  analyzer?: string
-  ionisation_source?: string
-  polarity?: string
-  centroid_spectrum?: boolean
-  profile_spectrum?: boolean
-  continuous?: boolean
-  processed?: boolean
-  ms1_spectrum?: boolean
-  msn_spectrum?: boolean
-  filename?: string
-  [key: string]: unknown
-}
-
-export interface IonImageInfo {
-  mzIndex: number
-  mz: number
-  /** Row-major [height * width] */
-  matrix: Float32Array
-  width: number
-  height: number
-}
-
-export interface PixelSpectrum {
-  pixelIndex: number
-  /** 1-based coordinate from axes/coordinates */
-  x: number
-  y: number
-  mz: Float64Array
-  intensity: Float32Array
-}
+import type {
+  ZarrAccessResponse,
+  DataMode,
+  RootAttrs,
+  DataAttrs,
+  MetadataAttrs,
+  IonImageInfo,
+  PixelSpectrum,
+} from './types/zarr'
+import type { ZarrV3ArrayMetadata, ZarrV3GroupMetadata } from './types/zarrV3'
+import { assertV3Array, computeNDChunkKey } from './zarrMetadata'
+import { decodePayload } from './zarrDecode'
+import { normalizeDtype, bytesPerElement, makeTypedArray } from './zarrDtype'
+import { readFullArray } from './zarrReader'
 
 /**
  * Client-based byte source for non-OSS backends (e.g. a local/static zarr

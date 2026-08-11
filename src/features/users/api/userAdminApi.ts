@@ -1,38 +1,10 @@
 import { auth_api } from '@/shared/api/httpClient'
-
-export interface AdminUser {
-  id: number
-  username: string
-  active: boolean
-  identity: string
-  institution: string
-  position: string
-  research_field: string
-  region: string
-  orcid: string
-  homepage: string
-  email: string
-  total_file_size?: number
-  file_count?: number
-  max_total_file_size?: number
-  max_file_count?: number
-  max_processing_size?: number
-  max_download_count?: number
-}
-
-export interface UserListFilters {
-  username: string
-  status: string
-  institution: string
-  region: string
-}
-
-export interface UserQuotaLimits {
-  max_total_file_size: number
-  max_file_count: number
-  max_processing_size: number
-  max_download_count: number
-}
+import type {
+  AdminUser,
+  UserListFilters,
+  UserQuotaLimits,
+  UsersClassification,
+} from '@/features/users/types/user'
 
 export async function listAdminUsers(filters: UserListFilters, page: number, size: number) {
   const payload = {
@@ -56,9 +28,7 @@ export async function updateUserQuota(userId: number, limits: Partial<UserQuotaL
   return auth_api.post(`/users/${userId}/quota`, limits)
 }
 
-/** GET /stats/users/classification?field= — 按指定字段统计用户分类数量 */
-export type UsersClassification = Record<string, number>
-
+/** GET /stats/users/classification?field= - 按指定字段统计用户分类数量 */
 export async function getUsersClassification(field: string): Promise<UsersClassification> {
   const res = await auth_api.get('/stats/users/classification', { params: { field } })
   return res.data

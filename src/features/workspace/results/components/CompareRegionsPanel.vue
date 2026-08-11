@@ -9,7 +9,7 @@
 import { computed } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import type { RegionOption } from '@/features/workspace/results/composables/useRegionComparison'
-import type { DataMode } from '@/services/zarrOssStore'
+import type { DataMode } from '@/services/zarr/types/zarr'
 import { rgbCss, type RGB } from '@/features/workspace/results/utils/regionPalette'
 
 const props = defineProps<{
@@ -67,7 +67,7 @@ function onNoiseFloor(e: Event) {
 </script>
 
 <template>
-  <div class="rounded-xl border border-base-300 bg-base-100 overflow-hidden flex flex-col">
+  <div class="rounded-xl border-2 border-base-content/30 bg-base-100 overflow-hidden flex flex-col">
     <!-- Collapsible header bar -->
     <div
       class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-200/60 select-none"

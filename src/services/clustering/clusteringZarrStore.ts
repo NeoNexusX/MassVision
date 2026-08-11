@@ -16,30 +16,18 @@
  * the backend kmeans_image / kmeans_label_image arrays.
  */
 
-import { createOssClient } from './ossClient'
-import type { OssClient } from './ossClient'
-import type { ZarrAccessResponse } from './zarrAccessApi'
-import {
-  assertV3Array,
-  computeNDChunkKey,
-  decodePayload,
-  readFullArray,
-  type ZarrV3ArrayMetadata,
-  type ZarrV3GroupMetadata,
-} from './zarrCodecs'
+import { createOssClient } from '../zarr/ossClient'
+import type { OssClient } from '../zarr/ossClient'
+import type { ZarrAccessResponse } from '../zarr/types/zarr'
+import type { ClusteringImage } from './types/clustering'
+import type { ZarrV3ArrayMetadata, ZarrV3GroupMetadata } from '../zarr/types/zarrV3'
+import { assertV3Array, computeNDChunkKey } from '../zarr/zarrMetadata'
+import { decodePayload } from '../zarr/zarrDecode'
+import { readFullArray } from '../zarr/zarrReader'
 
 /** Root group attributes of the clustering zarr. */
 interface ClusteringRootAttrs {
   format: string
-}
-
-/** A loaded RGB image (H, W, 3) uint8 raster. */
-export interface ClusteringImage {
-  /** Row-major (H * W * channels) uint8 raster. */
-  data: Uint8Array
-  height: number
-  width: number
-  channels: number
 }
 
 /**

@@ -460,11 +460,6 @@ export async function loadConfig(): Promise<AppConfig> {
   _config.hero ??= { taglines: [], gallery: [] }
   _config.features ??= { items: [] }
   _config.timeline ??= []
-  // 兼容旧格式：nav 曾是 NavItem[]（纯抽屉菜单），自动包装为统一配置
-  const rawNav = (_config as { nav?: unknown }).nav
-  if (Array.isArray(rawNav)) {
-    _config.nav = { mode: 'drawer', items: rawNav as NavItem[], userMenu: [], guestLinks: [] }
-  }
   _config.nav ??= { items: [], userMenu: [], guestLinks: [] }
   _config.fab ??= { main: { iconClosed: 'home', iconOpen: 'close' }, items: [] }
   return _config

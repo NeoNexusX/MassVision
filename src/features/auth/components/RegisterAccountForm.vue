@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import IconInput from '@/shared/components/IconInput.vue'
-import { APP_NAME } from '@/shared/config/app'
+import { getAppName } from '@/shared/config/appName'
 import { passwordStrengthLabel } from '@/features/auth/utils/passwordStrength'
 
 const props = defineProps<{
@@ -32,7 +32,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
       >
       Create Account
      </h2>
-      <p class="page-subtitle text-base-content/70 mt-5 mb-5">Join {{ APP_NAME }} for scientific data analysis</p>
+      <p class="page-subtitle text-base-content/70 mt-5 mb-5">Join {{ getAppName() }} for scientific data analysis</p>
     </div>
 
     <div class="flex flex-col gap-5">

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//tmp/**)",
+      "Bash(npx vitest *)",
+      "Bash(node scripts/figMaskToRois.mjs)"
+    ]
+  }
+}

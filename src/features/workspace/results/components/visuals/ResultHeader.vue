@@ -1,11 +1,28 @@
 <template>
-  <div class="flex items-center gap-3">
-    <h1 class="text-xl font-bold">{{ datasetName }}</h1>
+  <div
+    :class="[
+      // Small screens
+      'flex min-w-0 items-start gap-3',
+      // Medium and larger screens
+      'sm:items-center',
+    ]"
+  >
+    <h1
+      :class="[
+        // Small screens
+        'min-w-0 break-words text-xl font-bold',
+        // Medium and larger screens
+        'sm:text-2xl',
+      ]"
+    >
+      {{ datasetName }}
+    </h1>
     <span
       v-if="status"
-      class="px-3 py-1 rounded-full text-base font-semibold"
+      class="shrink-0 rounded-full px-3 py-1 text-sm font-semibold"
       :class="statusClass"
-    >{{ status }}</span>
+      >{{ status }}</span
+    >
   </div>
 </template>
 

@@ -13,26 +13,7 @@
  */
 
 import { auth_api } from '@/shared/api/httpClient'
-
-export interface ClusteringTaskResponse {
-  /** Clustering task id. */
-  id: number
-  /** Preprocessing parameters used to derive the feature matrix (JSON string). */
-  params_json: string
-  /** Backend task status. */
-  status: string
-  /** Clustering status - 'completed' once the clustering zarr is finished. */
-  clustering_status: string
-  error_message: string | null
-  /** ISO 8601 timestamp. */
-  created_at: string
-  /** ISO 8601 timestamp, null/absent until finished. */
-  finished_at: string | null
-  experiment_id: number
-  source_file_id: number
-  user_id: number
-  filename: string
-}
+import type { ClusteringTaskResponse } from '../types/clustering'
 
 /**
  * Create-or-fetch the UMAP/KMeans clustering task for a run. Idempotent:

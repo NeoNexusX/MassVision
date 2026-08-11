@@ -11,13 +11,9 @@
  */
 
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
-import { getZarrAccess } from '@/services/zarrAccessApi'
-import {
-  ZarrOssStore,
-  type MetadataAttrs,
-  type DataMode,
-  type ZarrClientSource,
-} from '@/services/zarrOssStore'
+import { getZarrAccess } from '@/services/zarr/api/zarrAccessApi'
+import { ZarrOssStore, type ZarrClientSource } from '@/services/zarr/zarrOssStore'
+import type { MetadataAttrs, DataMode } from '@/services/zarr/types/zarr'
 import { createLocalZarrClient } from '@/services/localZarrClient'
 import { ZARR_STORE } from '@/shared/config/defaults'
 

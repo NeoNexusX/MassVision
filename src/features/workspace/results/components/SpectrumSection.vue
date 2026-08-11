@@ -14,7 +14,7 @@ import {
   pixelSpectrumError,
   loadPixelSpectrum,
 } from '@/features/workspace/results/composables/useZarrIonImage'
-import type { DataMode } from '@/services/zarrOssStore'
+import type { DataMode } from '@/services/zarr/types/zarr'
 
 const props = defineProps<{
   isStale?: boolean
@@ -132,7 +132,8 @@ const currentStats = computed(() =>
 </script>
 
 <template>
-  <div class="shrink-0 h-56 lg:h-[19rem] card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col">
+  <!-- 桌面端与离子图按 5:2 分高、硬底线 240px；移动端自然高 -->
+  <div class="shrink-0 lg:h-auto lg:flex-[2] lg:min-h-[240px] card bg-base-100 border-2 border-base-content/30 p-4 flex flex-col">
     <div
       v-if="isStale"
       class="flex-1 flex items-center justify-center text-base-content/40 text-xl"

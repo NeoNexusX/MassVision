@@ -26,7 +26,7 @@ import {
 import type { KmeansCluster } from '@/features/workspace/results/composables/useOverlayData'
 import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
 import { hexToRgb, rgbCss, type RGB } from '@/features/workspace/results/utils/regionPalette'
-import type { DataMode } from '@/services/zarrOssStore'
+import type { DataMode } from '@/services/zarr/types/zarr'
 
 // ---------- types ----------
 
