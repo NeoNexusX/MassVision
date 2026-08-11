@@ -20,6 +20,7 @@ import {
 import {
   parseAnnotationCsv,
   matchAnnotations,
+  buildAnnotationExportCsv,
   CsvParseError,
   type AnnotationRow,
   type MatchedAnnotationRow,
@@ -77,7 +78,7 @@ export function useAnnotationMatch(
 
   // ---- table controls ----
   const search = ref('')
-  const filter = ref<AnnotationFilter>('all')
+  const filter = ref<AnnotationFilter>('matched')
   const sortKey = ref<AnnotationSortKey>('massError')
   const sortDir = ref<SortDir>('asc')
 
@@ -187,6 +188,36 @@ export function useAnnotationMatch(
     }
   }
 
+  /**
+   * Download the currently matched rows as a CSV (name + exp. m/z + matched
+   * m/z + mass difference + intensity). Rows follow the current sort order;
+   * search text and the matched/unmatched filter chips do not narrow the
+   * export - everything that matched goes out.
+   */
+  function exportMatchedCsv(): void {
+    const rows = sortRows(
+      matchedRows.value.filter((r) => r.matchStatus === 'matched'),
+      sortKey.value,
+      sortDir.value,
+    )
+    if (!rows.length) {
+      showToast('No matched annotations to export.', 'info')
+      return
+    }
+    const csv = '﻿' + buildAnnotationExportCsv(rows, tolMode.value)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const base = (fileName.value ?? 'annotations').replace(/\.csv$/i, '')
+    link.href = url
+    link.download = `${base}_matched_mz.csv`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    showToast(`Exported ${rows.length} matched annotations.`, 'success')
+  }
+
   return {
     // data
     importedRows,
@@ -209,6 +240,7 @@ export function useAnnotationMatch(
     clear,
     selectRow,
     toggleSort,
+    exportMatchedCsv,
   }
 }
 

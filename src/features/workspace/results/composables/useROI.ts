@@ -176,6 +176,53 @@ export function useROI(
     confirmedROIs.value = confirmedROIs.value.filter((r) => r.id !== id)
   }
 
+  /**
+   * Register an externally-computed raster mask (e.g. imported reference
+   * regions from a pathology annotation) as a confirmed ROI. The mask is
+   * clipped to the image grid; a provided color does not consume the
+   * shared palette. Stats are computed against the current ion matrix
+   * when available.
+   */
+  function addRoiFromMask(
+    mask: boolean[][],
+    label: string,
+    color?: string,
+    matrix?: Float32Array | null,
+  ): ConfirmedROI | null {
+    const w = imageWidth.value
+    const h = imageHeight.value
+    if (!w || !h) return null
+
+    let pixelCount = 0
+    const clipped: boolean[][] = []
+    for (let r = 0; r < h; r++) {
+      const row = new Array<boolean>(w).fill(false)
+      const src = mask[r]
+      if (src) {
+        for (let c = 0; c < w && c < src.length; c++) {
+          if (src[c]) {
+            row[c] = true
+            pixelCount++
+          }
+        }
+      }
+      clipped.push(row)
+    }
+    if (pixelCount === 0) return null
+
+    const roi: ConfirmedROI = markRaw({
+      id: `roi-${nextId++}`,
+      type: 'freehand',
+      label,
+      color: color ?? rgbCss(roiColorAt(nextColorIdx++)),
+      mask: clipped,
+      stats: matrix ? computeStats(matrix, w, h, clipped) : null,
+      spectrum: null,
+    })
+    confirmedROIs.value = [...confirmedROIs.value, roi]
+    return roi
+  }
+
   function clearAllROIs() {
     confirmedROIs.value = []
     clearDraft()
@@ -193,5 +240,6 @@ export function useROI(
     clearAllROIs,
     generateMask,
     computeStats,
+    addRoiFromMask,
   }
 }

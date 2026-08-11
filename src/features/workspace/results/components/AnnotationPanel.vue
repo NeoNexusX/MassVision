@@ -16,11 +16,13 @@
  * button live in the hover card so the table never needs horizontal scroll.
  * Sorting is driven from a "Sort by" control in the toolbar, not the headers.
  */
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import { useAnnotationMatch, type AnnotationSortKey } from '@/features/workspace/results/composables/useAnnotationMatch'
 import { formatMassError, formatIntensity, type MatchedAnnotationRow } from '@/features/workspace/results/utils/csvAnnotation'
 import PubChemDialog from '@/features/workspace/results/components/PubChemDialog.vue'
+import { scrollIntoContainer } from '@/features/workspace/results/utils/scrollIntoContainer'
+import { useToast } from '@/shared/composables/useToast'
 
 const props = defineProps<{
   /** Panel expanded state (v-model:expanded). */
@@ -53,6 +55,7 @@ const {
   importFile,
   clear,
   selectRow,
+  exportMatchedCsv,
 } = useAnnotationMatch((idx) => props.selectMzIndex(idx))
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -72,7 +75,6 @@ function collapse() {
 }
 
 const hasData = computed(() => importedRows.value.length > 0)
-const isAnnotationAvailable = computed(() => props.spectrumMode === 'centroid' && spectrumAvailable.value)
 
 function isActive(row: { matchedIndex: number | null }): boolean {
   return row.matchedIndex != null && row.matchedIndex === props.selectedMzIndex
@@ -98,7 +100,7 @@ const tolStep = computed(() => (tolMode.value === 'ppm' ? 0.5 : 0.001))
 
 const SORT_OPTIONS: { value: AnnotationSortKey; label: string }[] = [
   { value: 'name', label: 'Name' },
-  { value: 'expMz', label: 'Exp. m/z' },
+  { value: 'expMz', label: 'Tar. m/z' },
   { value: 'massError', label: 'Mass Difference' },
   { value: 'avgIntensity', label: 'Intensity' },
 ]
@@ -110,6 +112,52 @@ function onSortKeyChange(e: Event) {
 
 function toggleSortDir() {
   sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+}
+
+// ---- Drag & drop CSV import ----
+// The whole expanded panel is a drop target. dragenter/dragleave fire once per
+// child element, so we track nesting depth instead of toggling on each event -
+// otherwise the overlay would flicker when moving across rows.
+const { showToast } = useToast()
+const dragActive = ref(false)
+let dragDepth = 0
+
+function hasFilePayload(e: DragEvent): boolean {
+  return Array.from(e.dataTransfer?.types ?? []).includes('Files')
+}
+
+function onDragEnter(e: DragEvent) {
+  if (!hasFilePayload(e)) return
+  e.preventDefault()
+  dragDepth++
+  dragActive.value = true
+}
+
+function onDragOver(e: DragEvent) {
+  if (!hasFilePayload(e)) return
+  e.preventDefault() // required, otherwise the browser blocks the drop
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+}
+
+function onDragLeave(e: DragEvent) {
+  if (!hasFilePayload(e)) return
+  dragDepth = Math.max(0, dragDepth - 1)
+  if (dragDepth === 0) dragActive.value = false
+}
+
+async function onDrop(e: DragEvent) {
+  if (!hasFilePayload(e)) return
+  e.preventDefault()
+  dragDepth = 0
+  dragActive.value = false
+  const file = Array.from(e.dataTransfer?.files ?? []).find(
+    (f) => f.name.toLowerCase().endsWith('.csv') || f.type === 'text/csv',
+  )
+  if (file) {
+    await importFile(file)
+  } else {
+    showToast('Please drop a .csv annotation file.', 'error')
+  }
 }
 
 // ---- Copyable candidates tooltip ----
@@ -126,7 +174,7 @@ const TOOLTIP_W = 280
 const TOOLTIP_H = 320
 const GAP = 8
 
-function onNameEnter(row: MatchedAnnotationRow, e: MouseEvent) {
+function onCellEnter(row: MatchedAnnotationRow, e: MouseEvent) {
   if (tooltipTimer) { clearTimeout(tooltipTimer); tooltipTimer = 0 }
   tooltipRow.value = row
   const cell = e.currentTarget as HTMLElement
@@ -155,7 +203,7 @@ function onNameEnter(row: MatchedAnnotationRow, e: MouseEvent) {
   tooltipY.value = Math.max(GAP, Math.min(rect.top, window.innerHeight - TOOLTIP_H - GAP))
 }
 
-function onNameLeave() {
+function onCellLeave() {
   tooltipTimer = window.setTimeout(() => {
     tooltipRow.value = null
   }, 250)
@@ -181,6 +229,27 @@ function searchPubChem(name: string) {
 function copyName(name: string) {
   navigator.clipboard?.writeText(name).catch(() => {})
 }
+
+// ---- Cross-table sync: scroll to the row matching the externally selected m/z ----
+// Both this table and ComparisonResultsTable share `selectedMzIndex` (the
+// average-spectrum axis index). When a row is clicked in either table, the
+// other should scroll its matching row into view so the linkage is visible.
+// If the target row is filtered out by the current search/filter, we respect
+// the user's view and do nothing (no scroll, no highlight).
+const tableBodyRef = ref<HTMLElement | null>(null)
+const tableScrollRef = ref<HTMLElement | null>(null)
+
+watch(
+  () => props.selectedMzIndex,
+  async (idx) => {
+    if (idx == null || idx < 0) return
+    const target = filteredRows.value.find((r) => r.matchedIndex === idx)
+    if (!target) return
+    await nextTick()
+    const tr = tableBodyRef.value?.querySelector<HTMLElement>(`tr[data-mz-index="${idx}"]`)
+    if (tr && tableScrollRef.value) scrollIntoContainer(tr, tableScrollRef.value, 'center')
+  },
+)
 </script>
 
 <template>
@@ -211,18 +280,35 @@ function copyName(name: string) {
       @click="expand"
     >
       <SvgIcon type="chevron_right" class="w-5 h-5 text-base-content/70" />
-      <span class="[writing-mode:vertical-rl] text-sm text-base-content/70 font-medium tracking-wide">Annotations</span>
+      <span class="[writing-mode:vertical-rl] text-base text-base-content/70 font-medium tracking-wide">Annotations</span>
     </div>
 
-    <!-- Expanded content -->
-    <div v-show="expanded" class="flex flex-col h-full min-h-0 p-3 gap-2">
+    <!-- Expanded content (also a CSV drop target) -->
+    <div
+      v-show="expanded"
+      class="relative flex flex-col h-full min-h-0 p-3 gap-2"
+      @dragenter="onDragEnter"
+      @dragover="onDragOver"
+      @dragleave="onDragLeave"
+      @drop="onDrop"
+    >
       <!-- Header -->
       <div class="flex items-center justify-between gap-2 shrink-0">
         <div class="min-w-0">
-          <h3 class="text-lg font-semibold text-base-content leading-tight">Annotations</h3>
-          <p v-if="fileName" class="text-sm text-base-content/50 truncate" :title="fileName">{{ fileName }}</p>
+          <h3 class="text-xl font-semibold text-base-content leading-tight">Annotations</h3>
+          <p v-if="fileName" class="text-base text-base-content/50 truncate" :title="fileName">{{ fileName }}</p>
         </div>
         <div class="flex items-center gap-1 shrink-0">
+          <button
+            v-if="hasData"
+            class="btn btn-ghost btn-xs btn-square"
+            :class="{ 'btn-disabled opacity-40': !counts.matched }"
+            title="Export matched annotations (name, tar. m/z, matched m/z, mass difference) as CSV"
+            :disabled="!counts.matched"
+            @click="exportMatchedCsv"
+          >
+            <SvgIcon type="download" class="w-4 h-4" />
+          </button>
           <button
             v-if="hasData"
             class="btn btn-ghost btn-xs btn-square"
@@ -247,37 +333,38 @@ function copyName(name: string) {
           @change="onFileChange"
         />
         <button
-          class="btn btn-sm btn-primary w-full gap-2"
+          class="btn btn-sm btn-primary w-full gap-2 text-base"
           @click="fileInput?.click()"
         >
           <SvgIcon type="upload" class="w-4 h-4" />
           Import CSV
         </button>
+        <p class="text-center text-base text-base-content/40">or drag &amp; drop a CSV anywhere on this panel</p>
 
-        <div v-if="!isAnnotationAvailable" class="text-sm text-warning flex items-start gap-1.5">
+        <div v-if="spectrumMode !== 'centroid'" class="text-base text-warning flex items-start gap-1.5">
           <SvgIcon type="warning" class="w-4 h-4 shrink-0 mt-0.5" />
           <span>Annotation is only available for continuous centroid data.</span>
         </div>
-        <div v-else-if="!spectrumAvailable" class="text-sm text-warning flex items-start gap-1.5">
+        <div v-else-if="!spectrumAvailable" class="text-base text-warning flex items-start gap-1.5">
           <SvgIcon type="warning" class="w-4 h-4 shrink-0 mt-0.5" />
-          <span>Average spectrum not loaded - m/z matching unavailable for this result.</span>
+          <span>Average spectrum not loaded - <i>m/z</i> matching unavailable for this result.</span>
         </div>
-        <div v-if="parseError" class="text-sm text-error flex items-start gap-1.5">
+        <div v-if="parseError" class="text-base text-error flex items-start gap-1.5">
           <SvgIcon type="error" class="w-4 h-4 shrink-0 mt-0.5" />
           <span>{{ parseError }}</span>
         </div>
 
         <!-- Tolerance controls -->
         <div class="flex items-center gap-2">
-          <span class="text-sm text-base-content/60 shrink-0">Tolerance</span>
+          <span class="text-base text-base-content/60 shrink-0">Tolerance</span>
           <input
             v-model.number="tolValue"
             type="number"
             min="0"
             :step="tolStep"
-            class="input input-bordered input-sm w-20"
+            class="input input-bordered input-sm w-20 text-base"
           />
-          <select v-model="tolMode" class="select select-bordered select-sm ml-auto">
+          <select v-model="tolMode" class="select select-bordered select-sm ml-auto text-base">
             <option value="ppm">ppm</option>
             <option value="Da">Da</option>
           </select>
@@ -285,10 +372,10 @@ function copyName(name: string) {
 
         <!-- Sort by -->
         <div class="flex items-center gap-2">
-          <span class="text-sm text-base-content/60 shrink-0">Sort by</span>
+          <span class="text-base text-base-content/60 shrink-0">Sort by</span>
           <select
             :value="sortKey"
-            class="select select-bordered select-sm flex-1"
+            class="select select-bordered select-sm flex-1 text-base"
             @change="onSortKeyChange"
           >
             <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
@@ -298,7 +385,7 @@ function copyName(name: string) {
             :title="sortDir === 'asc' ? 'Ascending (click for descending)' : 'Descending (click for ascending)'"
             @click="toggleSortDir"
           >
-            <span class="text-xs">{{ sortDir === 'asc' ? '&#9650;' : '&#9660;' }}</span>
+            <SvgIcon :type="sortDir === 'asc' ? 'chevron_up' : 'chevron_down'" class="w-4 h-4" />
           </button>
         </div>
 
@@ -312,29 +399,29 @@ function copyName(name: string) {
             v-model="search"
             type="text"
             placeholder="Search name / formula / m/z"
-            class="input input-bordered input-sm w-full pl-8"
+            class="input input-bordered input-sm w-full pl-8 text-base"
           />
         </div>
       </div>
 
       <!-- Counts + filter chips -->
-      <div v-if="hasData" class="flex items-center gap-1.5 flex-wrap shrink-0">
+      <div v-if="hasData" class="flex items-center justify-center gap-1.5 flex-wrap shrink-0">
         <button
-          class="badge badge-sm cursor-pointer transition-colors"
+          class="badge badge-sm text-sm cursor-pointer transition-colors"
           :class="filter === 'all' ? 'badge-primary' : 'badge-ghost'"
           @click="filter = 'all'"
         >
           All {{ counts.total }}
         </button>
         <button
-          class="badge badge-sm cursor-pointer transition-colors"
+          class="badge badge-sm text-sm cursor-pointer transition-colors"
           :class="filter === 'matched' ? 'badge-success badge-outline' : 'badge-ghost'"
           @click="filter = 'matched'"
         >
           Matched {{ counts.matched }}
         </button>
         <button
-          class="badge badge-sm cursor-pointer transition-colors"
+          class="badge badge-sm text-sm cursor-pointer transition-colors"
           :class="filter === 'unmatched' ? 'badge-warning badge-outline' : 'badge-ghost'"
           @click="filter = 'unmatched'"
         >
@@ -345,41 +432,47 @@ function copyName(name: string) {
       <!-- Table: only Annotation + Exp. m/z (details on hover card) -->
       <div
         v-if="hasData"
+        ref="tableScrollRef"
         class="flex-1 min-h-0 overflow-auto rounded-lg border border-base-300 bg-base-100"
       >
         <table class="table table-sm">
           <thead class="sticky top-0 z-10 bg-base-200 text-base-content/70">
             <tr>
               <th>Annotation</th>
-              <th class="text-right" title="Experimental m/z from the CSV">Exp. m/z</th>
+              <th class="text-right" title="Target m/z from the CSV">Tar. <i>m/z</i></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody ref="tableBodyRef">
             <tr
               v-for="row in filteredRows"
               :key="row.id"
+              :data-mz-index="row.matchedIndex ?? undefined"
               :class="rowClass(row)"
               @click="selectRow(row)"
             >
               <td
                 class="min-w-0 max-w-[200px]"
-                @mouseenter="onNameEnter(row, $event)"
-                @mouseleave="onNameLeave"
+                @mouseenter="onCellEnter(row, $event)"
+                @mouseleave="onCellLeave"
               >
-                <div class="font-medium text-sm text-base-content truncate">{{ row.name }}</div>
-                <div class="text-xs text-base-content/50 truncate">
+                <div class="font-medium text-base text-base-content truncate">{{ row.name }}</div>
+                <div class="text-base text-base-content/50 truncate">
                   <span v-if="row.formulaIon" class="font-mono">{{ row.formulaIon }}</span>
                   <span v-if="row.ionType" class="text-base-content/40"> &#183; {{ row.ionType }}</span>
                   <span v-if="row.candidates.length > 1" class="text-primary/50"> &#183; +{{ row.candidates.length - 1 }}</span>
                 </div>
               </td>
-              <td class="text-right font-mono whitespace-nowrap text-sm">
+              <td
+                class="text-right font-mono whitespace-nowrap text-base"
+                @mouseenter="onCellEnter(row, $event)"
+                @mouseleave="onCellLeave"
+              >
                 {{ row.valid ? row.expMz.toFixed(4) : '-' }}
               </td>
             </tr>
           </tbody>
         </table>
-        <div v-if="!filteredRows.length" class="p-4 text-center text-sm text-base-content/50">
+        <div v-if="!filteredRows.length" class="p-4 text-center text-base text-base-content/50">
           No rows match the current filter / search.
         </div>
       </div>
@@ -390,11 +483,23 @@ function copyName(name: string) {
         class="flex-1 min-h-0 flex flex-col items-center justify-center gap-2 text-center px-4"
       >
         <SvgIcon type="upload" class="w-8 h-8 text-base-content/30" />
-        <p class="text-base text-base-content/60">Import an annotation CSV to match against the average spectrum.</p>
-        <p class="text-sm text-base-content/40">
-          Columns: <span class="font-mono">Exp. m/z</span>, <span class="font-mono">Candidate_1..5</span>,
+        <p class="text-lg text-base-content/60">Import an annotation CSV to match against the average spectrum.</p>
+        <p class="text-base text-base-content/40">You can also drag &amp; drop the file anywhere on this panel.</p>
+        <p class="text-base text-base-content/40">
+          Columns: <span class="font-mono">Tar. <i>m/z</i></span>, <span class="font-mono">Candidate_1..5</span>,
           <span class="font-mono">formula_ion</span>, <span class="font-mono">Ion type</span>
         </p>
+      </div>
+
+      <!-- Drop overlay: visible while a file is dragged over the panel.
+           pointer-events-none so dragleave isn't re-triggered by the overlay itself. -->
+      <div
+        v-if="dragActive"
+        class="absolute inset-0 z-20 pointer-events-none flex flex-col items-center justify-center gap-2
+               rounded-lg border-2 border-dashed border-primary bg-primary/15"
+      >
+        <SvgIcon type="upload" class="w-8 h-8 text-primary" />
+        <p class="text-lg font-medium text-primary">Drop CSV to import annotations</p>
       </div>
     </div>
   </aside>
@@ -403,7 +508,7 @@ function copyName(name: string) {
        Fixed so not clipped by table overflow; placed to the right of the panel. -->
   <div
     v-if="tooltipRow"
-    class="fixed z-[60] overflow-auto rounded-lg border border-base-300 bg-base-100 shadow-xl p-3 text-sm select-text"
+    class="fixed z-[60] overflow-auto rounded-lg border border-base-300 bg-base-100 shadow-xl p-3 text-base select-text"
     :style="{
       left: tooltipX + 'px',
       top: tooltipY + 'px',
@@ -417,7 +522,7 @@ function copyName(name: string) {
     <div class="flex items-start justify-between gap-2 mb-1">
       <div class="min-w-0 flex-1">
         <div class="font-semibold text-base-content break-words">{{ tooltipRow.name }}</div>
-        <div v-if="tooltipRow.formulaIon" class="text-xs font-mono text-base-content/60">
+        <div v-if="tooltipRow.formulaIon" class="text-base font-mono text-base-content/60">
           {{ tooltipRow.formulaIon }}
           <span v-if="tooltipRow.ionType"> &#183; {{ tooltipRow.ionType }}</span>
         </div>
@@ -430,7 +535,7 @@ function copyName(name: string) {
         </button>
       </div>
       <button
-        class="btn btn-xs btn-outline btn-primary gap-1 shrink-0"
+        class="btn btn-sm btn-outline btn-primary gap-1 shrink-0 text-base"
         title="Search PubChem"
         @click.stop="searchPubChem(tooltipRow.name)"
       >
@@ -442,7 +547,7 @@ function copyName(name: string) {
     <!-- Detail fields moved from the table -->
     <div class="border-t border-base-content/15 pt-1.5 mt-1.5 space-y-1">
       <div class="flex items-center justify-between">
-        <span class="text-base-content/50">Matched m/z</span>
+        <span class="text-base-content/50">Matched <i>m/z</i></span>
         <span class="flex items-center gap-1.5">
           <span
             class="inline-block w-2 h-2 rounded-full"
@@ -466,14 +571,14 @@ function copyName(name: string) {
 
     <!-- Candidates list with per-candidate PubChem lookup -->
     <div v-if="tooltipRow.candidates.length" class="border-t border-base-content/15 pt-1.5 mt-1.5">
-      <div class="text-xs text-base-content/50 mb-1">
+      <div class="text-base text-base-content/50 mb-1">
         Candidates ({{ tooltipRow.candidates.length }})
       </div>
       <ul class="space-y-0.5">
         <li
           v-for="(c, i) in tooltipRow.candidates"
           :key="i"
-          class="text-sm text-base-content flex items-center justify-between gap-1 group"
+          class="text-base text-base-content flex items-center justify-between gap-1 group"
         >
           <span class="truncate select-text">{{ c }}</span>
           <button

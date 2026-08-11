@@ -3,10 +3,10 @@
     <!-- 标题区 -->
     <div class="flex items-center gap-3 mb-3">
       <div>
-        <h3 class="text-lg font-semibold">{{ title }}</h3>
-        <p class="text-sm text-base-content/50">{{ description }}</p>
+        <h3 class="text-xl font-semibold">{{ title }}</h3>
+        <p class="text-base text-base-content/50">{{ description }}</p>
       </div>
-      <div v-if="!loading && !error && showPeakCount" class="ml-auto text-base text-base-content/50 font-mono">
+      <div v-if="!loading && !error && showPeakCount" class="ml-auto text-lg text-base-content/50 font-mono">
         {{ peakCountLabel }}
       </div>
     </div>
@@ -17,7 +17,7 @@
       class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-300"
     >
       <span class="loading loading-spinner loading-lg text-primary"></span>
-      <p class="text-lg text-base-content/60">{{ loadingText }}</p>
+      <p class="text-xl text-base-content/60">{{ loadingText }}</p>
     </div>
 
     <!-- 错误 -->
@@ -25,10 +25,10 @@
       v-else-if="error"
       class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-300"
     >
-      <div class="text-error text-4xl">!</div>
-      <p class="text-lg text-error font-semibold">Failed to load data</p>
-      <p class="text-base text-base-content/50 max-w-md text-center">{{ error }}</p>
-      <button class="btn btn-sm btn-outline mt-2" @click="$emit('retry')">Retry</button>
+      <SvgIcon type="warning" class="w-8 h-8 text-error" />
+      <p class="text-xl text-error font-semibold">Failed to load data</p>
+      <p class="text-lg text-base-content/50 max-w-md text-center">{{ error }}</p>
+      <button class="btn btn-sm btn-outline mt-2 text-base" @click="$emit('retry')">Retry</button>
     </div>
 
     <!-- 谱图 -->
@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import SvgIcon from '@/shared/components/SvgIcon.vue'
 import * as echarts from 'echarts/core'
 import { LineChart, BarChart } from 'echarts/charts'
 import {
@@ -96,12 +97,7 @@ const emit = defineEmits<{
 const chartContainerRef = ref<HTMLDivElement | null>(null)
 
 /** 谱图标题 */
-const title = computed(() => {
-  if (props.dataMode === 'processed' && props.pixelInfo) {
-    return `Spectrum — Pixel (${props.pixelInfo.x}, ${props.pixelInfo.y})`
-  }
-  return props.dataMode === 'processed' ? 'Spectrum' : 'Average Spectrum'
-})
+const title = 'Spectrum View'
 
 /** 描述文本 */
 const description = computed(() => {
@@ -175,7 +171,7 @@ function buildSelectorGraphic(): unknown[] {
       style: {
         text: label,
         fill: '#ef4444',
-        font: '12px monospace',
+        font: '16px monospace',
         textAlign: 'left',
         textVerticalAlign: 'bottom',
       },
@@ -260,8 +256,8 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
         const items = params as Array<{ data: ChartPoint; dataIndex: number }>
         if (!items?.length) return ''
         const [mz, intensity] = items[0]!.data
-        return `<div class="font-mono text-xs">
-            <div>m/z: <strong>${mz}</strong></div>
+        return `<div class="font-mono text-base">
+            <div><i>m/z</i>: <strong>${mz}</strong></div>
             <div>Intensity: <strong>${intensity}</strong></div>
           </div>`
       },
@@ -282,7 +278,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
       nameGap: 28,
       axisLabel: {},
       axisPointer: { label: { show: false } },
-      nameTextStyle: { fontSize: 15, color: '#6b7280' },
+      nameTextStyle: { fontStyle: 'italic', fontSize: 18, color: '#6b7280' },
       axisLine: { lineStyle: { color: '#9ca3af' } },
       axisTick: { lineStyle: { color: '#9ca3af' } },
       splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } },
@@ -292,7 +288,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
       name: 'Intensity',
       nameLocation: 'center',
       nameGap: 48,
-      nameTextStyle: { fontSize: 17, color: '#6b7280' },
+      nameTextStyle: { fontSize: 20, color: '#6b7280' },
       axisLine: { lineStyle: { color: '#9ca3af' } },
       axisTick: { lineStyle: { color: '#9ca3af' } },
       splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } },
@@ -303,7 +299,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
         type: 'slider', xAxisIndex: 0, start: 0, end: 100,
         height: 24, bottom: 8,
         borderColor: '#d1d5db', fillerColor: 'rgba(59, 130, 246, 0.12)',
-        handleStyle: { color: '#3b82f6' }, textStyle: { fontSize: 13 },
+        handleStyle: { color: '#3b82f6' }, textStyle: { fontSize: 16 },
       },
     ],
     series: [

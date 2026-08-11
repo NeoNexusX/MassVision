@@ -1,63 +1,63 @@
 <template>
   <div class="flex flex-wrap items-center gap-3 mb-3 pt-1">
     <div>
-      <h3 class="text-lg font-semibold">{{ title }}</h3>
+      <h3 class="text-xl font-semibold">{{ title }}</h3>
     </div>
     <div class="ml-auto flex flex-wrap items-center gap-2">
       <!-- m/z 显示（continuous 模式） -->
       <div
         v-if="dataMode === 'continuous'"
-        class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-base h-8 flex items-center"
+        class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-lg h-8 flex items-center"
       >
-        <span class="text-base-content/50">m/z&nbsp;</span>
+        <span class="text-base-content/50"><i>m/z</i>&nbsp;</span>
         <span class="font-mono font-semibold">{{ selectedMz.toFixed(4) }}</span>
       </div>
       <!-- 像素坐标显示（processed 模式） -->
       <div
         v-if="dataMode === 'processed' && pixelCoord"
-        class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-base h-8 flex items-center"
+        class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-lg h-8 flex items-center"
       >
         <span class="text-base-content/50">Pixel&nbsp;</span>
         <span class="font-mono font-semibold">({{ pixelCoord.x }}, {{ pixelCoord.y }})</span>
       </div>
       <!-- m/z 容差（仅 continuous 模式） -->
-      <div v-if="dataMode === 'continuous'" class="flex items-center gap-1 text-base">
+      <div v-if="dataMode === 'continuous'" class="flex items-center gap-1 text-lg">
         <span class="text-base-content/50">Tolerance &plusmn;</span>
         <input
-          type="number"
-          class="input input-sm input-bordered w-20 font-mono text-base"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          spellcheck="false"
+          class="input input-sm input-bordered w-20 font-mono text-lg"
           :value="mzTolerance"
-          step="any"
-          :min="ZARR_STORE.minMzTolerance"
-          :max="ZARR_STORE.maxMzTolerance"
           @input="onToleranceInput"
+          @blur="onToleranceBlur"
         />
       </div>
       <!-- Colormap（两种模式都可用） -->
       <select
         data-testid="colormap-select"
-        class="select select-sm select-bordered w-28 text-base"
+        class="select select-sm select-bordered w-28 text-lg"
         :value="colormap"
         @change="$emit('update:colormap', ($event.target as HTMLSelectElement).value)"
       >
         <option value="viridis">Viridis</option>
         <option value="inferno">Inferno</option>
-        <option value="plasma">Plasma</option>
+        <option value="magma">Magma</option>
+        <option value="hot">Hot</option>
         <option value="gray">Gray</option>
       </select>
       <!-- 强度标度 -->
       <select
-        class="select select-sm select-bordered w-28 text-base"
+        class="select select-sm select-bordered w-36 text-lg"
         :value="intensityScale"
         @change="$emit('update:intensityScale', ($event.target as HTMLSelectElement).value)"
       >
         <option value="linear">Linear</option>
-        <option v-if="dataMode !== 'processed'" value="rms">RMS</option>
-        <option v-if="dataMode !== 'processed'" value="tic">TIC</option>
         <option value="log">Log</option>
       </select>
-      <button class="btn btn-sm btn-ghost text-base" @click="$emit('reset')">Reset</button>
-      <button class="btn btn-sm btn-ghost text-base gap-1" title="Export current view as PNG" @click="$emit('download')">
+      <button class="btn btn-sm btn-ghost text-lg" @click="$emit('reset')">Reset</button>
+      <button class="btn btn-sm btn-ghost text-lg gap-1" title="Export current view as PNG" @click="$emit('download')">
         <SvgIcon type="download" class="w-4 h-4" />
         PNG
       </button>
@@ -91,12 +91,27 @@ const emit = defineEmits<{
   (e: 'download'): void
 }>()
 
-/** 容差输入钳位到 [min, max]；空输入/NaN 时回退到下限，避免触发 NaN 加载 */
+/**
+ * 容差输入钳位到 [min, max]。
+ * 注意 Number('') === 0（不是 NaN），若直接 clamp 会把清空输入误判为 0 而跳到 min；
+ * 因此非正数（空、'0'、'0.'、负数、NaN）一律不 emit，保持上一次有效值，
+ * 避免输入过程中触发不必要的图像重载。
+ */
 function onToleranceInput(e: Event) {
   const raw = Number((e.target as HTMLInputElement).value)
-  const v = Number.isNaN(raw)
-    ? ZARR_STORE.minMzTolerance
-    : Math.min(ZARR_STORE.maxMzTolerance, Math.max(ZARR_STORE.minMzTolerance, raw))
+  if (!(raw > 0)) return
+  const v = Math.min(ZARR_STORE.maxMzTolerance, Math.max(ZARR_STORE.minMzTolerance, raw))
+  emit('update:mzTolerance', v)
+}
+
+/** 失焦时校验：清空/非法输入回退到默认容差（0.05），合法值则钳位后同步显示 */
+function onToleranceBlur(e: Event) {
+  const el = e.target as HTMLInputElement
+  const raw = Number(el.value)
+  const v = raw > 0
+    ? Math.min(ZARR_STORE.maxMzTolerance, Math.max(ZARR_STORE.minMzTolerance, raw))
+    : ZARR_STORE.defaultMzTolerance
+  el.value = String(v)
   emit('update:mzTolerance', v)
 }
 </script>

@@ -42,23 +42,49 @@ export interface ClusteringImage {
   channels: number
 }
 
+/**
+ * Client-based byte source for non-OSS backends (e.g. a local/static zarr
+ * served over HTTP — see localZarrClient.ts). `folderPath` is the key prefix
+ * prepended to every path; pass '' (or omit) when the client is already
+ * rooted at the parent of the zarr root.
+ */
+export interface ClusteringClientSource {
+  client: OssClient
+  folderPath?: string
+}
+
+export interface ClusteringStoreOptions {
+  /**
+   * Subdirectory (relative to folderPath) holding the actual zarr root.
+   * OSS layout: the backend's folder_path points one level above a
+   * "umap_kmeans_result.zarr/" subdir. v1.1 local datasets embed the UMAP
+   * group inside the main zarr at "analysis/umap".
+   */
+  zarrRoot?: string
+  /** Expected root `format` attribute; pass false to skip the check. */
+  expectFormat?: string | false
+}
+
 export class ClusteringZarrStore {
-  private access: ZarrAccessResponse
   private oss: OssClient
+  private folderPath: string
+  private readonly zarrRoot: string
+  private readonly expectFormat: string | false
   private _disposed = false
 
-  /**
-   * The backend exposes the clustering zarr one level up from the actual
-   * zarr group: folder_path = "processed/run_XXX_clustering.zarr/", but the
-   * zarr root (zarr.json + umap_image/) lives inside a
-   * "umap_kmeans_result.zarr/" subdirectory of that. Prepend it to every
-   * relative path so callers can use array names ("umap_image") directly.
-   */
-  private readonly zarrRoot = 'umap_kmeans_result.zarr'
-
-  constructor(access: ZarrAccessResponse) {
-    this.access = access
-    this.oss = createOssClient(access)
+  constructor(
+    source: ZarrAccessResponse | ClusteringClientSource,
+    options: ClusteringStoreOptions = {},
+  ) {
+    if ('client' in source) {
+      this.oss = source.client
+      this.folderPath = source.folderPath ?? ''
+    } else {
+      this.oss = createOssClient(source)
+      this.folderPath = source.folder_path
+    }
+    this.zarrRoot = options.zarrRoot ?? 'umap_kmeans_result.zarr'
+    this.expectFormat = options.expectFormat ?? 'massflow_feature_analysis'
   }
 
   dispose(): void {
@@ -75,11 +101,13 @@ export class ClusteringZarrStore {
         `[ClusteringZarrStore] unsupported root zarr format/node_type: ${root.zarr_format}/${root.node_type}`,
       )
     }
-    const attrs = root.attributes as unknown as ClusteringRootAttrs | undefined
-    if (attrs?.format !== 'massflow_feature_analysis') {
-      throw new Error(
-        `[ClusteringZarrStore] unsupported format: ${attrs?.format ?? '(missing)'}, expected massflow_feature_analysis`,
-      )
+    if (this.expectFormat !== false) {
+      const attrs = root.attributes as unknown as ClusteringRootAttrs | undefined
+      if (attrs?.format !== this.expectFormat) {
+        throw new Error(
+          `[ClusteringZarrStore] unsupported format: ${attrs?.format ?? '(missing)'}, expected ${this.expectFormat}`,
+        )
+      }
     }
   }
 
@@ -128,11 +156,12 @@ export class ClusteringZarrStore {
   }
 
   private key(relativePath: string): string {
-    // The actual zarr group sits inside an "umap_kmeans_result.zarr/"
-    // subdirectory of the folder_path the backend returns. Prepend it once
-    // here so the rest of the store uses plain array names.
-    const root = this.access.folder_path
+    // The actual zarr group sits inside a subdirectory (zarrRoot) of the
+    // folderPath. Prepend both once here so the rest of the store uses
+    // plain array names.
+    const root = this.folderPath
     const rel = `${this.zarrRoot}/${relativePath.replace(/^\/+/, '')}`
+    if (!root) return rel
     return root.endsWith('/') ? `${root}${rel}` : `${root}/${rel}`
   }
 

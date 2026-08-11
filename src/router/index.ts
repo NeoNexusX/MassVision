@@ -69,6 +69,21 @@ const routes = [
     component: () => import('../views/workspace/ResultDetail.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    // 本地 zarr 预览页：读取 public/ 下的静态 zarr（v1.1 布局），
+    // 与云端结果页共用同一视图（localPath prop 切换数据源）。
+    // 默认 /combin.zarr，可用 ?path=/xxx.zarr 覆盖。
+    path: '/workspace/local-result',
+    name: 'WorkspaceLocalResult',
+    component: () => import('../views/workspace/ResultDetail.vue'),
+    props: (route: RouteLocationNormalized) => ({
+      localPath:
+        typeof route.query.path === 'string' && route.query.path
+          ? route.query.path
+          : `${import.meta.env.BASE_URL}combin.zarr`.replace(/\/+/g, '/'),
+    }),
+    meta: { requiresAuth: true },
+  },
   // 裸 /docs 转发后由 nginx 的 `location = /docs` 301 补斜杠，这里无需特殊处理。
   {
     path: '/docs/:pathMatch(.*)*',

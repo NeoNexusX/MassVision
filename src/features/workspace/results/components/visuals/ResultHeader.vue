@@ -1,9 +1,9 @@
 <template>
   <div class="flex items-center gap-3">
-    <h1 class="text-2xl font-bold">{{ datasetName }}</h1>
+    <h1 class="text-xl font-bold">{{ datasetName }}</h1>
     <span
       v-if="status"
-      class="px-3 py-1 rounded-full text-sm font-semibold"
+      class="px-3 py-1 rounded-full text-base font-semibold"
       :class="statusClass"
     >{{ status }}</span>
   </div>

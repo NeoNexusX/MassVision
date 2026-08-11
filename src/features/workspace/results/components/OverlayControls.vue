@@ -38,6 +38,8 @@ const props = defineProps<{
   viewingRoi: boolean
   confirmedRois: any[]
   gamma: number
+  /** Local dataset: UMAP ships inside the zarr - buttons work directly, no enable gate. */
+  local?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -64,13 +66,17 @@ const emit = defineEmits<{
   (e: 'roi-delete', id: string): void
   (e: 'roi-clear-all'): void
   (e: 'roi-reset'): void
+  /** Local datasets: import pre-computed reference ROIs (pathology regions). */
+  (e: 'import-reference-rois'): void
   (e: 'update:gamma', value: number): void
 }>()
 
 // UMAP/KMeans overlays are opt-in: buttons stay grayed out until the user
 // flips this switch. First-time enabling asks for confirmation (it starts a
 // backend clustering task); re-enabling an existing task does not.
+// Local datasets skip the gate entirely - their UMAP is read from the zarr.
 const computationEnabled = ref(false)
+const enabled = computed(() => props.local || computationEnabled.value)
 const showConfirm = ref(false)
 const toggleRef = ref<HTMLInputElement | null>(null)
 
@@ -164,12 +170,12 @@ function cancelEnable() {
 
 <template>
   <div class="mt-5 pt-4 border-t border-base-content/25">
-    <div class="text-base font-semibold text-base-content mb-2">Visualization</div>
+    <div class="text-lg font-semibold text-base-content mb-2">Visualization</div>
 
     <div class="mb-3">
       <div class="flex items-center justify-between mb-1">
-        <span class="text-sm text-base-content">Gamma</span>
-        <span class="text-sm font-mono text-base-content">{{ gamma.toFixed(1) }}</span>
+        <span class="text-base text-base-content">Gamma</span>
+        <span class="text-base font-mono text-base-content">{{ gamma.toFixed(1) }}</span>
       </div>
       <input
         type="range"
@@ -180,7 +186,7 @@ function cancelEnable() {
         :value="gamma"
         @input="emit('update:gamma', +($event.target as HTMLInputElement).value)"
       />
-      <div class="flex justify-between text-xs text-base-content mt-0.5">
+      <div class="flex justify-between text-base text-base-content mt-0.5">
         <span>0.5</span>
         <span>1.0</span>
         <span>1.5</span>
@@ -190,10 +196,11 @@ function cancelEnable() {
     <!-- UMAP / KMeans: only available for continuous storage -->
     <div v-if="isContinuous" class="mt-2">
       <label
+        v-if="!local"
         class="flex items-center justify-between mb-2 cursor-pointer select-none"
         :class="{ 'opacity-60 pointer-events-none': clusteringCreating }"
       >
-        <span class="text-sm text-base-content">Enable UMAP / KMeans</span>
+        <span class="text-base text-base-content">Enable UMAP / KMeans</span>
         <input
           ref="toggleRef"
           type="checkbox"
@@ -204,18 +211,18 @@ function cancelEnable() {
         />
       </label>
 
-      <div v-if="clusteringCreating" class="text-xs text-base-content/60 mt-1.5 flex items-center gap-1">
+      <div v-if="clusteringCreating" class="text-base text-base-content/60 mt-1.5 flex items-center gap-1">
         <span class="loading loading-spinner loading-xs"></span>
         Creating UMAP/KMeans task…
       </div>
       <div
         v-else-if="clusteringComputing && !clusteringReady"
-        class="text-xs text-base-content/60 mt-1.5 flex items-center gap-2"
+        class="text-base text-base-content/60 mt-1.5 flex items-center gap-2"
       >
         <span class="loading loading-spinner loading-xs"></span>
         <span class="flex-1">Clustering is computing…</span>
         <button
-          class="btn btn-ghost btn-xs"
+          class="btn btn-ghost btn-sm text-base"
           :disabled="clusteringRefreshing"
           @click="emit('refresh-clustering')"
         >
@@ -226,49 +233,49 @@ function cancelEnable() {
 
       <div class="flex gap-2">
         <button
-          class="btn btn-sm flex-1 text-base rounded-lg transition-colors"
+          class="btn btn-sm flex-1 text-lg rounded-lg transition-colors"
           :class="
-            !computationEnabled || !clusteringReady
+            !enabled || !clusteringReady
               ? 'bg-base-200 dark:bg-base-300 text-base-content/40 border-base-300 dark:border-base-400 cursor-not-allowed'
               : umapVisible
                 ? 'bg-teal-500 text-white border-teal-500'
                 : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-200 dark:hover:bg-teal-900'
           "
-          :disabled="!computationEnabled || !clusteringReady || overlayLoading || clusteringCreating"
+          :disabled="!enabled || !clusteringReady || overlayLoading || clusteringCreating"
           @click="emit('toggle-overlay', 'umap')"
         >
           UMAP
         </button>
         <button
-          class="btn btn-sm flex-1 text-base rounded-lg transition-colors"
+          class="btn btn-sm flex-1 text-lg rounded-lg transition-colors"
           :class="
-            !computationEnabled || !clusteringReady
+            !enabled || !clusteringReady
               ? 'bg-base-200 dark:bg-base-300 text-base-content/40 border-base-300 dark:border-base-400 cursor-not-allowed'
               : kmeansVisible
                 ? 'bg-rose-500 text-white border-rose-500'
                 : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-200 dark:hover:bg-rose-900'
           "
-          :disabled="!computationEnabled || !clusteringReady || overlayLoading || clusteringCreating || kmeansComputing"
+          :disabled="!enabled || !clusteringReady || overlayLoading || clusteringCreating || kmeansComputing"
           @click="onKmeansClick"
         >
           KMeans
         </button>
       </div>
 
-      <div v-if="overlayLoading && computationEnabled" class="text-xs text-base-content/60 mt-1.5 flex items-center gap-1">
+      <div v-if="overlayLoading && enabled" class="text-base text-base-content/60 mt-1.5 flex items-center gap-1">
         <span class="loading loading-spinner loading-xs"></span>
         Loading overlay…
       </div>
 
-      <div v-if="overlayError" class="text-xs text-error mt-1.5 flex items-center gap-2">
+      <div v-if="overlayError" class="text-base text-error mt-1.5 flex items-center gap-2">
         <span class="flex-1">UMAP/KMeans unavailable: {{ overlayError }}</span>
-        <button class="btn btn-ghost btn-xs text-error" @click="emit('retry-clustering')">Retry</button>
+        <button class="btn btn-ghost btn-sm text-base text-error" @click="emit('retry-clustering')">Retry</button>
       </div>
     </div>
 
     <!-- Overlay opacity: one slider per active overlay -->
     <div v-if="umapVisible" class="mt-3">
-      <div class="flex items-center justify-between text-sm font-semibold text-base-content mb-1">
+      <div class="flex items-center justify-between text-base font-semibold text-base-content mb-1">
         <span>UMAP opacity</span>
         <span class="font-mono font-normal">{{ Math.round(umapAlpha / 2.55) }}%</span>
       </div>
@@ -281,19 +288,19 @@ function cancelEnable() {
         @input="emit('update:umapAlpha', +($event.target as HTMLInputElement).value)"
       />
       <button
-        class="btn btn-xs btn-ghost gap-1 mt-1.5 text-xs"
+        class="btn btn-sm btn-ghost gap-1 mt-1.5 text-base w-full"
         title="Export UMAP image as PNG"
         @click="emit('export-umap')"
       >
-        <SvgIcon type="download" class="w-3.5 h-3.5" />
-        Export PNG
+        <SvgIcon type="download" class="w-4 h-4" />
+        Export UMAP PNG
       </button>
     </div>
     <div v-if="kmeansVisible" class="mt-3">
-      <div class="flex items-center justify-between text-sm font-semibold text-base-content mb-1">
+      <div class="flex items-center justify-between text-base font-semibold text-base-content mb-1">
         <span>
           KMeans opacity
-          <span v-if="kmeansK !== null" class="ml-1.5 text-xs font-mono font-normal text-base-content/60">(k={{ kmeansK }})</span>
+          <span v-if="kmeansK !== null" class="ml-1.5 text-base font-mono font-normal text-base-content/60">(k={{ kmeansK }})</span>
         </span>
         <span class="font-mono font-normal">{{ Math.round(kmeansAlpha / 2.55) }}%</span>
       </div>
@@ -306,27 +313,27 @@ function cancelEnable() {
         @input="emit('update:kmeansAlpha', +($event.target as HTMLInputElement).value)"
       />
       <button
-        class="btn btn-xs btn-ghost gap-1 mt-1.5 text-xs"
+        class="btn btn-sm btn-ghost gap-1 mt-1.5 text-base w-full"
         title="Export KMeans image as PNG"
         @click="emit('export-kmeans')"
       >
-        <SvgIcon type="download" class="w-3.5 h-3.5" />
-        Export PNG
+        <SvgIcon type="download" class="w-4 h-4" />
+        Export KMeans PNG
       </button>
 
       <!-- Cluster picker: also drives the export mask -->
       <div v-if="kmeansClusters.length" class="mt-2 pt-2 border-t border-base-content/15">
         <div class="flex items-center justify-between mb-1">
-          <span class="text-sm font-semibold text-base-content">
+          <span class="text-base font-semibold text-base-content">
             Clusters
             <span class="font-mono font-normal text-base-content/60">
               {{ selectedClusterCount }}/{{ kmeansClusters.length }}
             </span>
           </span>
           <span class="flex gap-1">
-            <button class="btn btn-ghost btn-xs" title="Re-run with a different k" @click="openKmeansDialog">Re-run</button>
-            <button class="btn btn-ghost btn-xs" @click="emit('kmeans-select-all')">All</button>
-            <button class="btn btn-ghost btn-xs" @click="emit('kmeans-clear-all')">Clear</button>
+            <button class="btn btn-ghost btn-sm text-base" title="Re-run with a different k" @click="openKmeansDialog">Re-run</button>
+            <button class="btn btn-ghost btn-sm text-base" @click="emit('kmeans-select-all')">All</button>
+            <button class="btn btn-ghost btn-sm text-base" @click="emit('kmeans-clear-all')">Clear</button>
           </span>
         </div>
         <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 max-h-48 overflow-y-auto">
@@ -345,16 +352,16 @@ function cancelEnable() {
               class="w-3 h-3 rounded-sm border border-base-content/30 shrink-0"
               :style="{ backgroundColor: `rgb(${c.color[0]},${c.color[1]},${c.color[2]})` }"
             ></span>
-            <span class="text-sm text-base-content truncate">Cluster {{ c.id }}</span>
+            <span class="text-base text-base-content truncate">Cluster {{ c.id }}</span>
           </label>
         </div>
-        <div v-if="selectedClusterCount === 0" class="text-xs text-base-content/50 mt-1">
+        <div v-if="selectedClusterCount === 0" class="text-base text-base-content/50 mt-1">
           No clusters selected - overlay hidden
         </div>
       </div>
       <div
         v-else-if="!kmeansLabelsAvailable"
-        class="mt-2 pt-2 border-t border-base-content/15 text-xs text-base-content/50"
+        class="mt-2 pt-2 border-t border-base-content/15 text-base text-base-content/50"
       >
         Run KMeans to compute clusters locally.
       </div>
@@ -362,18 +369,20 @@ function cancelEnable() {
   </div>
 
   <div class="mt-5 pt-4 border-t border-base-content/25">
-    <div class="text-base font-semibold text-base-content mb-2">Region of interest</div>
+    <div class="text-lg font-semibold text-base-content mb-2">Region of interest</div>
     <ROIPanel
       :selected-tool="roiTool"
       :draft-ready="draftReady"
       :show-reset="viewingRoi"
       :rois="confirmedRois as any"
+      :show-import="local"
       @update:selected-tool="emit('update:roiTool', $event)"
       @confirm="emit('roi-confirm')"
       @cancel="emit('roi-cancel')"
       @delete="emit('roi-delete', $event)"
       @clear-all="emit('roi-clear-all')"
       @reset="emit('roi-reset')"
+      @import-reference="emit('import-reference-rois')"
     />
   </div>
 
@@ -397,16 +406,16 @@ function cancelEnable() {
     @cancel="showKmeansDialog = false"
   >
     <div class="flex items-center gap-3">
-      <span class="text-sm">Number of clusters (k):</span>
+      <span class="text-base">Number of clusters (k):</span>
       <input
         v-model.number="kInput"
         type="number"
         :min="K_MIN"
         :max="K_MAX"
-        class="input input-sm input-bordered w-20"
+        class="input input-sm input-bordered w-20 text-base"
       />
     </div>
-    <p class="text-xs text-base-content/60 mt-2">
+    <p class="text-base text-base-content/60 mt-2">
       Computed locally from the UMAP embedding ({{ K_MIN }}–{{ K_MAX }}).
     </p>
   </ConfirmDialog>

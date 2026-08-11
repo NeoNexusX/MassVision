@@ -7,8 +7,10 @@
  * mean intensity, detection rate, fold-change ratio, and a category
  * (A-only / B-only / A-enriched / B-enriched / shared).
  *
- * Only available in continuous mode (ion-major storage) where every ion has
- * one intensity value per pixel, indexed by axes/coordinates order.
+ * Continuous mode (ion-major storage): every ion has one intensity value
+ * per pixel, indexed by axes/coordinates order. Processed mode (pixel-major):
+ * intensities are aggregated into fixed-width m/z bins via
+ * streamIonStatsProcessed, so results are per bin rather than per ion.
  *
  * The 2D raster masks (KMeans labels or ROI boolean[][] -> Uint8Array) are
  * cached after a comparison so that clicking a result row can build an
@@ -24,6 +26,7 @@ import {
 import type { KmeansCluster } from '@/features/workspace/results/composables/useOverlayData'
 import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
 import { hexToRgb, rgbCss, type RGB } from '@/features/workspace/results/utils/regionPalette'
+import type { DataMode } from '@/services/zarrOssStore'
 
 // ---------- types ----------
 
@@ -69,6 +72,9 @@ export interface RegionThumbnailRegion {
 /** Fold-change threshold for "enriched" (>= 2x stronger). */
 const ENRICHMENT_RATIO = 2
 
+/** m/z bin width (Da) for processed-mode region comparison. */
+const PROCESSED_BIN_WIDTH = 0.01
+
 // ---------- composable ----------
 
 export function useRegionComparison(deps: {
@@ -78,6 +84,7 @@ export function useRegionComparison(deps: {
   confirmedROIs: Ref<ConfirmedROI[]>
   ionCols: Ref<number>
   ionRows: Ref<number>
+  dataMode: Ref<DataMode | null>
   onSelectMzIndex: (idx: number) => void | Promise<void>
   setComparisonOverlay: (rgba: Uint8ClampedArray | null) => void
 }) {
@@ -216,9 +223,21 @@ export function useRegionComparison(deps: {
   }
 
   /**
-   * Compute the 5th percentile of non-zero mean-spectrum values as a
-   * noise floor. Ions whose region means are both below this floor are
-   * treated as noise and excluded.
+   * Percentile of a sorted-or-unsorted array of values.
+   * @param values values to compute from (will be copied + sorted)
+   * @param pct percentile 0-100
+   */
+  function percentile(values: number[], pct: number): number {
+    if (!values.length) return 0
+    const sorted = [...values].sort((a, b) => a - b)
+    const clamped = Math.max(0, Math.min(100, pct))
+    return sorted[Math.floor(sorted.length * (clamped / 100))] ?? 0
+  }
+
+  /**
+   * Compute the noise floor from the pre-computed mean spectrum (continuous
+   * mode). Ions whose region means are both below this floor are treated as
+   * noise and excluded.
    */
   function computeNoiseFloor(): number {
     const meanSpec = meanSpectrumRef.value
@@ -228,13 +247,94 @@ export function useRegionComparison(deps: {
       const v = meanSpec[i]!
       if (v > 0 && Number.isFinite(v)) temp.push(v)
     }
-    if (!temp.length) return 0
-    temp.sort((a, b) => a - b)
-    const pct = Math.max(0, Math.min(100, noiseFloorPercentile.value))
-    return temp[Math.floor(temp.length * (pct / 100))] ?? 0
+    return percentile(temp, noiseFloorPercentile.value)
   }
 
   // ---------- main compare action ----------
+
+  /**
+   * Convert raw per-ion/per-bin stats into IonComparison[] with filtering and
+   * categorisation. Shared by continuous and processed paths so the result
+   * shape and classification logic stays identical.
+   */
+  function buildComparisons(
+    nItems: number,
+    mzAt: (i: number) => number,
+    sumA: Float64Array, countA: Int32Array,
+    sumB: Float64Array, countB: Int32Array,
+    pixelCountA: number, pixelCountB: number,
+    noiseFloor: number,
+  ): IonComparison[] {
+    const minRate = minDetectionRate.value / 100
+    const comparisons: IonComparison[] = []
+    let filteredByDetection = 0
+    let filteredByIntensity = 0
+
+    for (let i = 0; i < nItems; i++) {
+      const cntA = countA[i]!
+      const cntB = countB[i]!
+      const detA = pixelCountA > 0 ? cntA / pixelCountA : 0
+      const detB = pixelCountB > 0 ? cntB / pixelCountB : 0
+
+      if (detA < minRate && detB < minRate) {
+        filteredByDetection++
+        continue
+      }
+
+      const meanA = pixelCountA > 0 ? sumA[i]! / pixelCountA : 0
+      const meanB = pixelCountB > 0 ? sumB[i]! / pixelCountB : 0
+
+      if (meanA < noiseFloor && meanB < noiseFloor) {
+        filteredByIntensity++
+        continue
+      }
+
+      const aPresent = detA >= minRate
+      const bPresent = detB >= minRate
+      let category: ComparisonCategory
+      if (aPresent && !bPresent) {
+        category = 'a-only'
+      } else if (!aPresent && bPresent) {
+        category = 'b-only'
+      } else {
+        if (meanB > 0 && meanA / meanB >= ENRICHMENT_RATIO) {
+          category = 'a-enriched'
+        } else if (meanA > 0 && meanB / meanA >= ENRICHMENT_RATIO) {
+          category = 'b-enriched'
+        } else {
+          category = 'shared'
+        }
+      }
+
+      const ratio = meanB > 0 ? meanA / meanB : meanA > 0 ? Infinity : 0
+
+      comparisons.push({
+        ionIndex: i,
+        mz: mzAt(i),
+        meanA,
+        meanB,
+        ratio,
+        detA,
+        detB,
+        category,
+      })
+    }
+
+    totalIons.value = nItems
+    filterStats.value = {
+      total: nItems,
+      kept: comparisons.length,
+      filtered: filteredByDetection + filteredByIntensity,
+    }
+
+    comparisons.sort((a, b) => {
+      const logA = a.ratio === Infinity ? Infinity : a.ratio === 0 ? -Infinity : Math.log2(a.ratio)
+      const logB = b.ratio === Infinity ? Infinity : b.ratio === 0 ? -Infinity : Math.log2(b.ratio)
+      return Math.abs(logB) - Math.abs(logA)
+    })
+
+    return comparisons
+  }
 
   async function compare() {
     if (!canCompare.value) return
@@ -288,106 +388,74 @@ export function useRegionComparison(deps: {
         return
       }
 
-      // Stream intensity stats for both regions
-      const stats = await store.streamIonStats(
-        [maskA.mask, maskB.mask],
-        (done, total) => {
-          progress.value = Math.round((done / total) * 100)
-        },
-        () => cancelled,
-      )
-      if (cancelled) return
+      const isProcessed = deps.dataMode.value === 'processed'
 
-      const mzAxis = ctx.mzAxis
-      if (!mzAxis) {
-        error.value = 'm/z axis not available'
-        return
+      let comparisons: IonComparison[]
+
+      if (isProcessed) {
+        // ---- Processed mode: m/z binning ----
+        const { bins, binCount } = await store.streamIonStatsProcessed(
+          [maskA.mask, maskB.mask],
+          PROCESSED_BIN_WIDTH,
+          (done, total) => {
+            progress.value = Math.round((done / total) * 100)
+          },
+          () => cancelled,
+        )
+        if (cancelled) return
+        if (binCount === 0) {
+          error.value = 'No m/z bins found in the selected regions'
+          return
+        }
+
+        // Noise floor: percentile of non-zero bin means across both regions
+        const allMeans: number[] = []
+        for (let b = 0; b < binCount; b++) {
+          const mA = maskA.pixelCount > 0 ? bins[b]!.sum[0]! / maskA.pixelCount : 0
+          const mB = maskB.pixelCount > 0 ? bins[b]!.sum[1]! / maskB.pixelCount : 0
+          const mx = Math.max(mA, mB)
+          if (mx > 0 && Number.isFinite(mx)) allMeans.push(mx)
+        }
+        const noiseFloor = percentile(allMeans, noiseFloorPercentile.value)
+
+        comparisons = buildComparisons(
+          binCount,
+          (i) => bins[i]!.mz,
+          Float64Array.from(bins, (b) => b.sum[0]!),
+          Int32Array.from(bins, (b) => b.count[0]!),
+          Float64Array.from(bins, (b) => b.sum[1]!),
+          Int32Array.from(bins, (b) => b.count[1]!),
+          maskA.pixelCount, maskB.pixelCount,
+          noiseFloor,
+        )
+      } else {
+        // ---- Continuous mode: shared m/z axis ----
+        const stats = await store.streamIonStats(
+          [maskA.mask, maskB.mask],
+          (done, total) => {
+            progress.value = Math.round((done / total) * 100)
+          },
+          () => cancelled,
+        )
+        if (cancelled) return
+
+        const mzAxis = ctx.mzAxis
+        if (!mzAxis) {
+          error.value = 'm/z axis not available'
+          return
+        }
+
+        const noiseFloor = computeNoiseFloor()
+
+        comparisons = buildComparisons(
+          mzAxis.length,
+          (i) => mzAxis[i]!,
+          stats[0]!.sum, stats[0]!.count,
+          stats[1]!.sum, stats[1]!.count,
+          maskA.pixelCount, maskB.pixelCount,
+          noiseFloor,
+        )
       }
-
-      const nIons = mzAxis.length
-      const minRate = minDetectionRate.value / 100
-      const noiseFloor = computeNoiseFloor()
-
-      const comparisons: IonComparison[] = []
-      let filteredByDetection = 0
-      let filteredByIntensity = 0
-      for (let i = 0; i < nIons; i++) {
-        const cntA = stats[0]!.count[i]!
-        const cntB = stats[1]!.count[i]!
-        const detA = maskA.pixelCount > 0 ? cntA / maskA.pixelCount : 0
-        const detB = maskB.pixelCount > 0 ? cntB / maskB.pixelCount : 0
-
-        // Filter 1: detection rate in at least one region
-        if (detA < minRate && detB < minRate) {
-          filteredByDetection++
-          continue
-        }
-
-        // All-pixel means (sum / total pixels including zeros) - consistent
-        // with the global mean spectrum and captures both intensity + coverage.
-        const meanA = maskA.pixelCount > 0 ? stats[0]!.sum[i]! / maskA.pixelCount : 0
-        const meanB = maskB.pixelCount > 0 ? stats[1]!.sum[i]! / maskB.pixelCount : 0
-
-        // Filter 2: intensity above noise floor in at least one region
-        if (meanA < noiseFloor && meanB < noiseFloor) {
-          filteredByIntensity++
-          continue
-        }
-
-        // Category
-        const aPresent = detA >= minRate
-        const bPresent = detB >= minRate
-        let category: ComparisonCategory
-        if (aPresent && !bPresent) {
-          category = 'a-only'
-        } else if (!aPresent && bPresent) {
-          category = 'b-only'
-        } else {
-          // Both present
-          if (meanB > 0 && meanA / meanB >= ENRICHMENT_RATIO) {
-            category = 'a-enriched'
-          } else if (meanA > 0 && meanB / meanA >= ENRICHMENT_RATIO) {
-            category = 'b-enriched'
-          } else {
-            category = 'shared'
-          }
-        }
-
-        const ratio = meanB > 0 ? meanA / meanB : meanA > 0 ? Infinity : 0
-
-        comparisons.push({
-          ionIndex: i,
-          mz: mzAxis[i]!,
-          meanA,
-          meanB,
-          ratio,
-          detA,
-          detB,
-          category,
-        })
-      }
-
-      const totalKept = comparisons.length
-      const totalFiltered = filteredByDetection + filteredByIntensity
-      totalIons.value = nIons
-      filterStats.value = { total: nIons, kept: totalKept, filtered: totalFiltered }
-      console.log('[useRegionComparison] filter breakdown:', {
-        total: nIons,
-        kept: totalKept,
-        filteredByDetection,
-        filteredByIntensity,
-        totalFiltered,
-        minDetectionRate: minDetectionRate.value + '%',
-        noiseFloorPercentile: noiseFloorPercentile.value + '%',
-        noiseFloor,
-      })
-
-      // Sort by |log2 ratio| descending (most different first)
-      comparisons.sort((a, b) => {
-        const logA = a.ratio === Infinity ? Infinity : a.ratio === 0 ? -Infinity : Math.log2(a.ratio)
-        const logB = b.ratio === Infinity ? Infinity : b.ratio === 0 ? -Infinity : Math.log2(b.ratio)
-        return Math.abs(logB) - Math.abs(logA)
-      })
 
       results.value = comparisons
       hasResults.value = true
@@ -401,8 +469,8 @@ export function useRegionComparison(deps: {
 
   // ---------- result interaction ----------
 
-  /** Click a result row: load the ion image only. Region colors are shown in
-   * the comparison thumbnail, not painted over the main ion image. */
+  /** Click a result row: load the ion image (continuous mode only).
+   *  Processed mode has no ion image - the row click is a no-op. */
   function selectMz(ionIndex: number) {
     deps.onSelectMzIndex(ionIndex)
   }
@@ -490,6 +558,13 @@ export function useRegionComparison(deps: {
     cancelled = true
   }
 
+  /** True when the last comparison involved an ROI (either side). Used to
+   *  decide whether clearing/deleting ROIs should also reset the comparison —
+   *  a pure KMeans-vs-KMeans comparison is unaffected by ROI changes. */
+  function involvesRoi(): boolean {
+    return cachedSourceA?.type === 'roi' || cachedSourceB?.type === 'roi'
+  }
+
   function reset() {
     cancelled = true
     results.value = []
@@ -532,6 +607,7 @@ export function useRegionComparison(deps: {
     compare,
     cancel,
     reset,
+    involvesRoi,
     selectMz,
     toggleRegionOverlay,
     hideOverlay,

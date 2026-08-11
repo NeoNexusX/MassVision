@@ -84,10 +84,15 @@ export function isValidPixelSize(value: string): boolean {
 export function useUploadMetadataForm() {
   // State
   const form = ref(createForm())
+  // 自动从 imzML 识别出的值,用于用户手动修改时的二次确认
+  const detectedSpectrumMode = ref('')
+  const detectedStorageMode = ref('')
 
   // Methods
   const resetForm = () => {
     Object.assign(form.value, createForm())
+    detectedSpectrumMode.value = ''
+    detectedStorageMode.value = ''
   }
 
   const resetParsedFields = () => {
@@ -96,6 +101,8 @@ export function useUploadMetadataForm() {
     form.value.analyzer = ''
     form.value.pixel_size_horizontal = ''
     form.value.pixel_size_vertical = ''
+    detectedSpectrumMode.value = ''
+    detectedStorageMode.value = ''
   }
 
   const applyParsedSettings = (settings: any) => {
@@ -117,9 +124,11 @@ export function useUploadMetadataForm() {
     }
     if (settings.spectrum_mode) {
       form.value.spectrum_mode = settings.spectrum_mode
+      detectedSpectrumMode.value = settings.spectrum_mode
     }
     if (settings.storage_mode) {
       form.value.storage_mode = settings.storage_mode
+      detectedStorageMode.value = settings.storage_mode
     }
   }
 
@@ -193,6 +202,8 @@ export function useUploadMetadataForm() {
 
   return {
     form,
+    detectedSpectrumMode,
+    detectedStorageMode,
     resetForm,
     resetParsedFields,
     applyParsedSettings,

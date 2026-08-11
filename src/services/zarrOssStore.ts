@@ -5,17 +5,27 @@
  *   - ion-major continuous → ion image + mean spectrum (existing feature)
  *   - pixel-major processed → TIC image + per-pixel spectrum (new feature)
  *
+ * v1.1 keeps the same semantics but splits the single data/ group into
+ * ion_image/ (ion-major, continuous) and/or spectra/ (pixel-major); the
+ * reader picks the first group carrying row_axis + encoding attributes.
+ *
  * Layout:
  *   <root>/.zattrs              — root attributes (format, spatial_shape, etc.)
  *   <root>/metadata/.zattrs     — semantic metadata
  *   <root>/axes/coordinates     — (n_pixels, 3) uint32, pixel coordinates
  *   <root>/axes/mz              — shared m/z axis (continuous only)
- *   <root>/data/.zattrs         — row_axis + encoding
- *   <root>/data/intensity/      — 1D float32, flattened intensity values
- *   <root>/data/offsets/        — (n_rows+1,) int64, row boundary indices
- *   <root>/data/mz/             — per-point m/z (processed only)
+ *   <root>/data/.zattrs         — row_axis + encoding   (v1.0)
+ *   <root>/ion_image/.zattrs    — row_axis + encoding   (v1.1, continuous)
+ *   <root>/spectra/.zattrs      — row_axis + encoding   (v1.1, pixel-major)
+ *   <root>/<data>/intensity/    — 1D float32, flattened intensity values
+ *   <root>/<data>/offsets/      — (n_rows+1,) int64, row boundary indices
+ *   <root>/<data>/mz/           — per-point m/z (processed only)
  *   <root>/stats/mean_spectrum/ — optional, pre-computed mean spectrum
  *   <root>/stats/tic/           — optional, pre-computed TIC (processed mode)
+ *
+ * The byte source is pluggable: OSS via STS (ZarrAccessResponse) or any
+ * client implementing OssClient (ZarrClientSource, e.g. a local static zarr
+ * served over HTTP — see localZarrClient.ts).
  *
  * Chunk caching: intensity chunks use LRU cache (default 20 chunks).
  * In-flight request deduplication prevents redundant OSS requests for
@@ -26,7 +36,7 @@
  */
 
 import { LruCache } from '../utils/lruCache'
-import { createOssClient } from './ossClient'
+import { createOssClient, OssError } from './ossClient'
 import type { OssClient } from './ossClient'
 import type { ZarrAccessResponse } from './zarrAccessApi'
 import {
@@ -101,11 +111,27 @@ export interface PixelSpectrum {
   intensity: Float32Array
 }
 
+/**
+ * Client-based byte source for non-OSS backends (e.g. a local/static zarr
+ * served over HTTP — see localZarrClient.ts). `folderPath` is the key prefix
+ * prepended to every zarr path; pass '' (or omit) when the client is already
+ * rooted at the zarr directory.
+ */
+export interface ZarrClientSource {
+  client: OssClient
+  folderPath?: string
+  /** Label used in dev logging in place of bucket/region. */
+  label?: string
+}
+
 // ---------- main store ----------
 
 export class ZarrOssStore {
-  private access: ZarrAccessResponse
   private oss: OssClient
+  private folderPath: string
+  private sourceLabel: string
+  /** Data group root: 'data' (v1.0) or 'ion_image' / 'spectra' (v1.1). */
+  private dataPath = 'data'
   private _disposed = false
 
   // Mode detection
@@ -146,11 +172,19 @@ export class ZarrOssStore {
   private totalMzPoints: number = 0
 
   constructor(
-    access: ZarrAccessResponse,
+    source: ZarrAccessResponse | ZarrClientSource,
     options: { intensityChunkCacheSize?: number; mzChunkCacheSize?: number } = {},
   ) {
-    this.access = access
-    this.oss = createOssClient(access)
+    if ('client' in source) {
+      // Pluggable client (local/static zarr, tests, future backends)
+      this.oss = source.client
+      this.folderPath = source.folderPath ?? ''
+      this.sourceLabel = source.label ?? 'custom-client'
+    } else {
+      this.oss = createOssClient(source)
+      this.folderPath = source.folder_path
+      this.sourceLabel = `${source.bucket} (${source.region})`
+    }
     this.intensityChunkCache = new LruCache<number, Float32Array>(
       options.intensityChunkCacheSize ?? 20,
     )
@@ -245,8 +279,8 @@ export class ZarrOssStore {
       metadataResult, meanSpectrumResult, modeArrayResult, statsResult,
     ] = await Promise.all([
       // 必备：data 子数组（失败以 Error 形式冒泡到下方统一抛出）
-      this.readArrayMeta('data/intensity').then((m) => m, (e) => e as Error),
-      this.readArrayMeta('data/offsets').then((m) => m, (e) => e as Error),
+      this.readArrayMeta(this.intensityPath).then((m) => m, (e) => e as Error),
+      this.readArrayMeta(this.offsetsPath).then((m) => m, (e) => e as Error),
       this.readArrayMeta('axes/coordinates').then((m) => m, (e) => e as Error),
 
       // 非致命：metadata 组
@@ -257,10 +291,10 @@ export class ZarrOssStore {
       this.readArrayMeta('stats/mean_spectrum')
         .then((m) => m, () => null as ZarrV3ArrayMetadata | null),
 
-      // 模式相关（二选一）：processed->data/mz，continuous->axes/mz
+      // 模式相关（二选一）：processed-><data>/mz，continuous->axes/mz
       // 只有一个会真正发起请求；缺失属致命错误，下方统一抛。
       (this._dataMode === 'processed'
-        ? this.readArrayMeta('data/mz')
+        ? this.readArrayMeta(this.dataMzPath)
         : this.readArrayMeta('axes/mz')
       ).then((m) => m, (e) => e as Error),
 
@@ -283,7 +317,7 @@ export class ZarrOssStore {
     // 模式相关数组：缺失属致命错误（与原逻辑一致）
     if (this._dataMode === 'processed') {
       if (modeArrayResult instanceof Error || modeArrayResult === null) {
-        throw new Error('[ZarrOssStore] processed mode requires data/mz array')
+        throw new Error(`[ZarrOssStore] processed mode requires ${this.dataMzPath} array`)
       }
       this.dataMzMeta = modeArrayResult
       this.totalMzPoints = this.dataMzMeta.shape[0]!
@@ -329,9 +363,9 @@ export class ZarrOssStore {
 
     if (import.meta.env.DEV) {
       console.table({
-        bucket: this.access.bucket,
-        region: this.access.region,
-        folderPath: this.access.folder_path,
+        source: this.sourceLabel,
+        folderPath: this.folderPath || '(root)',
+        dataGroup: this.dataPath,
         dataMode: this._dataMode,
         rowAxis: this._rowAxis,
         spatialShape: this._spatialShape.join('×'),
@@ -375,7 +409,7 @@ export class ZarrOssStore {
   async loadOffsets(): Promise<number[]> {
     if (this._offsets) return this._offsets
     if (!this.offsetsMeta) throw new Error('[ZarrOssStore] call init() first')
-    const ab = await this.fetchArrayFull('data/offsets', this.offsetsMeta)
+    const ab = await this.fetchArrayFull(this.offsetsPath, this.offsetsMeta)
     const typed = new BigInt64Array(ab)
     this._offsets = Array.from(typed, (v) => Number(v))
     return this._offsets
@@ -563,10 +597,10 @@ export class ZarrOssStore {
       const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
       // Fetch chunks directly (bypass the LRU cache): each chunk is read once
       // in this scan, so caching it would only evict other chunks. Mirrors
-      // streamIonStats / computePixelNormalization.
+      // streamIonStats.
       const batch: Promise<Float32Array | Float64Array>[] = []
       for (let ci = batchStart; ci < batchEnd; ci++) {
-        batch.push(this.fetchAndDecode1DChunk('data/intensity', this.intensityMeta!, ci))
+        batch.push(this.fetchAndDecode1DChunk(this.intensityPath, this.intensityMeta!, ci))
       }
       const chunks = await Promise.all(batch)
       if (this._disposed) return new Float32Array(0)
@@ -592,88 +626,6 @@ export class ZarrOssStore {
 
     // Map TIC values to 2D image
     return this.mapPixelsToMatrix(ticByPixel, nPixels, coords)
-  }
-
-  /**
-   * Compute one normalization denominator per pixel from all spectra.
-   * TIC uses the sum of intensities; RMS uses sqrt(mean(square intensity)).
-   * The expensive scan is intentionally called only when the user selects it.
-   *
-   * Both data modes use the same batched chunk scan: read intensity chunks
-   * in parallel batches (mirroring streamIonStats), use a monotonic cursor
-   * to map each value to its pixel, then accumulate per-pixel statistics.
-   */
-  async computePixelNormalization(mode: 'tic' | 'rms'): Promise<Float32Array> {
-    const offsets = await this.loadOffsets()
-    const coords = await this.loadCoordinates()
-    const nPixels = coords.length / 3
-    const sums = new Float64Array(nPixels)
-    const sumSquares = mode === 'rms' ? new Float64Array(nPixels) : null
-    const counts = mode === 'rms' ? new Uint32Array(nPixels) : null
-
-    // Unified batched scan for both modes.
-    // cursor = current row (ion for continuous, pixel for processed).
-    const nRows = offsets.length - 1
-    const cs = this.intensityMeta!.chunk_grid.configuration.chunk_shape[0]!
-    const totalChunks = Math.ceil(this.totalIntensityPoints / cs)
-    const BATCH_SIZE = 12
-    let cursor = 0
-
-    for (let batchStart = 0; batchStart < totalChunks; batchStart += BATCH_SIZE) {
-      if (this._disposed) return new Float32Array(0)
-
-      const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
-      // Fetch chunks directly (bypass the LRU cache): each chunk is read once
-      // in this scan, so caching it would only evict the single-ion image's
-      // chunks. Mirrors streamIonStats.
-      const chunks = await Promise.all(
-        Array.from({ length: batchEnd - batchStart }, (_, j) =>
-          this.fetchAndDecode1DChunk('data/intensity', this.intensityMeta!, batchStart + j),
-        ),
-      )
-      if (this._disposed) return new Float32Array(0)
-
-      for (let j = 0; j < chunks.length; j++) {
-        const chunk = chunks[j]!
-        const chunkStart = (batchStart + j) * cs
-
-        for (let i = 0; i < chunk.length; i++) {
-          const globalIdx = chunkStart + i
-          if (globalIdx >= this.totalIntensityPoints) break
-          const value = chunk[i]!
-          if (!Number.isFinite(value)) continue
-
-          // Advance cursor to the row containing globalIdx
-          while (cursor + 1 < nRows && offsets[cursor + 1]! <= globalIdx) {
-            cursor++
-          }
-
-          // Derive the pixel index:
-          //   continuous (ion-major): pixelIdx = position within the ion's slice
-          //   processed (pixel-major): cursor IS the pixel index
-          const pixelIdx = this._dataMode === 'processed'
-            ? cursor
-            : globalIdx - offsets[cursor]!
-
-          if (pixelIdx >= 0 && pixelIdx < nPixels) {
-            sums[pixelIdx]! += value
-            if (sumSquares) sumSquares[pixelIdx]! += value * value
-            if (counts) counts[pixelIdx]!++
-          }
-        }
-      }
-
-      // Yield to keep the UI responsive between batches
-      await new Promise((r) => setTimeout(r, 0))
-    }
-
-    const result = new Float32Array(nPixels)
-    for (let i = 0; i < nPixels; i++) {
-      result[i] = mode === 'tic'
-        ? sums[i]!
-        : Math.sqrt(sumSquares![i]! / Math.max(1, counts![i]!))
-    }
-    return this.mapPixelsToMatrix(result, nPixels, coords)
   }
 
   /**
@@ -759,9 +711,22 @@ export class ZarrOssStore {
 
   // ========== internal: OSS key helpers ==========
 
+  private get intensityPath(): string {
+    return `${this.dataPath}/intensity`
+  }
+
+  private get offsetsPath(): string {
+    return `${this.dataPath}/offsets`
+  }
+
+  private get dataMzPath(): string {
+    return `${this.dataPath}/mz`
+  }
+
   private key(relativePath: string): string {
-    const root = this.access.folder_path
+    const root = this.folderPath
     const rel = relativePath.replace(/^\/+/, '')
+    if (!root) return rel
     return root.endsWith('/') ? `${root}${rel}` : `${root}/${rel}`
   }
 
@@ -785,15 +750,37 @@ export class ZarrOssStore {
     return meta
   }
 
-  /** Read data group attributes. Tries .zattrs first, then falls back to zarr.json attributes. */
+  /**
+   * Read the data group attributes and set {@link dataPath}.
+   *
+   * v1.0 stores a single data group at data/. v1.1 splits it into
+   * ion_image/ (ion-major → continuous) and/or spectra/ (pixel-major).
+   * The first candidate group whose zarr.json carries row_axis + encoding
+   * wins; a candidate that is simply absent (not_found) falls through, while
+   * a group that exists but lacks the attributes is a hard error (same as
+   * the original data/-only behavior).
+   */
   private async readDataAttrs(): Promise<DataAttrs> {
-    const meta = await this.readJson<ZarrV3GroupMetadata>('data/zarr.json')
-    if (!meta.attributes?.row_axis || !meta.attributes?.encoding) {
+    const candidates = ['data', 'ion_image', 'spectra']
+    for (const path of candidates) {
+      let meta: ZarrV3GroupMetadata
+      try {
+        meta = await this.readJson<ZarrV3GroupMetadata>(`${path}/zarr.json`)
+      } catch (e) {
+        if (e instanceof OssError && e.code === 'not_found') continue
+        throw e
+      }
+      if (meta.attributes?.row_axis && meta.attributes?.encoding) {
+        this.dataPath = path
+        return meta.attributes as unknown as DataAttrs
+      }
       throw new Error(
-        '[ZarrOssStore] data/zarr.json missing required attributes (row_axis, encoding)',
+        `[ZarrOssStore] ${path}/zarr.json missing required attributes (row_axis, encoding)`,
       )
     }
-    return meta.attributes as unknown as DataAttrs
+    throw new Error(
+      '[ZarrOssStore] no data group found (tried data/, ion_image/, spectra/)',
+    )
   }
 
   private validateRootAttrs(attrs: RootAttrs): void {
@@ -823,7 +810,7 @@ export class ZarrOssStore {
   private async readIntensitySlice(start: number, end: number): Promise<Float32Array> {
     if (!this.intensityMeta) throw new Error('[ZarrOssStore] call init() first')
     return this.read1DSlice(
-      'data/intensity',
+      this.intensityPath,
       this.intensityMeta,
       start,
       end,
@@ -836,9 +823,9 @@ export class ZarrOssStore {
    * Read a slice [start, end) from the 1D data/mz array.
    */
   private async readMzSlice(start: number, end: number): Promise<Float64Array> {
-    if (!this.dataMzMeta) throw new Error('[ZarrOssStore] data/mz not available')
+    if (!this.dataMzMeta) throw new Error(`[ZarrOssStore] ${this.dataMzPath} not available`)
     return this.read1DSlice(
-      'data/mz',
+      this.dataMzPath,
       this.dataMzMeta,
       start,
       end,
@@ -1066,12 +1053,12 @@ export class ZarrOssStore {
 
   /**
    * Stream through ALL intensity chunks and accumulate per-ion statistics
-   * (sum, sumSq, count of non-zero pixels) for one or more pixel masks.
+   * (sum, count of non-zero pixels) for one or more pixel masks.
    *
    * For each non-zero intensity value at global index g:
    *   ion   = the i where offsets[i] <= g < offsets[i+1]  (monotonic cursor)
    *   pixel = g - offsets[ion]  (pixel index j, same j as in the mask)
-   *   For each region r: if mask[r][j], accumulate sum/sumSq/count.
+   *   For each region r: if mask[r][j], accumulate sum/count.
    *
    * Chunks are fetched directly (no LRU cache) to avoid polluting the small
    * cache used by single-ion image loads. In-flight dedup is not needed -
@@ -1081,7 +1068,7 @@ export class ZarrOssStore {
     masks: Uint8Array[],
     onProgress?: (done: number, total: number) => void,
     isCancelled?: () => boolean,
-  ): Promise<{ sum: Float64Array; sumSq: Float64Array; count: Int32Array }[]> {
+  ): Promise<{ sum: Float64Array; count: Int32Array }[]> {
     if (this._dataMode !== 'continuous') {
       throw new Error('[ZarrOssStore] streamIonStats only available in continuous mode')
     }
@@ -1098,7 +1085,6 @@ export class ZarrOssStore {
     // Per-region accumulators
     const results = masks.map(() => ({
       sum: new Float64Array(nIons),
-      sumSq: new Float64Array(nIons),
       count: new Int32Array(nIons),
     }))
 
@@ -1115,7 +1101,7 @@ export class ZarrOssStore {
       const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
       const batch: Promise<Float32Array | Float64Array>[] = []
       for (let ci = batchStart; ci < batchEnd; ci++) {
-        batch.push(this.fetchAndDecode1DChunk('data/intensity', this.intensityMeta, ci))
+        batch.push(this.fetchAndDecode1DChunk(this.intensityPath, this.intensityMeta, ci))
       }
       const chunks = (await Promise.all(batch)) as Float32Array[]
       if (this._disposed) return results
@@ -1142,7 +1128,6 @@ export class ZarrOssStore {
           for (let r = 0; r < masks.length; r++) {
             if (masks[r]![pixelIdx]!) {
               results[r]!.sum[cursor]! += v
-              results[r]!.sumSq[cursor]! += v * v
               results[r]!.count[cursor]!++
             }
           }
@@ -1155,5 +1140,144 @@ export class ZarrOssStore {
     }
 
     return results
+  }
+
+  // ========== region comparison: processed mode ==========
+
+  /**
+   * Stream through ALL intensity + mz chunks (pixel-major processed) and
+   * accumulate per-m/z-bin statistics for one or more pixel masks.
+   *
+   * Processed data has no shared m/z axis - each pixel has its own list of
+   * (mz, intensity) pairs. To compare regions we bin all m/z values into
+   * uniform bins and accumulate per-bin statistics, producing a synthetic
+   * m/z axis from the bin centres.
+   *
+   * For each non-zero intensity value at global index g:
+   *   pixel = the p where offsets[p] <= g < offsets[p+1]  (monotonic cursor)
+   *   mz    = dataMz[g]
+   *   bin   = Math.round(mz / binWidth)
+   *   For each region r: if mask[r][pixel], accumulate sum/count.
+   *
+   * intensity and data/mz arrays are index-aligned, so the same cursor works
+   * for both. Chunks from both arrays are fetched in parallel batches.
+   */
+  async streamIonStatsProcessed(
+    masks: Uint8Array[],
+    binWidth: number,
+    onProgress?: (done: number, total: number) => void,
+    isCancelled?: () => boolean,
+  ): Promise<{
+    bins: { mz: number; sum: Float64Array; count: Int32Array }[]
+    binCount: number
+  }> {
+    if (this._dataMode !== 'processed') {
+      throw new Error('[ZarrOssStore] streamIonStatsProcessed only available in processed mode')
+    }
+    if (!this.intensityMeta || !this.offsetsMeta || !this.dataMzMeta) {
+      throw new Error('[ZarrOssStore] call init() first')
+    }
+    if (!masks.length) return { bins: [], binCount: 0 }
+
+    const offsets = await this.loadOffsets()
+    if (this._disposed) return { bins: [], binCount: 0 }
+    const nPixels = offsets.length - 1
+    const maskLen = masks[0]!.length
+
+    // Sparse per-region accumulators keyed by bin index
+    const nMasks = masks.length
+    const sparseMaps: Map<number, { sum: number; count: number }>[] = masks.map(() => new Map())
+
+    const cs = this.intensityMeta.chunk_grid.configuration.chunk_shape[0]!
+    const totalChunks = Math.ceil(this.totalIntensityPoints / cs)
+    const BATCH_SIZE = 6 // smaller batch: each chunk fetches 2 arrays (intensity + mz)
+
+    let cursor = 0 // current pixel index, advances monotonically
+
+    for (let batchStart = 0; batchStart < totalChunks; batchStart += BATCH_SIZE) {
+      if (this._disposed) return { bins: [], binCount: 0 }
+      if (isCancelled?.()) return { bins: [], binCount: 0 }
+
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
+      const nChunksInBatch = batchEnd - batchStart
+
+      // Fetch intensity + mz chunks in parallel
+      const fetches: Promise<Float32Array | Float64Array>[] = []
+      for (let ci = batchStart; ci < batchEnd; ci++) {
+        fetches.push(this.fetchAndDecode1DChunk(this.intensityPath, this.intensityMeta, ci))
+        fetches.push(this.fetchAndDecode1DChunk(this.dataMzPath, this.dataMzMeta, ci))
+      }
+      const fetched = await Promise.all(fetches)
+      if (this._disposed) return { bins: [], binCount: 0 }
+      if (isCancelled?.()) return { bins: [], binCount: 0 }
+
+      for (let k = 0; k < nChunksInBatch; k++) {
+        const ci = batchStart + k
+        const intensityChunk = fetched[k * 2]! as Float32Array
+        const mzChunk = fetched[k * 2 + 1]! as Float64Array
+        const chunkStart = ci * cs
+
+        for (let i = 0; i < intensityChunk.length; i++) {
+          const globalIdx = chunkStart + i
+          if (globalIdx >= this.totalIntensityPoints) break
+          const v = intensityChunk[i]!
+          if (v === 0 || !Number.isFinite(v)) continue
+
+          const mzVal = mzChunk[i]!
+          if (!Number.isFinite(mzVal) || mzVal <= 0) continue
+
+          // Advance cursor to the pixel containing globalIdx
+          while (cursor + 1 < nPixels && offsets[cursor + 1]! <= globalIdx) {
+            cursor++
+          }
+          if (cursor < 0 || cursor >= maskLen) continue
+
+          const binKey = Math.round(mzVal / binWidth)
+
+          for (let r = 0; r < nMasks; r++) {
+            if (masks[r]![cursor]!) {
+              let entry = sparseMaps[r]!.get(binKey)
+              if (!entry) {
+                entry = { sum: 0, count: 0 }
+                sparseMaps[r]!.set(binKey, entry)
+              }
+              entry.sum += v
+              entry.count++
+            }
+          }
+        }
+      }
+
+      onProgress?.(batchEnd, totalChunks)
+      await new Promise((r) => setTimeout(r, 0))
+    }
+
+    // Collect all bin keys across regions, sort to produce a synthetic m/z axis
+    const allBinKeys = new Set<number>()
+    for (const m of sparseMaps) {
+      for (const key of m.keys()) allBinKeys.add(key)
+    }
+    const sortedBins = Array.from(allBinKeys).sort((a, b) => a - b)
+    const binCount = sortedBins.length
+
+    const bins = sortedBins.map((binKey) => ({
+      mz: binKey * binWidth,
+      sum: new Float64Array(nMasks),
+      count: new Int32Array(nMasks),
+    }))
+
+    // Fill arrays from sparse maps
+    for (let r = 0; r < nMasks; r++) {
+      const map = sparseMaps[r]!
+      for (let b = 0; b < binCount; b++) {
+        const entry = map.get(sortedBins[b]!)
+        if (entry) {
+          bins[b]!.sum[r] = entry.sum
+          bins[b]!.count[r] = entry.count
+        }
+      }
+    }
+
+    return { bins, binCount }
   }
 }

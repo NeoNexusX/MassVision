@@ -197,7 +197,7 @@ const {
             </InfoField>
             <InfoField label="Resolving Power">
               <template v-if="dataset?.mz != null || dataset?.resolvingPower != null">
-                at m/z {{ dataset?.mz ?? '—' }}, {{ dataset?.resolvingPower ?? '—' }}
+                at <i>m/z</i> {{ dataset?.mz ?? '—' }}, {{ dataset?.resolvingPower ?? '—' }}
               </template>
               <template v-else>—</template>
             </InfoField>

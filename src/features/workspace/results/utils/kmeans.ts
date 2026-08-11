@@ -98,6 +98,11 @@ export async function computeKmeansFromUmap(
   const id = nextRequestId++
   const w = getWorker()
   return new Promise<KmeansResult>((resolve, reject) => {
+    // Defensive: a second call while one is in flight would otherwise leave
+    // the older request's promise pending forever (its resolve/reject would
+    // be silently overwritten). The UI serializes runs via kmeansComputing,
+    // so this path should never fire in practice.
+    pending?.reject(new Error('[kmeans] request superseded by a newer run'))
     pending = { id, resolve, reject }
     // Send a copy of umapRgb (no transfer): the main thread still needs the
     // cached raster for the UMAP overlay. Results return zero-copy.

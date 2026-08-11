@@ -2,6 +2,7 @@ import { ref, watch, onBeforeUnmount, type Ref } from 'vue'
 import { getZarrAccess } from '@/services/zarrAccessApi'
 import { createClustering, type ClusteringTaskResponse } from '@/services/clusteringApi'
 import { ClusteringZarrStore } from '@/services/clusteringZarrStore'
+import { createLocalZarrClient } from '@/services/localZarrClient'
 import { computeKmeansFromUmap, preloadKmeans } from '@/features/workspace/results/utils/kmeans'
 import { kmeansColor } from '@/features/workspace/results/utils/regionPalette'
 import { useToast } from '@/shared/composables/useToast'
@@ -66,6 +67,7 @@ export function useOverlayData(
   ionRows: Ref<number>,
   ionCols: Ref<number>,
   storageMode: Ref<string>,
+  opts: { localZarrPath?: string } = {},
 ) {
   // State - UMAP and KMeans are mutually exclusive: only one shows at a time.
   const umapVisible = ref(false)
@@ -132,15 +134,21 @@ export function useOverlayData(
    * `silent`, failures are swallowed without touching overlayError (used by
    * the page-entry probe). Returns whether the data is ready afterwards.
    */
-  async function loadClusteringData(opts: { silent?: boolean } = {}): Promise<boolean> {
+  async function loadClusteringData(loadOpts: { silent?: boolean } = {}): Promise<boolean> {
     // Cache hit: umap raster + dims.
     if (umapRgb && dims) return true
     overlayLoading.value = true
-    if (!opts.silent) overlayError.value = null
+    if (!loadOpts.silent) overlayError.value = null
     const forRun = runId.value
     try {
-      const access = await getZarrAccess(forRun, 'clustering')
-      const s = new ClusteringZarrStore(access)
+      // Local v1.1 datasets embed the UMAP group inside the main zarr at
+      // analysis/umap (no backend clustering task, no separate OSS zarr).
+      const s = opts.localZarrPath
+        ? new ClusteringZarrStore(
+            { client: createLocalZarrClient(opts.localZarrPath) },
+            { zarrRoot: 'analysis/umap', expectFormat: false },
+          )
+        : new ClusteringZarrStore(await getZarrAccess(forRun, 'clustering'))
       await s.init()
       const umap = await s.loadUmapImage()
       // The user navigated to another run mid-load - discard, don't pollute
@@ -159,7 +167,7 @@ export function useOverlayData(
       preloadKmeans()
       return true
     } catch (e) {
-      if (!opts.silent) {
+      if (!loadOpts.silent) {
         console.error('[useOverlayData] failed to load clustering data:', e)
         overlayError.value = e instanceof Error ? e.message : String(e)
       } else {
@@ -200,8 +208,16 @@ export function useOverlayData(
    * Opt-in enable flow: POST /processes/{run_id}/clustering. The POST is an
    * idempotent get-or-create, so this also covers "task already exists" -
    * the response status tells us where the task stands.
+   *
+   * Local datasets ship the UMAP inside the zarr itself, so there is no
+   * backend task to create - just load the data directly.
    */
   async function createClusteringTask() {
+    if (opts.localZarrPath) {
+      const ok = await loadClusteringData()
+      if (ok) showToast('UMAP/KMeans overlays are ready.', 'success')
+      return
+    }
     if (clusteringCreating.value) return
     clusteringCreating.value = true
     try {
@@ -219,9 +235,14 @@ export function useOverlayData(
 
   /**
    * Refresh button: re-POST (idempotent) and branch on clustering_status.
-   * Only meaningful while the task is computing.
+   * Only meaningful while the task is computing. Local datasets have no
+   * task lifecycle - a refresh is simply a reload.
    */
   async function refreshClusteringStatus() {
+    if (opts.localZarrPath) {
+      await loadClusteringData()
+      return
+    }
     if (clusteringRefreshing.value) return
     clusteringRefreshing.value = true
     try {
@@ -247,7 +268,10 @@ export function useOverlayData(
   async function probeExisting() {
     if (probedForRun === runId.value) return
     probedForRun = runId.value
-    await loadClusteringData({ silent: true })
+    // Cloud: probe silently (a missing/unfinished task is the normal case).
+    // Local: surface failures — the UMAP buttons are always visible, so the
+    // error row + Retry is the only feedback when the zarr read fails.
+    await loadClusteringData({ silent: !opts.localZarrPath })
   }
 
   /**
@@ -446,22 +470,6 @@ export function useOverlayData(
     overlayData.value = null
   })
 
-  /** Export stub: selected cluster ids + H×W 0/1 mask. null = no filter
-   *  (all clusters). This is the contract for the backend export API. */
-  function getKmeansSelection(): { labels: number[]; mask: Uint8Array } | null {
-    if (!kmeansLabels || !dims || selectedKmeansIds.value === null) return null
-    const selected = selectedKmeansIds.value
-    const mask = new Uint8Array(kmeansLabels.length)
-    for (let i = 0; i < kmeansLabels.length; i++) {
-      const r = kmeansRgb![i * 3]!
-      const g = kmeansRgb![i * 3 + 1]!
-      const b = kmeansRgb![i * 3 + 2]!
-      if (r === 0 && g === 0 && b === 0) continue // background: never exported
-      mask[i] = selected.has(kmeansLabels[i]!) ? 1 : 0
-    }
-    return { labels: [...selected].sort((a, b) => a - b), mask }
-  }
-
   /** Current KMeans labels (Int32Array, -1 = background) or null if not run. */
   function getKmeansLabels(): Int32Array | null {
     return kmeansLabels
@@ -561,7 +569,6 @@ export function useOverlayData(
     toggleKmeansCluster,
     selectAllKmeansClusters,
     clearKmeansClusters,
-    getKmeansSelection,
     /** Current KMeans labels (Int32Array, -1 = background) or null. */
     getKmeansLabels,
     /** Dimensions of the cached KMeans/UMAP raster grid, or null. */

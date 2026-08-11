@@ -6,6 +6,7 @@ import {
   findClosestIndex,
   CsvParseError,
   formatMassError,
+  buildAnnotationExportCsv,
 } from '../csvAnnotation'
 
 const SAMPLE = `formula_ion,Ion type,Exp. m/z,Candidate_1,Candidate_2,Candidate_3,Candidate_4,Candidate_5
@@ -99,6 +100,14 @@ describe('parseAnnotationCsv', () => {
     const { rows } = parseAnnotationCsv(csv)
     expect(rows[0]!.expMz).toBe(1234.5)
   })
+
+  it('handles quoted thousands + decimal (comma delimiter)', () => {
+    // Quoted field keeps the comma inside; ',' is thousands, '.' is decimal.
+    const csv = `Exp. m/z,Candidate_1\n"1,234.5",Big\n885.55,Normal`
+    const { rows } = parseAnnotationCsv(csv)
+    expect(rows[0]!.expMz).toBe(1234.5)
+    expect(rows[1]!.expMz).toBe(885.55)
+  })
 })
 
 describe('matching', () => {
@@ -175,5 +184,53 @@ describe('helpers', () => {
   it('massErrorOf computes ppm vs Da', () => {
     expect(massErrorOf(100, 100.0001, 'ppm')).toBeCloseTo(1, 4)
     expect(massErrorOf(100, 100.0001, 'Da')).toBeCloseTo(0.0001, 6)
+  })
+})
+
+describe('buildAnnotationExportCsv', () => {
+  const axis = Float64Array.of(87.0088, 89.0244, 124.0078, 200.0, 267.0739)
+  const intensity = Float32Array.of(10, 20, 30, 0, 50)
+
+  it('exports matched rows with name, exp m/z, matched m/z and mass difference', () => {
+    const { rows } = parseAnnotationCsv(SAMPLE)
+    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm')
+    const csv = buildAnnotationExportCsv(matched, 'ppm')
+    const lines = csv.split('\r\n')
+    expect(lines[0]).toBe(
+      'Name,Candidates,formula_ion,Ion type,Tar. m/z,Matched m/z,Mass Difference (ppm),Avg Intensity',
+    )
+    // Taurine is unmatched at 10 ppm, Inosine matched
+    const dataLines = lines.slice(1)
+    expect(dataLines).toHaveLength(matched.filter((r) => r.matchStatus === 'matched').length)
+    const pyr = dataLines.find((l) => l.startsWith('Pyruvate,'))!
+    expect(pyr).toContain('87.0091')
+    expect(pyr).toContain('87.0088')
+    expect(pyr).toContain('10.00') // avg intensity
+  })
+
+  it('skips unmatched and invalid rows', () => {
+    const csv = `Exp. m/z,Candidate_1\nN/A,Bad\n999.0,FarAway\n87.0091,Pyruvate`
+    const { rows } = parseAnnotationCsv(csv)
+    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm')
+    const out = buildAnnotationExportCsv(matched, 'Da')
+    expect(out).toContain('Mass Difference (Da)')
+    const dataLines = out.split('\r\n').slice(1)
+    expect(dataLines).toHaveLength(1)
+    expect(dataLines[0]!.startsWith('Pyruvate,')).toBe(true)
+  })
+
+  it('quotes cells containing commas or quotes', () => {
+    const csv = `Exp. m/z,Candidate_1\n87.0091,"Citrate/Isocitrate, ion"`
+    const { rows } = parseAnnotationCsv(csv)
+    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm')
+    const out = buildAnnotationExportCsv(matched, 'ppm')
+    expect(out).toContain('"Citrate/Isocitrate, ion"')
+  })
+
+  it('returns only the header when nothing matched', () => {
+    const { rows } = parseAnnotationCsv(SAMPLE)
+    const matched = matchAnnotations(rows, axis, intensity, 0.0001, 'ppm')
+    const out = buildAnnotationExportCsv(matched, 'ppm')
+    expect(out.split('\r\n')).toHaveLength(1)
   })
 })

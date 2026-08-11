@@ -10,14 +10,28 @@
  * selectedMz is derived from selectedMzIndex + mzAxis (continuous only).
  */
 
-import { computed, ref, shallowRef } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { getZarrAccess } from '@/services/zarrAccessApi'
 import {
   ZarrOssStore,
   type MetadataAttrs,
   type DataMode,
+  type ZarrClientSource,
 } from '@/services/zarrOssStore'
+import { createLocalZarrClient } from '@/services/localZarrClient'
 import { ZARR_STORE } from '@/shared/config/defaults'
+
+/**
+ * Local zarr target: read from a static/local URL (e.g. '/combin.zarr'
+ * served from public/) instead of OSS + STS. Passed to init() in place of
+ * a runId. Local datasets use the v1.1 layout (ion_image/ + spectra/
+ * groups, embedded analysis/umap).
+ */
+export interface LocalZarrTarget {
+  kind: 'local'
+  /** URL of the zarr root directory, e.g. '/combin.zarr'. */
+  path: string
+}
 
 // ---- Module-level shared state ----
 
@@ -136,9 +150,6 @@ export function disposeZarrState(): void {
   store?.dispose()
   store = null
 
-  normalizationRequestId++
-  normalizationCache.clear()
-  normalizationPending.clear()
   resetModuleState()
   nMz.value = 0
 }
@@ -331,13 +342,6 @@ export function findClosestPeak(mz: number, tolerance: number): number {
   return -1
 }
 
-const normalizationCache = new Map<'tic' | 'rms', Float32Array>()
-const normalizationPending = new Map<
-  'tic' | 'rms',
-  { store: ZarrOssStore; promise: Promise<Float32Array> }
->()
-let normalizationRequestId = 0
-
 // ---- Main composable ----
 
 export function useZarrIonImage() {
@@ -345,9 +349,6 @@ export function useZarrIonImage() {
   const selectedMzIndex = ref(0)
   const mzTolerance = ref<number>(ZARR_STORE.defaultMzTolerance)
   const ionMatrix = ref<Float32Array | null>(null)
-  const normalizationFactors = shallowRef<Float32Array | null>(null)
-  const normalizationLoading = ref(false)
-  const normalizationError = ref<string | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const ready = ref(false)
@@ -392,57 +393,6 @@ export function useZarrIonImage() {
     loading.value = false
   }
 
-  const loadNormalization = async (mode: 'tic' | 'rms') => {
-    if (!store || !ready.value) return
-    const requestId = ++normalizationRequestId
-    const requestStore = store
-    normalizationFactors.value = null
-    const cached = normalizationCache.get(mode)
-    if (cached) {
-      if (requestId === normalizationRequestId && store === requestStore) {
-        normalizationFactors.value = cached
-      }
-      return
-    }
-    normalizationLoading.value = true
-    normalizationError.value = null
-    try {
-      const pending = normalizationPending.get(mode)
-      let promise = pending && pending.store === requestStore
-        ? pending.promise
-        : null
-      if (!promise) {
-        promise = requestStore.computePixelNormalization(mode)
-        const trackedPromise = promise.finally(() => {
-          if (normalizationPending.get(mode)?.promise === trackedPromise) {
-            normalizationPending.delete(mode)
-          }
-        })
-        normalizationPending.set(mode, { store: requestStore, promise: trackedPromise })
-      }
-      const factors = await promise
-      if (store !== requestStore) return
-      normalizationCache.set(mode, factors)
-      // The computation is independent of the selected m/z. If the user switched
-      // back to Linear while it was running, keep the cache but don't re-apply it.
-      if (requestId !== normalizationRequestId) return
-      normalizationFactors.value = factors
-    } catch (e) {
-      if (store !== requestStore) return
-      normalizationError.value = e instanceof Error ? e.message : String(e)
-      if (requestId !== normalizationRequestId) return
-      normalizationFactors.value = null
-    } finally {
-      if (requestId === normalizationRequestId) normalizationLoading.value = false
-    }
-  }
-  const clearNormalization = () => {
-    normalizationRequestId++
-    normalizationFactors.value = null
-    normalizationError.value = null
-    normalizationLoading.value = false
-  }
-
   const onSpectrumClickByIndex = async (idx: number) => {
     if (!mzAxisRef.value || !ready.value) return
     if (idx < 0 || idx >= mzAxisRef.value.length) return
@@ -455,6 +405,26 @@ export function useZarrIonImage() {
     await loadForMzIndex(idx)
   }
 
+  // ---- Tolerance change → reload current ion image ----
+  // 输入框每按一次键都会触发 update:mzTolerance，因此做 300ms 防抖，
+  // 避免连续请求 OSS chunk。防抖后仅重载当前 m/z，保持当前强度标度。
+  let toleranceTimer: ReturnType<typeof setTimeout> | null = null
+  watch(mzTolerance, () => {
+    if (!ready.value || dataModeRef.value !== 'continuous') return
+    if (selectedMzIndex.value < 0) return
+    if (toleranceTimer) clearTimeout(toleranceTimer)
+    toleranceTimer = setTimeout(() => {
+      loadForMzIndex(selectedMzIndex.value)
+    }, 300)
+  })
+
+  onBeforeUnmount(() => {
+    if (toleranceTimer) {
+      clearTimeout(toleranceTimer)
+      toleranceTimer = null
+    }
+  })
+
   // ---- Processed mode: load pixel spectrum ----
 
   const loadSpectrumForPixel = async (pixelIdx: number) => {
@@ -466,8 +436,8 @@ export function useZarrIonImage() {
 
   // ---- Initialization ----
 
-  const init = async (runId: string) => {
-    if (!runId) return
+  const init = async (target: string | LocalZarrTarget) => {
+    if (typeof target === 'string' && !target) return
     loading.value = true
     error.value = null
     ready.value = false
@@ -475,17 +445,19 @@ export function useZarrIonImage() {
     // Reset all state
     store?.dispose()
     store = null
-    normalizationRequestId++
-    normalizationCache.clear()
-    normalizationPending.clear()
-    normalizationFactors.value = null
-    normalizationError.value = null
     ionMatrix.value = null
     resetModuleState()
 
     try {
-      const access = await getZarrAccess(runId)
-      const s = new ZarrOssStore(access, {
+      const source: ZarrClientSource | Awaited<ReturnType<typeof getZarrAccess>> =
+        typeof target === 'string'
+          ? await getZarrAccess(target)
+          : {
+              client: createLocalZarrClient(target.path),
+              folderPath: '',
+              label: `local:${target.path}`,
+            }
+      const s = new ZarrOssStore(source, {
         intensityChunkCacheSize: ZARR_STORE.intensityChunkCacheSize,
       })
       store = s
@@ -550,11 +522,6 @@ export function useZarrIonImage() {
     // Continuous mode
     onSpectrumClickByIndex,
     loadForMzIndex,
-    loadNormalization,
-    clearNormalization,
-    normalizationFactors,
-    normalizationLoading,
-    normalizationError,
 
     // Processed mode
     selectedPixelIndex,

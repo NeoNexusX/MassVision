@@ -4,6 +4,15 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* 恢复 <i> 斜体：Tailwind v4 preflight 重置了 font-style，
+   且 :root 的 font-synthesis:none 会阻止合成斜体。
+   此处同时还原 font-style 并允许 <i> 合成 italic，
+   无需额外下载 Poppins italic 字体文件。 */
+i {
+  font-style: italic;
+  font-synthesis: style;
+}
+
 :root {
   font-family: 'Poppins', system-ui, sans-serif;
   line-height: 1.5;

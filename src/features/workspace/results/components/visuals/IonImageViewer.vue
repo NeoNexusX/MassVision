@@ -39,7 +39,7 @@
       <!-- 悬停提示 -->
       <div
         v-if="hoverPixel"
-        class="absolute pointer-events-none bg-base-100/90 backdrop-blur-sm text-sm px-2 py-1 rounded shadow border border-base-300 font-mono"
+        class="absolute pointer-events-none bg-base-100/90 backdrop-blur-sm text-base px-2 py-1 rounded shadow border border-base-300 font-mono"
         :style="{ left: hoverPixel.x + 12 + 'px', top: hoverPixel.y + 12 + 'px' }"
       >
         <template v-if="dataMode === 'processed'">
@@ -55,25 +55,25 @@
         class="absolute bottom-2 right-2 flex items-center gap-1 bg-base-100/80 backdrop-blur-sm rounded-lg px-1.5 py-1 border border-base-300"
       >
         <button
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70 text-lg font-bold"
+          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70"
           title="Zoom out"
           @click="zoomOut"
         >
-          −
+          <SvgIcon type="minus" class="w-4 h-4" />
         </button>
-        <span class="text-xs font-mono w-10 text-center text-base-content/60"
+        <span class="text-base font-mono w-10 text-center text-base-content/60"
           >{{ zoom.toFixed(1) }}x</span
         >
         <button
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70 text-lg font-bold"
+          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70"
           title="Zoom in"
           @click="zoomIn"
         >
-          +
+          <SvgIcon type="plus" class="w-4 h-4" />
         </button>
         <button
           v-if="zoom > 1"
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/50 text-xs ml-0.5"
+          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/50 text-base ml-0.5"
           title="Reset zoom"
           @click="resetZoom"
         >
@@ -86,6 +86,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, type PropType } from 'vue'
+import SvgIcon from '@/shared/components/SvgIcon.vue'
 import IonImageToolbar from './IonImageToolbar.vue'
 import { useZoomPan } from '../../composables/useZoomPan'
 import { useCanvasRenderer } from '../../composables/useCanvasRenderer'

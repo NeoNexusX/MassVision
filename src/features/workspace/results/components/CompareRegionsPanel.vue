@@ -77,9 +77,9 @@ function onNoiseFloor(e: Event) {
         :type="expanded ? 'chevron_down' : 'chevron_right'"
         class="w-4 h-4 text-base-content/60"
       />
-      <span class="text-sm font-semibold text-base-content">Compare regions</span>
+      <span class="text-base font-semibold text-base-content">Compare regions</span>
       <!-- Show a compact status when collapsed -->
-      <span v-if="!expanded && comparing" class="ml-auto flex items-center gap-1 text-xs text-base-content/50">
+      <span v-if="!expanded && comparing" class="ml-auto flex items-center gap-1 text-base text-base-content/50">
         <span class="loading loading-spinner loading-xs"></span>
         {{ progress }}%
       </span>
@@ -87,11 +87,11 @@ function onNoiseFloor(e: Event) {
 
     <!-- Expanded content -->
     <div v-if="expanded" class="px-3 pb-2.5 space-y-2">
-      <div v-if="!isComparisonAvailable" class="text-sm text-base-content/60 leading-relaxed">
+      <div v-if="!isComparisonAvailable" class="text-base text-base-content/60 leading-relaxed">
         Region comparison is only available for centroid data
       </div>
       <!-- No regions hint -->
-      <div v-else-if="noRegions" class="text-xs text-base-content/50 leading-relaxed">
+      <div v-else-if="noRegions" class="text-base text-base-content/50 leading-relaxed">
         Run KMeans or create ROIs first to compare two regions.
       </div>
 
@@ -99,10 +99,10 @@ function onNoiseFloor(e: Event) {
       <template v-else-if="isComparisonAvailable">
         <div class="space-y-1.5">
           <div class="flex items-center gap-2">
-            <span class="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[10px] text-white font-bold" :style="{ backgroundColor: colorACss }">A</span>
+            <span class="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-base text-white font-bold" :style="{ backgroundColor: colorACss }">A</span>
             <select
               :value="regionAId ?? ''"
-              class="select select-bordered select-sm flex-1 text-sm"
+              class="select select-bordered select-sm flex-1 text-base"
               :disabled="comparing"
               @change="onRegionA"
             >
@@ -112,10 +112,10 @@ function onNoiseFloor(e: Event) {
           </div>
 
           <div class="flex items-center gap-2">
-            <span class="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[10px] text-white font-bold" :style="{ backgroundColor: colorBCss }">B</span>
+            <span class="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-base text-white font-bold" :style="{ backgroundColor: colorBCss }">B</span>
             <select
               :value="regionBId ?? ''"
-              class="select select-bordered select-sm flex-1 text-sm"
+              class="select select-bordered select-sm flex-1 text-base"
               :disabled="comparing"
               @change="onRegionB"
             >
@@ -127,7 +127,7 @@ function onNoiseFloor(e: Event) {
 
         <!-- Detection rate slider -->
         <div class="space-y-0.5">
-          <div class="flex items-center justify-between text-xs text-base-content/60">
+          <div class="flex items-center justify-between text-base text-base-content/60">
             <span>Min detection rate</span>
             <span class="font-mono text-base-content">{{ minDetectionRate }}%</span>
           </div>
@@ -144,7 +144,7 @@ function onNoiseFloor(e: Event) {
 
         <!-- Noise floor (intensity percentile) slider -->
         <div class="space-y-0.5">
-          <div class="flex items-center justify-between text-xs text-base-content/60">
+          <div class="flex items-center justify-between text-base text-base-content/60">
             <span>Intensity threshold</span>
             <span class="font-mono text-base-content">{{ noiseFloorPercentile }}%</span>
           </div>
@@ -161,7 +161,7 @@ function onNoiseFloor(e: Event) {
 
         <!-- Progress bar -->
         <div v-if="comparing" class="space-y-1">
-          <div class="flex items-center justify-between text-xs text-base-content/60">
+          <div class="flex items-center justify-between text-base text-base-content/60">
             <span class="flex items-center gap-1.5">
               <span class="loading loading-spinner loading-xs"></span>
               Scanning...
@@ -172,7 +172,7 @@ function onNoiseFloor(e: Event) {
         </div>
 
         <!-- Error -->
-        <div v-if="error" class="text-xs text-error flex items-start gap-1.5">
+        <div v-if="error" class="text-base text-error flex items-start gap-1.5">
           <SvgIcon type="error" class="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <span>{{ error }}</span>
         </div>
@@ -181,7 +181,7 @@ function onNoiseFloor(e: Event) {
         <div class="flex gap-2">
           <button
             v-if="!comparing"
-            class="btn btn-sm btn-primary flex-1 gap-1.5"
+            class="btn btn-sm btn-primary flex-1 gap-1.5 text-base"
             :disabled="!canCompare"
             @click="emit('compare')"
           >
@@ -190,7 +190,7 @@ function onNoiseFloor(e: Event) {
           </button>
           <button
             v-else
-            class="btn btn-sm btn-outline flex-1 gap-1.5"
+            class="btn btn-sm btn-outline flex-1 gap-1.5 text-base"
             @click="emit('cancel')"
           >
             <SvgIcon type="close" class="w-4 h-4" />

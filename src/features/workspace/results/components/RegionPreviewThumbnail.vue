@@ -86,12 +86,13 @@ function buildImageData(): ImageData | null {
     buf[off + 3] = 255
   }
 
-  // Confirmed ROIs: colored fill (subtle) + outline (full color). Drawn under
-  // the A/B highlight so the compared regions stay on top.
+  // Confirmed ROIs: same strong fill as the compared regions (KMeans), so all
+  // region types share one visual language in the thumbnail. Drawn under the
+  // A/B highlight so the compared regions stay on top.
   for (const roi of props.rois) {
     const c = hexToRgb(roi.color)
     if (!c) continue
-    paintMask(buf, roi.mask, w, h, c, 0.22, true)
+    paintMask(buf, roi.mask, w, h, c, 0.85, false)
   }
 
   // Compared regions: strong fill, their own identity color. B after A so
@@ -193,8 +194,8 @@ watch(
 <template>
   <div class="border-0 rounded-none bg-transparent overflow-visible">
     <div class="px-3 pt-2 pb-1.5 flex items-center justify-between">
-      <span class="text-sm font-semibold text-base-content">Region preview</span>
-      <span v-if="!hasAnything" class="text-xs text-base-content/40">
+      <span class="text-base font-semibold text-base-content">Region preview</span>
+      <span v-if="!hasAnything" class="text-base text-base-content/40">
         Select regions or draw ROIs
       </span>
     </div>
@@ -206,14 +207,14 @@ watch(
       />
     </div>
     <div v-if="legendA || legendB" class="px-3 pb-2.5 flex flex-wrap gap-x-4 gap-y-1">
-      <span v-if="legendA" class="flex items-center gap-1.5 text-xs text-base-content/80">
+      <span v-if="legendA" class="flex items-center gap-1.5 text-base text-base-content/80">
         <span
           class="w-2.5 h-2.5 rounded-sm border border-base-content/30 shrink-0"
           :style="{ backgroundColor: legendA.css }"
         ></span>
         <span class="truncate max-w-[180px]" :title="legendA.label">{{ legendA.label }}</span>
       </span>
-      <span v-if="legendB" class="flex items-center gap-1.5 text-xs text-base-content/80">
+      <span v-if="legendB" class="flex items-center gap-1.5 text-base text-base-content/80">
         <span
           class="w-2.5 h-2.5 rounded-sm border border-base-content/30 shrink-0"
           :style="{ backgroundColor: legendB.css }"

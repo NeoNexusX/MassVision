@@ -26,6 +26,8 @@ import { useResultMeta } from '@/features/workspace/results/composables/useResul
 import { useRegionComparison } from '@/features/workspace/results/composables/useRegionComparison'
 import { ZARR_STORE } from '@/shared/config/defaults'
 import { rgbCss } from '@/features/workspace/results/utils/regionPalette'
+import { fetchReferenceRois, decodeRleMask } from '@/features/workspace/results/utils/referenceRois'
+import { useToast } from '@/shared/composables/useToast'
 import type { DataMode } from '@/services/zarrOssStore'
 
 interface ResultDetailState {
@@ -38,9 +40,21 @@ interface ResultDetailState {
   status?: string
 }
 
+/**
+ * Local mode: when `localPath` is set (route /workspace/local-result), the
+ * page reads a static/local zarr (v1.1 layout) over HTTP instead of going
+ * through runId → backend STS → OSS. Cloud behavior is unchanged when the
+ * prop is absent.
+ */
+const props = defineProps<{ localPath?: string }>()
+const isLocal = computed(() => !!props.localPath)
+
 const state = history.state as ResultDetailState | null
-const runId = computed(() => state?.runId != null ? String(state.runId) : '')
-const isStale = computed(() => state?.runId == null)
+const runId = computed(() => {
+  if (isLocal.value) return `local:${props.localPath}`
+  return state?.runId != null ? String(state.runId) : ''
+})
+const isStale = computed(() => !isLocal.value && state?.runId == null)
 
 // ---- 元数据 ----
 
@@ -80,11 +94,6 @@ const {
   loading,
   onSpectrumClickByIndex,
   isProcessed,
-  loadNormalization,
-  clearNormalization,
-  normalizationFactors,
-  normalizationLoading,
-  normalizationError,
 } = zarr
 
 // 当前数据模式
@@ -95,28 +104,11 @@ const currentIonMatrix = computed(() =>
   isProcessed.value ? ticMatrix.value : ionMatrix.value,
 )
 
-// 当前显示强度标度对应的图像矩阵；RMS/TIC 仅在用户选择后按需计算
-const normalizedIonMatrix = computed(() => {
-  const matrix = currentIonMatrix.value
-  const factors = normalizationFactors.value
-  if (!matrix || !factors || intensityScale.value === 'linear' || intensityScale.value === 'log') return matrix
-  // Processed 数据本身就是 TIC 图像，不重复对 TIC 做归一化
-  if (isProcessed.value) return matrix
-  const result = new Float32Array(matrix.length)
-  for (let i = 0; i < matrix.length; i++) {
-    const denominator = factors[i]!
-    result[i] = denominator > 0 ? matrix[i]! / denominator : 0
-  }
-  return result
-})
-
-const displaySourceMatrix = computed(() => normalizedIonMatrix.value)
-
 
 // ---- 初始化 ----
 
 watch(runId, (id) => {
-  zarr.init(id)
+  zarr.init(isLocal.value ? { kind: 'local', path: props.localPath! } : id)
 }, { immediate: true })
 
 // 离开页面时释放模块级状态，避免大数组（mzAxis、meanChartData、ticMatrix 等）
@@ -146,7 +138,7 @@ const {
   onStripMouseDown,
   startStripDrag,
   formatVal,
-} = useDisplayRange(displaySourceMatrix, colormap, ionCols, ionRows)
+} = useDisplayRange(currentIonMatrix, colormap, ionCols, ionRows)
 
 // ---- ROI ----
 
@@ -163,17 +155,49 @@ const {
   roiDelete,
   roiClearAll,
   roiReset,
+  roiAddMask,
   onDraftUpdated,
   onDraftCleared,
-} = useResultROI(displaySourceMatrix, ionCols, ionRows)
+} = useResultROI(currentIonMatrix, ionCols, ionRows)
 
 // ---- Overlay ----
 
-const { umapVisible, kmeansVisible, overlayData, overlayLoading, overlayError, clusteringCreating, clusteringComputing, clusteringReady, clusteringRefreshing, umapAlpha, kmeansAlpha, kmeansClusters, kmeansLabelsAvailable, kmeansK, kmeansComputing, selectedKmeansIds, getKmeansLabels, getKmeansDims, setComparisonOverlay, exportUmapPng, exportKmeansPng, toggleOverlay, retryClustering, createClusteringTask, refreshClusteringStatus, runKmeans, toggleKmeansCluster, selectAllKmeansClusters, clearKmeansClusters } = useOverlayData(
+const {
+  umapVisible,
+  kmeansVisible,
+  overlayData,
+  overlayLoading,
+  overlayError,
+  clusteringCreating,
+  clusteringComputing,
+  clusteringReady,
+  clusteringRefreshing,
+  umapAlpha,
+  kmeansAlpha,
+  kmeansClusters,
+  kmeansLabelsAvailable,
+  kmeansK,
+  kmeansComputing,
+  selectedKmeansIds,
+  getKmeansLabels,
+  getKmeansDims,
+  setComparisonOverlay,
+  exportUmapPng,
+  exportKmeansPng,
+  toggleOverlay,
+  retryClustering,
+  createClusteringTask,
+  refreshClusteringStatus,
+  runKmeans,
+  toggleKmeansCluster,
+  selectAllKmeansClusters,
+  clearKmeansClusters,
+} = useOverlayData(
   runId,
   ionRows,
   ionCols,
   storageMode,
+  { localZarrPath: props.localPath || undefined },
 )
 
 // ---- Region comparison ----
@@ -200,6 +224,7 @@ const {
   cancel: cmpCancel,
   selectMz: cmpSelectMz,
   reset: cmpReset,
+  involvesRoi: cmpInvolvesRoi,
 } = useRegionComparison({
   kmeansClusters,
   kmeansLabelsAvailable,
@@ -207,11 +232,76 @@ const {
   confirmedROIs: confirmedROIs as any,
   ionCols,
   ionRows,
+  dataMode,
   onSelectMzIndex: handleSelectMzIndex,
   setComparisonOverlay,
 })
 
 const cmpThumbnail = computed(() => cmpBuildThumbnailRegions())
+
+// Re-running KMeans always invalidates any existing comparison (clusters may
+// be renumbered), so reset unconditionally. Clearing/deleting ROIs only
+// invalidates the comparison when an ROI was actually one of the compared
+// regions — a KMeans-vs-KMeans comparison is unaffected and should survive.
+function handleRunKmeans(k: number) {
+  cmpReset()
+  return runKmeans(k)
+}
+
+function handleRoiClearAll() {
+  if (cmpInvolvesRoi()) cmpReset()
+  roiClearAll()
+}
+
+function handleRoiDelete(id: string) {
+  if (cmpInvolvesRoi()) cmpReset()
+  roiDelete(id)
+}
+
+// ---- Reference ROI import (local mode) ----
+
+const { showToast } = useToast()
+
+/**
+ * Import pre-computed reference regions (e.g. the pathology annotation
+ * converted by scripts/figMaskToRois.mjs) from
+ * `reference/<dataset>.rois.json` and register them as confirmed ROIs so
+ * they feed the region-comparison flow. Labels already present are
+ * skipped, making re-import idempotent.
+ */
+async function importReferenceRois() {
+  if (!isLocal.value || !props.localPath) return
+  const dataset = props.localPath.replace(/\/+$/, '').split('/').pop()!.replace(/\.zarr$/i, '')
+  const url = `${import.meta.env.BASE_URL}reference/${dataset}.rois.json`.replace(/\/+/g, '/')
+  try {
+    const file = await fetchReferenceRois(url)
+    if (file.grid.width !== ionCols.value || file.grid.height !== ionRows.value) {
+      throw new Error(
+        `grid mismatch: file is ${file.grid.width}×${file.grid.height}, dataset is ${ionCols.value}×${ionRows.value}`,
+      )
+    }
+    const existing = new Set(confirmedROIs.value.map((r) => r.label))
+    let added = 0
+    for (const entry of file.rois) {
+      if (existing.has(entry.label)) continue
+      const mask = decodeRleMask(entry.mask_rle, file.grid.width, file.grid.height)
+      if (roiAddMask(mask, entry.label, entry.color)) added++
+    }
+    const iou = file.alignment?.iou
+    showToast(
+      added
+        ? `Imported ${added} reference ROI${added > 1 ? 's' : ''}${iou ? ` (alignment IoU ${iou})` : ''}.`
+        : 'Reference ROIs already imported.',
+      added ? 'success' : 'info',
+    )
+  } catch (e) {
+    console.error('[ResultDetail] reference ROI import failed:', e)
+    showToast(
+      `Reference ROI import failed: ${e instanceof Error ? e.message : String(e)}`,
+      'error',
+    )
+  }
+}
 
 const compareColumnRef = ref<HTMLElement | null>(null)
 const compareColumnHeight = ref<number | null>(null)
@@ -261,12 +351,7 @@ const selectedPixelCoord = computed(() => {
 
 // ---- 事件处理 ----
 
-/**
- * 切换 m/z：直接加载新离子的 slice，保持当前强度标度。
- * RMS/TIC 归一化因子是 per-pixel、跨所有离子计算的，与当前 ion 无关，
- * 因此切 m/z 时无需回到 linear--缓存的归一化因子会通过 normalizedIonMatrix
- * 自动套用到新离子图上，不重新计算。
- */
+/** 切换 m/z：直接加载新离子的 slice，保持当前强度标度。 */
 async function handleSelectMzIndex(idx: number) {
   await onSpectrumClickByIndex(idx)
 }
@@ -333,7 +418,7 @@ async function onSelectPixel(col: number, row: number) {
     <template #main>
       <IonImageSection
         :is-stale="isStale"
-        :ion-matrix="displaySourceMatrix"
+        :ion-matrix="currentIonMatrix"
         :display-matrix="displayMatrix"
         :selected-mz="selectedMz"
         :mz-tolerance="mzTolerance"
@@ -354,14 +439,9 @@ async function onSelectPixel(col: number, row: number) {
         :data-mode="dataMode"
         :selected-pixel-coord="selectedPixelCoord"
         :ion-loading="loading"
-        :normalization-loading="normalizationLoading"
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
-        @update:intensity-scale="async (value) => {
-          intensityScale = value
-          if (value === 'rms' || value === 'tic') await loadNormalization(value)
-          else clearNormalization()
-        }"
+        @update:intensity-scale="intensityScale = $event"
         @reset-controls="resetControls"
         @reset-range="resetRange"
         @strip-ref="setStripRef"
@@ -407,11 +487,14 @@ async function onSelectPixel(col: number, row: number) {
             @cancel="cmpCancel"
           >
             <template #preview>
+              <!-- Only the selected A/B regions are drawn (clusters or ROIs).
+                   Unselected confirmed ROIs are NOT shown, so the thumbnail
+                   stays focused on the current comparison. -->
               <RegionPreviewThumbnail
-                v-if="kmeansLabelsAvailable && cmpThumbnail"
+                v-if="cmpThumbnail"
                 :a="cmpThumbnail.a"
                 :b="cmpThumbnail.b"
-                :rois="confirmedROIs as any"
+                :rois="[]"
                 :matrix="currentIonMatrix"
                 :width="cmpThumbnail.dims.width"
                 :height="cmpThumbnail.dims.height"
@@ -469,6 +552,7 @@ async function onSelectPixel(col: number, row: number) {
             :kmeans-computing="kmeansComputing"
             :selected-kmeans-ids="selectedKmeansIds"
             :storage-mode="storageMode"
+            :local="isLocal"
             :roi-tool="roiTool"
             :draft-ready="draftReady"
             :viewing-roi="viewingROI"
@@ -481,15 +565,16 @@ async function onSelectPixel(col: number, row: number) {
             @toggle-kmeans-cluster="toggleKmeansCluster"
             @kmeans-select-all="selectAllKmeansClusters"
             @kmeans-clear-all="clearKmeansClusters"
-            @run-kmeans="runKmeans"
+            @run-kmeans="handleRunKmeans"
             @export-umap="exportUmapPng"
             @export-kmeans="exportKmeansPng"
             @update:roi-tool="roiSelectTool"
             @roi-confirm="roiConfirm"
             @roi-cancel="roiCancel"
-            @roi-delete="roiDelete"
-            @roi-clear-all="roiClearAll"
+            @roi-delete="handleRoiDelete"
+            @roi-clear-all="handleRoiClearAll"
             @roi-reset="roiReset"
+            @import-reference-rois="importReferenceRois"
             @update:gamma="gamma = $event"
           />
         </template>

@@ -27,8 +27,8 @@ export const ZARR_STORE = {
   mzChunkCacheSize: 5,
   /** 默认 m/z 容差 */
   defaultMzTolerance: 0.05,
-  /** m/z 容差取值范围：最小 0.00001，最大 1 */
-  minMzTolerance: 0.00001,
+  /** m/z 容差取值范围：最小 0.001，最大 1 */
+  minMzTolerance: 0.001,
   maxMzTolerance: 1,
 } as const
 

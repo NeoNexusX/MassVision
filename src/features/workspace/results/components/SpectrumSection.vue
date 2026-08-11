@@ -135,19 +135,19 @@ const currentStats = computed(() =>
   <div class="shrink-0 h-56 lg:h-[19rem] card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col">
     <div
       v-if="isStale"
-      class="flex-1 flex items-center justify-center text-base-content/40 text-lg"
+      class="flex-1 flex items-center justify-center text-base-content/40 text-xl"
     >
       No spectrum data available
     </div>
     <div
       v-else-if="dataMode === 'processed' && !pixelSpectrum"
-      class="flex-1 flex items-center justify-center text-base-content/40 text-lg"
+      class="flex-1 flex items-center justify-center text-base-content/40 text-xl"
     >
       <template v-if="pixelSpectrumLoading">
         <span class="loading loading-spinner loading-lg text-primary mr-3"></span>
         <div class="text-center">
           <div>Loading spectrum...</div>
-          <div class="text-sm text-base-content/40 mt-1">First load may take a moment while fetching data</div>
+          <div class="text-base text-base-content/40 mt-1">First load may take a moment while fetching data</div>
         </div>
       </template>
       <template v-else>
@@ -171,7 +171,7 @@ const currentStats = computed(() =>
   </div>
 
   <!-- 底部统计信息 -->
-  <div class="shrink-0 flex flex-wrap gap-4 text-base lg:text-lg text-base-content/60 pl-4 pr-1">
+  <div class="shrink-0 flex flex-wrap gap-4 text-lg lg:text-xl text-base-content/60 pl-4 pr-1">
     <span v-for="stat in currentStats" :key="stat.label">
       {{ stat.label }}:
       <strong class="text-base-content font-mono">{{ stat.value }}</strong>
