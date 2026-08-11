@@ -17,7 +17,7 @@ import { test, expect, type Page } from '@playwright/test'
  */
 
 /** 用真实鼠标点击 ECharts 谱图 canvas */
-async function clickSpectrum(page: Page) {
+async function clickSpectrum(page: Page, xRatio = 0.6) {
   // 从 Average Spectrum 标题找到谱图容器
   const heading = page.getByRole('heading', { name: 'Average Spectrum' })
   // 结构：h3 → div → div.header → div.root → .overflow-hidden
@@ -27,11 +27,10 @@ async function clickSpectrum(page: Page) {
   if (!box) throw new Error('Spectrum chart bounding box not found')
 
   // grid.left=64，点中心偏右
-  await page.mouse.click(box.x + box.width * 0.6, box.y + box.height * 0.4)
+  await page.mouse.click(box.x + box.width * xRatio, box.y + box.height * 0.4)
 }
 
 test.describe('Result Detail', () => {
-
   test('shows stale state when accessed directly', async ({ page }) => {
     await page.goto('/workspace/results')
     await expect(page.getByText('No result selected')).toBeVisible()
@@ -40,8 +39,10 @@ test.describe('Result Detail', () => {
   test('loads ion image, spectrum, metadata, and responds to click', async ({ page }) => {
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
-    await expect(page.locator('table tbody tr').first().locator('td').first())
-      .not.toHaveText('Loading...', { timeout: 10_000 })
+    await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
+      'Loading...',
+      { timeout: 10_000 },
+    )
 
     const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
@@ -66,24 +67,30 @@ test.describe('Result Detail', () => {
     await expect(page.getByText('Analyzer')).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 10_000 })
 
-    // 用真实鼠标点击谱图选 m/z
+    // 用真实鼠标点击谱图两处，确认选中的真实 m/z 确实发生变化。
+    const selectedMz = page.getByTestId('selected-mz')
     await page.waitForTimeout(1000)
-    await clickSpectrum(page)
-    await page.waitForTimeout(1000)
-    // 等 ion image 响应（如果有变化会重新加载）
-    await expect(page.getByText('Loading ion image...')).not.toBeVisible()
-    await page.waitForTimeout(1000)
+    await clickSpectrum(page, 0.2)
+    const firstSelectedMz = await selectedMz.innerText()
+    await clickSpectrum(page, 0.8)
+    await expect(selectedMz).not.toHaveText(firstSelectedMz, { timeout: 10_000 })
+    // 等 ion image 响应完成，并确认没有进入显式错误态。
+    await expect(page.getByTestId('ion-image-section')).toHaveAttribute('data-loading', 'false', {
+      timeout: 30_000,
+    })
+    await expect(page.getByText(/Failed to (load|update) ion image/)).not.toBeVisible()
 
-    // 确认点击后页面没崩：谱图在、ion image 没退到 Loading
+    // 确认点击后页面没崩：谱图仍在。
     await expect(page.getByRole('heading', { name: 'Average Spectrum' })).toBeVisible()
-    await expect(page.getByText('Loading ion image...')).not.toBeVisible()
   })
 
   test('switches colormap and keeps ion image stable', async ({ page }) => {
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
-    await expect(page.locator('table tbody tr').first().locator('td').first())
-      .not.toHaveText('Loading...', { timeout: 10_000 })
+    await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
+      'Loading...',
+      { timeout: 10_000 },
+    )
 
     const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
@@ -109,21 +116,20 @@ test.describe('Result Detail', () => {
 // 不检查这一行是不是本次测试创建的，只按"最新一行"删，单独运行本文件时有误删真实数据的风险。
 
 test.describe('Cleanup', () => {
-
   test('delete completed result', async ({ page }) => {
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
-    await expect(page.locator('table tbody tr').first().locator('td').first())
-      .not.toHaveText('Loading...', { timeout: 10_000 })
+    await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
+      'Loading...',
+      { timeout: 10_000 },
+    )
 
     const openModal = page.locator('dialog.modal-open')
     if (await openModal.isVisible().catch(() => false)) {
       await openModal.getByRole('button').first().click()
     }
 
-    await page.locator('table tbody tr').first()
-      .getByRole('button', { name: 'Delete' })
-      .click()
+    await page.locator('table tbody tr').first().getByRole('button', { name: 'Delete' }).click()
 
     await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
     await expect(page.locator('.toast')).toContainText('Result deleted', { timeout: 10_000 })

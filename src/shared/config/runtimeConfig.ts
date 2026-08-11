@@ -374,6 +374,12 @@ export interface GithubHeatmapConfig {
   orientation?: 'auto' | 'horizontal' | 'vertical'
 }
 
+/** Result 页面可独立关闭的功能。缺省时均启用，以兼容旧配置。 */
+export interface ResultFeatureConfig {
+  compare?: boolean
+  annotation?: boolean
+}
+
 /** config.json 的结构 */
 export interface AppConfig {
   /** 应用名称 */
@@ -392,6 +398,8 @@ export interface AppConfig {
     /** 联动单元列表，按序对应画廊从左到右的图片 */
     items: FeatureItem[]
   }
+  /** Result 页面功能开关 */
+  resultFeatures?: ResultFeatureConfig
   /** 版本时间线；缺省或为空时不显示时间线区域 */
   timeline?: TimelineItem[]
   /** 分页 */
@@ -459,12 +467,10 @@ export async function loadConfig(): Promise<AppConfig> {
   _config = (await res.json()) as AppConfig
   _config.hero ??= { taglines: [], gallery: [] }
   _config.features ??= { items: [] }
+  _config.resultFeatures ??= { compare: true, annotation: true }
+  _config.resultFeatures.compare ??= true
+  _config.resultFeatures.annotation ??= true
   _config.timeline ??= []
-  // 兼容旧格式：nav 曾是 NavItem[]（纯抽屉菜单），自动包装为统一配置
-  const rawNav = (_config as { nav?: unknown }).nav
-  if (Array.isArray(rawNav)) {
-    _config.nav = { mode: 'drawer', items: rawNav as NavItem[], userMenu: [], guestLinks: [] }
-  }
   _config.nav ??= { items: [], userMenu: [], guestLinks: [] }
   _config.fab ??= { main: { iconClosed: 'home', iconOpen: 'close' }, items: [] }
   return _config

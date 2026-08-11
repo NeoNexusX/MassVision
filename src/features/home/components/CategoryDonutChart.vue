@@ -5,7 +5,7 @@ import { PieChart } from 'echarts/charts'
 import { TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { useTheme } from '@/shared/composables/useTheme'
-import type { DatasetCategoryItem } from '../api/statsApi'
+import type { DatasetCategoryItem } from '@/features/home/types/stats'
 
 echarts.use([PieChart, TooltipComponent, CanvasRenderer])
 

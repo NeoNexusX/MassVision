@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { AdminUser, UserQuotaLimits } from '@/features/users/api/userAdminApi'
+import type { AdminUser, UserQuotaLimits } from '@/features/users/types/user'
 import { getRegionName } from '@/shared/utils/regionOptions'
 
 defineProps<{

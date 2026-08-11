@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
-import { authStorage } from '@/features/auth/services/authStorage'
-import { useAuthStore } from '@/features/auth/stores/authStore'
+import { authStorage } from '@/shared/auth/authStorage'
+import { useAuthStore } from '@/shared/auth/authStore'
 
 const routes = [
   {
@@ -22,6 +22,11 @@ const routes = [
   {
     path: '/overview',
     name: 'DatasetOverview',
+    component: () => import('../views/DatasetOverviewView.vue'),
+  },
+  {
+    path: '/s/:encodedId',
+    name: 'SharedDatasetOverview',
     component: () => import('../views/DatasetOverviewView.vue'),
   },
   {
@@ -112,11 +117,10 @@ router.beforeEach(async (to, from, next) => {
   if (authRequired && loggedIn) {
     const auth = useAuthStore()
     if (!auth.user) {
-      try {
-        await auth.fetchUser()
-      } catch {
-        // Token expired/invalid — clear and redirect to login
-        authStorage.clearAuthData()
+      // fetchUser never throws: on 401 it logs out and clears the token, so
+      // re-check the token afterwards instead of relying on try/catch.
+      await auth.fetchUser()
+      if (!auth.token) {
         return next({ path: '/login', query: { redirect: to.fullPath } })
       }
     }

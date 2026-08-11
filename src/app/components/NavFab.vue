@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { User } from '@/features/auth/types/auth'
+import type { User } from '@/shared/auth/types'
 import type { IconType } from '@/shared/components/svgIcons'
 import { getConfig, isNavVisible } from '@/shared/config/runtimeConfig'
 import type { FabActionKind, FabItem, NavVisibility } from '@/shared/config/runtimeConfig'

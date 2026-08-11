@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { authStorage } from '@/features/auth/services/authStorage'
-import { getCurrentUser, logoutApi } from '@/features/auth/api/authApi'
+import { authStorage } from './authStorage'
+import { getCurrentUser, logoutApi } from './authApi'
 
 interface User {
   username: string

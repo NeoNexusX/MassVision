@@ -229,7 +229,7 @@ function cancelEnable() {
           class="btn btn-sm flex-1 text-base rounded-lg transition-colors"
           :class="
             !computationEnabled || !clusteringReady
-              ? 'bg-base-200 dark:bg-base-300 text-base-content/40 border-base-300 dark:border-base-400 cursor-not-allowed'
+              ? 'bg-base-200 dark:bg-base-300 text-base-content/40 border-base-300 dark:border-base-content/30cursor-not-allowed'
               : umapVisible
                 ? 'bg-teal-500 text-white border-teal-500'
                 : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-200 dark:hover:bg-teal-900'

@@ -1,5 +1,5 @@
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/features/auth/stores/authStore'
+import { useAuthStore } from '@/shared/auth/authStore'
 import { useToast } from '@/shared/composables/useToast'
 
 /**

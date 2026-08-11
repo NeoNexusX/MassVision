@@ -6,9 +6,8 @@ import {
   getAnalyzerStats,
   getPlatformOverview,
   getVisitsStats,
-  type DatasetCategoryItem,
-  type DatasetCategoryStats,
 } from '../api/statsApi'
+import type { DatasetCategoryItem, DatasetCategoryStats } from '@/features/home/types/stats'
 
 /**
  * 首页统计的响应式状态封装。

@@ -1,5 +1,5 @@
 import { onMounted, type Ref } from 'vue'
-import type { useAuthStore } from '@/features/auth/stores/authStore'
+import type { useAuthStore } from '@/shared/auth/authStore'
 
 type FetchFiles = (opts?: { page?: number; size?: number }) => Promise<void>
 type ApplyFilters = (payload: Record<string, any>) => void

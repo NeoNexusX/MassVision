@@ -1,6 +1,6 @@
 import { computed, onMounted, reactive, ref, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/features/auth/stores/authStore'
+import { useAuthStore } from '@/shared/auth/authStore'
 import { useToast } from '@/shared/composables/useToast'
 import { buildPageList } from '@/shared/utils/pagination'
 import { getConfig } from '@/shared/config/runtimeConfig'
@@ -9,10 +9,8 @@ import {
   listAdminUsers,
   updateUserQuota,
   getUsersClassification,
-  type AdminUser,
-  type UserListFilters,
-  type UserQuotaLimits,
 } from '@/features/users/api/userAdminApi'
+import type { AdminUser, UserListFilters, UserQuotaLimits } from '@/features/users/types/user'
 
 export function useUserManagement() {
   // External composables

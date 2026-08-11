@@ -10,7 +10,7 @@
  */
 
 import type OSS from 'ali-oss'
-import type { ZarrAccessResponse } from './zarrAccessApi'
+import type { ZarrAccessResponse } from './types/zarr'
 
 /** Unified error type; the UI layer switches on `.code` to render a hint. */
 export class OssError extends Error {

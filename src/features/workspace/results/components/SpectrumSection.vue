@@ -7,14 +7,14 @@ import {
   spectrumLoading,
   spectrumError,
   nMz,
-  findClosestPeak,
+  findClosestMzIndex,
   loadMeanSpectrum,
   pixelSpectrum,
   pixelSpectrumLoading,
   pixelSpectrumError,
   loadPixelSpectrum,
 } from '@/features/workspace/results/composables/useZarrIonImage'
-import type { DataMode } from '@/services/zarrOssStore'
+import type { DataMode } from '@/services/zarr/types/zarr'
 
 const props = defineProps<{
   isStale?: boolean
@@ -40,8 +40,8 @@ const totalPeaks = computed(() =>
   mzAxisRef.value ? mzAxisRef.value.length.toLocaleString() : '--',
 )
 
-function onSelectMz(mz: number, tolerance: number) {
-  const idx = findClosestPeak(mz, tolerance)
+function onSelectMz(mz: number) {
+  const idx = findClosestMzIndex(mz)
   if (idx >= 0) emit('select-mz-index', idx)
 }
 
@@ -132,7 +132,10 @@ const currentStats = computed(() =>
 </script>
 
 <template>
-  <div class="shrink-0 h-56 lg:h-[19rem] card bg-base-100 border border-base-200 rounded-xl p-4 flex flex-col">
+  <!-- 桌面端在首屏剩余空间内与离子图按 2:5 分高，并允许随视口收缩。 -->
+  <div
+    class="shrink-0 lg:h-auto lg:min-h-0 lg:flex-[2_1_0%] lg:shrink card bg-base-100 border-2 border-base-content/30 p-2 flex flex-col"
+  >
     <div
       v-if="isStale"
       class="flex-1 flex items-center justify-center text-base-content/40 text-lg"
@@ -147,12 +150,12 @@ const currentStats = computed(() =>
         <span class="loading loading-spinner loading-lg text-primary mr-3"></span>
         <div class="text-center">
           <div>Loading spectrum...</div>
-          <div class="text-sm text-base-content/40 mt-1">First load may take a moment while fetching data</div>
+          <div class="text-sm text-base-content/40 mt-1">
+            First load may take a moment while fetching data
+          </div>
         </div>
       </template>
-      <template v-else>
-        Click a pixel on the TIC image to view its spectrum
-      </template>
+      <template v-else> Click a pixel on the TIC image to view its spectrum </template>
     </div>
     <AverageSpectrum
       v-else

@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
-import { getUserQuota, type UserQuota } from '@/features/datasets/api/datasetApi'
+import { getUserQuota } from '@/shared/api/quotaApi'
+import type { UserQuota } from '@/shared/types/quota'
 import { formatBytes } from '@/shared/utils/format'
 
 const GB = 1024 ** 3

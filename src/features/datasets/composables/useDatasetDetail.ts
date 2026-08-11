@@ -1,6 +1,11 @@
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getFileMetadata, getFileImages, pickImageUrl, setFilePublic } from '@/features/datasets/api/datasetApi'
+import { getFileMetadata, getFileImages, setFilePublic } from '@/features/datasets/api/datasetApi'
+import {
+  getSharedOverviewImages,
+  getSharedOverviewMetadata,
+} from '@/features/datasets/api/overviewShareApi'
+import { pickImageUrl } from '@/features/datasets/utils/imageUtils'
 import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
 import type { File } from '@/features/datasets/types/dataset'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
@@ -9,6 +14,7 @@ import { formatBytes } from '@/shared/utils/format'
 import { extractBackendError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
 import { useRequireAuth } from '@/shared/composables/useRequireAuth'
+import { useOverviewShare } from '@/features/datasets/composables/useOverviewShare'
 
 export function useDatasetDetail() {
   const router = useRouter()
@@ -25,14 +31,24 @@ export function useDatasetDetail() {
   const ticImageUrl = ref<string>('')
   const ticImageError = ref(false)
 
-  const source = computed(() => state?.source || 'my')
+  const { isShareView, sharedFileId, isShareCopied, shareCurrent } =
+    useOverviewShare(dataset)
+  const fileId = computed(() => {
+    if (isShareView.value) return sharedFileId.value ?? ''
+    return state?.fileId != null ? String(state.fileId) : ''
+  })
+  // A shared link always uses the anonymous public client, even if the viewer
+  // happens to be signed in. The backend remains responsible for is_public.
+  const source = computed<'my' | 'public'>(() =>
+    isShareView.value ? 'public' : state?.source || 'my',
+  )
   const isPublic = computed(() => source.value === 'public')
-  /** 刷新后 history.state 丢失，此时应提示用户从列表页重新进入 */
-  const isStale = computed(() => !state?.fileId)
+  /** Normal entry needs history state; shared entry needs a valid encoded id. */
+  const isStale = computed(() => !fileId.value)
 
   // Computed
   const placeholderSvg = computed(() => {
-    const targetId = state?.fileId || (dataset.value?.filename as string)
+    const targetId = fileId.value || (dataset.value?.filename as string)
     return getDatasetPlaceholderSvg({
       id: targetId,
       showGuides: true,
@@ -118,21 +134,27 @@ export function useDatasetDetail() {
   }
 
   const fetchDatasetDetails = async () => {
-    const fileId = state?.fileId
-    if (!fileId) {
+    const targetFileId = fileId.value
+    if (!targetFileId) {
+      dataset.value = null
+      ticImageUrl.value = ''
       loading.value = false
       return
     }
 
     loading.value = true
     try {
-      const metadata = await getFileMetadata(fileId, isPublic.value)
+      const metadata = isShareView.value
+        ? await getSharedOverviewMetadata(targetFileId)
+        : await getFileMetadata(targetFileId, isPublic.value)
       dataset.value = metadata ? mapItemToDataset(metadata) : null
       // Fetch TIC image after dataset is loaded
       if (dataset.value?.id) {
         try {
           ticImageError.value = false
-          const images = await getFileImages(dataset.value.id, isPublic.value)
+          const images = isShareView.value
+            ? await getSharedOverviewImages(dataset.value.id)
+            : await getFileImages(dataset.value.id, isPublic.value)
           ticImageUrl.value = pickImageUrl(images)
         } catch {
           ticImageUrl.value = ''
@@ -147,21 +169,23 @@ export function useDatasetDetail() {
     }
   }
 
-  // Lifecycle
-  onMounted(fetchDatasetDetails)
+  watch([fileId, isPublic], fetchDatasetDetails, { immediate: true })
 
   return {
     source,
+    isShareView,
     isStale,
     dataset,
     loading,
     isCopied,
+    isShareCopied,
     ticImageUrl,
     ticImageError,
     placeholderSvg,
     formatSize: formatBytes,
     formatString,
     copyHash,
+    shareCurrent,
     goBack,
     downloadCurrent,
     isPacking,
