@@ -201,25 +201,25 @@ function onFilterChange(e: Event) {
 <template>
   <div
     class="w-full rounded-xl border-2 border-base-content/30 bg-base-100 overflow-hidden flex flex-col self-stretch"
-        :class="expanded ? 'h-full min-h-0' : 'h-auto self-start'"
+    :class="expanded ? 'h-full min-h-0' : 'h-auto min-h-0 self-start'"
   >
     <!-- Collapsible header bar -->
     <div
-      class="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-base-200/60 select-none"
+      class="flex min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap px-4 py-2 cursor-pointer hover:bg-base-200/60 select-none"
       @click.stop="toggle"
     >
       <SvgIcon
         :type="expanded ? 'chevron_down' : 'chevron_right'"
         class="w-4 h-4 text-base-content/60"
       />
-      <span class="text-sm font-semibold text-base-content">Comparison results</span>
-      <span class="text-base text-base-content">
+      <span class="shrink-0 text-sm font-semibold text-base-content">Comparison results</span>
+      <span class="shrink-0 text-sm text-base-content">
         {{ results.length }} ions
       </span>
-      <span v-if="!results.length" class="text-base text-base-content">
+      <span v-if="!results.length" class="min-w-0 truncate text-sm text-base-content">
         Select two regions and click Compare to view comparison results.
       </span>
-      <span v-if="filterStats.filtered > 0" class="text-base text-base-content">
+      <span v-if="filterStats.filtered > 0" class="min-w-0 truncate text-sm text-base-content">
         ({{ filterStats.filtered }} filtered from {{ filterStats.total }})
       </span>
     </div>

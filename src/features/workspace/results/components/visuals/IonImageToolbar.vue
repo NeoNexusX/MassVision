@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-wrap items-center gap-3 mb-3 pt-1">
+  <div class="flex flex-wrap items-center gap-3 mb-1 pt-1">
     <div>
       <h3 class="text-lg font-semibold">{{ title }}</h3>
     </div>
@@ -9,8 +9,10 @@
         v-if="dataMode === 'continuous'"
         class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-base h-8 flex items-center"
       >
-        <span class="text-base-content/50">m/z&nbsp;</span>
-        <span class="font-mono font-semibold">{{ selectedMz.toFixed(4) }}</span>
+        <span class="text-base-content/50"><i>m</i>/<i>z</i> :&nbsp;</span>
+        <span data-testid="selected-mz" class="font-mono font-semibold">{{
+          selectedMz.toFixed(4)
+        }}</span>
       </div>
       <!-- 像素坐标显示（processed 模式） -->
       <div
@@ -57,7 +59,11 @@
         <option value="log">Log</option>
       </select>
       <button class="btn btn-sm btn-ghost text-base" @click="$emit('reset')">Reset</button>
-      <button class="btn btn-sm btn-ghost text-base gap-1" title="Export current view as PNG" @click="$emit('download')">
+      <button
+        class="btn btn-sm btn-ghost text-base gap-1"
+        title="Export current view as PNG"
+        @click="$emit('download')"
+      >
         <SvgIcon type="download" class="w-4 h-4" />
         PNG
       </button>

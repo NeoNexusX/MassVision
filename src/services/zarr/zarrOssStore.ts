@@ -34,7 +34,6 @@ import type {
   RootAttrs,
   DataAttrs,
   MetadataAttrs,
-  IonImageInfo,
   PixelSpectrum,
 } from './types/zarr'
 import type { ZarrV3ArrayMetadata, ZarrV3GroupMetadata } from './types/zarrV3'
@@ -69,8 +68,10 @@ export class ZarrOssStore {
 
   // Fully loaded small arrays (cached after first load)
   private coordinates: Uint32Array | null = null
+  private coordinatesPending: Promise<Uint32Array> | null = null
   private mzAxis: Float64Array | null = null
-  private _offsets: number[] | null = null   // converted from int64
+  private _offsets: number[] | null = null // converted from int64
+  private offsetsPending: Promise<number[]> | null = null
   private meanSpectrum: Float32Array | null = null
   private ticData: Float64Array | null = null
 
@@ -96,9 +97,7 @@ export class ZarrOssStore {
     this.intensityChunkCache = new LruCache<number, Float32Array>(
       options.intensityChunkCacheSize ?? 20,
     )
-    this.mzChunkCache = new LruCache<number, Float64Array>(
-      options.mzChunkCacheSize ?? 5,
-    )
+    this.mzChunkCache = new LruCache<number, Float64Array>(options.mzChunkCacheSize ?? 5)
   }
 
   /**
@@ -112,13 +111,14 @@ export class ZarrOssStore {
     this.inFlightIntensity.clear()
     this.inFlightMz.clear()
     this.coordinates = null
+    this.coordinatesPending = null
     this.mzAxis = null
     this._offsets = null
+    this.offsetsPending = null
     this.meanSpectrum = null
     this.ticData = null
     this._metadataAttrs = null
   }
-
 
   // ========== public accessors ==========
 
@@ -183,33 +183,56 @@ export class ZarrOssStore {
     //    保持原语义：processed 缺 data/mz、continuous 缺 axes/mz 属致命错误；
     //    metadata / stats 为非致命，缺失只记日志不抛。
     const [
-      intensityMeta, offsetsMeta, coordinatesMeta,
-      metadataResult, meanSpectrumResult, modeArrayResult, statsResult,
+      intensityMeta,
+      offsetsMeta,
+      coordinatesMeta,
+      metadataResult,
+      meanSpectrumResult,
+      modeArrayResult,
+      statsResult,
     ] = await Promise.all([
       // 必备：data 子数组（失败以 Error 形式冒泡到下方统一抛出）
-      this.readArrayMeta('data/intensity').then((m) => m, (e) => e as Error),
-      this.readArrayMeta('data/offsets').then((m) => m, (e) => e as Error),
-      this.readArrayMeta('axes/coordinates').then((m) => m, (e) => e as Error),
+      this.readArrayMeta('data/intensity').then(
+        (m) => m,
+        (e) => e as Error,
+      ),
+      this.readArrayMeta('data/offsets').then(
+        (m) => m,
+        (e) => e as Error,
+      ),
+      this.readArrayMeta('axes/coordinates').then(
+        (m) => m,
+        (e) => e as Error,
+      ),
 
       // 非致命：metadata 组
-      this.readJson<ZarrV3GroupMetadata>('metadata/zarr.json')
-        .then((m) => m, () => null as ZarrV3GroupMetadata | null),
+      this.readJson<ZarrV3GroupMetadata>('metadata/zarr.json').then(
+        (m) => m,
+        () => null as ZarrV3GroupMetadata | null,
+      ),
 
       // 非致命：stats/mean_spectrum
-      this.readArrayMeta('stats/mean_spectrum')
-        .then((m) => m, () => null as ZarrV3ArrayMetadata | null),
+      this.readArrayMeta('stats/mean_spectrum').then(
+        (m) => m,
+        () => null as ZarrV3ArrayMetadata | null,
+      ),
 
       // 模式相关（二选一）：processed->data/mz，continuous->axes/mz
       // 只有一个会真正发起请求；缺失属致命错误，下方统一抛。
       (this._dataMode === 'processed'
         ? this.readArrayMeta('data/mz')
         : this.readArrayMeta('axes/mz')
-      ).then((m) => m, (e) => e as Error),
+      ).then(
+        (m) => m,
+        (e) => e as Error,
+      ),
 
       // 非致命：stats/tic（仅 processed）
       this._dataMode === 'processed'
-        ? this.readArrayMeta('stats/tic')
-            .then((m) => m, () => null as ZarrV3ArrayMetadata | null)
+        ? this.readArrayMeta('stats/tic').then(
+            (m) => m,
+            () => null as ZarrV3ArrayMetadata | null,
+          )
         : Promise.resolve(null as ZarrV3ArrayMetadata | null),
     ])
 
@@ -251,7 +274,9 @@ export class ZarrOssStore {
         })
       }
     } else if (import.meta.env.DEV) {
-      console.warn('[ZarrOssStore] mean_spectrum not available - this Zarr file has no pre-computed stats.')
+      console.warn(
+        '[ZarrOssStore] mean_spectrum not available - this Zarr file has no pre-computed stats.',
+      )
     }
 
     // stats/tic（仅 processed，非致命）
@@ -292,10 +317,24 @@ export class ZarrOssStore {
   /** Load pixel coordinates. Shape (n_pixels, 3), dtype uint32, one-based. */
   async loadCoordinates(): Promise<Uint32Array> {
     if (this.coordinates) return this.coordinates
+    if (this.coordinatesPending) return this.coordinatesPending
     if (!this.coordinatesMeta) throw new Error('[ZarrOssStore] call init() first')
-    const ab = await this.fetchArrayFull('axes/coordinates', this.coordinatesMeta)
-    this.coordinates = new Uint32Array(ab)
-    return this.coordinates
+
+    const pending = this.fetchArrayFull('axes/coordinates', this.coordinatesMeta).then((ab) => {
+      const coordinates = new Uint32Array(ab)
+      // A disposed store must not retain a large array after its request finishes.
+      if (!this._disposed) this.coordinates = coordinates
+      return coordinates
+    })
+    this.coordinatesPending = pending
+
+    try {
+      return await pending
+    } finally {
+      // Clear rejected requests so a later call can retry. Do not clear a newer
+      // request if dispose/reinitialization changed the pending reference.
+      if (this.coordinatesPending === pending) this.coordinatesPending = null
+    }
   }
 
   /** Load shared m/z axis (continuous mode only). Returns null for processed mode. */
@@ -307,20 +346,28 @@ export class ZarrOssStore {
     const dtype = this.axesMzMeta.data_type
     const typed = makeTypedArray(dtype, ab)
     this.mzAxis =
-      typed instanceof Float64Array
-        ? typed
-        : new Float64Array(typed as ArrayLike<number>)
+      typed instanceof Float64Array ? typed : new Float64Array(typed as ArrayLike<number>)
     return this.mzAxis
   }
 
   /** Load row offsets. Returns number[] (converted from int64). */
   async loadOffsets(): Promise<number[]> {
     if (this._offsets) return this._offsets
+    if (this.offsetsPending) return this.offsetsPending
     if (!this.offsetsMeta) throw new Error('[ZarrOssStore] call init() first')
-    const ab = await this.fetchArrayFull('data/offsets', this.offsetsMeta)
-    const typed = new BigInt64Array(ab)
-    this._offsets = Array.from(typed, (v) => Number(v))
-    return this._offsets
+
+    const pending = this.fetchArrayFull('data/offsets', this.offsetsMeta).then((ab) => {
+      const offsets = Array.from(new BigInt64Array(ab), (v) => Number(v))
+      if (!this._disposed) this._offsets = offsets
+      return offsets
+    })
+    this.offsetsPending = pending
+
+    try {
+      return await pending
+    } finally {
+      if (this.offsetsPending === pending) this.offsetsPending = null
+    }
   }
 
   /**
@@ -351,46 +398,64 @@ export class ZarrOssStore {
   // ========== data loading: continuous mode (ion image + mean spectrum) ==========
 
   /**
-   * Get a single ion image by m/z axis index.
-   *
-   * For ion-major continuous:
-   *   intensity[offsets[mzIdx] : offsets[mzIdx+1]] has n_pixels values.
-   *   coordinates[j] maps the j-th value to pixel position (x, y).
+   * Sum ion slices in their shared 1D coordinate order, then map the combined
+   * values to a 2D matrix once. A failed or malformed slice is skipped; the
+   * method throws only when no requested slice can be loaded.
    */
-  async getIonImageByMzIndex(mzIndex: number): Promise<IonImageInfo> {
+  async getSummedIonImageByMzIndices(mzIndices: number[]): Promise<Float32Array> {
     if (this._dataMode !== 'continuous') {
-      throw new Error('[ZarrOssStore] getIonImageByMzIndex only available in continuous mode')
-    }
-
-    const offsets = await this.loadOffsets()
-    const mzAxis = await this.loadMzAxis()
-    if (!mzAxis) throw new Error('[ZarrOssStore] m/z axis not available')
-
-    if (mzIndex < 0 || mzIndex >= offsets.length - 1) {
       throw new Error(
-        `[ZarrOssStore] mzIndex out of range: ${mzIndex} (total ${offsets.length - 1} ions)`,
+        '[ZarrOssStore] getSummedIonImageByMzIndices only available in continuous mode',
       )
     }
+    if (!mzIndices.length) throw new Error('[ZarrOssStore] no m/z indices were selected')
 
-    const [height, width] = this.spatialShape
-    const start = offsets[mzIndex]!
-    const end = offsets[mzIndex + 1]!
-    const nPixels = end - start
+    const [offsets, coords] = await Promise.all([this.loadOffsets(), this.loadCoordinates()])
+    const nPixels = coords.length / 3
 
-    // Read the intensity slice for this ion
-    const slice = await this.readIntensitySlice(start, end)
-
-    // Map to 2D via coordinates
-    const coords = await this.loadCoordinates()
-    const matrix = this.mapPixelsToMatrix(slice, nPixels, coords)
-
-    return {
-      mzIndex,
-      mz: mzAxis[mzIndex]!,
-      matrix,
-      width,
-      height,
+    for (const mzIndex of mzIndices) {
+      if (mzIndex < 0 || mzIndex >= offsets.length - 1) {
+        throw new Error(
+          `[ZarrOssStore] mzIndex out of range: ${mzIndex} (total ${offsets.length - 1} ions)`,
+        )
+      }
     }
+
+    const failures: Error[] = []
+    const slices = await Promise.all(
+      mzIndices.map(async (mzIndex) => {
+        try {
+          const start = offsets[mzIndex]!
+          const end = offsets[mzIndex + 1]!
+          if (end - start !== nPixels) {
+            throw new Error(
+              `ion slice length mismatch for mzIndex=${mzIndex}: expected ${nPixels}, got ${end - start}`,
+            )
+          }
+          return await this.readIntensitySlice(start, end)
+        } catch (e) {
+          const failure = e instanceof Error ? e : new Error(String(e))
+          failures.push(failure)
+          console.warn(`[ZarrOssStore] skip mzIndex=${mzIndex}:`, failure.message)
+          return null
+        }
+      }),
+    )
+
+    const sum = new Float32Array(nPixels)
+    let successfulSlices = 0
+    for (const slice of slices) {
+      if (!slice) continue
+      successfulSlices++
+      for (let i = 0; i < nPixels; i++) sum[i]! += slice[i]!
+    }
+
+    if (!successfulSlices) {
+      const detail = failures[0]?.message ?? 'unknown ion-slice error'
+      throw new Error(`Failed to load ion image data: ${detail}`)
+    }
+
+    return this.mapPixelsToMatrix(sum, nPixels, coords)
   }
 
   /**
@@ -412,9 +477,7 @@ export class ZarrOssStore {
     const dtype = this.meanSpectrumMeta.data_type
     const typed = makeTypedArray(dtype, ab)
     this.meanSpectrum =
-      typed instanceof Float32Array
-        ? typed
-        : new Float32Array(typed as ArrayLike<number>)
+      typed instanceof Float32Array ? typed : new Float32Array(typed as ArrayLike<number>)
     return this.meanSpectrum
   }
 
@@ -446,9 +509,7 @@ export class ZarrOssStore {
     const dtype = this.ticMeta.data_type
     const typed = makeTypedArray(dtype, ab)
     this.ticData =
-      typed instanceof Float64Array
-        ? typed
-        : new Float64Array(typed as ArrayLike<number>)
+      typed instanceof Float64Array ? typed : new Float64Array(typed as ArrayLike<number>)
 
     // Map 1D TIC values to 2D image via coordinates
     const coords = await this.loadCoordinates()
@@ -593,9 +654,7 @@ export class ZarrOssStore {
           // Derive the pixel index:
           //   continuous (ion-major): pixelIdx = position within the ion's slice
           //   processed (pixel-major): cursor IS the pixel index
-          const pixelIdx = this._dataMode === 'processed'
-            ? cursor
-            : globalIdx - offsets[cursor]!
+          const pixelIdx = this._dataMode === 'processed' ? cursor : globalIdx - offsets[cursor]!
 
           if (pixelIdx >= 0 && pixelIdx < nPixels) {
             sums[pixelIdx]! += value
@@ -611,9 +670,7 @@ export class ZarrOssStore {
 
     const result = new Float32Array(nPixels)
     for (let i = 0; i < nPixels; i++) {
-      result[i] = mode === 'tic'
-        ? sums[i]!
-        : Math.sqrt(sumSquares![i]! / Math.max(1, counts![i]!))
+      result[i] = mode === 'tic' ? sums[i]! : Math.sqrt(sumSquares![i]! / Math.max(1, counts![i]!))
     }
     return this.mapPixelsToMatrix(result, nPixels, coords)
   }
@@ -661,11 +718,7 @@ export class ZarrOssStore {
   }
 
   /** Find the pixel index closest to a 2D (col, row) position (zero-based). */
-  async findPixelByPosition(
-    col: number,
-    row: number,
-    tolerance: number = 1.5,
-  ): Promise<number> {
+  async findPixelByPosition(col: number, row: number, tolerance: number = 1.5): Promise<number> {
     const coords = await this.loadCoordinates()
     const nPixels = coords.length / 3
     let bestIdx = -1
@@ -714,9 +767,7 @@ export class ZarrOssStore {
     try {
       return JSON.parse(text) as T
     } catch (e) {
-      throw new Error(
-        `[ZarrOssStore] failed to parse JSON at ${key}: ${(e as Error).message}`,
-      )
+      throw new Error(`[ZarrOssStore] failed to parse JSON at ${key}: ${(e as Error).message}`)
     }
   }
 
@@ -811,9 +862,7 @@ export class ZarrOssStore {
     const bpe = bytesPerElement(meta.data_type)
     const isFloat64 = bpe === 8
 
-    const result = isFloat64
-      ? new Float64Array(end - start)
-      : new Float32Array(end - start)
+    const result = isFloat64 ? new Float64Array(end - start) : new Float32Array(end - start)
 
     // Fetch chunks in parallel batches (browser concurrent connection limit
     // per origin, mirroring computeTICImage), then assemble in chunk order.
@@ -941,31 +990,21 @@ export class ZarrOssStore {
     }
 
     // Create typed array (truncated to the valid length when the chunk was padded)
-    const ab = payload.buffer.slice(
-      payload.byteOffset,
-      payload.byteOffset + expectedBytes,
-    )
+    const ab = payload.buffer.slice(payload.byteOffset, payload.byteOffset + expectedBytes)
     const typed = makeTypedArray(meta.data_type, ab as ArrayBuffer)
 
     // Normalize to Float32Array or Float64Array
     if (isFloat64) {
-      return typed instanceof Float64Array
-        ? typed
-        : new Float64Array(typed as ArrayLike<number>)
+      return typed instanceof Float64Array ? typed : new Float64Array(typed as ArrayLike<number>)
     }
-    return typed instanceof Float32Array
-      ? typed
-      : new Float32Array(typed as ArrayLike<number>)
+    return typed instanceof Float32Array ? typed : new Float32Array(typed as ArrayLike<number>)
   }
 
   /**
    * Read a small array in full (for metadata arrays like offsets, coordinates, mz_axis).
    * Downloads all chunks and concatenates (shared zarrCodecs assembler).
    */
-  private async fetchArrayFull(
-    arrayPath: string,
-    meta: ZarrV3ArrayMetadata,
-  ): Promise<ArrayBuffer> {
+  private async fetchArrayFull(arrayPath: string, meta: ZarrV3ArrayMetadata): Promise<ArrayBuffer> {
     const out = await readFullArray(meta, arrayPath, async (coords) => {
       const chunkKey = computeNDChunkKey(meta, coords)
       const raw = await this.oss.getObjectArrayBuffer(this.key(`${arrayPath}/${chunkKey}`))
@@ -986,9 +1025,7 @@ export class ZarrOssStore {
    * (indexed by [row * width + col]) must be converted to this 1D
    * coordinates order so the streaming scan can look up mask[j] in O(1).
    */
-  async buildPixelMask(
-    raster: Uint8Array,
-  ): Promise<{ mask: Uint8Array; pixelCount: number }> {
+  async buildPixelMask(raster: Uint8Array): Promise<{ mask: Uint8Array; pixelCount: number }> {
     const coords = await this.loadCoordinates()
     const [height, width] = this.spatialShape
     const nPixels = coords.length / 3

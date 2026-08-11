@@ -1,3 +1,16 @@
+<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    showLeftPanel?: boolean
+    showCompare?: boolean
+  }>(),
+  {
+    showLeftPanel: true,
+    showCompare: true,
+  },
+)
+</script>
+
 <template>
   <div
     :class="[
@@ -27,6 +40,7 @@
       >
         <!-- 左列 -->
         <div
+          v-if="showLeftPanel"
           :class="[
             // Small screens
             'w-full scrollbar-thin',
@@ -49,19 +63,23 @@
             :class="[
               // Small screens
               'contents',
-              // Desktop
-              'lg:flex lg:min-h-[940px] lg:flex-1 lg:flex-col lg:gap-4',
+              // Desktop: reserve 2.5rem rail + 1rem gap only when Compare is enabled.
+              'lg:flex lg:min-h-0 lg:flex-none lg:flex-col lg:gap-2',
+              showCompare ? 'lg:h-[calc(100%_-_3.5rem)]' : 'lg:h-full',
             ]"
           >
             <slot name="viz"></slot>
           </div>
-          <!-- 桌面端始终只为折叠栏保留 40px；展开内容向下溢出，不参与 viz 的 flex 高度重算。 -->
+          <!-- Compare uses its natural height. Collapsed it is a 2.5rem rail;
+               expanded content extends the middle column's scroll area without
+               resizing the viewport-sized visualization section above it. -->
           <div
+            v-if="showCompare"
             :class="[
               // Small screens
               'contents',
               // Desktop
-              'lg:block lg:h-[40px] lg:min-h-[40px] lg:shrink-0 lg:overflow-visible',
+              'lg:block lg:shrink-0',
             ]"
           >
             <slot name="compare"></slot>

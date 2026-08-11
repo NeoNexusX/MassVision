@@ -43,7 +43,7 @@
       v-else
       data-testid="average-spectrum-chart"
       ref="chartContainerRef"
-      class="flex-1 min-h-0 bg-base-100  overflow-hidden"
+      class="flex-1 min-h-0 bg-base-100 overflow-hidden"
     ></div>
   </div>
 </template>
@@ -63,6 +63,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import type { DataMode } from '@/services/zarr/types/zarr'
 import { useTheme } from '@/shared/composables/useTheme'
 import { resolveSpectrumPalette } from '../../types/spectrumTheme'
+import { findClosestDisplayedMz } from '../../utils/spectrumSelection'
 
 echarts.use([
   LineChart,
@@ -97,8 +98,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  /** continuous 模式：点击谱图上的 m/z 位置 */
-  (e: 'select-mz', mz: number, tolerance: number): void
+  /** continuous 模式：点击谱图后选中最近的真实峰 */
+  (e: 'select-mz', mz: number): void
   (e: 'retry'): void
 }>()
 
@@ -439,18 +440,14 @@ function renderChart() {
       const gridModel = (chartInstance as any).getModel().getComponent('grid', 0)
       const gridRect: { x: number; y: number; width: number; height: number } | undefined =
         gridModel?.coordinateSystem?.getRect?.()
-      const xAxis = (chartInstance as any).getModel().getComponent('xAxis', 0)
-      const axisExtent = xAxis?.axis?.scale?.getExtent?.() as [number, number] | undefined
-
-      if (!gridRect || !axisExtent) return
+      if (!gridRect) return
       if (px < gridRect.x || px > gridRect.x + gridRect.width) return
 
-      const mz =
-        axisExtent[0] + ((px - gridRect.x) / gridRect.width) * (axisExtent[1] - axisExtent[0])
-      if (!Number.isFinite(mz)) return
-
-      const tolerance = ((axisExtent[1] - axisExtent[0]) / gridRect.width) * 10
-      emit('select-mz', mz, tolerance)
+      // Let ECharts perform the inverse coordinate conversion so dataZoom,
+      // value-axis transforms and the current grid geometry are all honoured.
+      const targetMz = Number(chartInstance.convertFromPixel({ xAxisIndex: 0 }, px))
+      const selectedMz = findClosestDisplayedMz(props.chartData, targetMz)
+      if (selectedMz != null) emit('select-mz', selectedMz)
     }
     nativeMouseDownHandler = handleMouseDown
     nativeClickHandler = handleClick

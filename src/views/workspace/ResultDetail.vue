@@ -25,6 +25,7 @@ import { useResultROI } from '@/features/workspace/results/composables/useResult
 import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
 import { useRegionComparison } from '@/features/workspace/results/composables/useRegionComparison'
 import { ZARR_STORE } from '@/shared/config/defaults'
+import { getConfig } from '@/shared/config/runtimeConfig'
 import { rgbCss } from '@/features/workspace/results/utils/regionPalette'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
@@ -41,6 +42,9 @@ interface ResultDetailState {
 const state = history.state as ResultDetailState | null
 const runId = computed(() => (state?.runId != null ? String(state.runId) : ''))
 const isStale = computed(() => state?.runId == null)
+const resultFeatureConfig = getConfig().resultFeatures
+const compareEnabled = resultFeatureConfig?.compare !== false
+const annotationEnabled = resultFeatureConfig?.annotation !== false
 
 // ---- 元数据 ----
 
@@ -77,6 +81,7 @@ const {
   ionCols,
   ionRows,
   loading,
+  error: ionError,
   onSpectrumClickByIndex,
   isProcessed,
   loadNormalization,
@@ -227,6 +232,7 @@ const {
   selectMz: cmpSelectMz,
   reset: cmpReset,
 } = useRegionComparison({
+  enabled: compareEnabled,
   kmeansClusters,
   kmeansLabelsAvailable,
   getKmeansLabels,
@@ -245,7 +251,7 @@ const comparisonExpanded = ref(false)
 
 // 展开 compare 时将中列平滑滚到该区域顶部，展示完整控件和结果。
 watch(comparisonExpanded, async (expanded) => {
-  if (!expanded) return
+  if (!compareEnabled || !expanded) return
   await nextTick()
   compareSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 })
@@ -327,9 +333,13 @@ async function onSelectPixel(col: number, row: number) {
 </script>
 
 <template>
-  <ResultVisualizationLayout>
+  <ResultVisualizationLayout
+    :show-left-panel="annotationEnabled"
+    :show-compare="compareEnabled"
+  >
     <template #left-panel>
       <AnnotationPanel
+        v-if="annotationEnabled"
         v-model:expanded="annotationExpanded"
         :select-mz-index="handleSelectMzIndex"
         :selected-mz-index="selectedMzIndex"
@@ -362,6 +372,7 @@ async function onSelectPixel(col: number, row: number) {
         :data-mode="dataMode"
         :selected-pixel-coord="selectedPixelCoord"
         :ion-loading="loading"
+        :ion-error="ionError"
         :normalization-loading="normalizationLoading"
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
@@ -399,6 +410,7 @@ async function onSelectPixel(col: number, row: number) {
       <!-- Region comparison：左 controls+preview，右结果表。
            桌面端折叠栏保留在首屏，展开后由中列承载滚动。 -->
       <div
+        v-if="compareEnabled"
         ref="compareSectionRef"
         class="w-full flex flex-col items-stretch gap-4 lg:flex-row lg:items-stretch"
       >
