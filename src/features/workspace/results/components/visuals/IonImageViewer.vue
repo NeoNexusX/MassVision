@@ -90,7 +90,7 @@ import IonImageToolbar from './IonImageToolbar.vue'
 import { useZoomPan } from '../../composables/useZoomPan'
 import { useCanvasRenderer } from '../../composables/useCanvasRenderer'
 import { computeFitTransform, fitPointToMatrixCell } from '../../utils/fitTransform'
-import type { DataMode } from '@/services/zarrOssStore'
+import type { DataMode } from '@/services/zarr/types/zarr'
 
 const props = defineProps({
   selectedMz: { type: Number, required: true },

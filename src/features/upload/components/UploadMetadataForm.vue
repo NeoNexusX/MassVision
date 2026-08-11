@@ -7,7 +7,10 @@ import {
   isValidPixelSize,
   type UploadMetadataFormState,
 } from '@/features/upload/composables/useUploadMetadataForm'
-import {
+import { getDatasetMetadata } from '@/features/datasets/constants/datasetMetadata'
+import { getIonSourceFieldRules } from '@/features/upload/utils/ionSourceRules'
+
+const {
   ORGANISMS,
   ORGANISM_PARTS,
   CONDITIONS,
@@ -22,8 +25,7 @@ import {
   ANALYZERS,
   SPECTRUM_MODES,
   STORAGE_MODES,
-} from '@/features/datasets/constants/datasetMetadata'
-import { getIonSourceFieldRules } from '@/features/upload/utils/ionSourceRules'
+} = getDatasetMetadata()
 
 const props = defineProps<{
   form: UploadMetadataFormState

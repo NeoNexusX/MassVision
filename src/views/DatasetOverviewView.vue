@@ -5,16 +5,19 @@ import InfoField from '@/features/datasets/components/InfoField.vue'
 
 const {
   source,
+  isShareView,
   isStale,
   dataset,
   loading,
   isCopied,
+  isShareCopied,
   ticImageUrl,
   ticImageError,
   placeholderSvg,
   formatSize,
   formatString,
   copyHash,
+  shareCurrent,
   goBack,
   downloadCurrent,
   isPacking,
@@ -80,10 +83,10 @@ const {
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200 p-12 text-center">
           <svg-icon type="duplicate" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
           <h3 class="text-lg font-bold text-base-content">
-            {{ isStale ? 'Session lost' : 'No data available' }}
+            {{ isShareView && isStale ? 'Invalid share link' : isStale ? 'Session lost' : 'No data available' }}
           </h3>
           <p class="text-base-content/60 mt-1">
-            {{ isStale ? 'Please navigate from My Datasets or Public Datasets to view details.' : 'The dataset information could not be found or has been deleted.' }}
+            {{ isShareView && isStale ? 'This public overview link is invalid.' : isStale ? 'Please navigate from My Datasets or Public Datasets to view details.' : 'The dataset information could not be found, is private, or has been deleted.' }}
           </p>
         </div>
       </template>
@@ -115,22 +118,35 @@ const {
               <button
                 v-if="source === 'my' && !dataset.isPublic"
                 @click="openPublicConfirm"
-                class="btn btn-sm btn-outline btn-warning"
+                class="btn btn-sm h-8 min-h-8 btn-outline btn-warning"
               >
                 <svg-icon type="region" class="w-4 h-4" />
                 Make Public
               </button>
               <button
                 @click="downloadCurrent"
-                class="btn btn-sm btn-primary"
+                class="btn btn-sm h-8 min-h-8 btn-primary"
                 :disabled="isPacking(String(dataset?.id ?? ''))"
               >
                 <span v-if="isPacking(String(dataset?.id ?? ''))" class="loading loading-spinner loading-xs"></span>
                 <svg-icon v-else type="download" class="w-4 h-4" />
                 {{ isPacking(String(dataset?.id ?? '')) ? 'Packing' : 'Download' }}
               </button>
+              <button
+                v-if="dataset.isPublic"
+                @click="shareCurrent"
+                class="btn btn-sm h-8 min-h-8 border shadow-sm transition-shadow hover:shadow-md"
+                :class="
+                  isShareCopied
+                    ? 'border-success/30 bg-success/10 text-success hover:border-success/40 hover:bg-success/20'
+                    : 'border-info/30 bg-info/10 text-info hover:border-info/50 hover:bg-info/20'
+                "
+              >
+                <svg-icon :type="isShareCopied ? 'check' : 'share'" class="w-4 h-4" />
+                {{ isShareCopied ? 'Link Copied' : 'Share' }}
+              </button>
               <div
-                class="badge badge-soft border-0 font-medium px-3 py-3"
+                class="badge badge-soft h-8 min-h-8 shrink-0 inline-flex items-center justify-center border-0 px-3 py-0 font-medium"
                 :class="
                   dataset.status === 'completed'
                     ? 'badge-success bg-success/10 text-success'

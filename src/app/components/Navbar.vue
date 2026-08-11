@@ -21,7 +21,7 @@
 import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { useAuthStore } from '@/features/auth/stores/authStore'
+import { useAuthStore } from '@/shared/auth/authStore'
 import NavDrawer from './NavDrawer.vue'
 import NavFab from './NavFab.vue'
 import PageNavbar from './PageNavbar.vue'

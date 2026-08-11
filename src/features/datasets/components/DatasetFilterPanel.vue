@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
-import {
+import { getDatasetMetadata } from '@/features/datasets/constants/datasetMetadata'
+
+const {
   EXPERIMENT_TYPES,
   ORGANISMS,
   ORGANISM_PARTS,
@@ -11,7 +13,7 @@ import {
   MALDI_MATRICES,
   MALDI_MATRIX_APPLICATIONS,
   SOLVENTS,
-} from '@/features/datasets/constants/datasetMetadata'
+} = getDatasetMetadata()
 
 const emit = defineEmits<{
   (e: 'apply', payload: Record<string, string>): void

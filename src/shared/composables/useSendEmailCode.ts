@@ -1,5 +1,5 @@
 import { useCountdown } from '@/shared/composables/useCountdown'
-import { sendEmailCode } from '@/features/auth/api/authApi'
+import { sendEmailCode } from '@/shared/auth/authApi'
 import { useToast } from '@/shared/composables/useToast'
 import { getConfig } from '@/shared/config/runtimeConfig'
 

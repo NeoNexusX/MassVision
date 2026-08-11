@@ -1,5 +1,5 @@
 import { auth_api, api } from '@/shared/api/httpClient'
-import type { UsrSignup, UsrLogin, UsrProfile, UsrProfileUpdate } from '@/features/auth/types/auth'
+import type { UsrSignup, UsrLogin, UsrProfile, UsrProfileUpdate } from './types'
 
 // Login endpoint - using x-www-form-urlencoded
 export async function login(usr: UsrLogin) {

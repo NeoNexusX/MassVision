@@ -48,7 +48,7 @@ export interface File {
   submitter: string
   institution?: string
 
-  status: string // 'uploading' | 'completed' | 'failed' — from backend
+  status: string // 'uploading' | 'completed' | 'failed' - from backend
   isPublic: boolean
 
   // Visualization / Zarr
@@ -58,4 +58,33 @@ export interface File {
   // UI
   // Keep raw backend object if needed
   raw?: any
+}
+
+// ── API response types (separated from api/datasetApi.ts) ──
+
+// GET /files/{file_id}/download_raw - pre-signed URLs for imzML + ibd, zero polling
+export interface DownloadRawEntry {
+  filename: string
+  url: string
+  size: number
+}
+
+export interface DownloadRawResponse {
+  files: DownloadRawEntry[]
+}
+
+// GET /files/{file_id}/images
+// Returns { urls: Record<string, string>, storage_mode: string }
+// - storage_mode "continuous" -> urls contains "umap_image.jpg"
+// - storage_mode "processed"   -> urls contains "tic_image.png"
+export interface FileImagesResponse {
+  urls: Record<string, string>
+  storage_mode: string
+}
+
+// GET /stats/processing - Processing statistics for current user
+export interface ProcessingStats {
+  processing: number
+  completed: number
+  failed: number
 }

@@ -1,6 +1,8 @@
 import { ref, watch, type Ref } from 'vue'
 import { metadataAttrsRef, dataModeRef } from '@/features/workspace/results/composables/useZarrIonImage'
-import type { DataMode } from '@/services/zarrOssStore'
+import { listMyProcesses, listUserFiles } from '@/features/datasets/api/datasetApi'
+import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
+import type { DataMode } from '@/services/zarr/types/zarr'
 
 interface ResultDetailState {
   runId?: string
@@ -30,6 +32,61 @@ export function useResultMeta(runId: Ref<string>) {
   function formatPixelSize(x?: number, y?: number): string {
     if (x != null && y != null) return `${x} × ${y} µm`
     return ''
+  }
+
+  function extractBasename(filename: string): string {
+    return filename.replace(/\.[^.]+$/, '')
+  }
+
+  /** Adjust displayed mode based on applied processing methods */
+  function applyProcessingAdjustments() {
+    if (methods.value.includes('Peak Picking')) spectrumMode.value = 'centroid'
+    if (methods.value.includes('Peak Alignment')) storageMode.value = 'continuous'
+  }
+
+  /**
+   * API 兜底：history.state 只随 router.push 携带，直刷/书签进入时为空。
+   * 此时回退到原接口查询 process（名称/状态/methods）与文件仪器参数，
+   * 只填充当前仍为空缺的字段；zarr metadata 仍由 applyZarrMetadata 补充。
+   */
+  async function fetchProcessMetaFromApi(id: string) {
+    const needProcess = !datasetName.value || !status.value || !methods.value.length
+    const needInstrument = !analyzer.value && !ionSource.value && !polarity.value
+    if (!needProcess && !needInstrument) return
+
+    const result = await listMyProcesses(1, 100)
+    const process = (result.data || []).find((p: any) => String(p.id) === id)
+    if (!process) return
+
+    if (needProcess) {
+      if (!datasetName.value) datasetName.value = extractBasename(process.filename || '')
+      if (!status.value) status.value = (process.status || '').toLowerCase()
+      if (!methods.value.length && process.params_json) {
+        methods.value = parseAlgorithms(process.params_json)
+      }
+    }
+
+    // 仪器参数：zarr attrs 缺失时从文件元数据补齐
+    if (process.filename) {
+      try {
+        const fileResult = await listUserFiles({ filename: process.filename }, 1, 1)
+        const file = fileResult?.data?.[0] || fileResult?.[0]
+        if (file) {
+          if (!analyzer.value) analyzer.value = file.analyzer || ''
+          if (!ionSource.value) ionSource.value = file.ionisation_source || ''
+          if (!pixelSize.value) {
+            pixelSize.value = formatPixelSize(file.pixel_size_horizontal, file.pixel_size_vertical)
+          }
+          if (!polarity.value) polarity.value = file.polarity || ''
+          if (!spectrumMode.value) spectrumMode.value = file.spectrum_mode || ''
+          if (!storageMode.value) storageMode.value = file.storage_mode || ''
+        }
+      } catch {
+        // file lookup is optional
+      }
+    }
+
+    applyProcessingAdjustments()
   }
 
   /** 从 zarr metadata/zarr.json 读取所有元数据 */
@@ -68,7 +125,7 @@ export function useResultMeta(runId: Ref<string>) {
     }
   }
 
-  function fetchMeta(_id: string) {
+  async function fetchMeta(id: string) {
     loading.value = true
     try {
       const state = history.state as ResultDetailState | null
@@ -80,6 +137,9 @@ export function useResultMeta(runId: Ref<string>) {
 
       // 从 zarr metadata 覆盖/补充元数据
       applyZarrMetadata()
+
+      // history.state 缺失时（直刷/书签进入）回退到 API 查询
+      await fetchProcessMetaFromApi(id)
     } catch (e) {
       console.error('[useResultMeta] fetch failed:', e)
     } finally {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch, onUnmounted, nextTick } from 'vue'
 import ColorBar from '@/features/workspace/results/components/visuals/ColorBar.vue'
 import ResultVisualizationLayout from '@/features/workspace/results/components/ResultVisualizationLayout.vue'
 import ResultHeader from '@/features/workspace/results/components/visuals/ResultHeader.vue'
@@ -25,8 +25,9 @@ import { useResultROI } from '@/features/workspace/results/composables/useResult
 import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
 import { useRegionComparison } from '@/features/workspace/results/composables/useRegionComparison'
 import { ZARR_STORE } from '@/shared/config/defaults'
+import { getConfig } from '@/shared/config/runtimeConfig'
 import { rgbCss } from '@/features/workspace/results/utils/regionPalette'
-import type { DataMode } from '@/services/zarrOssStore'
+import type { DataMode } from '@/services/zarr/types/zarr'
 
 interface ResultDetailState {
   runId?: string
@@ -39,8 +40,11 @@ interface ResultDetailState {
 }
 
 const state = history.state as ResultDetailState | null
-const runId = computed(() => state?.runId != null ? String(state.runId) : '')
+const runId = computed(() => (state?.runId != null ? String(state.runId) : ''))
 const isStale = computed(() => state?.runId == null)
+const resultFeatureConfig = getConfig().resultFeatures
+const compareEnabled = resultFeatureConfig?.compare !== false
+const annotationEnabled = resultFeatureConfig?.annotation !== false
 
 // ---- 元数据 ----
 
@@ -63,8 +67,7 @@ const intensityScale = ref('linear')
 const gamma = ref(1)
 
 // ---- Annotation CSV import panel (left) ----
-// Expanded by default on desktop; collapsed on small screens so the drawer
-// doesn't cover the ion image on page load.
+// Collapsed by default on all screens (desktop: thin rail; mobile: off-canvas drawer).
 const annotationExpanded = ref(false)
 
 // ---- Zarr 数据加载 ----
@@ -78,6 +81,7 @@ const {
   ionCols,
   ionRows,
   loading,
+  error: ionError,
   onSpectrumClickByIndex,
   isProcessed,
   loadNormalization,
@@ -91,15 +95,14 @@ const {
 const dataMode = computed<DataMode | null>(() => dataModeRef.value)
 
 // processed 模式下的图像矩阵（TIC）
-const currentIonMatrix = computed(() =>
-  isProcessed.value ? ticMatrix.value : ionMatrix.value,
-)
+const currentIonMatrix = computed(() => (isProcessed.value ? ticMatrix.value : ionMatrix.value))
 
 // 当前显示强度标度对应的图像矩阵；RMS/TIC 仅在用户选择后按需计算
 const normalizedIonMatrix = computed(() => {
   const matrix = currentIonMatrix.value
   const factors = normalizationFactors.value
-  if (!matrix || !factors || intensityScale.value === 'linear' || intensityScale.value === 'log') return matrix
+  if (!matrix || !factors || intensityScale.value === 'linear' || intensityScale.value === 'log')
+    return matrix
   // Processed 数据本身就是 TIC 图像，不重复对 TIC 做归一化
   if (isProcessed.value) return matrix
   const result = new Float32Array(matrix.length)
@@ -112,12 +115,15 @@ const normalizedIonMatrix = computed(() => {
 
 const displaySourceMatrix = computed(() => normalizedIonMatrix.value)
 
-
 // ---- 初始化 ----
 
-watch(runId, (id) => {
-  zarr.init(id)
-}, { immediate: true })
+watch(
+  runId,
+  (id) => {
+    zarr.init(id)
+  },
+  { immediate: true },
+)
 
 // 离开页面时释放模块级状态，避免大数组（mzAxis、meanChartData、ticMatrix 等）
 // 和 ZarrOssStore 缓存在 SPA 导航后仍驻留内存
@@ -169,12 +175,37 @@ const {
 
 // ---- Overlay ----
 
-const { umapVisible, kmeansVisible, overlayData, overlayLoading, overlayError, clusteringCreating, clusteringComputing, clusteringReady, clusteringRefreshing, umapAlpha, kmeansAlpha, kmeansClusters, kmeansLabelsAvailable, kmeansK, kmeansComputing, selectedKmeansIds, getKmeansLabels, getKmeansDims, setComparisonOverlay, exportUmapPng, exportKmeansPng, toggleOverlay, retryClustering, createClusteringTask, refreshClusteringStatus, runKmeans, toggleKmeansCluster, selectAllKmeansClusters, clearKmeansClusters } = useOverlayData(
-  runId,
-  ionRows,
-  ionCols,
-  storageMode,
-)
+const {
+  umapVisible,
+  kmeansVisible,
+  overlayData,
+  overlayLoading,
+  overlayError,
+  clusteringCreating,
+  clusteringComputing,
+  clusteringReady,
+  clusteringRefreshing,
+  umapAlpha,
+  kmeansAlpha,
+  kmeansClusters,
+  kmeansLabelsAvailable,
+  kmeansK,
+  kmeansComputing,
+  selectedKmeansIds,
+  getKmeansLabels,
+  getKmeansDims,
+  setComparisonOverlay,
+  exportUmapPng,
+  exportKmeansPng,
+  toggleOverlay,
+  retryClustering,
+  createClusteringTask,
+  refreshClusteringStatus,
+  runKmeans,
+  toggleKmeansCluster,
+  selectAllKmeansClusters,
+  clearKmeansClusters,
+} = useOverlayData(runId, ionRows, ionCols, storageMode)
 
 // ---- Region comparison ----
 
@@ -201,6 +232,7 @@ const {
   selectMz: cmpSelectMz,
   reset: cmpReset,
 } = useRegionComparison({
+  enabled: compareEnabled,
   kmeansClusters,
   kmeansLabelsAvailable,
   getKmeansLabels,
@@ -213,27 +245,16 @@ const {
 
 const cmpThumbnail = computed(() => cmpBuildThumbnailRegions())
 
-const compareColumnRef = ref<HTMLElement | null>(null)
-const compareColumnHeight = ref<number | null>(null)
-let compareColumnResizeObserver: ResizeObserver | null = null
-// Shared expand state for the compare-regions panel and the results table:
-// opening either opens both. Their visibility is already coupled via the
-// height sync below, so the toggle states must be coupled too.
+const compareSectionRef = ref<HTMLElement | null>(null)
+// compare 面板与结果表共享展开状态。
 const comparisonExpanded = ref(false)
 
-function syncCompareColumnHeight() {
-  compareColumnHeight.value = compareColumnRef.value?.getBoundingClientRect().height ?? null
-}
-
-onMounted(() => {
-  if (compareColumnRef.value) {
-    compareColumnResizeObserver = new ResizeObserver(syncCompareColumnHeight)
-    compareColumnResizeObserver.observe(compareColumnRef.value)
-    syncCompareColumnHeight()
-  }
+// 展开 compare 时将中列平滑滚到该区域顶部，展示完整控件和结果。
+watch(comparisonExpanded, async (expanded) => {
+  if (!compareEnabled || !expanded) return
+  await nextTick()
+  compareSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 })
-
-onUnmounted(() => compareColumnResizeObserver?.disconnect())
 
 // ---- 统计信息 ----
 
@@ -312,17 +333,13 @@ async function onSelectPixel(col: number, row: number) {
 </script>
 
 <template>
-  <ResultVisualizationLayout>
-    <template #top-bar>
-      <ResultHeader
-        class="pl-4"
-        :dataset-name="datasetName"
-        :status="status"
-      />
-    </template>
-
+  <ResultVisualizationLayout
+    :show-left-panel="annotationEnabled"
+    :show-compare="compareEnabled"
+  >
     <template #left-panel>
       <AnnotationPanel
+        v-if="annotationEnabled"
         v-model:expanded="annotationExpanded"
         :select-mz-index="handleSelectMzIndex"
         :selected-mz-index="selectedMzIndex"
@@ -330,7 +347,8 @@ async function onSelectPixel(col: number, row: number) {
       />
     </template>
 
-    <template #main>
+    <template #viz>
+      <ResultHeader class="shrink-0" :dataset-name="datasetName" :status="status" />
       <IonImageSection
         :is-stale="isStale"
         :ion-matrix="displaySourceMatrix"
@@ -354,14 +372,17 @@ async function onSelectPixel(col: number, row: number) {
         :data-mode="dataMode"
         :selected-pixel-coord="selectedPixelCoord"
         :ion-loading="loading"
+        :ion-error="ionError"
         :normalization-loading="normalizationLoading"
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
-        @update:intensity-scale="async (value) => {
-          intensityScale = value
-          if (value === 'rms' || value === 'tic') await loadNormalization(value)
-          else clearNormalization()
-        }"
+        @update:intensity-scale="
+          async (value) => {
+            intensityScale = value
+            if (value === 'rms' || value === 'tic') await loadNormalization(value)
+            else clearNormalization()
+          }
+        "
         @reset-controls="resetControls"
         @reset-range="resetRange"
         @strip-ref="setStripRef"
@@ -383,10 +404,18 @@ async function onSelectPixel(col: number, row: number) {
         :data-mode="dataMode"
         @select-mz-index="handleSelectMzIndex"
       />
+    </template>
 
-      <!-- Region comparison: controls + preview (left) and results table (right) -->
-      <div class="w-full flex flex-col items-stretch lg:flex-row gap-4 lg:items-stretch">
-        <div ref="compareColumnRef" class="lg:w-[340px] shrink-0 flex flex-col lg:self-start">
+    <template #compare>
+      <!-- Region comparison：左 controls+preview，右结果表。
+           桌面端折叠栏保留在首屏，展开后由中列承载滚动。 -->
+      <div
+        v-if="compareEnabled"
+        ref="compareSectionRef"
+        class="w-full flex flex-col items-stretch gap-4 lg:flex-row lg:items-stretch"
+      >
+        <!-- 左侧正常参与文档流，它的自然高度决定整个 compare 区域的高度。 -->
+        <div class="w-full min-w-0 flex flex-col lg:w-0 lg:flex-[2_1_0%]">
           <CompareRegionsPanel
             :regions="cmpAvailableRegions"
             :data-mode="dataMode"
@@ -419,11 +448,10 @@ async function onSelectPixel(col: number, row: number) {
             </template>
           </CompareRegionsPanel>
         </div>
-        <div
-          class="flex-1 min-w-0 self-start"
-          :style="compareColumnHeight ? { height: `${compareColumnHeight}px` } : undefined"
-        >
+        <!-- 桌面端右侧不参与父容器高度计算，只填满左侧确定的共享高度。 -->
+        <div class="w-full min-w-0 lg:relative lg:w-0 lg:flex-[5_1_0%] lg:min-h-0">
           <ComparisonResultsTable
+            class="lg:absolute lg:inset-0"
             :results="cmpResults"
             :selected-mz-index="selectedMzIndex"
             :filter-stats="cmpFilterStats"

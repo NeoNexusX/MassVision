@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import CategoryDonutChart from './CategoryDonutChart.vue'
-import type { DatasetCategoryItem } from '../api/statsApi'
+import type { DatasetCategoryItem } from '@/features/home/types/stats'
 
 /**
  * 单个「分类分布环形图」区块：标题 + loading / error / empty / chart 四态 + 底部说明。

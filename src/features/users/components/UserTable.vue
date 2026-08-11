@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AdminUser, UserListFilters } from '@/features/users/api/userAdminApi'
+import type { AdminUser, UserListFilters } from '@/features/users/types/user'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
 import PaginationFooter from '@/shared/components/PaginationFooter.vue'
 import { getRegionName } from '@/shared/utils/regionOptions'

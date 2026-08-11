@@ -1,4 +1,3 @@
-import CryptoJS from 'crypto-js'
 import { STORAGE_KEYS } from '@/shared/config'
 
 /**
@@ -8,15 +7,10 @@ import { STORAGE_KEYS } from '@/shared/config'
  * 不要再各自直接 `localStorage.getItem/setItem(STORAGE_KEYS.accessToken)`。
  * 如此将来要换成 cookie / sessionStorage / 内存态，只需改本文件一处。
  *
- * 注意：token 与用户信息是**明文**存放（仅密码经 SHA256 哈希后再发往后端），
- * 并非加密存储——故不要据此假定 token 在本地是安全的。
+ * 注意：token 与用户信息是**明文**存放，并非加密存储——
+ * 故不要据此假定 token 在本地是安全的。
  */
 export const authStorage = {
-  /** 密码哈希（发往后端前用，避免明文传输） */
-  hashPassword(password: string): string {
-    return CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex)
-  },
-
   /** 写入 access token —— 登录成功后唯一的写入入口 */
   setToken(token: string) {
     localStorage.setItem(STORAGE_KEYS.accessToken, token)

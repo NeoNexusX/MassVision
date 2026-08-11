@@ -1,7 +1,7 @@
 import { useRouter } from 'vue-router'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
 import { useDatasetListRouteState } from '@/features/datasets/composables/useDatasetListRouteState'
-import { useAuthStore } from '@/features/auth/stores/authStore'
+import { useAuthStore } from '@/shared/auth/authStore'
 
 type Fetcher = (filters: Record<string, any>, page: number, size: number) => Promise<any>
 

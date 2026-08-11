@@ -18,8 +18,15 @@
  */
 import { computed, ref } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
-import { useAnnotationMatch, type AnnotationSortKey } from '@/features/workspace/results/composables/useAnnotationMatch'
-import { formatMassError, formatIntensity, type MatchedAnnotationRow } from '@/features/workspace/results/utils/csvAnnotation'
+import {
+  useAnnotationMatch,
+  type AnnotationSortKey,
+} from '@/features/workspace/results/composables/useAnnotationMatch'
+import {
+  formatMassError,
+  formatIntensity,
+  type MatchedAnnotationRow,
+} from '@/features/workspace/results/utils/csvAnnotation'
 import PubChemDialog from '@/features/workspace/results/components/PubChemDialog.vue'
 
 const props = defineProps<{
@@ -72,21 +79,18 @@ function collapse() {
 }
 
 const hasData = computed(() => importedRows.value.length > 0)
-const isAnnotationAvailable = computed(() => props.spectrumMode === 'centroid' && spectrumAvailable.value)
+const isAnnotationAvailable = computed(
+  () => props.spectrumMode === 'centroid' && spectrumAvailable.value,
+)
 
 function isActive(row: { matchedIndex: number | null }): boolean {
   return row.matchedIndex != null && row.matchedIndex === props.selectedMzIndex
 }
 
-function rowClass(row: {
-  matchStatus: string
-  matchedIndex: number | null
-}): string {
+function rowClass(row: { matchStatus: string; matchedIndex: number | null }): string {
   const active = isActive(row)
   if (row.matchStatus === 'matched') {
-    return active
-      ? 'bg-primary/20 cursor-pointer'
-      : 'hover:bg-base-200/70 cursor-pointer'
+    return active ? 'bg-primary/20 cursor-pointer' : 'hover:bg-base-200/70 cursor-pointer'
   }
   return active ? 'bg-primary/10' : 'opacity-60'
 }
@@ -127,7 +131,10 @@ const TOOLTIP_H = 320
 const GAP = 8
 
 function onNameEnter(row: MatchedAnnotationRow, e: MouseEvent) {
-  if (tooltipTimer) { clearTimeout(tooltipTimer); tooltipTimer = 0 }
+  if (tooltipTimer) {
+    clearTimeout(tooltipTimer)
+    tooltipTimer = 0
+  }
   tooltipRow.value = row
   const cell = e.currentTarget as HTMLElement
   const rect = cell.getBoundingClientRect()
@@ -162,7 +169,10 @@ function onNameLeave() {
 }
 
 function onTooltipEnter() {
-  if (tooltipTimer) { clearTimeout(tooltipTimer); tooltipTimer = 0 }
+  if (tooltipTimer) {
+    clearTimeout(tooltipTimer)
+    tooltipTimer = 0
+  }
 }
 
 function onTooltipLeave() {
@@ -184,43 +194,68 @@ function copyName(name: string) {
 </script>
 
 <template>
-  <!-- Mobile floating open button (only when collapsed, small screens) -->
-  <button
-    v-show="!expanded"
-    class="lg:hidden fixed left-3 bottom-6 z-40 btn btn-circle btn-primary shadow-lg"
-    title="Open annotation panel"
-    @click="expand"
-  >
-    <SvgIcon type="bars3" class="w-5 h-5" />
-  </button>
-
-  <!-- The panel: mobile = fixed drawer, desktop = flex column w/ width transition -->
+  <!-- Mobile participates in the page's vertical flow; desktop keeps the collapsible side rail. -->
   <aside
-    class="flex flex-col bg-base-100 border border-base-300 rounded-xl shadow-sm overflow-hidden
-           fixed top-2 bottom-2 left-2 z-50 w-[86vw] max-w-[340px]
-           transition-transform duration-200 ease-out
-           lg:static lg:z-auto lg:top-auto lg:bottom-auto lg:left-auto
-           lg:max-w-none lg:h-full lg:translate-x-0 lg:shrink-0 lg:transition-[width]"
-    :class="expanded ? 'translate-x-0 lg:w-[340px]' : '-translate-x-[105%] lg:w-11'"
+    :class="[
+      // Small screens
+      'static flex w-full flex-col overflow-hidden rounded-xl border-2 border-base-content/30 bg-base-100 shadow-sm',
+      // Desktop
+      'lg:h-full lg:max-w-none lg:shrink-0 lg:transition-[width] lg:duration-200 lg:ease-out',
+      expanded ? 'lg:w-[340px]' : 'lg:w-11',
+    ]"
   >
+    <!-- Mobile collapsed bar: stays in normal flow instead of becoming a floating button. -->
+    <button
+      v-show="!expanded"
+      :class="[
+        // Small screens
+        'flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-base-200/60',
+        // Desktop
+        'lg:hidden',
+      ]"
+      title="Expand annotation panel"
+      @click="expand"
+    >
+      <span class="text-sm font-medium text-base-content/70">Annotations</span>
+      <SvgIcon type="chevron_down" class="h-5 w-5 text-base-content/70" />
+    </button>
+
     <!-- Collapsed rail (desktop only): click to expand -->
     <div
       v-show="!expanded"
-      class="hidden lg:flex h-full w-full flex-col items-center justify-center gap-2 py-3 cursor-pointer hover:bg-base-200/60"
+      :class="[
+        // Small screens
+        'hidden h-full w-full cursor-pointer flex-col items-center justify-center gap-2 py-3 hover:bg-base-200/60',
+        // Desktop
+        'lg:flex',
+      ]"
       title="Expand annotation panel"
       @click="expand"
     >
       <SvgIcon type="chevron_right" class="w-5 h-5 text-base-content/70" />
-      <span class="[writing-mode:vertical-rl] text-sm text-base-content/70 font-medium tracking-wide">Annotations</span>
+      <span
+        class="[writing-mode:vertical-rl] text-sm text-base-content/70 font-medium tracking-wide"
+        >Annotations</span
+      >
     </div>
 
     <!-- Expanded content -->
-    <div v-show="expanded" class="flex flex-col h-full min-h-0 p-3 gap-2">
+    <div
+      v-show="expanded"
+      :class="[
+        // Small screens
+        'flex h-auto min-h-0 flex-col gap-2 p-3',
+        // Desktop
+        'lg:h-full',
+      ]"
+    >
       <!-- Header -->
       <div class="flex items-center justify-between gap-2 shrink-0">
         <div class="min-w-0">
           <h3 class="text-lg font-semibold text-base-content leading-tight">Annotations</h3>
-          <p v-if="fileName" class="text-sm text-base-content/50 truncate" :title="fileName">{{ fileName }}</p>
+          <p v-if="fileName" class="text-sm text-base-content/50 truncate" :title="fileName">
+            {{ fileName }}
+          </p>
         </div>
         <div class="flex items-center gap-1 shrink-0">
           <button
@@ -246,10 +281,7 @@ function copyName(name: string) {
           class="hidden"
           @change="onFileChange"
         />
-        <button
-          class="btn btn-sm btn-primary w-full gap-2"
-          @click="fileInput?.click()"
-        >
+        <button class="btn btn-sm btn-primary w-full gap-2" @click="fileInput?.click()">
           <SvgIcon type="upload" class="w-4 h-4" />
           Import CSV
         </button>
@@ -291,11 +323,17 @@ function copyName(name: string) {
             class="select select-bordered select-sm flex-1"
             @change="onSortKeyChange"
           >
-            <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
           </select>
           <button
             class="btn btn-outline btn-sm btn-square shrink-0"
-            :title="sortDir === 'asc' ? 'Ascending (click for descending)' : 'Descending (click for ascending)'"
+            :title="
+              sortDir === 'asc'
+                ? 'Ascending (click for descending)'
+                : 'Descending (click for ascending)'
+            "
             @click="toggleSortDir"
           >
             <span class="text-xs">{{ sortDir === 'asc' ? '&#9650;' : '&#9660;' }}</span>
@@ -345,7 +383,12 @@ function copyName(name: string) {
       <!-- Table: only Annotation + Exp. m/z (details on hover card) -->
       <div
         v-if="hasData"
-        class="flex-1 min-h-0 overflow-auto rounded-lg border border-base-300 bg-base-100"
+        :class="[
+          // Small screens
+          'max-h-[60dvh] overflow-auto rounded-lg border border-base-300 bg-base-100',
+          // Desktop
+          'lg:max-h-none lg:min-h-0 lg:flex-1',
+        ]"
       >
         <table class="table table-sm">
           <thead class="sticky top-0 z-10 bg-base-200 text-base-content/70">
@@ -369,8 +412,12 @@ function copyName(name: string) {
                 <div class="font-medium text-sm text-base-content truncate">{{ row.name }}</div>
                 <div class="text-xs text-base-content/50 truncate">
                   <span v-if="row.formulaIon" class="font-mono">{{ row.formulaIon }}</span>
-                  <span v-if="row.ionType" class="text-base-content/40"> &#183; {{ row.ionType }}</span>
-                  <span v-if="row.candidates.length > 1" class="text-primary/50"> &#183; +{{ row.candidates.length - 1 }}</span>
+                  <span v-if="row.ionType" class="text-base-content/40">
+                    &#183; {{ row.ionType }}</span
+                  >
+                  <span v-if="row.candidates.length > 1" class="text-primary/50">
+                    &#183; +{{ row.candidates.length - 1 }}</span
+                  >
                 </div>
               </td>
               <td class="text-right font-mono whitespace-nowrap text-sm">
@@ -390,10 +437,13 @@ function copyName(name: string) {
         class="flex-1 min-h-0 flex flex-col items-center justify-center gap-2 text-center px-4"
       >
         <SvgIcon type="upload" class="w-8 h-8 text-base-content/30" />
-        <p class="text-base text-base-content/60">Import an annotation CSV to match against the average spectrum.</p>
+        <p class="text-base text-base-content/60">
+          Import an annotation CSV to match against the average spectrum.
+        </p>
         <p class="text-sm text-base-content/40">
-          Columns: <span class="font-mono">Exp. m/z</span>, <span class="font-mono">Candidate_1..5</span>,
-          <span class="font-mono">formula_ion</span>, <span class="font-mono">Ion type</span>
+          Columns: <span class="font-mono">Exp. m/z</span>,
+          <span class="font-mono">Candidate_1..5</span>, <span class="font-mono">formula_ion</span>,
+          <span class="font-mono">Ion type</span>
         </p>
       </div>
     </div>
@@ -446,17 +496,27 @@ function copyName(name: string) {
         <span class="flex items-center gap-1.5">
           <span
             class="inline-block w-2 h-2 rounded-full"
-            :class="tooltipRow.matchStatus === 'matched' ? 'bg-success' : tooltipRow.matchStatus === 'invalid' ? 'bg-error' : 'bg-base-300'"
+            :class="
+              tooltipRow.matchStatus === 'matched'
+                ? 'bg-success'
+                : tooltipRow.matchStatus === 'invalid'
+                  ? 'bg-error'
+                  : 'bg-base-300'
+            "
           ></span>
           <span
             class="font-mono"
             :class="tooltipRow.matchedMz != null ? 'text-success/80' : 'text-base-content/30'"
-          >{{ tooltipRow.matchedMz != null ? tooltipRow.matchedMz.toFixed(4) : '-' }}</span>
+            >{{ tooltipRow.matchedMz != null ? tooltipRow.matchedMz.toFixed(4) : '-' }}</span
+          >
         </span>
       </div>
       <div class="flex items-center justify-between">
         <span class="text-base-content/50">Mass Difference</span>
-        <span class="font-mono">{{ formatMassError(tooltipRow.massError, tolMode) }} {{ tooltipRow.massError != null ? tolMode : '' }}</span>
+        <span class="font-mono"
+          >{{ formatMassError(tooltipRow.massError, tolMode) }}
+          {{ tooltipRow.massError != null ? tolMode : '' }}</span
+        >
       </div>
       <div class="flex items-center justify-between">
         <span class="text-base-content/50">Intensity</span>
@@ -489,16 +549,5 @@ function copyName(name: string) {
   </div>
 
   <!-- PubChem result dialog -->
-  <PubChemDialog
-    :open="pubchemOpen"
-    :query="pubchemQuery"
-    @close="pubchemOpen = false"
-  />
-
-  <!-- Mobile backdrop -->
-  <div
-    v-if="expanded"
-    class="lg:hidden fixed inset-0 bg-black/40 z-40"
-    @click="collapse"
-  />
+  <PubChemDialog :open="pubchemOpen" :query="pubchemQuery" @close="pubchemOpen = false" />
 </template>
