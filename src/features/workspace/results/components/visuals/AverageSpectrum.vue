@@ -111,7 +111,7 @@ const CHART_LAYOUT = {
   /** 刻度数字带（ECharts 默认 12px 字号，渲染 ~9px） */
   axisLabelBand: 10,
   /** "m/z" 轴名字号，需与 xAxis.nameTextStyle.fontSize 一致 */
-  axisNameFont: 15,
+  axisNameFont: 18,
   /** 轴名空隙，需与 xAxis.nameGap 一致 */
   axisNameMargin: 16,
   /** 滑块厚度，需与 dataZoom slider.height 一致 */
@@ -199,7 +199,7 @@ function buildSelectorGraphic(): unknown[] {
       style: {
         text: label,
         fill: palette.value.selector,
-        font: '12px monospace',
+        font: '16px monospace',
         textAlign: 'left',
         textVerticalAlign: 'bottom',
       },
@@ -323,7 +323,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
       nameLocation: 'center',
       nameGap: 48,
       axisLabel: { color: colors.axis.label },
-      nameTextStyle: { fontSize: 17, color: colors.axis.nameText },
+      nameTextStyle: { fontSize: 20, color: colors.axis.nameText },
       axisLine: { lineStyle: { color: colors.axis.line } },
       axisTick: { lineStyle: { color: colors.axis.line } },
       splitLine: { lineStyle: { color: colors.axis.splitLine, type: 'dashed' } },
@@ -340,7 +340,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
         borderColor: colors.dataZoom.border,
         fillerColor: colors.dataZoom.filler,
         handleStyle: { color: colors.dataZoom.handle },
-        textStyle: { fontSize: 13 },
+        textStyle: { fontSize: 16 },
       },
     ],
     series: [

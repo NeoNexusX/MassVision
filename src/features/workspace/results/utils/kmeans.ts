@@ -1,9 +1,12 @@
 /**
- * Frontend KMeans clustering over the UMAP image.
+ * Frontend KMeans clustering over the UMAP embedding.
  *
- * The umap_image RGB channels ARE the 3D UMAP embedding quantized to uint8,
- * so each foreground pixel is a 3D point. Background pixels (0,0,0) are
- * excluded from clustering and stay (0,0,0) in the rendered output.
+ * v1.1 datasets ship the raw embedding (`coordinates` + `scaled_embedding`,
+ * one float32 3D vector per tissue pixel) - that is the preferred input.
+ * v1.0 datasets only have the umap_image raster, whose RGB channels ARE the
+ * 3D UMAP embedding quantized to uint8, so each foreground pixel is a 3D
+ * point; background pixels (0,0,0) are excluded and stay (0,0,0) in the
+ * rendered output.
  *
  * The actual clustering runs in a dedicated Web Worker (kmeans.worker.ts) so
  * the main thread stays free for rendering / interaction, even on large
@@ -25,6 +28,13 @@ export interface KmeansResult {
   pointCount: number
   /** Lloyd iterations actually run (early-stopped on convergence). */
   iterations: number
+}
+
+/** Raw UMAP embedding input (v1.1); mirrors UmapEmbedding in clustering types. */
+export interface KmeansEmbeddingInput {
+  coordinates: Uint32Array
+  scaledEmbedding: Float32Array
+  count: number
 }
 
 interface PendingRequest {
@@ -81,11 +91,13 @@ export function preloadKmeans(): void {
 }
 
 /**
- * Cluster the foreground pixels of a umap_image raster into `k` clusters, off
- * the main thread. `k` is clamped to [2, pointCount]. Throws when there are no
- * foreground pixels at all. The input raster is copied to the worker (the main
- * thread keeps its cached copy for the UMAP overlay); results come back via
- * transferable buffers.
+ * Cluster the tissue pixels into `k` clusters, off the main thread. With
+ * `embedding` (v1.1) the worker clusters the raw float32 UMAP vectors and
+ * maps labels back via the grid coordinates; without it (v1.0) it falls back
+ * to the foreground pixels of the `umapRgb` raster. `k` is clamped to
+ * [2, pointCount]. Throws when there are no points at all. The inputs are
+ * copied to the worker (the main thread keeps its cached copies for the UMAP
+ * overlay / scatter view); results come back via transferable buffers.
  */
 export async function computeKmeansFromUmap(
   umapRgb: Uint8Array,
@@ -94,6 +106,7 @@ export async function computeKmeansFromUmap(
   k: number,
   seed = 42,
   maxIterations = 30,
+  embedding: KmeansEmbeddingInput | null = null,
 ): Promise<KmeansResult> {
   const id = nextRequestId++
   const w = getWorker()
@@ -104,10 +117,13 @@ export async function computeKmeansFromUmap(
     // so this path should never fire in practice.
     pending?.reject(new Error('[kmeans] request superseded by a newer run'))
     pending = { id, resolve, reject }
-    // Send a copy of umapRgb (no transfer): the main thread still needs the
-    // cached raster for the UMAP overlay. Results return zero-copy.
+    // Send copies (no transfer): the main thread still needs the cached
+    // raster / embedding for the UMAP overlay and scatter view. Results
+    // return zero-copy.
     w.postMessage(
-      { id, umapRgb, height, width, k, seed, maxIterations },
+      embedding
+        ? { id, height, width, k, seed, maxIterations, embedding }
+        : { id, height, width, k, seed, maxIterations, umapRgb },
     )
   })
 }

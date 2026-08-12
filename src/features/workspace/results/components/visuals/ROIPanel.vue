@@ -34,7 +34,11 @@
         <SvgIcon type="plus" class="w-4 h-4" /> New
       </button>
       <div v-if="draftReady" class="text-base text-base-content mt-1">
-        Selection ready — confirm or drag handles to adjust
+        {{
+          selectedTool === 'freehand'
+            ? 'Selection ready — confirm, or drag inside to move'
+            : 'Selection ready — confirm or drag handles to adjust'
+        }}
       </div>
       <div v-else-if="selectedTool === 'rectangle'" class="text-base text-base-content mt-1">
         Drag on the ion image to draw a rectangle

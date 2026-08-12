@@ -3,6 +3,7 @@ import { getZarrAccess } from '@/services/zarr/api/zarrAccessApi'
 import { createClustering } from '@/services/clustering/api/clusteringApi'
 import type { ClusteringTaskResponse } from '@/services/clustering/types/clustering'
 import { ClusteringZarrStore } from '@/services/clustering/clusteringZarrStore'
+import type { UmapEmbedding } from '@/services/clustering/types/clustering'
 import { createLocalZarrClient } from '@/services/localZarrClient'
 import { computeKmeansFromUmap, preloadKmeans } from '@/features/workspace/results/utils/kmeans'
 import { kmeansColor } from '@/features/workspace/results/utils/regionPalette'
@@ -85,6 +86,7 @@ export function useOverlayData(
 
   let store: ClusteringZarrStore | null = null
   let umapRgb: Uint8Array | null = null
+  let umapEmbedding: UmapEmbedding | null = null
   let kmeansRgb: Uint8Array | null = null
   let kmeansLabels: Int32Array | null = null
   let dims: { height: number; width: number } | null = null
@@ -117,6 +119,7 @@ export function useOverlayData(
     store?.dispose()
     store = null
     umapRgb = null
+    umapEmbedding = null
     kmeansRgb = null
     kmeansLabels = null
     dims = null
@@ -151,7 +154,7 @@ export function useOverlayData(
           )
         : new ClusteringZarrStore(await getZarrAccess(forRun, 'clustering'))
       await s.init()
-      const umap = await s.loadUmapImage()
+      const umap = await s.loadUmap()
       // The user navigated to another run mid-load - discard, don't pollute
       // the new run's cache.
       if (forRun !== runId.value) {
@@ -159,8 +162,9 @@ export function useOverlayData(
         return false
       }
       store = s
-      umapRgb = umap.data
-      dims = { height: umap.height, width: umap.width }
+      umapRgb = umap.image.data
+      umapEmbedding = umap.embedding
+      dims = { height: umap.image.height, width: umap.image.width }
       clusteringReady.value = true
       clusteringComputing.value = false
       // Preload the ml-kmeans chunk now - the user is on the result page and
@@ -369,17 +373,26 @@ export function useOverlayData(
   }
 
   /**
-   * Run KMeans locally over the UMAP raster with a user-chosen k, cache the
-   * resulting labels + rendered RGB, and show the KMeans overlay. Deterministic
-   * (fixed seed): same k → same clusters. Re-running with a different k
-   * replaces the previous result.
+   * Run KMeans locally with a user-chosen k, cache the resulting labels +
+   * rendered RGB, and show the KMeans overlay. v1.1 datasets cluster the raw
+   * float32 UMAP embedding; v1.0 falls back to the raster's foreground
+   * pixels. Deterministic (fixed seed): same k → same clusters. Re-running
+   * with a different k replaces the previous result.
    */
   async function runKmeans(k: number): Promise<boolean> {
     const ok = await loadClusteringData()
     if (!ok || !umapRgb || !dims) return false
     kmeansComputing.value = true
     try {
-      const result = await computeKmeansFromUmap(umapRgb, dims.height, dims.width, k)
+      const result = await computeKmeansFromUmap(
+        umapRgb,
+        dims.height,
+        dims.width,
+        k,
+        42,
+        30,
+        umapEmbedding,
+      )
       kmeansRgb = result.rgb
       kmeansLabels = result.labels
       kmeansClusters.value = deriveKmeansClusters(result.labels)
@@ -482,6 +495,16 @@ export function useOverlayData(
   }
 
   /**
+   * Cached raw UMAP embedding (per-tissue-pixel coordinates + 3D vector) for
+   * v1.1 datasets, or null for v1.0 / not-yet-loaded. Consumed by the scatter /
+   * lasso view to plot points by their true 3D position rather than the
+   * rasterized grid. null is also returned before the first successful load.
+   */
+  function getUmapEmbedding(): UmapEmbedding | null {
+    return umapEmbedding
+  }
+
+  /**
    * Export an RGB raster (H×W×3 uint8) as a scaled-up PNG download.
    * Background pixels (0,0,0) become transparent. Used by the UMAP/KMeans
    * export buttons so the user gets a clean image without the ion image.
@@ -574,6 +597,8 @@ export function useOverlayData(
     getKmeansLabels,
     /** Dimensions of the cached KMeans/UMAP raster grid, or null. */
     getKmeansDims,
+    /** Raw UMAP embedding (v1.1) for the scatter/lasso view, or null. */
+    getUmapEmbedding,
     /** Set/clear a comparison overlay (region A/B highlight) that overrides UMAP/KMeans. */
     setComparisonOverlay,
     /** Export the UMAP RGB image as a standalone PNG. */

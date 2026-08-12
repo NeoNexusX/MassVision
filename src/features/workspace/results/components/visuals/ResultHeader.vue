@@ -12,7 +12,7 @@
         // Small screens
         'min-w-0 break-words text-xl font-bold',
         // Medium and larger screens
-        'sm:text-2xl',
+        'sm:text-xl',
       ]"
     >
       {{ datasetName }}

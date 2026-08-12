@@ -1,28 +1,37 @@
 /**
- * On-demand reader for the UMAP clustering zarr (format:
- * `massflow_feature_analysis`), stored in Alibaba Cloud OSS.
+ * On-demand reader for the UMAP clustering zarr.
  *
- * This is a SEPARATE format from the ion-image zarr (massflow.msi_zarr) read
- * by ZarrOssStore, so it gets its own lightweight reader. The two share the
- * low-level codec/typed-array primitives via ./zarrCodecs.
+ * Two layouts, both served by the same reader:
  *
- * Layout (arrays may be single- or multi-chunk; both are reassembled):
- *   <root>/zarr.json                - group
- *   <root>/umap_image/              - (H, W, 3) uint8, pre-rendered RGB
+ *  v1.0 standalone (format `massflow_feature_analysis`, separate OSS zarr):
+ *     <root>/zarr.json            - group (format attr)
+ *     <root>/umap_image/          - (H, W, 3) uint8, pre-rendered RGB
+ *
+ *  v1.1 embedded (inside the main msi_zarr at `analysis/umap`):
+ *     <root>/coordinates/         - (n, 2) uint32, tissue-pixel (x, y), 0-based
+ *     <root>/scaled_embedding/    - (n, 3) float32, 3D UMAP in [0, 1]
+ *     <root>/umap_image/          - (H, W, 3) uint8, scaled_embedding rasterized
+ *
+ * The UMAP is NOT just an image: `coordinates` + `scaled_embedding` are the raw
+ * embedding (one 3D vector per tissue pixel), and `umap_image` is only its
+ * rasterized rendering. `loadUmap()` returns both so a scatter / lasso view can
+ * plot points by their true 3D position; v1.0 datasets have no embedding
+ * arrays, so `embedding` is null there and only the raster is available.
  *
  * The RGB image is drawn directly as an overlay (alpha controlled by the UI);
  * background pixels (0,0,0) are treated as transparent by the caller.
- * KMeans is computed locally in the browser, so this reader does NOT fetch
- * the backend kmeans_image / kmeans_label_image arrays.
+ * KMeans is computed locally in the browser from the raster, so this reader
+ * does NOT fetch the backend kmeans_image / kmeans_label_image arrays.
  */
 
-import { createOssClient } from '../zarr/ossClient'
+import { createOssClient, OssError } from '../zarr/ossClient'
 import type { OssClient } from '../zarr/ossClient'
 import type { ZarrAccessResponse } from '../zarr/types/zarr'
-import type { ClusteringImage } from './types/clustering'
+import type { ClusteringImage, UmapData, UmapEmbedding } from './types/clustering'
 import type { ZarrV3ArrayMetadata, ZarrV3GroupMetadata } from '../zarr/types/zarrV3'
 import { assertV3Array, computeNDChunkKey } from '../zarr/zarrMetadata'
 import { decodePayload } from '../zarr/zarrDecode'
+import { makeTypedArray } from '../zarr/zarrDtype'
 import { readFullArray } from '../zarr/zarrReader'
 
 /** Root group attributes of the clustering zarr. */
@@ -102,6 +111,84 @@ export class ClusteringZarrStore {
   /** Load the pre-rendered UMAP RGB image (H, W, 3) uint8. */
   async loadUmapImage(): Promise<ClusteringImage> {
     return this.loadRgbImage('umap_image')
+  }
+
+  /**
+   * Load the full UMAP result: the pre-rendered raster plus the raw embedding
+   * (`coordinates` + `scaled_embedding`) when present. v1.0 datasets only have
+   * `umap_image`, so `embedding` is null there; v1.1 datasets ship all three.
+   * A failure to load the embedding (other than its absence) is logged and
+   * degraded to null - the raster alone still drives the overlay.
+   */
+  async loadUmap(): Promise<UmapData> {
+    const image = await this.loadUmapImage()
+    let embedding: UmapEmbedding | null = null
+    try {
+      embedding = await this.loadUmapEmbedding()
+    } catch (e) {
+      console.warn('[ClusteringZarrStore] UMAP embedding load failed, continuing with raster only:', e)
+    }
+    return { image, embedding }
+  }
+
+  /**
+   * Read `coordinates` (uint32[n, 2]) + `scaled_embedding` (float32[n, 3]).
+   * Returns null when `coordinates` is absent - the v1.0 standalone clustering
+   * zarr only ships `umap_image`, so a not_found there is the v1.0 signal, not
+   * an error.
+   */
+  private async loadUmapEmbedding(): Promise<UmapEmbedding | null> {
+    let coordMeta: ZarrV3ArrayMetadata
+    try {
+      coordMeta = await this.readArrayMeta('coordinates')
+    } catch (e) {
+      if (e instanceof OssError && e.code === 'not_found') return null
+      throw e
+    }
+    if (
+      coordMeta.data_type !== 'uint32' ||
+      coordMeta.shape.length !== 2 ||
+      coordMeta.shape[1] !== 2
+    ) {
+      throw new Error(
+        `[ClusteringZarrStore] coordinates: expected (n, 2) uint32, got (${coordMeta.shape.join(', ')}) ${coordMeta.data_type}`,
+      )
+    }
+    const embMeta = await this.readArrayMeta('scaled_embedding')
+    if (
+      embMeta.data_type !== 'float32' ||
+      embMeta.shape.length !== 2 ||
+      embMeta.shape[1] !== 3
+    ) {
+      throw new Error(
+        `[ClusteringZarrStore] scaled_embedding: expected (n, 3) float32, got (${embMeta.shape.join(', ')}) ${embMeta.data_type}`,
+      )
+    }
+    const count = coordMeta.shape[0]!
+    if (embMeta.shape[0] !== count) {
+      throw new Error(
+        `[ClusteringZarrStore] coordinates/scaled_embedding row count mismatch: ${count} vs ${embMeta.shape[0]}`,
+      )
+    }
+    const [coordinates, scaledEmbedding] = await Promise.all([
+      this.readTypedArray('coordinates', coordMeta) as Promise<Uint32Array>,
+      this.readTypedArray('scaled_embedding', embMeta) as Promise<Float32Array>,
+    ])
+    return { coordinates, scaledEmbedding, count }
+  }
+
+  /**
+   * Read a whole array and return it as the typed-array view matching its
+   * dtype (uint32 / float32 / ...). `readArrayFull` returns raw bytes; this
+   * slices a clean ArrayBuffer and views it with `makeTypedArray`.
+   */
+  private async readTypedArray(
+    arrayPath: string,
+    meta: ZarrV3ArrayMetadata,
+  ): Promise<Uint32Array | Float32Array | Float64Array | Int32Array> {
+    const out = await this.readArrayFull(arrayPath, meta)
+    const buf = out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength) as ArrayBuffer
+    return makeTypedArray(meta.data_type, buf)
   }
 
   // ========== internal ==========

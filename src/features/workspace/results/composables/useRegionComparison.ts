@@ -1,11 +1,14 @@
 /**
  * Region comparison composable.
  *
- * Compares two regions (KMeans clusters or ROIs) by streaming through the
- * entire intensity array once and accumulating per-ion statistics (sum,
- * sum-of-squares, non-zero count) for each region. From these it derives
- * mean intensity, detection rate, fold-change ratio, and a category
- * (A-only / B-only / A-enriched / B-enriched / shared).
+ * Compares two region GROUPS (each a non-empty set of KMeans clusters and/or
+ * ROIs) by OR-combining the member masks into one raster per side, then
+ * streaming through the entire intensity array once and accumulating per-ion
+ * statistics (sum, sum-of-squares, non-zero count) for each side. From these
+ * it derives mean intensity, detection rate, fold-change ratio, and a
+ * category (A-only / B-only / A-enriched / B-enriched / shared). The
+ * streaming/stats pipeline only ever sees two masks, so group semantics live
+ * entirely in mask construction.
  *
  * Continuous mode (ion-major storage): every ion has one intensity value
  * per pixel, indexed by axes/coordinates order. Processed mode (pixel-major):
@@ -88,8 +91,8 @@ export function useRegionComparison(deps: {
   onSelectMzIndex: (idx: number) => void | Promise<void>
   setComparisonOverlay: (rgba: Uint8ClampedArray | null) => void
 }) {
-  const regionAId = ref<string | null>(null)
-  const regionBId = ref<string | null>(null)
+  const regionAIds = ref<string[]>([])
+  const regionBIds = ref<string[]>([])
   const minDetectionRate = ref(5) // percentage, 1-50
   const noiseFloorPercentile = ref(5) // percentile of non-zero mean spectrum, 0-20
   const comparing = ref(false)
@@ -108,14 +111,12 @@ export function useRegionComparison(deps: {
   })
 
   let cancelled = false
-  // Cached 2D raster masks + dims for overlay building on result click
-  let cachedRasterA: Uint8Array | null = null
-  let cachedRasterB: Uint8Array | null = null
+  // Cached per-member 2D raster masks (with their sources) + dims for overlay
+  // building on result click. Members are kept separate so the overlay can
+  // paint each member in its own identity color.
+  let cachedMembersA: { source: RegionSource; raster: Uint8Array }[] = []
+  let cachedMembersB: { source: RegionSource; raster: Uint8Array }[] = []
   let cachedDims: { width: number; height: number } | null = null
-  // Sources of the last successful comparison, so the overlay can be repainted
-  // with the regions' actual colors (which may change when k is re-run).
-  let cachedSourceA: RegionSource | null = null
-  let cachedSourceB: RegionSource | null = null
 
   const availableRegions = computed<RegionOption[]>(() => {
     const regions: RegionOption[] = []
@@ -140,23 +141,25 @@ export function useRegionComparison(deps: {
     return regions
   })
 
-  // A deleted region must not linger in the selectors - otherwise the
+  // Deleted regions must not linger in the selectors - otherwise the
   // thumbnail/overlay would keep showing a region that no longer exists.
   watch(availableRegions, (regions) => {
-    if (regionAId.value && !regions.some((r) => r.value === regionAId.value)) {
-      regionAId.value = null
-    }
-    if (regionBId.value && !regions.some((r) => r.value === regionBId.value)) {
-      regionBId.value = null
-    }
+    regionAIds.value = regionAIds.value.filter((id) => regions.some((r) => r.value === id))
+    regionBIds.value = regionBIds.value.filter((id) => regions.some((r) => r.value === id))
   })
 
-  /** Selected A/B options (null when unselected or stale). */
-  const selectedRegionA = computed(
-    () => availableRegions.value.find((r) => r.value === regionAId.value) ?? null,
+  /** Selected A/B options (stale ids filtered out). */
+  const selectedRegionsA = computed(
+    () =>
+      regionAIds.value
+        .map((id) => availableRegions.value.find((r) => r.value === id))
+        .filter((r): r is RegionOption => !!r),
   )
-  const selectedRegionB = computed(
-    () => availableRegions.value.find((r) => r.value === regionBId.value) ?? null,
+  const selectedRegionsB = computed(
+    () =>
+      regionBIds.value
+        .map((id) => availableRegions.value.find((r) => r.value === id))
+        .filter((r): r is RegionOption => !!r),
   )
 
   /** Fallback colors while a side has no region selected (neutral gray). */
@@ -172,13 +175,15 @@ export function useRegionComparison(deps: {
     return hexToRgb(opt.color) ?? FALLBACK_RGB
   }
 
-  const colorA = computed(() => optionRgb(selectedRegionA.value))
-  const colorB = computed(() => optionRgb(selectedRegionB.value))
+  // Group identity color: first member's color (fallback gray when empty).
+  const colorA = computed(() => optionRgb(selectedRegionsA.value[0] ?? null))
+  const colorB = computed(() => optionRgb(selectedRegionsB.value[0] ?? null))
 
   const canCompare = computed(() => {
     if (comparing.value) return false
-    if (!regionAId.value || !regionBId.value) return false
-    return regionAId.value !== regionBId.value
+    if (!regionAIds.value.length || !regionBIds.value.length) return false
+    // A region may not participate in both groups
+    return !regionAIds.value.some((id) => regionBIds.value.includes(id))
   })
 
   // ---------- helpers ----------
@@ -220,6 +225,37 @@ export function useRegionComparison(deps: {
       }
     }
     return raster
+  }
+
+  /**
+   * Build per-member rasters for a group of sources. Returns null when any
+   * member's data is unavailable (e.g. KMeans labels not loaded).
+   */
+  function buildMemberRasters(
+    sources: RegionSource[],
+  ): { source: RegionSource; raster: Uint8Array }[] | null {
+    const members: { source: RegionSource; raster: Uint8Array }[] = []
+    for (const source of sources) {
+      const raster = buildRaster(source)
+      if (!raster) return null
+      members.push({ source, raster })
+    }
+    return members
+  }
+
+  /** OR-combine member rasters into one group mask. */
+  function combineRasters(
+    members: { raster: Uint8Array }[],
+    size: number,
+  ): Uint8Array {
+    const combined = new Uint8Array(size)
+    for (const m of members) {
+      const r = m.raster
+      for (let i = 0; i < size; i++) {
+        if (r[i]) combined[i] = 1
+      }
+    }
+    return combined
   }
 
   /**
@@ -345,9 +381,13 @@ export function useRegionComparison(deps: {
       return
     }
 
-    const sourceA = parseRegion(regionAId.value!)
-    const sourceB = parseRegion(regionBId.value!)
-    if (!sourceA || !sourceB) return
+    const sourcesA = regionAIds.value
+      .map(parseRegion)
+      .filter((s): s is RegionSource => !!s)
+    const sourcesB = regionBIds.value
+      .map(parseRegion)
+      .filter((s): s is RegionSource => !!s)
+    if (!sourcesA.length || !sourcesB.length) return
 
     comparing.value = true
     cancelled = false
@@ -359,20 +399,20 @@ export function useRegionComparison(deps: {
     deps.setComparisonOverlay(null)
 
     try {
-      // Build 2D raster masks
-      const rasterA = buildRaster(sourceA)
-      const rasterB = buildRaster(sourceB)
-      if (!rasterA || !rasterB) {
+      // Build per-member rasters, then OR-combine into one group mask per side
+      const membersA = buildMemberRasters(sourcesA)
+      const membersB = buildMemberRasters(sourcesB)
+      if (!membersA || !membersB) {
         error.value = 'Failed to build region masks - ensure KMeans/ROI data is available'
         return
       }
 
       const [height, width] = store.spatialShape
-      cachedRasterA = rasterA
-      cachedRasterB = rasterB
+      const rasterA = combineRasters(membersA, width * height)
+      const rasterB = combineRasters(membersB, width * height)
+      cachedMembersA = membersA
+      cachedMembersB = membersB
       cachedDims = { width, height }
-      cachedSourceA = sourceA
-      cachedSourceB = sourceB
 
       if (cancelled) return
 
@@ -488,28 +528,29 @@ export function useRegionComparison(deps: {
     return roi ? hexToRgb(roi.color) ?? FALLBACK_RGB : FALLBACK_RGB
   }
 
-  /** Build and show the overlay highlighting region A / B in their own colors. */
+  /** Build and show the overlay highlighting region A / B members, each in
+   *  its own identity color. B members are painted after A so overlap reads
+   *  as B - same precedence as before. */
   function showOverlay() {
-    if (!cachedRasterA || !cachedRasterB || !cachedDims) return
+    if (!cachedDims || (!cachedMembersA.length && !cachedMembersB.length)) return
     const { width, height } = cachedDims
     const n = width * height
-    const ca = colorForSource(cachedSourceA)
-    const cb = colorForSource(cachedSourceB)
     const rgba = new Uint8ClampedArray(n * 4)
-    for (let i = 0; i < n; i++) {
-      if (cachedRasterA[i]) {
-        rgba[i * 4] = ca.r
-        rgba[i * 4 + 1] = ca.g
-        rgba[i * 4 + 2] = ca.b
-        rgba[i * 4 + 3] = 80 // semi-transparent
-      } else if (cachedRasterB[i]) {
-        rgba[i * 4] = cb.r
-        rgba[i * 4 + 1] = cb.g
-        rgba[i * 4 + 2] = cb.b
-        rgba[i * 4 + 3] = 80
+    const paint = (members: { source: RegionSource; raster: Uint8Array }[]) => {
+      for (const m of members) {
+        const c = colorForSource(m.source)
+        for (let i = 0; i < n; i++) {
+          if (!m.raster[i]) continue
+          rgba[i * 4] = c.r
+          rgba[i * 4 + 1] = c.g
+          rgba[i * 4 + 2] = c.b
+          rgba[i * 4 + 3] = 80 // semi-transparent
+        }
       }
-      // else: transparent (alpha stays 0)
     }
+    paint(cachedMembersA)
+    paint(cachedMembersB)
+    // else: transparent (alpha stays 0)
     deps.setComparisonOverlay(rgba)
     overlayVisible.value = true
   }
@@ -527,14 +568,14 @@ export function useRegionComparison(deps: {
   // ---------- thumbnail ----------
 
   /**
-   * Build thumbnail-ready masks for the currently selected A/B regions.
+   * Build thumbnail-ready masks for the currently selected A/B group members.
    * Reuses buildRaster (kmeans labels / ROI mask -> Uint8Array grid) so the
    * preview works the moment a region is selected, before any comparison run.
    * Returns null when the zarr store (grid shape) isn't available yet.
    */
   function buildThumbnailRegions(): {
-    a: RegionThumbnailRegion | null
-    b: RegionThumbnailRegion | null
+    a: RegionThumbnailRegion[]
+    b: RegionThumbnailRegion[]
     dims: { width: number; height: number }
   } | null {
     const ctx = getSharedZarrContext()
@@ -543,13 +584,16 @@ export function useRegionComparison(deps: {
     const [height, width] = store.spatialShape
     const dims = { width, height }
 
-    const build = (opt: RegionOption | null): RegionThumbnailRegion | null => {
-      if (!opt) return null
-      const mask = buildRaster(opt.source)
-      if (!mask) return null
-      return { value: opt.value, label: opt.label, color: optionRgb(opt), mask }
+    const build = (opts: RegionOption[]): RegionThumbnailRegion[] => {
+      const out: RegionThumbnailRegion[] = []
+      for (const opt of opts) {
+        const mask = buildRaster(opt.source)
+        if (!mask) continue
+        out.push({ value: opt.value, label: opt.label, color: optionRgb(opt), mask })
+      }
+      return out
     }
-    return { a: build(selectedRegionA.value), b: build(selectedRegionB.value), dims }
+    return { a: build(selectedRegionsA.value), b: build(selectedRegionsB.value), dims }
   }
 
   // ---------- cleanup ----------
@@ -562,7 +606,10 @@ export function useRegionComparison(deps: {
    *  decide whether clearing/deleting ROIs should also reset the comparison —
    *  a pure KMeans-vs-KMeans comparison is unaffected by ROI changes. */
   function involvesRoi(): boolean {
-    return cachedSourceA?.type === 'roi' || cachedSourceB?.type === 'roi'
+    return (
+      cachedMembersA.some((m) => m.source.type === 'roi') ||
+      cachedMembersB.some((m) => m.source.type === 'roi')
+    )
   }
 
   function reset() {
@@ -575,18 +622,16 @@ export function useRegionComparison(deps: {
     overlayVisible.value = false
     totalIons.value = 0
     filterStats.value = { total: 0, kept: 0, filtered: 0 }
-    cachedRasterA = null
-    cachedRasterB = null
+    cachedMembersA = []
+    cachedMembersB = []
     cachedDims = null
-    cachedSourceA = null
-    cachedSourceB = null
     deps.setComparisonOverlay(null)
   }
 
   return {
     // State
-    regionAId,
-    regionBId,
+    regionAIds,
+    regionBIds,
     minDetectionRate,
     noiseFloorPercentile,
     comparing,
@@ -599,8 +644,8 @@ export function useRegionComparison(deps: {
     filterStats,
     availableRegions,
     canCompare,
-    selectedRegionA,
-    selectedRegionB,
+    selectedRegionsA,
+    selectedRegionsB,
     colorA,
     colorB,
     // Actions

@@ -26,8 +26,9 @@ export interface ThumbnailRegion {
 }
 
 const props = defineProps<{
-  a: ThumbnailRegion | null
-  b: ThumbnailRegion | null
+  /** Members of group A / B, each painted in its own identity color. */
+  a: ThumbnailRegion[]
+  b: ThumbnailRegion[]
   rois: ConfirmedROI[]
   matrix: Float32Array | null
   width: number
@@ -38,14 +39,18 @@ const containerRef = ref<HTMLDivElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 const hasAnything = computed(
-  () => !!(props.a || props.b || props.rois.length) && props.width > 0 && props.height > 0,
+  () => !!(props.a.length || props.b.length || props.rois.length) && props.width > 0 && props.height > 0,
 )
 
-const legendA = computed(() =>
-  props.a ? { label: `A · ${props.a.label}`, css: rgbCss(props.a.color) } : null,
+interface LegendEntry {
+  label: string
+  css: string
+}
+const legendsA = computed<LegendEntry[]>(() =>
+  props.a.map((r) => ({ label: `A · ${r.label}`, css: rgbCss(r.color) })),
 )
-const legendB = computed(() =>
-  props.b ? { label: `B · ${props.b.label}`, css: rgbCss(props.b.color) } : null,
+const legendsB = computed<LegendEntry[]>(() =>
+  props.b.map((r) => ({ label: `B · ${r.label}`, css: rgbCss(r.color) })),
 )
 
 // ---------- raster building ----------
@@ -95,10 +100,11 @@ function buildImageData(): ImageData | null {
     paintMask(buf, roi.mask, w, h, c, 0.85, false)
   }
 
-  // Compared regions: strong fill, their own identity color. B after A so
-  // overlap (if any) reads as B - same precedence as the ion-image overlay.
-  if (props.a) paintMask(buf, props.a.mask, w, h, props.a.color, 0.85, false)
-  if (props.b) paintMask(buf, props.b.mask, w, h, props.b.color, 0.85, false)
+  // Compared groups: strong fill, each member in its own identity color.
+  // B after A so overlap (if any) reads as B - same precedence as the
+  // ion-image overlay.
+  for (const r of props.a) paintMask(buf, r.mask, w, h, r.color, 0.85, false)
+  for (const r of props.b) paintMask(buf, r.mask, w, h, r.color, 0.85, false)
 
   return img
 }
@@ -209,20 +215,20 @@ watch(
         style="image-rendering: pixelated"
       />
     </div>
-    <div v-if="legendA || legendB" class="px-3 pb-2.5 flex flex-wrap gap-x-4 gap-y-1">
-      <span v-if="legendA" class="flex items-center gap-1.5 text-base text-base-content/80">
+    <div
+      v-if="legendsA.length || legendsB.length"
+      class="px-3 pb-2.5 flex flex-wrap gap-x-4 gap-y-1"
+    >
+      <span
+        v-for="legend in [...legendsA, ...legendsB]"
+        :key="legend.label"
+        class="flex items-center gap-1.5 text-base text-base-content/80"
+      >
         <span
           class="w-2.5 h-2.5 rounded-sm border border-base-content/30 shrink-0"
-          :style="{ backgroundColor: legendA.css }"
+          :style="{ backgroundColor: legend.css }"
         ></span>
-        <span class="truncate max-w-[180px]" :title="legendA.label">{{ legendA.label }}</span>
-      </span>
-      <span v-if="legendB" class="flex items-center gap-1.5 text-base text-base-content/80">
-        <span
-          class="w-2.5 h-2.5 rounded-sm border border-base-content/30 shrink-0"
-          :style="{ backgroundColor: legendB.css }"
-        ></span>
-        <span class="truncate max-w-[180px]" :title="legendB.label">{{ legendB.label }}</span>
+        <span class="truncate max-w-[180px]" :title="legend.label">{{ legend.label }}</span>
       </span>
     </div>
   </div>

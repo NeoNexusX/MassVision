@@ -199,8 +199,8 @@ const {
 // ---- Region comparison ----
 
 const {
-  regionAId: cmpRegionAId,
-  regionBId: cmpRegionBId,
+  regionAIds: cmpRegionAIds,
+  regionBIds: cmpRegionBIds,
   minDetectionRate: cmpMinDetectionRate,
   noiseFloorPercentile: cmpNoiseFloorPercentile,
   comparing: cmpComparing,
@@ -211,8 +211,8 @@ const {
   filterStats: cmpFilterStats,
   availableRegions: cmpAvailableRegions,
   canCompare: cmpCanCompare,
-  selectedRegionA: cmpSelectedRegionA,
-  selectedRegionB: cmpSelectedRegionB,
+  selectedRegionsA: cmpSelectedRegionsA,
+  selectedRegionsB: cmpSelectedRegionsB,
   colorA: cmpColorA,
   colorB: cmpColorB,
   buildThumbnailRegions: cmpBuildThumbnailRegions,
@@ -456,8 +456,8 @@ async function onSelectPixel(col: number, row: number) {
             :regions="cmpAvailableRegions"
             :data-mode="dataMode"
             :spectrum-mode="spectrumMode"
-            v-model:region-a-id="cmpRegionAId"
-            v-model:region-b-id="cmpRegionBId"
+            v-model:region-a-ids="cmpRegionAIds"
+            v-model:region-b-ids="cmpRegionBIds"
             v-model:min-detection-rate="cmpMinDetectionRate"
             v-model:noise-floor-percentile="cmpNoiseFloorPercentile"
             v-model:expanded="comparisonExpanded"
