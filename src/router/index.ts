@@ -25,6 +25,11 @@ const routes = [
     component: () => import('../views/DatasetOverviewView.vue'),
   },
   {
+    path: '/s/:encodedId',
+    name: 'SharedDatasetOverview',
+    component: () => import('../views/DatasetOverviewView.vue'),
+  },
+  {
     path: '/login',
     name: 'Login',
     component: () => import('../views/LoginView.vue'),

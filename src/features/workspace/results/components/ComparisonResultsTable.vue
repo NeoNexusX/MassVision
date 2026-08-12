@@ -227,7 +227,7 @@ watch(
 <template>
   <div
     class="w-full rounded-xl border-2 border-base-content/30 bg-base-100 overflow-hidden flex flex-col self-stretch"
-        :class="expanded ? 'h-full min-h-0' : 'h-auto self-start'"
+    :class="expanded ? 'h-full min-h-0' : 'h-auto min-h-0 self-start'"
   >
     <!-- Collapsible header bar -->
     <div
@@ -242,7 +242,7 @@ watch(
       <span class="text-lg text-base-content whitespace-nowrap shrink-0">
         {{ results.length }} ions
       </span>
-      <span v-if="!results.length" class="text-base text-base-content">
+      <span v-if="!results.length" class="min-w-0 truncate text-sm text-base-content">
         Select two regions and click Compare to view comparison results.
       </span>
       <span v-if="filterStats.filtered > 0" class="text-lg text-base-content whitespace-nowrap overflow-hidden text-ellipsis min-w-0" :title="`(${filterStats.filtered} filtered from ${filterStats.total})`">

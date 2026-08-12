@@ -33,6 +33,11 @@
     ]
   },
 
+  "resultFeatures": {
+    "compare": false,
+    "annotation": false
+  },
+
   "timeline": [
     {
       "date": "August 7",
@@ -199,7 +204,7 @@
       "degree": "Cat B.Sc.",
       "school": "Cat University",
       "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1781240570533.jpg",
-      "homepage": "https://neonexusx.github.io/"
+      "homepage": "https://neonexusx.github.io/2026/06/17/zaizai/"
     }
   ],
   "options": {

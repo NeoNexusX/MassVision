@@ -146,6 +146,10 @@ export function disposeZarrState(): void {
   store?.dispose()
   store = null
 
+  ionImageRequestId++
+  normalizationRequestId++
+  normalizationCache.clear()
+  normalizationPending.clear()
   resetModuleState()
   nMz.value = 0
 }
@@ -272,41 +276,49 @@ function findMzRangeIndices(targetIdx: number, tolerance: number): number[] {
   if (!mzAxis) return []
   const target = mzAxis[targetIdx]
   if (target == null) return [targetIdx]
-  const indices: number[] = []
-  for (let i = 0; i < mzAxis.length; i++) {
-    const mz = mzAxis[i]!
-    if (mz >= target - tolerance && mz <= target + tolerance) indices.push(i)
-    else if (mz > target + tolerance) break
+
+  const lowerMz = target - tolerance
+  const upperMz = target + tolerance
+
+  // Lower bound: first axis value >= lowerMz.
+  let lo = 0
+  let hi = mzAxis.length
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1
+    if (mzAxis[mid]! < lowerMz) lo = mid + 1
+    else hi = mid
   }
-  return indices.length ? indices : [targetIdx]
+  const start = lo
+
+  // Upper bound: first axis value > upperMz.
+  lo = start
+  hi = mzAxis.length
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1
+    if (mzAxis[mid]! <= upperMz) lo = mid + 1
+    else hi = mid
+  }
+  const end = lo
+
+  if (start >= end) return [targetIdx]
+  return Array.from({ length: end - start }, (_, offset) => start + offset)
 }
 
 // ---- Helper: load ion image slice sum (continuous mode) ----
 
-async function loadIonSliceSum(indices: number[]): Promise<Float32Array | null> {
+async function loadIonSliceSum(indices: number[]): Promise<Float32Array> {
   const s = store
-  if (!s || !indices.length || !ionDims.value) return null
+  if (!s) throw new Error('Zarr store is unavailable')
+  if (!indices.length) throw new Error('No m/z indices were selected')
+  if (!ionDims.value) throw new Error('Ion-image dimensions are unavailable')
   const { width, height } = ionDims.value
-  const size = width * height
-  // Fetch all tolerance-bin indices in parallel; each keeps its own
-  // error tolerance (skip + warn) exactly as the serial version did.
-  const results = await Promise.all(
-    indices.map(async (idx) => {
-      try {
-        return await s.getIonImageByMzIndex(idx)
-      } catch (e) {
-        console.warn(`[useZarrIonImage] skip mzIndex=${idx}:`, (e as Error).message)
-        return null
-      }
-    }),
-  )
-  // Sum in index order — identical accumulation order to the serial loop
-  const sum = new Float32Array(size)
-  for (const info of results) {
-    if (!info) continue
-    for (let i = 0; i < size; i++) sum[i]! += info.matrix[i]!
+  const matrix = await s.getSummedIonImageByMzIndices(indices)
+  if (matrix.length !== width * height) {
+    throw new Error(
+      `ion matrix size mismatch: expected ${width * height}, got ${matrix.length}`,
+    )
   }
-  return sum
+  return matrix
 }
 
 // ---- Binary search in m/z axis ----
@@ -338,6 +350,14 @@ export function findClosestPeak(mz: number, tolerance: number): number {
   return -1
 }
 
+const normalizationCache = new Map<'tic' | 'rms', Float32Array>()
+const normalizationPending = new Map<
+  'tic' | 'rms',
+  { store: ZarrOssStore; promise: Promise<Float32Array> }
+>()
+let normalizationRequestId = 0
+let ionImageRequestId = 0
+
 // ---- Main composable ----
 
 export function useZarrIonImage() {
@@ -345,6 +365,9 @@ export function useZarrIonImage() {
   const selectedMzIndex = ref(0)
   const mzTolerance = ref<number>(ZARR_STORE.defaultMzTolerance)
   const ionMatrix = ref<Float32Array | null>(null)
+  const normalizationFactors = shallowRef<Float32Array | null>(null)
+  const normalizationLoading = ref(false)
+  const normalizationError = ref<string | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const ready = ref(false)
@@ -375,18 +398,77 @@ export function useZarrIonImage() {
   const loadForMzIndex = async (idx: number) => {
     if (!mzAxisRef.value || !ready.value || idx < 0 || idx >= mzAxisRef.value.length) return
     if (dataModeRef.value !== 'continuous') return
+    const requestId = ++ionImageRequestId
+    const requestStore = store
     loading.value = true
+    error.value = null
     selectedMzIndex.value = idx
     // 钳位容差到 [min, max]，防止外部传入越界值导致空区间或全表扫描
     const tol = Math.min(
       ZARR_STORE.maxMzTolerance,
       Math.max(ZARR_STORE.minMzTolerance, mzTolerance.value),
     )
-    const matrix = await loadIonSliceSum(findMzRangeIndices(idx, tol))
-    // store 可能在 await 期间被 disposeZarrState() 置空
-    if (!store) return
-    ionMatrix.value = matrix
-    loading.value = false
+    try {
+      const matrix = await loadIonSliceSum(findMzRangeIndices(idx, tol))
+      // Ignore a stale response after another peak/run has been selected.
+      if (requestId !== ionImageRequestId || store !== requestStore) return
+      ionMatrix.value = matrix
+    } catch (e) {
+      if (requestId !== ionImageRequestId || store !== requestStore) return
+      error.value = e instanceof Error ? e.message : String(e)
+      console.error('[useZarrIonImage] loadForMzIndex failed:', e)
+    } finally {
+      if (requestId === ionImageRequestId) loading.value = false
+    }
+  }
+
+  const loadNormalization = async (mode: 'tic' | 'rms') => {
+    if (!store || !ready.value) return
+    const requestId = ++normalizationRequestId
+    const requestStore = store
+    normalizationFactors.value = null
+    const cached = normalizationCache.get(mode)
+    if (cached) {
+      if (requestId === normalizationRequestId && store === requestStore) {
+        normalizationFactors.value = cached
+      }
+      return
+    }
+    normalizationLoading.value = true
+    normalizationError.value = null
+    try {
+      const pending = normalizationPending.get(mode)
+      let promise = pending && pending.store === requestStore ? pending.promise : null
+      if (!promise) {
+        promise = requestStore.computePixelNormalization(mode)
+        const trackedPromise = promise.finally(() => {
+          if (normalizationPending.get(mode)?.promise === trackedPromise) {
+            normalizationPending.delete(mode)
+          }
+        })
+        normalizationPending.set(mode, { store: requestStore, promise: trackedPromise })
+      }
+      const factors = await promise
+      if (store !== requestStore) return
+      normalizationCache.set(mode, factors)
+      // The computation is independent of the selected m/z. If the user switched
+      // back to Linear while it was running, keep the cache but don't re-apply it.
+      if (requestId !== normalizationRequestId) return
+      normalizationFactors.value = factors
+    } catch (e) {
+      if (store !== requestStore) return
+      normalizationError.value = e instanceof Error ? e.message : String(e)
+      if (requestId !== normalizationRequestId) return
+      normalizationFactors.value = null
+    } finally {
+      if (requestId === normalizationRequestId) normalizationLoading.value = false
+    }
+  }
+  const clearNormalization = () => {
+    normalizationRequestId++
+    normalizationFactors.value = null
+    normalizationError.value = null
+    normalizationLoading.value = false
   }
 
   const onSpectrumClickByIndex = async (idx: number) => {
@@ -396,8 +478,9 @@ export function useZarrIonImage() {
   }
 
   const loadDefaultImage = async () => {
-    if (!mzAxisRef.value || !ready.value) return
-    const idx = findClosestMzIndex(900.5)
+    const axis = mzAxisRef.value
+    if (!axis?.length || !ready.value) return
+    const idx = Math.floor(axis.length / 2)
     await loadForMzIndex(idx)
   }
 
@@ -441,6 +524,12 @@ export function useZarrIonImage() {
     // Reset all state
     store?.dispose()
     store = null
+    ionImageRequestId++
+    normalizationRequestId++
+    normalizationCache.clear()
+    normalizationPending.clear()
+    normalizationFactors.value = null
+    normalizationError.value = null
     ionMatrix.value = null
     resetModuleState()
 
@@ -474,6 +563,7 @@ export function useZarrIonImage() {
         // Load shared m/z axis
         const mzAxis = await s.loadMzAxis()
         if (store !== s) return
+        if (!mzAxis) throw new Error('[useZarrIonImage] continuous data is missing its m/z axis')
         mzAxisRef.value = mzAxis
 
         // Set ion shape for backward compat
@@ -518,6 +608,11 @@ export function useZarrIonImage() {
     // Continuous mode
     onSpectrumClickByIndex,
     loadForMzIndex,
+    loadNormalization,
+    clearNormalization,
+    normalizationFactors,
+    normalizationLoading,
+    normalizationError,
 
     // Processed mode
     selectedPixelIndex,

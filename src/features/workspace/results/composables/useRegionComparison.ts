@@ -81,6 +81,7 @@ const PROCESSED_BIN_WIDTH = 0.01
 // ---------- composable ----------
 
 export function useRegionComparison(deps: {
+  enabled?: boolean
   kmeansClusters: Ref<KmeansCluster[]>
   kmeansLabelsAvailable: Ref<boolean>
   getKmeansLabels: () => Int32Array | null
@@ -91,6 +92,7 @@ export function useRegionComparison(deps: {
   onSelectMzIndex: (idx: number) => void | Promise<void>
   setComparisonOverlay: (rgba: Uint8ClampedArray | null) => void
 }) {
+  const featureEnabled = deps.enabled !== false
   const regionAIds = ref<string[]>([])
   const regionBIds = ref<string[]>([])
   const minDetectionRate = ref(5) // percentage, 1-50
@@ -119,6 +121,7 @@ export function useRegionComparison(deps: {
   let cachedDims: { width: number; height: number } | null = null
 
   const availableRegions = computed<RegionOption[]>(() => {
+    if (!featureEnabled) return []
     const regions: RegionOption[] = []
     if (deps.kmeansLabelsAvailable.value) {
       for (const c of deps.kmeansClusters.value) {
@@ -143,10 +146,12 @@ export function useRegionComparison(deps: {
 
   // Deleted regions must not linger in the selectors - otherwise the
   // thumbnail/overlay would keep showing a region that no longer exists.
-  watch(availableRegions, (regions) => {
-    regionAIds.value = regionAIds.value.filter((id) => regions.some((r) => r.value === id))
-    regionBIds.value = regionBIds.value.filter((id) => regions.some((r) => r.value === id))
-  })
+  if (featureEnabled) {
+    watch(availableRegions, (regions) => {
+      regionAIds.value = regionAIds.value.filter((id) => regions.some((r) => r.value === id))
+      regionBIds.value = regionBIds.value.filter((id) => regions.some((r) => r.value === id))
+    })
+  }
 
   /** Selected A/B options (stale ids filtered out). */
   const selectedRegionsA = computed(
@@ -180,6 +185,7 @@ export function useRegionComparison(deps: {
   const colorB = computed(() => optionRgb(selectedRegionsB.value[0] ?? null))
 
   const canCompare = computed(() => {
+    if (!featureEnabled) return false
     if (comparing.value) return false
     if (!regionAIds.value.length || !regionBIds.value.length) return false
     // A region may not participate in both groups
@@ -373,6 +379,7 @@ export function useRegionComparison(deps: {
   }
 
   async function compare() {
+    if (!featureEnabled) return
     if (!canCompare.value) return
     const ctx = getSharedZarrContext()
     const store = ctx.store
@@ -512,6 +519,7 @@ export function useRegionComparison(deps: {
   /** Click a result row: load the ion image (continuous mode only).
    *  Processed mode has no ion image - the row click is a no-op. */
   function selectMz(ionIndex: number) {
+    if (!featureEnabled) return
     deps.onSelectMzIndex(ionIndex)
   }
 
@@ -578,6 +586,7 @@ export function useRegionComparison(deps: {
     b: RegionThumbnailRegion[]
     dims: { width: number; height: number }
   } | null {
+    if (!featureEnabled) return null
     const ctx = getSharedZarrContext()
     const store = ctx.store
     if (!store) return null

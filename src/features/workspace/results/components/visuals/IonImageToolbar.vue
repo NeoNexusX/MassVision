@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-wrap items-center gap-3 mb-3 pt-1">
+  <div class="flex flex-wrap items-center gap-3 mb-1 pt-1">
     <div>
       <h3 class="text-xl font-semibold">{{ title }}</h3>
     </div>
@@ -10,7 +10,7 @@
         class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-lg h-8 flex items-center"
       >
         <span class="text-base-content/50"><i>m/z</i>&nbsp;</span>
-        <span class="font-mono font-semibold">{{ selectedMz.toFixed(4) }}</span>
+        <span data-testid="selected-mz" class="font-mono font-semibold">{{ selectedMz.toFixed(4) }}</span>
       </div>
       <!-- 像素坐标显示（processed 模式） -->
       <div

@@ -58,7 +58,8 @@ function toggleRegion(side: 'a' | 'b', value: string, checked: boolean) {
   const idx = current.indexOf(value)
   if (checked && idx === -1) current.push(value)
   if (!checked && idx !== -1) current.splice(idx, 1)
-  emit(side === 'a' ? 'update:regionAIds' : 'update:regionBIds', current)
+  if (side === 'a') emit('update:regionAIds', current)
+  else emit('update:regionBIds', current)
 }
 
 /** A region already checked on the other side is disabled here (a region

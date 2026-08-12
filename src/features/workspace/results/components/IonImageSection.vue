@@ -32,6 +32,10 @@ const props = defineProps<{
   selectedPixelCoord?: { x: number; y: number } | null
   /** 离子图是否正在加载（切换 m/z 时） */
   ionLoading?: boolean
+  /** 离子图加载错误（保留上一张成功图并显示反馈） */
+  ionError?: string | null
+  /** 归一化计算是否进行中 */
+  normalizationLoading?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -98,17 +102,26 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <!-- 桌面端与谱图按 5:2 分高、硬底线 360px；移动端自然高 -->
-  <div class="flex gap-2 p-4 min-h-[360px] shrink-0 lg:h-auto lg:flex-[5]">
-    <div
-      class="flex-1 card bg-base-100 rounded-xl p-4 flex flex-col overflow-hidden"
-    >
+  <!-- 移动端保留 360px 可用高度；桌面端在首屏剩余空间内与谱图按 5:2 分高。 -->
+  <div
+    data-testid="ion-image-section"
+    :data-loading="ionLoading ? 'true' : 'false'"
+    class="flex gap-2 p-2 min-h-[520px] shrink-0 lg:h-auto lg:min-h-0 lg:flex-[5_1_0%] lg:shrink"
+  >
+    <div class="flex-1 card bg-base-100 rounded-xl flex flex-col overflow-hidden">
       <div
         v-if="isStale"
         class="flex-1 flex flex-col items-center justify-center text-base-content/40 gap-1"
       >
         <p class="text-xl">No result selected</p>
         <p class="text-base">Navigate from the Workspace dashboard to view a result.</p>
+      </div>
+      <div
+        v-else-if="ionError && !ionMatrix"
+        class="flex-1 flex flex-col items-center justify-center gap-2 px-6 text-center"
+      >
+        <p class="text-lg font-semibold text-error">Failed to load ion image</p>
+        <p class="text-sm text-base-content/60 break-words">{{ ionError }}</p>
       </div>
       <div
         v-else-if="!ionMatrix"
@@ -161,6 +174,12 @@ onBeforeUnmount(() => {
           @draft-updated="emit('draft-updated', $event)"
           @draft-cleared="emit('draft-cleared')"
         />
+        <div
+          v-if="ionError"
+          class="absolute left-3 right-3 top-3 z-30 rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-sm text-error shadow-sm backdrop-blur-sm"
+        >
+          Failed to update ion image: {{ ionError }}
+        </div>
       </div>
     </div>
 

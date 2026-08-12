@@ -488,7 +488,7 @@ watch(
             >
               <td
                 class="min-w-0 max-w-[200px]"
-                @mouseenter="onCellEnter(row, $event)"
+                @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
                 <div class="font-medium text-base text-base-content truncate">{{ row.name }}</div>
@@ -504,7 +504,7 @@ watch(
               </td>
               <td
                 class="text-right font-mono whitespace-nowrap text-base"
-                @mouseenter="onCellEnter(row, $event)"
+                @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
                 {{ row.valid ? row.expMz.toFixed(4) : '-' }}

@@ -25,6 +25,7 @@ import { useResultROI } from '@/features/workspace/results/composables/useResult
 import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
 import { useRegionComparison } from '@/features/workspace/results/composables/useRegionComparison'
 import { ZARR_STORE } from '@/shared/config/defaults'
+import { getConfig } from '@/shared/config/runtimeConfig'
 import { rgbCss } from '@/features/workspace/results/utils/regionPalette'
 import { fetchReferenceRois, decodeRleMask } from '@/features/workspace/results/utils/referenceRois'
 import { useToast } from '@/shared/composables/useToast'
@@ -55,6 +56,9 @@ const runId = computed(() => {
   return state?.runId != null ? String(state.runId) : ''
 })
 const isStale = computed(() => !isLocal.value && state?.runId == null)
+const resultFeatureConfig = getConfig().resultFeatures
+const compareEnabled = resultFeatureConfig?.compare !== false
+const annotationEnabled = resultFeatureConfig?.annotation !== false
 
 // ---- 元数据 ----
 
@@ -91,6 +95,12 @@ const {
   ionCols,
   ionRows,
   loading,
+  error: ionError,
+  loadNormalization,
+  clearNormalization,
+  normalizationFactors,
+  normalizationLoading,
+  normalizationError,
   onSpectrumClickByIndex,
   isProcessed,
 } = zarr
@@ -100,6 +110,24 @@ const dataMode = computed<DataMode | null>(() => dataModeRef.value)
 
 // processed 模式下的图像矩阵（TIC）
 const currentIonMatrix = computed(() => (isProcessed.value ? ticMatrix.value : ionMatrix.value))
+
+// 当前显示强度标度对应的图像矩阵；RMS/TIC 仅在用户选择后按需计算
+const normalizedIonMatrix = computed(() => {
+  const matrix = currentIonMatrix.value
+  const factors = normalizationFactors.value
+  if (!matrix || !factors || intensityScale.value === 'linear' || intensityScale.value === 'log')
+    return matrix
+  // Processed 数据本身就是 TIC 图像，不重复对 TIC 做归一化
+  if (isProcessed.value) return matrix
+  const result = new Float32Array(matrix.length)
+  for (let i = 0; i < matrix.length; i++) {
+    const denominator = factors[i]!
+    result[i] = denominator > 0 ? matrix[i]! / denominator : 0
+  }
+  return result
+})
+
+const displaySourceMatrix = computed(() => normalizedIonMatrix.value)
 
 // ---- 初始化 ----
 
@@ -134,7 +162,7 @@ const {
   onStripMouseDown,
   startStripDrag,
   formatVal,
-} = useDisplayRange(currentIonMatrix, colormap, ionCols, ionRows)
+} = useDisplayRange(displaySourceMatrix, colormap, ionCols, ionRows)
 
 // ---- ROI ----
 
@@ -154,7 +182,7 @@ const {
   roiAddMask,
   onDraftUpdated,
   onDraftCleared,
-} = useResultROI(currentIonMatrix, ionCols, ionRows)
+} = useResultROI(displaySourceMatrix, ionCols, ionRows)
 
 // ---- Overlay ----
 
@@ -222,6 +250,7 @@ const {
   reset: cmpReset,
   involvesRoi: cmpInvolvesRoi,
 } = useRegionComparison({
+  enabled: compareEnabled,
   kmeansClusters,
   kmeansLabelsAvailable,
   getKmeansLabels,
@@ -305,7 +334,7 @@ const comparisonExpanded = ref(false)
 
 // 展开 compare 时将中列平滑滚到该区域顶部，展示完整控件和结果。
 watch(comparisonExpanded, async (expanded) => {
-  if (!expanded) return
+  if (!compareEnabled || !expanded) return
   await nextTick()
   compareSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 })
@@ -382,9 +411,13 @@ async function onSelectPixel(col: number, row: number) {
 </script>
 
 <template>
-  <ResultVisualizationLayout>
+  <ResultVisualizationLayout
+    :show-left-panel="annotationEnabled"
+    :show-compare="compareEnabled"
+  >
     <template #left-panel>
       <AnnotationPanel
+        v-if="annotationEnabled"
         v-model:expanded="annotationExpanded"
         :select-mz-index="handleSelectMzIndex"
         :selected-mz-index="selectedMzIndex"
@@ -396,7 +429,7 @@ async function onSelectPixel(col: number, row: number) {
       <ResultHeader class="shrink-0" :dataset-name="datasetName" :status="status" />
       <IonImageSection
         :is-stale="isStale"
-        :ion-matrix="currentIonMatrix"
+        :ion-matrix="displaySourceMatrix"
         :display-matrix="displayMatrix"
         :selected-mz="selectedMz"
         :mz-tolerance="mzTolerance"
@@ -417,9 +450,17 @@ async function onSelectPixel(col: number, row: number) {
         :data-mode="dataMode"
         :selected-pixel-coord="selectedPixelCoord"
         :ion-loading="loading"
+        :ion-error="ionError"
+        :normalization-loading="normalizationLoading"
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
-        @update:intensity-scale="intensityScale = $event"
+        @update:intensity-scale="
+          async (value) => {
+            intensityScale = value
+            if (value === 'rms' || value === 'tic') await loadNormalization(value)
+            else clearNormalization()
+          }
+        "
         @reset-controls="resetControls"
         @reset-range="resetRange"
         @strip-ref="setStripRef"
@@ -447,6 +488,7 @@ async function onSelectPixel(col: number, row: number) {
       <!-- Region comparison：左 controls+preview，右结果表。
            桌面端折叠栏保留在首屏，展开后由中列承载滚动。 -->
       <div
+        v-if="compareEnabled"
         ref="compareSectionRef"
         class="w-full flex flex-col items-stretch gap-4 lg:flex-row lg:items-stretch"
       >

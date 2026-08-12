@@ -73,15 +73,6 @@ export interface MetadataAttrs {
   [key: string]: unknown
 }
 
-export interface IonImageInfo {
-  mzIndex: number
-  mz: number
-  /** Row-major [height * width] */
-  matrix: Float32Array
-  width: number
-  height: number
-}
-
 export interface PixelSpectrum {
   pixelIndex: number
   /** 1-based coordinate from axes/coordinates */

@@ -188,7 +188,16 @@ export class ClusteringZarrStore {
   ): Promise<Uint32Array | Float32Array | Float64Array | Int32Array> {
     const out = await this.readArrayFull(arrayPath, meta)
     const buf = out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength) as ArrayBuffer
-    return makeTypedArray(meta.data_type, buf)
+    const arr = makeTypedArray(meta.data_type, buf)
+    if (
+      !(arr instanceof Uint32Array) &&
+      !(arr instanceof Float32Array) &&
+      !(arr instanceof Float64Array) &&
+      !(arr instanceof Int32Array)
+    ) {
+      throw new Error(`[ClusteringZarrStore] ${arrayPath}: unsupported dtype ${meta.data_type}`)
+    }
+    return arr
   }
 
   // ========== internal ==========

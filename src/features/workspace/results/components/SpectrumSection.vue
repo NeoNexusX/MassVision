@@ -7,7 +7,7 @@ import {
   spectrumLoading,
   spectrumError,
   nMz,
-  findClosestPeak,
+  findClosestMzIndex,
   loadMeanSpectrum,
   pixelSpectrum,
   pixelSpectrumLoading,
@@ -40,8 +40,8 @@ const totalPeaks = computed(() =>
   mzAxisRef.value ? mzAxisRef.value.length.toLocaleString() : '--',
 )
 
-function onSelectMz(mz: number, tolerance: number) {
-  const idx = findClosestPeak(mz, tolerance)
+function onSelectMz(mz: number) {
+  const idx = findClosestMzIndex(mz)
   if (idx >= 0) emit('select-mz-index', idx)
 }
 
@@ -132,8 +132,10 @@ const currentStats = computed(() =>
 </script>
 
 <template>
-  <!-- 桌面端与离子图按 5:2 分高、硬底线 240px；移动端自然高 -->
-  <div class="shrink-0 lg:h-auto lg:flex-[2] lg:min-h-[240px] card bg-base-100 border-2 border-base-content/30 p-4 flex flex-col">
+  <!-- 桌面端在首屏剩余空间内与离子图按 2:5 分高，并允许随视口收缩。 -->
+  <div
+    class="shrink-0 lg:h-auto lg:min-h-0 lg:flex-[2_1_0%] lg:shrink card bg-base-100 border-2 border-base-content/30 p-2 flex flex-col"
+  >
     <div
       v-if="isStale"
       class="flex-1 flex items-center justify-center text-base-content/40 text-xl"
@@ -151,9 +153,7 @@ const currentStats = computed(() =>
           <div class="text-base text-base-content/40 mt-1">First load may take a moment while fetching data</div>
         </div>
       </template>
-      <template v-else>
-        Click a pixel on the TIC image to view its spectrum
-      </template>
+      <template v-else> Click a pixel on the TIC image to view its spectrum </template>
     </div>
     <AverageSpectrum
       v-else
