@@ -16,7 +16,7 @@
  * button live in the hover card so the table never needs horizontal scroll.
  * Sorting is driven from a "Sort by" control in the toolbar, not the headers.
  */
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import {
   useAnnotationMatch,
@@ -45,9 +45,9 @@ const emit = defineEmits<{
 }>()
 
 const {
-  importedRows,
   fileName,
   parseError,
+  isImporting,
   tolMode,
   tolValue,
   spectrumAvailable,
@@ -78,7 +78,7 @@ function collapse() {
   emit('update:expanded', false)
 }
 
-const hasData = computed(() => importedRows.value.length > 0)
+const hasData = computed(() => fileName.value !== null)
 const isAnnotationAvailable = computed(
   () => props.spectrumMode === 'centroid' && spectrumAvailable.value,
 )
@@ -115,6 +115,94 @@ function onSortKeyChange(e: Event) {
 function toggleSortDir() {
   sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
 }
+
+// ---- Virtual scrolling -------------------------------------------------
+// A full annotation CSV can hold hundreds of thousands of rows; rendering
+// them all crashes the tab (OOM). Instead we render only the rows inside
+// the visible window (plus an overscan buffer) and pad the tbody with
+// fixed-height spacer rows so the scrollbar maps to the full list.
+
+/** Fallback row height (px) until the first real row is measured. */
+const FALLBACK_ROW_H = 53
+/** Extra rows rendered above/below the viewport to avoid pop-in. */
+const OVERSCAN = 8
+
+const tableScrollEl = ref<HTMLElement | null>(null)
+const scrollTop = ref(0)
+const viewportH = ref(400)
+/** Measured on-screen height of a data row; themes/fonts make this differ
+ *  from any constant we could hard-code, so we read it from the DOM. */
+const rowH = ref(FALLBACK_ROW_H)
+
+function onTableScroll(e: Event) {
+  const el = e.target as HTMLElement
+  scrollTop.value = el.scrollTop
+  viewportH.value = el.clientHeight
+  // Rows scrolled out of the window never fire mouseleave, so dismiss the
+  // hover card here or it lingers at stale coordinates.
+  dismissTooltip()
+}
+
+/** Measure a rendered data row so the spacer math matches reality. */
+function measureRowHeight() {
+  const row = tableScrollEl.value?.querySelector('tbody tr[data-row]')
+  const h = row?.getBoundingClientRect().height
+  if (h && h > 0) rowH.value = h
+}
+
+/** Reset the virtual window when the list changes (import, filter, sort). */
+watch(
+  filteredRows,
+  async () => {
+    scrollTop.value = 0
+    await nextTick()
+    const el = tableScrollEl.value
+    if (el) {
+      el.scrollTop = 0
+      viewportH.value = el.clientHeight
+      measureRowHeight()
+    }
+  },
+  { flush: 'post' },
+)
+
+/** Keep viewportH/rowH in sync with the container: the table only scrolls
+ *  once data exists, so its size changes on expand/collapse, window resize
+ *  and theme switches - none of which fire a scroll event. Observed once
+ *  when the v-if mounts the container; cleaned up on unmount. */
+watch(
+  tableScrollEl,
+  (el, _prev, onCleanup) => {
+    if (!el) return
+    viewportH.value = el.clientHeight
+    measureRowHeight()
+    const ro = new ResizeObserver(() => {
+      viewportH.value = el.clientHeight
+      measureRowHeight()
+    })
+    ro.observe(el)
+    onCleanup(() => ro.disconnect())
+  },
+  { flush: 'post' },
+)
+
+const totalRowCount = computed(() => filteredRows.value.length)
+
+const visibleStart = computed(() =>
+  Math.max(0, Math.floor(scrollTop.value / rowH.value) - OVERSCAN),
+)
+const visibleEnd = computed(() =>
+  Math.min(
+    totalRowCount.value,
+    Math.ceil((scrollTop.value + viewportH.value) / rowH.value) + OVERSCAN,
+  ),
+)
+const visibleRows = computed(() => filteredRows.value.slice(visibleStart.value, visibleEnd.value))
+/** Padding heights that keep the scrollbar proportional to the full list. */
+const topPadH = computed(() => visibleStart.value * rowH.value)
+const bottomPadH = computed(() =>
+  Math.max(0, (totalRowCount.value - visibleEnd.value) * rowH.value),
+)
 
 // ---- Copyable candidates tooltip ----
 // A native title="" tooltip vanishes too fast to select/copy text. Instead we
@@ -166,6 +254,15 @@ function onNameLeave() {
   tooltipTimer = window.setTimeout(() => {
     tooltipRow.value = null
   }, 250)
+}
+
+/** Immediately close the hover card and cancel its grace timer. */
+function dismissTooltip() {
+  if (tooltipTimer) {
+    clearTimeout(tooltipTimer)
+    tooltipTimer = 0
+  }
+  tooltipRow.value = null
 }
 
 function onTooltipEnter() {
@@ -281,9 +378,18 @@ function copyName(name: string) {
           class="hidden"
           @change="onFileChange"
         />
-        <button class="btn btn-sm btn-primary w-full gap-2" @click="fileInput?.click()">
-          <SvgIcon type="upload" class="w-4 h-4" />
-          Import CSV
+        <button
+          class="btn btn-sm btn-primary w-full gap-2"
+          :disabled="isImporting"
+          @click="fileInput?.click()"
+        >
+          <span
+            v-if="isImporting"
+            class="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent will-change-transform"
+            aria-hidden="true"
+          ></span>
+          <SvgIcon v-else type="upload" class="w-4 h-4" />
+          {{ isImporting ? 'Importing…' : 'Import CSV' }}
         </button>
 
         <div v-if="!isAnnotationAvailable" class="text-sm text-warning flex items-start gap-1.5">
@@ -380,15 +486,27 @@ function copyName(name: string) {
         </button>
       </div>
 
-      <!-- Table: only Annotation + Exp. m/z (details on hover card) -->
+      <!-- Loading state: parsing/matching a huge CSV blocks for seconds,
+           so show a spinner instead of a blank panel. -->
       <div
-        v-if="hasData"
-        :class="[
-          // Small screens
-          'max-h-[60dvh] overflow-auto rounded-lg border border-base-300 bg-base-100',
-          // Desktop
-          'lg:max-h-none lg:min-h-0 lg:flex-1',
-        ]"
+        v-if="isImporting"
+        class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-lg border border-base-300 bg-base-100"
+      >
+        <span
+          class="inline-block size-9 animate-spin rounded-full border-4 border-current border-t-transparent text-primary will-change-transform"
+          aria-hidden="true"
+        ></span>
+        <p class="text-sm text-base-content/50">Parsing and matching annotations…</p>
+      </div>
+
+      <!-- Table: only Annotation + Exp. m/z (details on hover card).
+           Virtual-scrolled: only the visible window is rendered so huge
+           CSVs (hundreds of thousands of rows) don't OOM the tab. -->
+      <div
+        v-else-if="hasData"
+        ref="tableScrollEl"
+        class="flex-1 min-h-0 overflow-auto rounded-lg border border-base-300 bg-base-100"
+        @scroll.passive="onTableScroll"
       >
         <table class="table table-sm">
           <thead class="sticky top-0 z-10 bg-base-200 text-base-content/70">
@@ -398,9 +516,18 @@ function copyName(name: string) {
             </tr>
           </thead>
           <tbody>
+            <!-- Top spacer: keeps scrollbar proportional to the full list.
+                 Height goes on an inner div: td height is content-box and not
+                 reliably honored, a block child always is. -->
+            <tr v-if="topPadH > 0" aria-hidden="true">
+              <td colspan="2" :style="{ padding: 0, border: 0 }">
+                <div :style="{ height: topPadH + 'px' }"></div>
+              </td>
+            </tr>
             <tr
-              v-for="row in filteredRows"
+              v-for="row in visibleRows"
               :key="row.id"
+              data-row
               :class="rowClass(row)"
               @click="selectRow(row)"
             >
@@ -422,6 +549,12 @@ function copyName(name: string) {
               </td>
               <td class="text-right font-mono whitespace-nowrap text-sm">
                 {{ row.valid ? row.expMz.toFixed(4) : '-' }}
+              </td>
+            </tr>
+            <!-- Bottom spacer (same block-height trick as the top one) -->
+            <tr v-if="bottomPadH > 0" aria-hidden="true">
+              <td colspan="2" :style="{ padding: 0, border: 0 }">
+                <div :style="{ height: bottomPadH + 'px' }"></div>
               </td>
             </tr>
           </tbody>

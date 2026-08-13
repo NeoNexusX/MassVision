@@ -39,6 +39,12 @@ export default defineConfig(({ mode }) => {
         '@': fileURLToPath(new URL('./src', import.meta.url))
       },
     },
+    // ESM workers: csvAnnotation.worker uses `new Worker(url, { type: 'module' })`.
+    // Without this Vite defaults to iife workers, which fail to load an ESM
+    // entry and silently fall back to the main-thread sync path.
+    worker: {
+      format: 'es',
+    },
     build: {
       // 单 chunk 警告阈值提到 1500KB（echarts/ali-oss 这类大库会超）
       chunkSizeWarningLimit: 1500,

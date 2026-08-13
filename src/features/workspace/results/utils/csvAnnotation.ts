@@ -59,6 +59,59 @@ export class CsvParseError extends Error {
   }
 }
 
+/** Coarse polarity a row implies, derived from its adduct/formula notation.
+ *  `unknown` rows are kept - only rows that clearly imply the *opposite*
+ *  polarity get dropped by the coarse filter. */
+export type RowPolarity = 'positive' | 'negative' | 'unknown'
+
+/** Normalise a result-level polarity string ('Positive', 'negative',
+ *  'POS', ...) to the canonical form, or `null` if it can't be read. */
+export function normalizeResultPolarity(p: string | null | undefined): 'positive' | 'negative' | null {
+  if (!p) return null
+  const s = p.toLowerCase()
+  if (s.includes('pos')) return 'positive'
+  if (s.includes('neg')) return 'negative'
+  return null
+}
+
+/** Infer a row's polarity from its adduct / formula_ion text.
+ *
+ *  The charge sign is the *trailing* symbol of the notation (after brackets)
+ *  - that's what encodes the ion's net charge. The `+`/`-` inside the
+ *  brackets (e.g. `[M+Cl]-`, `[M+Na-H]2+`) describe adduct composition /
+ *  losses, not the ion polarity. So we read the last `+` or `-` token and
+ *  use it, falling back to the secondary source (formula_ion for an explicit
+ *  `C24H50NO4+` tail).
+ *
+ *  Recognised patterns:
+ *    - `[M+H]+`, `[M+Na]+`, `[M+Cl]-`, `[M+OAc]-`, `[M-H]-`, `[M-H-H2O]-`
+ *    - `C24H50NO4+`, `C3H3O3-` (charge sign at the end of the formula)
+ *    - `[M+2H]2+`, `[M+3H]3+` (multiply charged positives)
+ *  Falls back to `unknown` when no trailing sign can be read (e.g. a bare
+ *  `M+H`/`M-H` adduct with a neutral formula, or a bare name) so the coarse
+ *  filter keeps the row rather than risks dropping it. */
+export function inferRowPolarity(row: Pick<AnnotationRow, 'ionType' | 'formulaIon'>): RowPolarity {
+  for (const src of [row.ionType, row.formulaIon]) {
+    if (!src) continue
+    const sign = readTrailingChargeSign(src)
+    if (sign === '+') return 'positive'
+    if (sign === '-') return 'negative'
+  }
+  return 'unknown'
+}
+
+/** Read the charge sign at the very end of the string (`[M+Cl]-` -> `-`,
+ *  `[M+2H]2+` -> `+`). Returns `null` when the string does not end with a
+ *  charge sign. */
+function readTrailingChargeSign(s: string): string | null {
+  let i = s.length - 1
+  while (i >= 0 && /\s/.test(s[i]!)) i-- // skip trailing whitespace
+  if (i < 0) return null
+  const last = s[i]!
+  if (last === '+' || last === '-') return last
+  return null
+}
+
 // ---- Column-name matching -------------------------------------------------
 
 const MZ_ALIASES = [
@@ -267,6 +320,22 @@ const EMPTY_MATCH: Pick<MatchedAnnotationRow, 'matchStatus' | 'matchedMz' | 'mat
   avgIntensity: null,
 }
 
+/** Coarse pre-filter options for {@link matchAnnotations}. Rows that fail a
+ *  filter are dropped before matching, so the per-row binary search is skipped
+ *  entirely - meaningful for CSVs with hundreds of thousands of rows. */
+export interface CoarseFilter {
+  /** Result polarity ('positive'/'negative'). Rows whose adduct/formula
+   *  clearly imply the *opposite* polarity are dropped; `unknown` rows are
+   *  kept. */
+  polarity?: 'positive' | 'negative' | null
+}
+
+/** Inline coarse-mismatch marker - reused for both the no-axis branch and the
+ *  per-row loop so the labeling stays consistent. */
+function coarseInvalid(): Pick<MatchedAnnotationRow, 'matchStatus' | 'matchedMz' | 'matchedIndex' | 'massError' | 'avgIntensity'> {
+  return { ...EMPTY_MATCH, matchStatus: 'invalid' }
+}
+
 /**
  * Match every parsed row against the average-spectrum m/z axis.
  *
@@ -276,6 +345,10 @@ const EMPTY_MATCH: Pick<MatchedAnnotationRow, 'matchStatus' | 'matchedMz' | 'mat
  *                    (may be null; intensity then reports null but matching by
  *                    m/z proximity still works).
  * @param tolerance   Max acceptable error in `mode` units.
+ * @param coarse      Optional coarse pre-filter. Rows filtered here are dropped
+ *                    (no matching attempted). When `mzAxis` is non-empty, rows
+ *                    whose `expMz` is outside `[axis[0], axis[last]]` are also
+ *                    dropped.
  */
 export function matchAnnotations(
   rows: AnnotationRow[],
@@ -283,16 +356,58 @@ export function matchAnnotations(
   meanIntensity: ArrayLike<number> | null,
   tolerance: number,
   mode: ToleranceMode,
+  coarse?: CoarseFilter,
 ): MatchedAnnotationRow[] {
+  // Coarse polarity filter - independent of the axis, so apply it first even
+  // when no spectrum is loaded yet.
+  const wantPolarity = coarse?.polarity ?? null
+  let polarityPrefiltered: AnnotationRow[]
+  if (wantPolarity) {
+    polarityPrefiltered = []
+    for (const r of rows) {
+      if (!r.valid) {
+        polarityPrefiltered.push(r)
+        continue
+      }
+      const rp = inferRowPolarity(r)
+      // Drop only rows that *clearly* have the opposite polarity; unknown
+      // rows pass through so we never discard a potentially valid match.
+      if (rp !== 'unknown' && rp !== wantPolarity) continue
+      polarityPrefiltered.push(r)
+    }
+  } else {
+    polarityPrefiltered = rows
+  }
+
   if (!mzAxis || !mzAxis.length) {
-    return rows.map((r) =>
+    return polarityPrefiltered.map((r) =>
       r.valid
         ? { ...r, ...EMPTY_MATCH }
-        : { ...r, ...EMPTY_MATCH, matchStatus: 'invalid' },
+        : { ...r, ...coarseInvalid() },
     )
   }
-  return rows.map((r) => {
-    if (!r.valid) return { ...r, ...EMPTY_MATCH, matchStatus: 'invalid' }
+
+  const lo = mzAxis[0]!
+  const hi = mzAxis[mzAxis.length - 1]!
+
+  // Drop rows far outside the m/z axis (they can never match). Widen each bound
+  // by the tolerance so a row just past the edge that is still within tolerance
+  // of the boundary peak is matched rather than silently dropped. Invalid rows
+  // (bad m/z in the CSV) pass through untouched so they stay in the table as
+  // `invalid`, matching the long-standing behavior.
+  const loMargin = mode === 'ppm' ? lo * tolerance * 1e-6 : tolerance
+  const hiMargin = mode === 'ppm' ? hi * tolerance * 1e-6 : tolerance
+  const survivors: AnnotationRow[] = []
+  for (const r of polarityPrefiltered) {
+    if (!r.valid) {
+      survivors.push(r)
+      continue
+    }
+    if (r.expMz >= lo - loMargin && r.expMz <= hi + hiMargin) survivors.push(r)
+  }
+
+  return survivors.map((r) => {
+    if (!r.valid) return { ...r, ...coarseInvalid() }
     const idx = findClosestIndex(mzAxis, r.expMz)
     const matchedMz = mzAxis[idx]!
     const err = massErrorOf(r.expMz, matchedMz, mode)
@@ -308,6 +423,71 @@ export function matchAnnotations(
     }
     return { ...r, ...EMPTY_MATCH }
   })
+}
+
+// ---- Sorting --------------------------------------------------------------
+
+export type AnnotationSortKey = 'name' | 'expMz' | 'massError' | 'avgIntensity'
+export type AnnotationSortDir = 'asc' | 'desc'
+
+/** Sort matched rows by a column, pinning null/NaN numeric values to the bottom
+ *  regardless of direction. Shared by the worker and the main-thread fallback so
+ *  both produce an identical order. Returns a new array (or `rows` when no sort
+ *  key/dir is supplied). */
+export function sortMatchedRows(
+  rows: MatchedAnnotationRow[],
+  key?: AnnotationSortKey,
+  dir?: AnnotationSortDir,
+): MatchedAnnotationRow[] {
+  if (!key || !dir) return rows
+  const sign = dir === 'asc' ? 1 : -1
+  const arr = [...rows]
+  arr.sort((a, b) => {
+    if (key === 'name') {
+      return a.name.localeCompare(b.name) * sign
+    }
+    const av = numericSortField(a, key)
+    const bv = numericSortField(b, key)
+    const aNull = av == null
+    const bNull = bv == null
+    if (aNull && bNull) return 0
+    if (aNull) return 1 // always bottom
+    if (bNull) return -1
+    if (av! < bv!) return -1 * sign
+    if (av! > bv!) return 1 * sign
+    return 0
+  })
+  return arr
+}
+
+function numericSortField(
+  r: MatchedAnnotationRow,
+  key: 'expMz' | 'massError' | 'avgIntensity',
+): number | null {
+  const v = r[key]
+  return v == null || !Number.isFinite(v) ? null : v
+}
+
+// ---- Status counting ------------------------------------------------------
+
+export interface MatchStatusCounts {
+  total: number
+  matched: number
+  unmatched: number
+  invalid: number
+}
+
+/** Count match statuses across rows. Shared by the worker and the main-thread
+ *  fallback so the UI thread never has to re-iterate a large result set just to
+ *  build the badge counts (and never proxies hundreds of thousands of rows by
+ *  reading them through a reactive ref). */
+export function countMatchStatuses(rows: MatchedAnnotationRow[]): MatchStatusCounts {
+  const c: MatchStatusCounts = { total: 0, matched: 0, unmatched: 0, invalid: 0 }
+  for (const r of rows) {
+    c.total++
+    c[r.matchStatus]++
+  }
+  return c
 }
 
 /** Format a mass error for display with the active unit. */

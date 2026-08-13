@@ -1,5 +1,5 @@
 import { ref, watch, type Ref } from 'vue'
-import { metadataAttrsRef, dataModeRef } from '@/features/workspace/results/composables/useZarrIonImage'
+import { metadataAttrsRef, dataModeRef, polarityRef } from '@/features/workspace/results/composables/useZarrIonImage'
 import { listMyProcesses, listUserFiles } from '@/features/datasets/api/datasetApi'
 import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
 import type { DataMode } from '@/services/zarr/types/zarr'
@@ -19,7 +19,6 @@ export function useResultMeta(runId: Ref<string>) {
   const analyzer = ref('')
   const ionSource = ref('')
   const pixelSize = ref('')
-  const polarity = ref('')
   const spectrumMode = ref('')
   const storageMode = ref('')
   const status = ref('')
@@ -51,7 +50,7 @@ export function useResultMeta(runId: Ref<string>) {
    */
   async function fetchProcessMetaFromApi(id: string) {
     const needProcess = !datasetName.value || !status.value || !methods.value.length
-    const needInstrument = !analyzer.value && !ionSource.value && !polarity.value
+    const needInstrument = !analyzer.value && !ionSource.value && !polarityRef.value
     if (!needProcess && !needInstrument) return
 
     const result = await listMyProcesses(1, 100)
@@ -77,7 +76,7 @@ export function useResultMeta(runId: Ref<string>) {
           if (!pixelSize.value) {
             pixelSize.value = formatPixelSize(file.pixel_size_horizontal, file.pixel_size_vertical)
           }
-          if (!polarity.value) polarity.value = file.polarity || ''
+          if (!polarityRef.value) polarityRef.value = file.polarity || ''
           if (!spectrumMode.value) spectrumMode.value = file.spectrum_mode || ''
           if (!storageMode.value) storageMode.value = file.storage_mode || ''
         }
@@ -108,7 +107,7 @@ export function useResultMeta(runId: Ref<string>) {
     if (attrs.ionisation_source) ionSource.value = attrs.ionisation_source
 
     // 极性
-    if (attrs.polarity) polarity.value = attrs.polarity
+    if (attrs.polarity) polarityRef.value = attrs.polarity
 
     // 存储模式
     if (attrs.continuous) storageMode.value = 'continuous'
@@ -167,7 +166,7 @@ export function useResultMeta(runId: Ref<string>) {
     analyzer,
     ionSource,
     pixelSize,
-    polarity,
+    polarity: polarityRef,
     spectrumMode,
     storageMode,
     status,

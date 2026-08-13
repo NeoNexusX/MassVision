@@ -4,6 +4,8 @@ import {
   matchAnnotations,
   massErrorOf,
   findClosestIndex,
+  inferRowPolarity,
+  normalizeResultPolarity,
   CsvParseError,
   formatMassError,
 } from '../csvAnnotation'
@@ -154,6 +156,130 @@ describe('matching', () => {
     const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm')
     expect(matched).toHaveLength(2)
     expect(matched.every((r) => r.matchStatus === 'matched')).toBe(true)
+  })
+})
+
+describe('coarse pre-filter', () => {
+  const axis = Float64Array.of(87.0088, 89.0244, 124.0078, 267.0739)
+  const intensity = Float32Array.of(10, 20, 30, 50)
+
+  it('inferRowPolarity reads adduct + formula charge signs', () => {
+    expect(inferRowPolarity({ ionType: 'M+H', formulaIon: 'C3H3O3+' })).toBe('positive')
+    expect(inferRowPolarity({ ionType: 'M-H', formulaIon: 'C3H3O3-' })).toBe('negative')
+    expect(inferRowPolarity({ ionType: '[M+H]+', formulaIon: null })).toBe('positive')
+    expect(inferRowPolarity({ ionType: '[M-H]-', formulaIon: null })).toBe('negative')
+    // adducts that carry the opposite sign *inside* the bracket (adduct
+    // composition) but a net charge at the end - the trailing sign wins.
+    expect(inferRowPolarity({ ionType: '[M+Cl]-', formulaIon: null })).toBe('negative')
+    expect(inferRowPolarity({ ionType: '[M+OAc]-', formulaIon: null })).toBe('negative')
+    expect(inferRowPolarity({ ionType: '[M+Na-H]+', formulaIon: null })).toBe('positive')
+    // water-loss neutral loss without a trailing charge sign -> unknown (the
+    // current single-source-of-truth parser only relies on the trailing sign).
+    expect(inferRowPolarity({ ionType: 'M-H-H2O', formulaIon: null })).toBe('unknown')
+    expect(inferRowPolarity({ ionType: 'M-H-H2O-', formulaIon: null })).toBe('negative')
+    // multiply-charged ions read their trailing sign
+    expect(inferRowPolarity({ ionType: '[M+2H]2+', formulaIon: null })).toBe('positive')
+    expect(inferRowPolarity({ ionType: '[M-2H]2-', formulaIon: null })).toBe('negative')
+    // bare non-proton adducts without a trailing sign stay unknown (conservative)
+    expect(inferRowPolarity({ ionType: 'M+Na', formulaIon: null })).toBe('unknown')
+    expect(inferRowPolarity({ ionType: 'M+Cl', formulaIon: null })).toBe('unknown')
+    // no trailing charge sign -> unknown (keep, don't risk dropping a valid row)
+    expect(inferRowPolarity({ ionType: '[M+Na-H]', formulaIon: null })).toBe('unknown')
+    expect(inferRowPolarity({ ionType: null, formulaIon: 'C24H50NO4' })).toBe('unknown')
+    expect(inferRowPolarity({ ionType: null, formulaIon: null })).toBe('unknown')
+  })
+
+  it('normalizeResultPolarity handles casing/wording', () => {
+    expect(normalizeResultPolarity('Positive')).toBe('positive')
+    expect(normalizeResultPolarity('NEGATIVE')).toBe('negative')
+    expect(normalizeResultPolarity('pos')).toBe('positive')
+    expect(normalizeResultPolarity('negative mode')).toBe('negative')
+    expect(normalizeResultPolarity('')).toBeNull()
+    expect(normalizeResultPolarity(null)).toBeNull()
+    expect(normalizeResultPolarity('unknown')).toBeNull()
+  })
+
+  it('drops rows of the opposite polarity before matching', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C3H3O3+,M+H,87.0091,PosMatch
+C3H3O3-,M-H,89.0246,NegMatch`
+    const { rows } = parseAnnotationCsv(csv)
+    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
+      polarity: 'negative',
+    })
+    // positive row dropped entirely (not even returned); negative kept + matched
+    expect(matched).toHaveLength(1)
+    expect(matched[0]!.name).toBe('NegMatch')
+    expect(matched[0]!.matchStatus).toBe('matched')
+  })
+
+  it('keeps unknown-polarity rows even when a polarity filter is set', () => {
+    // No adduct/formula sign -> inferable rows kept under any polarity filter.
+    const csv = `Exp. m/z,Candidate_1\n87.0091,NoAdduct`
+    const { rows } = parseAnnotationCsv(csv)
+    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
+      polarity: 'positive',
+    })
+    expect(matched).toHaveLength(1)
+    expect(matched[0]!.matchStatus).toBe('matched')
+  })
+
+  it('drops rows whose expMz is outside the axis range', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C3H3O3+,M+H,87.0091,In
+C3H3O3+,M+H,500.0,Out`
+    const { rows } = parseAnnotationCsv(csv)
+    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
+      polarity: 'positive',
+    })
+    expect(matched).toHaveLength(1)
+    expect(matched[0]!.name).toBe('In')
+  })
+
+  it('keeps a row just beyond the axis edge when within tolerance', () => {
+    // hi = 267.0739; 267.0740 is ~0.37 ppm away -> within the 10 ppm tolerance.
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C3H3O3+,M+H,267.0740,EdgeMatch`
+    const { rows } = parseAnnotationCsv(csv)
+    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
+      polarity: 'positive',
+    })
+    expect(matched).toHaveLength(1)
+    expect(matched[0]!.matchStatus).toBe('matched')
+  })
+
+  it('still marks rows outside tolerance (but in range) as unmatched', () => {
+    // 100.0 is within [87.0088, 267.0739] but never within 10 ppm of any peak.
+    const csv = `Exp. m/z,Candidate_1\n100.0,BetweenPeaks`
+    const { rows } = parseAnnotationCsv(csv)
+    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
+      polarity: 'positive',
+    })
+    expect(matched[0]!.matchStatus).toBe('unmatched')
+  })
+
+  it('keeps invalid-mz rows visible as invalid regardless of filter', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+-,M-H,N/A,BadMz`
+    const { rows } = parseAnnotationCsv(csv)
+    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
+      polarity: 'positive', // would drop a valid negative row, but invalid stays
+    })
+    expect(matched).toHaveLength(1)
+    expect(matched[0]!.matchStatus).toBe('invalid')
+  })
+
+  it('coarse filter with no axis still drops opposite-polarity rows', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C3H3O3+,M+H,87.0091,P
+C3H3O3-,M-H,89.0246,N`
+    const { rows } = parseAnnotationCsv(csv)
+    const matched = matchAnnotations(rows, null, null, 10, 'ppm', {
+      polarity: 'positive',
+    })
+    expect(matched).toHaveLength(1)
+    expect(matched[0]!.name).toBe('P')
+    expect(matched[0]!.matchStatus).toBe('unmatched')
   })
 })
 
