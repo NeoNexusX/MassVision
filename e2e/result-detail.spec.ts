@@ -18,8 +18,8 @@ import { test, expect, type Page } from '@playwright/test'
 
 /** 用真实鼠标点击 ECharts 谱图 canvas */
 async function clickSpectrum(page: Page, xRatio = 0.6) {
-  // 从 Average Spectrum 标题找到谱图容器
-  const heading = page.getByRole('heading', { name: 'Average Spectrum' })
+  // 从 Spectrum View 标题找到谱图容器
+  const heading = page.getByRole('heading', { name: 'Spectrum View' })
   // 结构：h3 → div → div.header → div.root → .overflow-hidden
   const chart = heading.locator('..').locator('..').locator('..').locator('.overflow-hidden')
 
@@ -54,12 +54,13 @@ test.describe('Result Detail', () => {
     await expect(page.locator('h1')).not.toBeEmpty()
     await expect(page.getByText('completed')).toBeVisible()
 
-    // ion image + spectrum 加载完成
-    await expect(page.getByText('Loading ion image...')).not.toBeVisible({ timeout: 30_000 })
-    await expect(page.getByText('Loading average spectrum...')).not.toBeVisible({ timeout: 30_000 })
+    // ion image + spectrum 加载完成。UI 文案是 "Loading ion image, please wait a moment..."，
+    // 用正则前缀匹配，同时兼容旧文案（"Loading ion image..."）。
+    await expect(page.getByText(/^Loading ion image/)).not.toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText(/^Loading average spectrum/)).not.toBeVisible({ timeout: 30_000 })
 
     // 平均谱图
-    await expect(page.getByRole('heading', { name: 'Average Spectrum' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Spectrum View' })).toBeVisible()
     await expect(page.getByText(/peaks/)).toBeVisible()
 
     // 右侧 ColorBar 元数据（zarr 加载可能较慢）
@@ -68,7 +69,10 @@ test.describe('Result Detail', () => {
     await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 10_000 })
 
     // 用真实鼠标点击谱图两处，确认选中的真实 m/z 确实发生变化。
+    // selected-mz 只在 dataMode === 'continuous' 时渲染（zarr 加载完成前不存在），
+    // 所以先显式等它出现，再点击谱图。
     const selectedMz = page.getByTestId('selected-mz')
+    await expect(selectedMz).toBeVisible({ timeout: 30_000 })
     await page.waitForTimeout(1000)
     await clickSpectrum(page, 0.2)
     const firstSelectedMz = await selectedMz.innerText()
@@ -81,7 +85,7 @@ test.describe('Result Detail', () => {
     await expect(page.getByText(/Failed to (load|update) ion image/)).not.toBeVisible()
 
     // 确认点击后页面没崩：谱图仍在。
-    await expect(page.getByRole('heading', { name: 'Average Spectrum' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Spectrum View' })).toBeVisible()
   })
 
   test('switches colormap and keeps ion image stable', async ({ page }) => {
@@ -97,15 +101,16 @@ test.describe('Result Detail', () => {
     await completedRow.getByRole('button', { name: 'View' }).click()
     await expect(page).toHaveURL(/\/workspace\/results/)
 
-    await expect(page.getByText('Loading ion image...')).not.toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText(/^Loading ion image/)).not.toBeVisible({ timeout: 30_000 })
 
-    // 切换到 Viridis
+    // 切换到 Viridis（colormap-select 在 ion image 渲染后才存在）
     const colormapSelect = page.getByTestId('colormap-select')
+    await expect(colormapSelect).toBeVisible({ timeout: 30_000 })
     await colormapSelect.selectOption('viridis')
     await page.waitForTimeout(500)
 
     // ion image 没崩
-    await expect(page.getByText('Loading ion image...')).not.toBeVisible()
+    await expect(page.getByText(/^Loading ion image/)).not.toBeVisible()
   })
 })
 
