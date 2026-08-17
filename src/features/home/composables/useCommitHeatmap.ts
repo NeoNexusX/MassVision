@@ -30,6 +30,8 @@ export function useCommitHeatmap(params: MaybeRefOrGetter<FetchCommitHeatmapOpti
   const total = ref(0)
   const activeDays = ref(0)
 
+  let requestId = 0
+
   // Computed（供 <CalendarHeatmap> 绑定）
   const maxCount = computed(() => Math.max(1, ...values.value.map((v) => v.count)))
   const rangeColor = computed(() => (isDark.value ? DARK_COLORS : LIGHT_COLORS))
@@ -41,17 +43,20 @@ export function useCommitHeatmap(params: MaybeRefOrGetter<FetchCommitHeatmapOpti
 
   // Methods
   async function load() {
+    const currentRequest = ++requestId
     loading.value = true
     error.value = null
     try {
       const r = await fetchCommitHeatmap(toValue(params))
+      if (currentRequest !== requestId) return
       values.value = r.values
       total.value = r.total
       activeDays.value = r.activeDays
     } catch (e) {
+      if (currentRequest !== requestId) return
       error.value = e instanceof Error ? e.message : '获取数据失败'
     } finally {
-      loading.value = false
+      if (currentRequest === requestId) loading.value = false
     }
   }
 

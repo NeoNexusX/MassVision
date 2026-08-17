@@ -61,13 +61,14 @@
 
       <!-- Delete Confirmation Modal -->
       <ConfirmDialog
-        :open="isDeleteModalOpen"
+        :open="deleteConfirm.isOpen"
         title="Delete Dataset"
         message="Are you sure you want to delete this dataset? This action cannot be undone."
         confirm-label="Delete"
         :danger="true"
-        @confirm="confirmDelete"
-        @cancel="cancelDelete"
+        :loading="deleteConfirm.deleting"
+        @confirm="deleteConfirm.confirm"
+        @cancel="deleteConfirm.cancel"
       />
 
       <!-- Explore / Raw-Convert Confirmation -->
@@ -114,11 +115,11 @@ import UploadModal from '@/features/upload/components/UploadModal.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import ExploreConfirmDialog from '@/features/datasets/components/ExploreConfirmDialog.vue'
 import { listUserFiles, deleteFile } from '@/features/datasets/api/datasetApi'
+import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
 import { useDatasetListPage } from '@/features/datasets/composables/useDatasetListPage'
 import { useExploreDataset } from '@/features/datasets/composables/useExploreDataset'
 import { useAuthStore } from '@/shared/auth/authStore'
-import { useToast } from '@/shared/composables/useToast'
 import { useUserQuota } from '@/shared/composables/useUserQuota'
 import { createDefaultDatasetFilters } from '@/features/datasets/constants/datasetMetadata'
 
@@ -201,10 +202,20 @@ async function refreshFileStatus() {
 }
 
 const deletingId = ref<string | null>(null)
-const { showToast } = useToast()
 
-const isDeleteModalOpen = ref(false)
-const datasetToDelete = ref<string | null>(null)
+const deleteConfirm = useConfirmDelete({
+  onDelete: async (id) => {
+    deletingId.value = id
+    try {
+      await deleteFile(id)
+      fetchFiles({ page: page.value, size: size.value })
+      fetchQuota()
+    } finally {
+      deletingId.value = null
+    }
+  },
+  successMessage: 'Dataset deleted successfully',
+})
 
 const explore = useExploreDataset()
 const { showExploreConfirm, isConverting } = explore
@@ -214,37 +225,9 @@ const handleExplore = (id?: string) => {
   explore.handleExplore(id, datasets.value)
 }
 
-const handleDelete = async (id?: string) => {
+const handleDelete = (id?: string) => {
   if (!id) return
-  datasetToDelete.value = id
-  isDeleteModalOpen.value = true
-}
-
-const confirmDelete = async () => {
-  if (!datasetToDelete.value) return
-
-  const id = datasetToDelete.value
-  isDeleteModalOpen.value = false
-  deletingId.value = id
-
-  try {
-    await deleteFile(id)
-    showToast('Dataset deleted successfully', 'success')
-    // Refresh current page after deletion
-    fetchFiles({ page: page.value, size: size.value })
-    fetchQuota()
-  } catch (err: any) {
-    showToast(err.message || 'Failed to delete dataset', 'error')
-    console.error('Delete failed:', err)
-  } finally {
-    deletingId.value = null
-    datasetToDelete.value = null
-  }
-}
-
-const cancelDelete = () => {
-  isDeleteModalOpen.value = false
-  datasetToDelete.value = null
+  deleteConfirm.open(id)
 }
 </script>
 

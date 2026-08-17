@@ -1,4 +1,4 @@
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useToast } from '@/shared/composables/useToast'
 import { formatBytes } from '@/shared/utils/format'
 import {
@@ -218,6 +218,14 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
 
   // Lifecycle
   onMounted(resumeState.checkResume)
+
+  // 组件卸载时中止上传，避免后台继续浪费带宽 + 回调已销毁组件
+  onBeforeUnmount(() => {
+    if (abortController) {
+      abortController.abort()
+      abortController = null
+    }
+  })
 
   return {
     ...metadataForm,
