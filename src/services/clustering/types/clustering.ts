@@ -34,21 +34,21 @@ export interface ClusteringImage {
 }
 
 /**
- * Raw UMAP embedding for v1.1 datasets - the data behind `umap_image`.
+ * Raw UMAP embedding - the n×3 float32 matrix shipped by the backend.
  *
- * v1.1 stores the UMAP as three arrays under `analysis/umap/`:
- *   - `coordinates`     uint32[n, 2]  - tissue-pixel grid (x, y), 0-based
- *   - `scaled_embedding` float32[n, 3] - 3D embedding scaled to [0, 1];
- *                                       round(v * 255) == umap_image RGB
- *   - `umap_image`       uint8[H, W, 3] - the above rasterized onto the grid
+ * The backend analysis pipeline runs two steps (UMAP reduction + scaling) and
+ * stores the result in the run's zarr `analysis/umap` group:
+ *   - `coordinates`      uint32[n, 2]  - tissue-pixel grid (x, y), root coordinate_base
+ *   - `scaled_embedding` float32[n, 3] - 3D embedding scaled to [0, 1]
  *
- * The raster is enough to draw the overlay; the embedding is needed for the
- * scatter / lasso view (points plotted by their true 3D position, not the
- * rasterized grid). v1.0 datasets only ship `umap_image`, so `embedding` is
- * null there.
+ * The third step — rasterizing the embedding onto the tissue grid, where each
+ * pixel takes round(scaled_embedding * 255) as RGB — is done by the FRONTEND
+ * (ClusteringZarrStore.rasterizeEmbedding). The matrix is also the input for
+ * the local KMeans and the scatter / lasso view.
  */
 export interface UmapEmbedding {
-  /** Tissue-pixel grid coordinates (x, y), 0-based. shape [n, 2], row-major. */
+  /** Tissue-pixel grid coordinates (x, y), 0-based (the analysis library
+   *  normalizes before writing - the root coordinate_base does NOT apply). shape [n, 2], row-major. */
   coordinates: Uint32Array
   /** 3D UMAP embedding scaled to [0, 1]; round(v * 255) == the image RGB. shape [n, 3], row-major. */
   scaledEmbedding: Float32Array
@@ -56,10 +56,10 @@ export interface UmapEmbedding {
   count: number
 }
 
-/** Full UMAP result: the pre-rendered raster plus the raw embedding (if present). */
+/** Full UMAP result: the raw embedding plus the rasterized (H, W, 3) image. */
 export interface UmapData {
-  /** Pre-rendered (H, W, 3) uint8 raster - colors placed at tissue pixels. */
+  /** Synthesized (H, W, 3) uint8 raster - colors placed at tissue pixels. */
   image: ClusteringImage
-  /** Raw embedding (v1.1); null for v1.0 datasets that only ship umap_image. */
-  embedding: UmapEmbedding | null
+  /** The raw embedding this raster was synthesized from. */
+  embedding: UmapEmbedding
 }

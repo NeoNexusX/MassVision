@@ -34,7 +34,6 @@ export const ICON_SETS = {
     'plus',
     'minus',
     'pencil',
-    'stop',
     'arrow-up-tray',
     'arrow-down-tray',
     'arrow-top-right-on-square',
@@ -60,4 +59,5 @@ export const ICON_SETS = {
     'book-open',
   ],
   'simple-icons': ['github', 'wechat', 'alibabacloud'],
+  lucide: ['lasso', 'square'],
 }

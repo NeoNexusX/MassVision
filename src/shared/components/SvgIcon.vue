@@ -10,5 +10,6 @@ const iconName = computed(() => ICON_MAP[props.type] ?? 'heroicons:question-mark
 </script>
 
 <template>
-  <Icon v-bind="$attrs" :icon="iconName" class="inline-block" aria-hidden="true" />
+  <!-- 默认 1.125em（比相邻文字大一号），调用方的 w-*/h-* 类可覆盖 -->
+  <Icon v-bind="$attrs" :icon="iconName" class="h-[1.125em] w-[1.125em] inline-block" aria-hidden="true" />
 </template>

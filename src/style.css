@@ -43,6 +43,14 @@ i {
   font-size: clamp(0.9rem, 0.9rem + 0.4vw, 1.2rem);
 }
 
+/* 结果页流体字号基准：三个列容器（ResultVisualizationLayout）设 lg:text-result，
+   容器内部所有字号 / 图标用 em 相对缩放（见 DonutStatSection 的模式）。
+   锚点：≥1920px 恰为 16px（= 原来的 text-base，max 封顶不再放大），
+   窗口变小线性收缩：1440px ≈ 15.3px、1024px ≈ 14.6px（min 0.9rem 接底）。 */
+@theme {
+  --text-result: clamp(0.9rem, 0.81rem + 0.01vw, 1rem);
+}
+
 /* 供流体输入框使用的图标大小 */
 .icon-fluid {
   width: 1.5em;
@@ -90,6 +98,39 @@ i {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ---------- 结果页流体字号（≥lg 桌面三列布局） ----------
+   档位改写为相对基准 --text-result 的绝对比例而非继承链 em：
+   嵌套不复合（text-base 在 text-lg 父级里仍是基准大小，与原生行为一致），
+   列容器上的 lg:text-result 同时让无档位的纯文本继承同一基准。
+   小屏不启用，保持原生 Tailwind 档位。 */
+@media (min-width: 64rem) {
+  .result-page .text-xs {
+    font-size: calc(var(--text-result) * 0.75);
+  }
+  .result-page .text-sm {
+    font-size: calc(var(--text-result) * 0.875);
+  }
+  .result-page .text-base {
+    font-size: var(--text-result);
+  }
+  .result-page .text-lg {
+    font-size: calc(var(--text-result) * 1.125);
+  }
+  .result-page .text-xl {
+    font-size: calc(var(--text-result) * 1.25);
+  }
+}
+
+/* 结果页：给原本透明的 ghost 按钮补一道自适应细边框，
+   使其与 New/Confirm 等实心按钮一样具备清晰轮廓（亮色模式深边、暗色模式浅边）。
+   已有边框的 outline / filled 按钮、带动态彩色边框的 UMAP/KMeans 开关不受影响。 */
+.result-page .btn-ghost,
+.result-page .btn-ghost:hover,
+.result-page .btn-ghost:focus-visible,
+.result-page .btn-ghost:active {
+  border-color: color-mix(in oklch, var(--color-base-content) 25%, transparent);
 }
 
 /* 细滚动条：三栏布局等场景，比浏览器默认更窄更低调 */
