@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from 'vue'
+import { ref, watch, onUnmounted, type Ref } from 'vue'
 import { metadataAttrsRef, dataModeRef, polarityRef } from '@/features/workspace/results/composables/useZarrIonImage'
 import { listMyProcesses, listUserFiles } from '@/features/datasets/api/datasetApi'
 import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
@@ -28,6 +28,18 @@ export function useResultMeta(runId: Ref<string>) {
   /** 当前数据模式（continuous / processed），从 zarr store 获取 */
   const dataMode = ref<DataMode | null>(null)
 
+  // polarity 现在住在模块级 polarityRef（被 annotation 粗过滤共享读取），
+  // 下面 fetchProcessMetaFromApi 的 await 续体必须能识别"这个响应已经过时"，
+  // 否则上一个结果页的迟到响应会把它的 polarity 写进当前结果页的共享状态。
+  let disposed = false
+  onUnmounted(() => {
+    disposed = true
+  })
+  /** true when a response fetched for `id` must be discarded: the component
+   *  unmounted, or runId already moved on to another result (same-instance
+   *  reuse on /workspace/results). */
+  const isStale = (id: string) => disposed || runId.value !== id
+
   function formatPixelSize(x?: number, y?: number): string {
     if (x != null && y != null) return `${x} × ${y} µm`
     return ''
@@ -54,6 +66,7 @@ export function useResultMeta(runId: Ref<string>) {
     if (!needProcess && !needInstrument) return
 
     const result = await listMyProcesses(1, 100)
+    if (isStale(id)) return
     const process = (result.data || []).find((p: any) => String(p.id) === id)
     if (!process) return
 
@@ -69,6 +82,7 @@ export function useResultMeta(runId: Ref<string>) {
     if (process.filename) {
       try {
         const fileResult = await listUserFiles({ filename: process.filename }, 1, 1)
+        if (isStale(id)) return
         const file = fileResult?.data?.[0] || fileResult?.[0]
         if (file) {
           if (!analyzer.value) analyzer.value = file.analyzer || ''

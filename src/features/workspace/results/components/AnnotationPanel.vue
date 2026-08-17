@@ -52,6 +52,7 @@ const {
   tolValue,
   spectrumAvailable,
   counts,
+  coarseFiltered,
   search,
   filter,
   sortKey,
@@ -150,10 +151,14 @@ function measureRowHeight() {
   if (h && h > 0) rowH.value = h
 }
 
-/** Reset the virtual window when the list changes (import, filter, sort). */
+/** Reset the virtual window when the list changes (import, filter, sort).
+ *  Also dismiss the hover card: the rematch replaced every row object, so the
+ *  card would otherwise linger over a stale snapshot (v-for patches the hovered
+ *  node in place by key - no mouseleave ever fires). */
 watch(
   filteredRows,
   async () => {
+    dismissTooltip()
     scrollTop.value = 0
     await nextTick()
     const el = tableScrollEl.value
@@ -165,6 +170,11 @@ watch(
   },
   { flush: 'post' },
 )
+
+// tolMode changes the unit every stored massError was computed in; until the
+// debounced rematch lands, the card would print the old number with the new
+// unit (formatMassError picks decimals from the mode, it does not convert).
+watch(tolMode, dismissTooltip)
 
 /** Keep viewportH/rowH in sync with the container: the table only scrolls
  *  once data exists, so its size changes on expand/collapse, window resize
@@ -484,6 +494,17 @@ function copyName(name: string) {
         >
           Unmatched {{ counts.unmatched + counts.invalid }}
         </button>
+        <!-- Coarse pre-filter drops (polarity / m/z range). Shown on every
+             applied result, not just at import: a spectrum or polarity that
+             resolves AFTER import drops rows on the debounced rematch, and a
+             silent drop looks exactly like lost data. -->
+        <span
+          v-if="coarseFiltered > 0"
+          class="text-xs text-base-content/50"
+          title="Rows dropped before matching because their adduct/formula implies the opposite polarity, or their m/z lies outside the spectrum's range"
+        >
+          {{ coarseFiltered }} filtered by polarity / m/z range
+        </span>
       </div>
 
       <!-- Loading state: parsing/matching a huge CSV blocks for seconds,
@@ -505,7 +526,16 @@ function copyName(name: string) {
       <div
         v-else-if="hasData"
         ref="tableScrollEl"
-        class="flex-1 min-h-0 overflow-auto rounded-lg border border-base-300 bg-base-100"
+        :class="[
+          // Small screens: the expanded panel is height-unbounded (h-auto), so
+          // cap the scroll box explicitly - without this the spacer rows stretch
+          // the page to millions of px, the 'viewport' becomes the full list and
+          // virtual scrolling renders every row at once (the OOM it exists to
+          // prevent).
+          'max-h-[60dvh] overflow-auto rounded-lg border border-base-300 bg-base-100',
+          // Desktop: fill the panel's flex column (lg:h-full ancestors bound it).
+          'lg:max-h-none lg:flex-1 lg:min-h-0',
+        ]"
         @scroll.passive="onTableScroll"
       >
         <table class="table table-sm">
@@ -537,7 +567,11 @@ function copyName(name: string) {
                 @mouseleave="onNameLeave"
               >
                 <div class="font-medium text-sm text-base-content truncate">{{ row.name }}</div>
-                <div class="text-xs text-base-content/50 truncate">
+                <!-- min-h-4 keeps one line box even when all three spans are
+                     v-if'd out: the virtual scroll assumes a uniform row
+                     height, and an empty subtitle would make this row ~20px
+                     shorter than the measured rowH. -->
+                <div class="min-h-4 text-xs text-base-content/50 truncate">
                   <span v-if="row.formulaIon" class="font-mono">{{ row.formulaIon }}</span>
                   <span v-if="row.ionType" class="text-base-content/40">
                     &#183; {{ row.ionType }}</span
@@ -560,7 +594,13 @@ function copyName(name: string) {
           </tbody>
         </table>
         <div v-if="!filteredRows.length" class="p-4 text-center text-sm text-base-content/50">
-          No rows match the current filter / search.
+          <!-- counts.total === 0 means the coarse polarity / m/z-range
+               pre-filter discarded the whole file at import, not the user's
+               filter/search - say so instead of blaming the wrong control. -->
+          <template v-if="counts.total === 0">
+            No usable rows: every row was filtered out by the result's polarity / m/z range.
+          </template>
+          <template v-else>No rows match the current filter / search.</template>
         </div>
       </div>
 

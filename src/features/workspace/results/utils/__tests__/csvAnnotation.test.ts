@@ -2,13 +2,34 @@ import { describe, it, expect } from 'vitest'
 import {
   parseAnnotationCsv,
   matchAnnotations,
+  coarseFilterRows,
+  coarseFilterKey,
+  collapseRows,
+  runMatchPipeline,
   massErrorOf,
   findClosestIndex,
   inferRowPolarity,
   normalizeResultPolarity,
   CsvParseError,
   formatMassError,
+  type AnnotationRow,
+  type CoarseFilter,
+  type ToleranceMode,
 } from '../csvAnnotation'
+
+/** Compose coarseFilterRows + matchAnnotations the way matchAndCollapse does
+ *  (the pipeline's pre-match filtering is a separate step now). */
+function matchWithCoarse(
+  rows: AnnotationRow[],
+  coarse: CoarseFilter,
+  axis: ArrayLike<number> | null,
+  intensity: ArrayLike<number> | null,
+  tolerance: number,
+  mode: ToleranceMode,
+) {
+  const { survivors } = coarseFilterRows(rows, coarse, axis, tolerance, mode)
+  return matchAnnotations(survivors, axis, intensity, tolerance, mode)
+}
 
 const SAMPLE = `formula_ion,Ion type,Exp. m/z,Candidate_1,Candidate_2,Candidate_3,Candidate_4,Candidate_5
 C3H3O3-,M-H,87.0091,Pyruvate,,,,
@@ -159,6 +180,175 @@ describe('matching', () => {
   })
 })
 
+describe('collapseRows', () => {
+  const axis = Float64Array.of(87.0088, 89.0244, 124.0078, 267.0739)
+  const intensity = Float32Array.of(10, 20, 30, 50)
+
+  it('merges isobaric rows on the same peak into one row of candidates', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C40H66O5,M+H,627.498302,Anhydride
+C40H66O5,M+H,627.498302,DG 17:2/20:4
+C40H66O5,M+H,627.498302,DG 17:1/20:5`
+    const { rows } = parseAnnotationCsv(csv)
+    // null axis keeps every row unmatched, so match against a real axis instead
+    const { rows: collapsedRows, collapsed } = collapseRows(
+      matchAnnotations(rows, Float64Array.of(627.4983), intensity, 10, 'ppm'),
+    )
+    expect(collapsedRows).toHaveLength(1)
+    expect(collapsed).toBe(2)
+    expect(collapsedRows[0]!.matchStatus).toBe('matched')
+    expect(collapsedRows[0]!.candidates).toEqual(['Anhydride', 'DG 17:2/20:4', 'DG 17:1/20:5'])
+    // every member shares the same formula/adduct -> kept
+    expect(collapsedRows[0]!.formulaIon).toBe('C40H66O5')
+    expect(collapsedRows[0]!.ionType).toBe('M+H')
+  })
+
+  it('drops exact-duplicate matched rows via the same collapse', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C3H3O3-,M-H,87.0091,A
+C3H3O3-,M-H,87.0091,A`
+    const { rows } = parseAnnotationCsv(csv)
+    const { rows: collapsedRows, collapsed } = collapseRows(
+      matchAnnotations(rows, axis, intensity, 10, 'ppm'),
+    )
+    expect(collapsedRows).toHaveLength(1)
+    expect(collapsed).toBe(1)
+    expect(collapsedRows[0]!.candidates).toEqual(['A'])
+  })
+
+  it('keeps the first member formula/adduct even when isobars disagree', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C40H66O5,M+H,627.498302,Anhydride
+C41H68O5,M+H,627.498302,OtherIsobar`
+    const { rows } = parseAnnotationCsv(csv)
+    const { rows: collapsedRows } = collapseRows(
+      matchAnnotations(rows, Float64Array.of(627.4983), intensity, 10, 'ppm'),
+    )
+    expect(collapsedRows).toHaveLength(1)
+    // representative keeps its own formula/adduct (consistent with its name)
+    expect(collapsedRows[0]!.formulaIon).toBe('C40H66O5')
+    expect(collapsedRows[0]!.ionType).toBe('M+H')
+    expect(collapsedRows[0]!.candidates).toEqual(['Anhydride', 'OtherIsobar'])
+    // the merged-away isobar's distinct formula/adduct is archived so the
+    // panel's search can still find the compound by that formula.
+    expect(collapsedRows[0]!.altFormulas).toEqual(['C41H68O5'])
+  })
+
+  it('keeps a formula-only representative name after it absorbs an isobar', () => {
+    // Rep row has no candidate names, so at parse `name = formulaIon` (formula
+    // as the display name). It then absorbs an isobar that DOES have a real
+    // candidate. The merged row's `name` should surface that candidate (so the
+    // user sees a real name) - but `formulaIon` stays the rep's, so the name
+    // no longer contradicts the formula shown beside it.
+    const csv = `formula_ion,Exp. m/z,Candidate_1
+C10H20O2,200.0,
+,200.0,X`
+    const { rows } = parseAnnotationCsv(csv)
+    const { rows: collapsedRows, collapsed } = collapseRows(
+      matchAnnotations(rows, Float64Array.of(200.0), intensity, 0.5, 'Da'),
+    )
+    expect(collapsedRows).toHaveLength(1)
+    expect(collapsed).toBe(1)
+    expect(collapsedRows[0]!.candidates).toEqual(['X'])
+    expect(collapsedRows[0]!.name).toBe('X')
+    // rep's formula ref stays intact - not overwritten by the isobar's empty
+    // formula nor the isobar's candidate.
+    expect(collapsedRows[0]!.formulaIon).toBe('C10H20O2')
+  })
+
+  it('keeps rows with different m/z separate even when they share a peak', () => {
+    const csv = `Exp. m/z,Candidate_1
+627.4989,Far
+627.4984,Near`
+    const { rows } = parseAnnotationCsv(csv)
+    const { rows: collapsedRows, collapsed } = collapseRows(
+      matchAnnotations(rows, Float64Array.of(627.4983), intensity, 10, 'ppm'),
+    )
+    // different experimental m/z -> not isobars, never collapsed together
+    expect(collapsedRows).toHaveLength(2)
+    expect(collapsed).toBe(0)
+    expect(collapsedRows.map((r) => r.name)).toEqual(['Far', 'Near'])
+  })
+
+  it('deduplicates candidate names across a merged group', () => {
+    const csv = `Exp. m/z,Candidate_1,Candidate_2
+627.498302,A,B
+627.498302,B,C`
+    const { rows } = parseAnnotationCsv(csv)
+    const { rows: collapsedRows } = collapseRows(
+      matchAnnotations(rows, Float64Array.of(627.4983), intensity, 10, 'ppm'),
+    )
+    expect(collapsedRows).toHaveLength(1)
+    expect(collapsedRows[0]!.candidates).toEqual(['A', 'B', 'C'])
+  })
+
+  it('groups unmatched isobars by m/z into one candidate list', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C3H3O3-,M-H,100.0,Between
+C3H3O3-,M-H,100.0,Between
+C3H3O3-,M-H,100.0,IsobarB`
+    const { rows } = parseAnnotationCsv(csv)
+    const { rows: collapsedRows, collapsed } = collapseRows(
+      matchAnnotations(rows, axis, intensity, 10, 'ppm'),
+    )
+    // exact dup + isobar (different name, same m/z) all collapse onto one entry
+    expect(collapsedRows).toHaveLength(1)
+    expect(collapsed).toBe(2)
+    expect(collapsedRows[0]!.matchStatus).toBe('unmatched')
+    expect(collapsedRows[0]!.candidates).toEqual(['Between', 'IsobarB'])
+  })
+
+  it('keeps unmatched rows with different m/z separate', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C3H3O3-,M-H,100.0,A
+C3H3O3-,M-H,100.5,B`
+    const { rows } = parseAnnotationCsv(csv)
+    const { rows: collapsedRows, collapsed } = collapseRows(
+      matchAnnotations(rows, axis, intensity, 10, 'ppm'),
+    )
+    expect(collapsedRows).toHaveLength(2)
+    expect(collapsed).toBe(0)
+    expect(collapsedRows.map((r) => r.name)).toEqual(['A', 'B'])
+  })
+
+  it('leaves invalid rows untouched but dedupes identical invalid rows', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+-,M-H,N/A,Bad
+-,M-H,N/A,Bad`
+    const { rows } = parseAnnotationCsv(csv)
+    const {
+      rows: collapsedRows,
+      collapsed,
+      droppedDuplicates,
+    } = collapseRows(matchAnnotations(rows, axis, intensity, 10, 'ppm'))
+    expect(collapsedRows).toHaveLength(1)
+    // Invalid-row exact-dupes are reported separately - they never touched a
+    // peak, so they must not be counted as "collapsed onto peaks".
+    expect(collapsed).toBe(0)
+    expect(droppedDuplicates).toBe(1)
+    expect(collapsedRows[0]!.matchStatus).toBe('invalid')
+  })
+
+  it('keeps distinct invalid rows whose fields only collide under naive joining', () => {
+    // formula 'AB'+adduct 'C' vs 'A'+'BC', and candidates ['AB'] vs ['A','B']:
+    // an ambiguous identity key would drop one as a false "duplicate".
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1,Candidate_2
+AB,C,N/A,X
+A,BC,N/A,Y`
+    const csv2 = `Exp. m/z,Candidate_1,Candidate_2
+N/A,AB,
+N/A,A,B`
+    for (const text of [csv, csv2]) {
+      const { rows } = parseAnnotationCsv(text)
+      const { rows: collapsedRows, droppedDuplicates } = collapseRows(
+        matchAnnotations(rows, axis, intensity, 10, 'ppm'),
+      )
+      expect(collapsedRows).toHaveLength(2)
+      expect(droppedDuplicates).toBe(0)
+    }
+  })
+})
+
 describe('coarse pre-filter', () => {
   const axis = Float64Array.of(87.0088, 89.0244, 124.0078, 267.0739)
   const intensity = Float32Array.of(10, 20, 30, 50)
@@ -187,6 +377,10 @@ describe('coarse pre-filter', () => {
     expect(inferRowPolarity({ ionType: '[M+Na-H]', formulaIon: null })).toBe('unknown')
     expect(inferRowPolarity({ ionType: null, formulaIon: 'C24H50NO4' })).toBe('unknown')
     expect(inferRowPolarity({ ionType: null, formulaIon: null })).toBe('unknown')
+    // internally inconsistent row: bare adduct implies one polarity, the
+    // formula's trailing sign says the other -> unknown (kept), never trusted
+    expect(inferRowPolarity({ ionType: 'M+H', formulaIon: 'C40H66O5-' })).toBe('unknown')
+    expect(inferRowPolarity({ ionType: 'M-H', formulaIon: 'C40H66O5+' })).toBe('unknown')
   })
 
   it('normalizeResultPolarity handles casing/wording', () => {
@@ -204,9 +398,7 @@ describe('coarse pre-filter', () => {
 C3H3O3+,M+H,87.0091,PosMatch
 C3H3O3-,M-H,89.0246,NegMatch`
     const { rows } = parseAnnotationCsv(csv)
-    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
-      polarity: 'negative',
-    })
+    const matched = matchWithCoarse(rows, { polarity: 'negative' }, axis, intensity, 10, 'ppm')
     // positive row dropped entirely (not even returned); negative kept + matched
     expect(matched).toHaveLength(1)
     expect(matched[0]!.name).toBe('NegMatch')
@@ -217,9 +409,7 @@ C3H3O3-,M-H,89.0246,NegMatch`
     // No adduct/formula sign -> inferable rows kept under any polarity filter.
     const csv = `Exp. m/z,Candidate_1\n87.0091,NoAdduct`
     const { rows } = parseAnnotationCsv(csv)
-    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
-      polarity: 'positive',
-    })
+    const matched = matchWithCoarse(rows, { polarity: 'positive' }, axis, intensity, 10, 'ppm')
     expect(matched).toHaveLength(1)
     expect(matched[0]!.matchStatus).toBe('matched')
   })
@@ -229,9 +419,7 @@ C3H3O3-,M-H,89.0246,NegMatch`
 C3H3O3+,M+H,87.0091,In
 C3H3O3+,M+H,500.0,Out`
     const { rows } = parseAnnotationCsv(csv)
-    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
-      polarity: 'positive',
-    })
+    const matched = matchWithCoarse(rows, { polarity: 'positive' }, axis, intensity, 10, 'ppm')
     expect(matched).toHaveLength(1)
     expect(matched[0]!.name).toBe('In')
   })
@@ -241,9 +429,7 @@ C3H3O3+,M+H,500.0,Out`
     const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
 C3H3O3+,M+H,267.0740,EdgeMatch`
     const { rows } = parseAnnotationCsv(csv)
-    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
-      polarity: 'positive',
-    })
+    const matched = matchWithCoarse(rows, { polarity: 'positive' }, axis, intensity, 10, 'ppm')
     expect(matched).toHaveLength(1)
     expect(matched[0]!.matchStatus).toBe('matched')
   })
@@ -252,9 +438,7 @@ C3H3O3+,M+H,267.0740,EdgeMatch`
     // 100.0 is within [87.0088, 267.0739] but never within 10 ppm of any peak.
     const csv = `Exp. m/z,Candidate_1\n100.0,BetweenPeaks`
     const { rows } = parseAnnotationCsv(csv)
-    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
-      polarity: 'positive',
-    })
+    const matched = matchWithCoarse(rows, { polarity: 'positive' }, axis, intensity, 10, 'ppm')
     expect(matched[0]!.matchStatus).toBe('unmatched')
   })
 
@@ -262,9 +446,7 @@ C3H3O3+,M+H,267.0740,EdgeMatch`
     const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
 -,M-H,N/A,BadMz`
     const { rows } = parseAnnotationCsv(csv)
-    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm', {
-      polarity: 'positive', // would drop a valid negative row, but invalid stays
-    })
+    const matched = matchWithCoarse(rows, { polarity: 'positive' }, axis, intensity, 10, 'ppm')
     expect(matched).toHaveLength(1)
     expect(matched[0]!.matchStatus).toBe('invalid')
   })
@@ -274,12 +456,120 @@ C3H3O3+,M+H,267.0740,EdgeMatch`
 C3H3O3+,M+H,87.0091,P
 C3H3O3-,M-H,89.0246,N`
     const { rows } = parseAnnotationCsv(csv)
-    const matched = matchAnnotations(rows, null, null, 10, 'ppm', {
-      polarity: 'positive',
-    })
+    const matched = matchWithCoarse(rows, { polarity: 'positive' }, null, null, 10, 'ppm')
     expect(matched).toHaveLength(1)
     expect(matched[0]!.name).toBe('P')
     expect(matched[0]!.matchStatus).toBe('unmatched')
+  })
+
+  it('coarseFilterKey is field-agnostic: any added filter field changes the key', () => {
+    // Cache invalidation must cover filter fields added later without anyone
+    // registering them - pin the canonicalization rules that make that true.
+    expect(coarseFilterKey(undefined)).toBe('')
+    expect(coarseFilterKey(null)).toBe('')
+    expect(coarseFilterKey({})).toBe('')
+    expect(coarseFilterKey({ polarity: null })).toBe('')
+    expect(coarseFilterKey({ polarity: 'positive' })).not.toBe('')
+    expect(coarseFilterKey({ polarity: 'positive' })).not.toBe(
+      coarseFilterKey({ polarity: 'negative' }),
+    )
+    // a hypothetical future field shows up in the key without code changes
+    expect(coarseFilterKey({ polarity: 'positive', ...({ maxMz: 500 } as object) })).not.toBe(
+      coarseFilterKey({ polarity: 'positive' }),
+    )
+  })
+
+  it('keeps a boundary-peak match just past the ppm high-edge margin', () => {
+    // massErrorOf divides by the ROW's expMz, so the true upper keep-bound is
+    // hi/(1-t), not hi*(1+t). hi=1000, t=100 ppm: true cutoff 1000.10001;
+    // 1000.100005 sits inside it (err ~ 99.995 ppm) and must be matched, while
+    // 1000.10002 (err ~ 100.009 ppm) is genuinely out.
+    const edgeAxis = Float64Array.of(500, 1000)
+    const edgeIntensity = Float32Array.of(10, 20)
+    const csv = `Exp. m/z,Candidate_1
+1000.100005,EdgeIn
+1000.10002,EdgeOut`
+    const { rows } = parseAnnotationCsv(csv)
+    const matched = matchWithCoarse(rows, {}, edgeAxis, edgeIntensity, 100, 'ppm')
+    expect(matched).toHaveLength(1)
+    expect(matched[0]!.name).toBe('EdgeIn')
+    expect(matched[0]!.matchStatus).toBe('matched')
+    expect(matched[0]!.matchedIndex).toBe(1)
+  })
+})
+
+describe('runMatchPipeline', () => {
+  const axis = Float64Array.of(87.0088, 89.0244, 124.0078, 267.0739)
+  const intensity = Float32Array.of(10, 20, 30, 50)
+
+  it('reports coarse-filter drops, isobar collapses and dup drops explicitly', () => {
+    // P1/P2: same m/z isobars (merge). N1: negative row dropped by the polarity
+    // filter. OUT: beyond the axis range (dropped). BAD: invalid row.
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C3H3O3+,M+H,87.0091,P1
+C3H3O3+,M+H,87.0091,P2
+C3H3O3-,M-H,89.0246,N1
+C3H3O3+,M+H,500.0,OUT
+-,M+H,N/A,BAD`
+    const { rows } = parseAnnotationCsv(csv)
+    const res = runMatchPipeline(rows, {
+      mzAxis: axis,
+      meanIntensity: intensity,
+      tolerance: 10,
+      mode: 'ppm',
+      coarse: { polarity: 'positive' },
+    })
+    expect(res.rows).toHaveLength(2) // merged isobar group + invalid row
+    expect(res.coarseFiltered).toBe(2) // N1 (polarity) + OUT (m/z range)
+    expect(res.collapsed).toBe(1) // P2 merged onto P1
+    expect(res.droppedDuplicates).toBe(0)
+    expect(res.statusCounts).toEqual({ total: 2, matched: 1, unmatched: 0, invalid: 1 })
+    expect(res.rows[0]!.candidates).toEqual(['P1', 'P2'])
+  })
+
+  it('sorts the collapsed set when a key/dir is supplied', () => {
+    const csv = `Exp. m/z,Candidate_1
+89.0244,B
+87.0088,A`
+    const { rows } = parseAnnotationCsv(csv)
+    const res = runMatchPipeline(rows, {
+      mzAxis: axis,
+      meanIntensity: intensity,
+      tolerance: 10,
+      mode: 'ppm',
+      sortKey: 'name',
+      sortDir: 'asc',
+    })
+    expect(res.rows.map((r) => r.name)).toEqual(['A', 'B'])
+  })
+})
+
+describe('collapseRows input immutability', () => {
+  it('never mutates the input rows own candidates/alt arrays', () => {
+    // Regression: matchAnnotations shallow-spreads rows, so rep.candidates is
+    // the SAME array the caller (worker) keeps in its parsed cache. A merge
+    // that pushed into it would pollute every later rematch.
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C40H66O5,M+H,627.498302,Anhydride
+C40H66O5,M+H,627.498302,DG 17:2/20:4`
+    const { rows: parsed } = parseAnnotationCsv(csv)
+    const matched = matchAnnotations(
+      parsed,
+      Float64Array.of(627.4983),
+      Float32Array.of(10),
+      10,
+      'ppm',
+    )
+    const repBefore = matched[0]!.candidates
+    const otherBefore = matched[1]!.candidates
+    const { rows } = collapseRows(matched)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.candidates).toEqual(['Anhydride', 'DG 17:2/20:4'])
+    // the input rows (and any parsed cache sharing their arrays) are untouched
+    expect(matched[0]!.candidates).toBe(repBefore)
+    expect(matched[0]!.candidates).toEqual(['Anhydride'])
+    expect(matched[1]!.candidates).toBe(otherBefore)
+    expect(parsed[0]!.candidates).toEqual(['Anhydride'])
   })
 })
 
