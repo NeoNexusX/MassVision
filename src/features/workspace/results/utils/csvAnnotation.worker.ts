@@ -206,7 +206,10 @@ function postPermutation(
 ): void {
   const ids = new Int32Array(sorted.length)
   for (let i = 0; i < sorted.length; i++) ids[i] = sorted[i]!.id
-  self.postMessage({ id, type: 'perm', ids }, [ids.buffer])
+  // The project compiles with the DOM lib only (no WebWorker lib), so `self`
+  // is typed as Window, whose postMessage takes a targetOrigin string as its
+  // second parameter. Cast to Worker, which has the Transferable[] overload.
+  ;(self as unknown as Worker).postMessage({ id, type: 'perm', ids }, [ids.buffer])
   postCounts(id, counts)
 }
 
