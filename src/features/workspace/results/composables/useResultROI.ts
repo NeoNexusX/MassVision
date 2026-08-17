@@ -20,7 +20,6 @@ export function useResultROI(
     confirmROI: roiConfirmDraft,
     deleteROI: roiDelete,
     clearAllROIs,
-    addRoiFromMask,
   } = useROI(ionCols, ionRows)
 
   // State
@@ -81,23 +80,6 @@ export function useResultROI(
     roiOverlayRef.value?.clearAll()
   }
 
-  const roiReset = () => {
-    currentDraft.value = null
-    roiOverlayRef.value?.clearAll()
-    roiSelectTool(null)
-    viewingROI.value = false
-  }
-
-  /**
-   * Register an externally-computed raster mask (e.g. imported reference
-   * regions) as a confirmed ROI and make ROIs visible on the ion image.
-   */
-  const roiAddMask = (mask: boolean[][], label: string, color?: string) => {
-    const roi = addRoiFromMask(mask, label, color, ionMatrix.value)
-    if (roi) viewingROI.value = true
-    return roi
-  }
-
   return {
     roiOverlayRef,
     roiTool,
@@ -110,8 +92,6 @@ export function useResultROI(
     roiCancel,
     roiDelete,
     roiClearAll,
-    roiReset,
-    roiAddMask,
     onDraftUpdated,
     onDraftCleared,
   }

@@ -7,6 +7,9 @@
       :intensity-scale="intensityScale"
       :data-mode="dataMode"
       :pixel-coord="selectedPixelCoord"
+      :normalization-loading="normalizationLoading"
+      :normalization-error="normalizationError"
+      :has-tic="hasTic"
       :title="imageTitle"
       @update:mz-tolerance="$emit('update:mzTolerance', $event)"
       @update:colormap="$emit('update:colormap', $event)"
@@ -59,7 +62,7 @@
           title="Zoom out"
           @click="zoomOut"
         >
-          <SvgIcon type="minus" class="w-4 h-4" />
+          <SvgIcon type="minus" class="" />
         </button>
         <span class="text-base font-mono w-10 text-center text-base-content/60"
           >{{ zoom.toFixed(1) }}x</span
@@ -69,7 +72,7 @@
           title="Zoom in"
           @click="zoomIn"
         >
-          <SvgIcon type="plus" class="w-4 h-4" />
+          <SvgIcon type="plus" class="" />
         </button>
         <button
           v-if="zoom > 1"
@@ -112,6 +115,12 @@ const props = defineProps({
   dataMode: { type: String as PropType<DataMode | null>, default: null },
   /** 当前选中像素坐标（processed 模式） */
   selectedPixelCoord: { type: Object as PropType<{ x: number; y: number } | null>, default: null },
+  /** TIC 归一化计算中 */
+  normalizationLoading: { type: Boolean, default: false },
+  /** 归一化计算失败的原因 */
+  normalizationError: { type: String as PropType<string | null>, default: null },
+  /** zarr 是否预存 stats/tic（TIC 归一化可用） */
+  hasTic: { type: Boolean, default: false },
   /** 图片区域标题 */
   imageTitle: { type: String, default: 'Ion Image' },
 })
@@ -144,7 +153,7 @@ const { zoom, panX, panY, resetZoom, zoomIn, zoomOut, onWheel, onPanStart } = us
   () => containerH.value,
 )
 
-const { scheduleRender, observeContainer } = useCanvasRenderer({
+const { scheduleRender, observeContainer, exportTransparentCanvas } = useCanvasRenderer({
   canvasRef,
   containerW,
   containerH,
@@ -281,9 +290,9 @@ watch(
   () => scheduleRender(),
 )
 
-/** Export the current canvas content as a PNG download. */
+/** Export the current view as a PNG download (transparent background). */
 function exportPng() {
-  const canvas = canvasRef.value
+  const canvas = exportTransparentCanvas()
   if (!canvas) return
   const dataUrl = canvas.toDataURL('image/png')
   const link = document.createElement('a')

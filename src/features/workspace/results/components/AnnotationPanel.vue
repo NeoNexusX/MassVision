@@ -271,7 +271,7 @@ watch(
       'static flex w-full flex-col overflow-hidden rounded-xl border-2 border-base-content/30 bg-base-100 shadow-sm',
       // Desktop
       'lg:h-full lg:max-w-none lg:shrink-0 lg:transition-[width] lg:duration-200 lg:ease-out',
-      expanded ? 'lg:w-[340px]' : 'lg:w-11',
+      expanded ? 'lg:w-full' : 'lg:w-11 lg:min-w-11',
     ]"
   >
     <!-- Mobile collapsed bar: stays in normal flow instead of becoming a floating button. -->
@@ -287,7 +287,7 @@ watch(
       @click="expand"
     >
       <span class="text-sm font-medium text-base-content/70">Annotations</span>
-      <SvgIcon type="chevron_down" class="h-5 w-5 text-base-content/70" />
+      <SvgIcon type="chevron_down" class="text-base-content/70" />
     </button>
 
     <!-- Collapsed rail (desktop only): click to expand -->
@@ -302,7 +302,7 @@ watch(
       title="Expand annotation panel"
       @click="expand"
     >
-      <SvgIcon type="chevron_right" class="w-5 h-5 text-base-content/70" />
+      <SvgIcon type="chevron_right" class="text-base-content/70" />
       <span
         class="[writing-mode:vertical-rl] text-sm text-base-content/70 font-medium tracking-wide"
         >Annotations</span
@@ -336,7 +336,7 @@ watch(
             :disabled="!counts.matched"
             @click="exportMatchedCsv"
           >
-            <SvgIcon type="download" class="w-4 h-4" />
+            <SvgIcon type="download" class="" />
           </button>
           <button
             v-if="hasData"
@@ -344,10 +344,10 @@ watch(
             title="Clear imported annotations"
             @click="clear"
           >
-            <SvgIcon type="trash" class="w-4 h-4" />
+            <SvgIcon type="trash" class="" />
           </button>
           <button class="btn btn-ghost btn-xs btn-square" title="Collapse" @click="collapse">
-            <SvgIcon type="chevron_right" class="w-4 h-4 rotate-180" />
+            <SvgIcon type="chevron_right" class="rotate-180" />
           </button>
         </div>
       </div>
@@ -368,15 +368,15 @@ watch(
         <p class="text-center text-base text-base-content/40">or drag &amp; drop a CSV anywhere on this panel</p>
 
         <div v-if="spectrumMode !== 'centroid'" class="text-base text-warning flex items-start gap-1.5">
-          <SvgIcon type="warning" class="w-4 h-4 shrink-0 mt-0.5" />
+          <SvgIcon type="warning" class="shrink-0 mt-0.5" />
           <span>Annotation is only available for continuous centroid data.</span>
         </div>
         <div v-else-if="!spectrumAvailable" class="text-base text-warning flex items-start gap-1.5">
-          <SvgIcon type="warning" class="w-4 h-4 shrink-0 mt-0.5" />
+          <SvgIcon type="warning" class="shrink-0 mt-0.5" />
           <span>Average spectrum not loaded - <i>m/z</i> matching unavailable for this result.</span>
         </div>
         <div v-if="parseError" class="text-base text-error flex items-start gap-1.5">
-          <SvgIcon type="error" class="w-4 h-4 shrink-0 mt-0.5" />
+          <SvgIcon type="error" class="shrink-0 mt-0.5" />
           <span>{{ parseError }}</span>
         </div>
 
@@ -417,7 +417,7 @@ watch(
             "
             @click="toggleSortDir"
           >
-            <SvgIcon :type="sortDir === 'asc' ? 'chevron_up' : 'chevron_down'" class="w-4 h-4" />
+            <SvgIcon :type="sortDir === 'asc' ? 'chevron_up' : 'chevron_down'" class="" />
           </button>
         </div>
 
@@ -425,7 +425,7 @@ watch(
         <div class="relative">
           <SvgIcon
             type="search"
-            class="w-4 h-4 text-base-content/40 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            class="text-base-content/40 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
           />
           <input
             v-model="search"
@@ -487,7 +487,7 @@ watch(
               @click="selectRow(row)"
             >
               <td
-                class="min-w-0 max-w-[200px]"
+                class="min-w-0"
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
@@ -573,7 +573,7 @@ watch(
           title="Copy name"
           @click.stop="copyName(tooltipRow.name)"
         >
-          <SvgIcon type="duplicate" class="w-3.5 h-3.5" />
+          <SvgIcon type="duplicate" class="" />
         </button>
       </div>
       <button
@@ -581,7 +581,7 @@ watch(
         title="Search PubChem"
         @click.stop="searchPubChem(tooltipRow.name)"
       >
-        <SvgIcon type="search" class="w-3.5 h-3.5" />
+        <SvgIcon type="search" class="" />
         PubChem
       </button>
     </div>
@@ -608,9 +608,11 @@ watch(
           >
         </span>
       </div>
-      <div class="flex items-center justify-between">
-        <span class="text-base-content/50">Mass Difference</span>
-        <span class="font-mono"
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-base-content/50 shrink-0">Mass Difference</span>
+        <span
+          class="font-mono truncate min-w-0 text-right"
+          :title="`${formatMassError(tooltipRow.massError, tolMode)} ${tooltipRow.massError != null ? tolMode : ''}`"
           >{{ formatMassError(tooltipRow.massError, tolMode) }}
           {{ tooltipRow.massError != null ? tolMode : '' }}</span
         >
@@ -638,7 +640,7 @@ watch(
             title="Search PubChem"
             @click.stop="searchPubChem(c)"
           >
-            <SvgIcon type="search" class="w-3.5 h-3.5 text-primary" />
+            <SvgIcon type="search" class="text-primary" />
           </button>
         </li>
       </ul>

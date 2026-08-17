@@ -100,12 +100,12 @@ async function copyText(text: string) {
       <div class="flex items-start justify-between gap-2 mb-3">
         <div class="min-w-0">
           <h3 class="text-xl font-bold flex items-center gap-2">
-            <SvgIcon type="search" class="w-5 h-5 text-primary" />
+            <SvgIcon type="search" class="w-6 h-6 text-primary" />
             PubChem Lookup
           </h3>
         </div>
         <button class="btn btn-ghost btn-sm btn-square" @click="emit('close')">
-          <SvgIcon type="close" class="w-5 h-5" />
+          <SvgIcon type="close" class="w-6 h-6" />
         </button>
       </div>
 
@@ -154,7 +154,7 @@ async function copyText(text: string) {
                   rel="noopener noreferrer"
                   class="btn btn-ghost btn-sm gap-1 text-base text-primary"
                 >
-                  <SvgIcon type="share" class="w-4 h-4" />
+                  <SvgIcon type="share" class="" />
                   PubChem
                 </a>
               </div>
@@ -188,7 +188,7 @@ async function copyText(text: string) {
                     title="Copy"
                     @click="copyText(result.iupacName)"
                   >
-                    <SvgIcon type="duplicate" class="w-3.5 h-3.5" />
+                    <SvgIcon type="duplicate" class="" />
                   </button>
                 </td>
               </tr>
@@ -202,7 +202,7 @@ async function copyText(text: string) {
                     title="Copy"
                     @click="copyText(result.smiles)"
                   >
-                    <SvgIcon type="duplicate" class="w-3.5 h-3.5" />
+                    <SvgIcon type="duplicate" class="" />
                   </button>
                 </td>
               </tr>
@@ -216,7 +216,7 @@ async function copyText(text: string) {
                     title="Copy"
                     @click="copyText(result.inchiKey)"
                   >
-                    <SvgIcon type="duplicate" class="w-3.5 h-3.5" />
+                    <SvgIcon type="duplicate" class="" />
                   </button>
                 </td>
               </tr>
@@ -230,7 +230,7 @@ async function copyText(text: string) {
                     title="Copy"
                     @click="copyText(result.inchi)"
                   >
-                    <SvgIcon type="duplicate" class="w-3.5 h-3.5" />
+                    <SvgIcon type="duplicate" class="" />
                   </button>
                 </td>
               </tr>

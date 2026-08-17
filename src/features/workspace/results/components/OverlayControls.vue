@@ -4,6 +4,7 @@ import ROIPanel from '@/features/workspace/results/components/visuals/ROIPanel.v
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import type { OverlayKind, KmeansCluster } from '@/features/workspace/results/composables/useOverlayData'
+import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
 
 const props = defineProps<{
   umapVisible: boolean
@@ -36,10 +37,8 @@ const props = defineProps<{
   roiTool: string | null
   draftReady: boolean
   viewingRoi: boolean
-  confirmedRois: any[]
+  confirmedRois: ConfirmedROI[]
   gamma: number
-  /** Local dataset: UMAP ships inside the zarr - buttons work directly, no enable gate. */
-  local?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -61,22 +60,18 @@ const emit = defineEmits<{
   (e: 'export-umap'): void
   (e: 'export-kmeans'): void
   (e: 'update:roiTool', value: string | null): void
+  (e: 'update:viewingRoi', value: boolean): void
   (e: 'roi-confirm'): void
   (e: 'roi-cancel'): void
   (e: 'roi-delete', id: string): void
   (e: 'roi-clear-all'): void
-  (e: 'roi-reset'): void
-  /** Local datasets: import pre-computed reference ROIs (pathology regions). */
-  (e: 'import-reference-rois'): void
   (e: 'update:gamma', value: number): void
 }>()
 
 // UMAP/KMeans overlays are opt-in: buttons stay grayed out until the user
 // flips this switch. First-time enabling asks for confirmation (it starts a
 // backend clustering task); re-enabling an existing task does not.
-// Local datasets skip the gate entirely - their UMAP is read from the zarr.
 const computationEnabled = ref(false)
-const enabled = computed(() => props.local || computationEnabled.value)
 const showConfirm = ref(false)
 const toggleRef = ref<HTMLInputElement | null>(null)
 
@@ -196,7 +191,6 @@ function cancelEnable() {
     <!-- UMAP / KMeans: only available for continuous storage -->
     <div v-if="isContinuous" class="mt-2">
       <label
-        v-if="!local"
         class="flex items-center justify-between mb-2 cursor-pointer select-none"
         :class="{ 'opacity-60 pointer-events-none': clusteringCreating }"
       >
@@ -222,7 +216,7 @@ function cancelEnable() {
         <span class="loading loading-spinner loading-xs"></span>
         <span class="flex-1">Clustering is computing…</span>
         <button
-          class="btn btn-ghost btn-sm text-base"
+          class="btn btn-ghost btn-xs text-sm"
           :disabled="clusteringRefreshing"
           @click="emit('refresh-clustering')"
         >
@@ -235,13 +229,13 @@ function cancelEnable() {
         <button
           class="btn btn-sm flex-1 text-lg rounded-lg transition-colors"
           :class="
-            !enabled || !clusteringReady
+            !computationEnabled || !clusteringReady
               ? 'bg-base-200 dark:bg-base-300 text-base-content/40 border-base-300 dark:border-base-400 cursor-not-allowed'
               : umapVisible
                 ? 'bg-teal-500 text-white border-teal-500'
                 : 'bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-200 dark:hover:bg-teal-900'
           "
-          :disabled="!enabled || !clusteringReady || overlayLoading || clusteringCreating"
+          :disabled="!computationEnabled || !clusteringReady || overlayLoading || clusteringCreating"
           @click="emit('toggle-overlay', 'umap')"
         >
           UMAP
@@ -249,20 +243,20 @@ function cancelEnable() {
         <button
           class="btn btn-sm flex-1 text-lg rounded-lg transition-colors"
           :class="
-            !enabled || !clusteringReady
+            !computationEnabled || !clusteringReady
               ? 'bg-base-200 dark:bg-base-300 text-base-content/40 border-base-300 dark:border-base-400 cursor-not-allowed'
               : kmeansVisible
                 ? 'bg-rose-500 text-white border-rose-500'
                 : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-200 dark:hover:bg-rose-900'
           "
-          :disabled="!enabled || !clusteringReady || overlayLoading || clusteringCreating || kmeansComputing"
+          :disabled="!computationEnabled || !clusteringReady || overlayLoading || clusteringCreating || kmeansComputing"
           @click="onKmeansClick"
         >
           KMeans
         </button>
       </div>
 
-      <div v-if="overlayLoading && enabled" class="text-base text-base-content/60 mt-1.5 flex items-center gap-1">
+      <div v-if="overlayLoading && computationEnabled" class="text-base text-base-content/60 mt-1.5 flex items-center gap-1">
         <span class="loading loading-spinner loading-xs"></span>
         Loading overlay…
       </div>
@@ -292,7 +286,7 @@ function cancelEnable() {
         title="Export UMAP image as PNG"
         @click="emit('export-umap')"
       >
-        <SvgIcon type="download" class="w-4 h-4" />
+        <SvgIcon type="download" class="" />
         Export UMAP PNG
       </button>
     </div>
@@ -317,7 +311,7 @@ function cancelEnable() {
         title="Export KMeans image as PNG"
         @click="emit('export-kmeans')"
       >
-        <SvgIcon type="download" class="w-4 h-4" />
+        <SvgIcon type="download" class="" />
         Export KMeans PNG
       </button>
 
@@ -329,11 +323,6 @@ function cancelEnable() {
             <span class="font-mono font-normal text-base-content/60">
               {{ selectedClusterCount }}/{{ kmeansClusters.length }}
             </span>
-          </span>
-          <span class="flex gap-1">
-            <button class="btn btn-ghost btn-sm text-base" title="Re-run with a different k" @click="openKmeansDialog">Re-run</button>
-            <button class="btn btn-ghost btn-sm text-base" @click="emit('kmeans-select-all')">All</button>
-            <button class="btn btn-ghost btn-sm text-base" @click="emit('kmeans-clear-all')">Clear</button>
           </span>
         </div>
         <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 max-h-48 overflow-y-auto">
@@ -358,6 +347,11 @@ function cancelEnable() {
         <div v-if="selectedClusterCount === 0" class="text-base text-base-content/50 mt-1">
           No clusters selected - overlay hidden
         </div>
+        <div class="flex gap-1 mt-2">
+          <button class="btn btn-ghost btn-sm text-base" title="Re-run with a different k" @click="openKmeansDialog">Re-run</button>
+          <button class="btn btn-ghost btn-sm text-base" @click="emit('kmeans-select-all')">All</button>
+          <button class="btn btn-ghost btn-sm text-base" @click="emit('kmeans-clear-all')">Clear</button>
+        </div>
       </div>
       <div
         v-else-if="!kmeansLabelsAvailable"
@@ -373,16 +367,14 @@ function cancelEnable() {
     <ROIPanel
       :selected-tool="roiTool"
       :draft-ready="draftReady"
-      :show-reset="viewingRoi"
-      :rois="confirmedRois as any"
-      :show-import="local"
+      :rois="confirmedRois"
+      :viewing-roi="viewingRoi"
       @update:selected-tool="emit('update:roiTool', $event)"
+      @update:viewing-roi="emit('update:viewingRoi', $event)"
       @confirm="emit('roi-confirm')"
       @cancel="emit('roi-cancel')"
       @delete="emit('roi-delete', $event)"
       @clear-all="emit('roi-clear-all')"
-      @reset="emit('roi-reset')"
-      @import-reference="emit('import-reference-rois')"
     />
   </div>
 

@@ -15,7 +15,13 @@
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
-import { hexToRgb, rgbCss, type RGB } from '@/features/workspace/results/utils/regionPalette'
+import {
+  COMPARISON_A_ALPHA,
+  COMPARISON_B_ALPHA,
+  hexToRgb,
+  rgbCss,
+  type RGB,
+} from '@/features/workspace/results/utils/regionPalette'
 
 export interface ThumbnailRegion {
   value: string
@@ -46,11 +52,17 @@ interface LegendEntry {
   label: string
   css: string
 }
+// One legend entry per group: member labels joined, swatch in the group's
+// fixed color (all members carry the same group color).
 const legendsA = computed<LegendEntry[]>(() =>
-  props.a.map((r) => ({ label: `A · ${r.label}`, css: rgbCss(r.color) })),
+  props.a.length
+    ? [{ label: `A · ${props.a.map((r) => r.label).join(' + ')}`, css: rgbCss(props.a[0]!.color) }]
+    : [],
 )
 const legendsB = computed<LegendEntry[]>(() =>
-  props.b.map((r) => ({ label: `B · ${r.label}`, css: rgbCss(r.color) })),
+  props.b.length
+    ? [{ label: `B · ${props.b.map((r) => r.label).join(' + ')}`, css: rgbCss(props.b[0]!.color) }]
+    : [],
 )
 
 // ---------- raster building ----------
@@ -100,11 +112,11 @@ function buildImageData(): ImageData | null {
     paintMask(buf, roi.mask, w, h, c, 0.85, false)
   }
 
-  // Compared groups: strong fill, each member in its own identity color.
-  // B after A so overlap (if any) reads as B - same precedence as the
-  // ion-image overlay.
-  for (const r of props.a) paintMask(buf, r.mask, w, h, r.color, 0.85, false)
-  for (const r of props.b) paintMask(buf, r.mask, w, h, r.color, 0.85, false)
+  // Compared groups: strong fill in each group's fixed color. B is painted
+  // after A with lower alpha so overlap shows through instead of reading as
+  // B-only - same precedence as the ion-image overlay.
+  for (const r of props.a) paintMask(buf, r.mask, w, h, r.color, COMPARISON_A_ALPHA, false)
+  for (const r of props.b) paintMask(buf, r.mask, w, h, r.color, COMPARISON_B_ALPHA, false)
 
   return img
 }

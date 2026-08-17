@@ -236,7 +236,7 @@ watch(
     >
       <SvgIcon
         :type="expanded ? 'chevron_down' : 'chevron_right'"
-        class="w-4 h-4 text-base-content/60"
+        class="text-base-content/60"
       />
       <span class="text-base font-semibold text-base-content whitespace-nowrap shrink-0">Comparison results</span>
       <span class="text-lg text-base-content whitespace-nowrap shrink-0">
@@ -275,34 +275,34 @@ watch(
 
         <!-- Pagination -->
         <div v-if="totalPages > 1" class="ml-auto flex items-center gap-1">
-          <button class="btn btn-sm btn-square btn-ghost" :disabled="page === 0" @click="prevPage"><SvgIcon type="chevron_left" class="w-4 h-4" /></button>
+          <button class="btn btn-sm btn-square btn-ghost" :disabled="page === 0" @click="prevPage"><SvgIcon type="chevron_left" class="" /></button>
           <span class="text-lg text-base-content font-mono">{{ page + 1 }}/{{ totalPages }}</span>
-          <button class="btn btn-sm btn-square btn-ghost" :disabled="page >= totalPages - 1" @click="nextPage"><SvgIcon type="chevron_right" class="w-4 h-4" /></button>
+          <button class="btn btn-sm btn-square btn-ghost" :disabled="page >= totalPages - 1" @click="nextPage"><SvgIcon type="chevron_right" class="" /></button>
         </div>
       </div>
 
       <!-- Table -->
       <div ref="tableScrollRef" class="min-h-0 flex-1 overflow-auto rounded-lg border border-base-300">
-        <table class="table table-sm text-center text-lg">
+        <table class="table table-sm text-center">
           <thead class="sticky top-0 z-10 bg-base-200 text-base-content/70">
-            <tr>
+            <tr class="text-lg">
               <th class="cursor-pointer hover:text-base-content text-center whitespace-nowrap" @click="setSort('mz')">
-                <i>m/z</i><SvgIcon v-if="sortIcon('mz')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="w-3.5 h-3.5 inline text-base-content/40" />
+                <i>m/z</i><SvgIcon v-if="sortIcon('mz')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
               <th class="text-center cursor-pointer hover:text-base-content whitespace-nowrap" @click="setSort('meanA')">
-                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionAColor ?? 'currentColor' }"></span>Mean A</span><SvgIcon v-if="sortIcon('meanA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="w-3.5 h-3.5 inline text-base-content/40" />
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionAColor ?? 'currentColor' }"></span>Mean A</span><SvgIcon v-if="sortIcon('meanA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
               <th class="text-center cursor-pointer hover:text-base-content whitespace-nowrap" @click="setSort('meanB')">
-                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionBColor ?? 'currentColor' }"></span>Mean B</span><SvgIcon v-if="sortIcon('meanB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="w-3.5 h-3.5 inline text-base-content/40" />
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionBColor ?? 'currentColor' }"></span>Mean B</span><SvgIcon v-if="sortIcon('meanB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
               <th class="text-center cursor-pointer hover:text-base-content whitespace-nowrap" @click="setSort('ratio')">
-                A/B<SvgIcon v-if="sortIcon('ratio')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="w-3.5 h-3.5 inline text-base-content/40" />
+                A/B<SvgIcon v-if="sortIcon('ratio')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
               <th class="text-center cursor-pointer hover:text-base-content whitespace-nowrap" @click="setSort('detA')">
-                Det A<SvgIcon v-if="sortIcon('detA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="w-3.5 h-3.5 inline text-base-content/40" />
+                Det A<SvgIcon v-if="sortIcon('detA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
               <th class="text-center cursor-pointer hover:text-base-content whitespace-nowrap" @click="setSort('detB')">
-                Det B<SvgIcon v-if="sortIcon('detB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="w-3.5 h-3.5 inline text-base-content/40" />
+                Det B<SvgIcon v-if="sortIcon('detB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
               <th class="whitespace-nowrap">Category</th>
             </tr>
@@ -312,7 +312,7 @@ watch(
               v-for="row in pagedResults"
               :key="row.ionIndex"
               :data-ion-index="row.ionIndex"
-              class="hover:bg-base-200/70 cursor-pointer"
+              class="hover:bg-base-200/70 cursor-pointer text-lg"
               :class="{ 'bg-primary/15': row.ionIndex === selectedMzIndex }"
               @click="emit('select-mz', row.ionIndex)"
             >
@@ -320,7 +320,8 @@ watch(
               <td class="text-center font-mono whitespace-nowrap">{{ formatMean(row.meanA) }}</td>
               <td class="text-center font-mono whitespace-nowrap">{{ formatMean(row.meanB) }}</td>
               <td class="text-center font-mono whitespace-nowrap" :style="{ color: row.ratio > 1 ? (regionAColor ?? undefined) : row.ratio < 1 && row.ratio > 0 ? (regionBColor ?? undefined) : undefined }">
-                {{ formatRatio(row.ratio) }}
+                <span v-if="row.ratio === Infinity" class="text-2xl font-bold leading-none align-middle">∞</span>
+                <template v-else>{{ formatRatio(row.ratio) }}</template>
               </td>
               <td class="text-center font-mono whitespace-nowrap text-base-content/70">{{ formatDet(row.detA) }}</td>
               <td class="text-center font-mono whitespace-nowrap text-base-content/70">{{ formatDet(row.detB) }}</td>

@@ -21,14 +21,21 @@
  * re-fetching any data.
  */
 
-import { ref, computed, shallowRef, watch, type Ref } from 'vue'
+import { ref, computed, shallowRef, watch, onScopeDispose, type Ref } from 'vue'
 import {
   getSharedZarrContext,
   meanSpectrumRef,
 } from '@/features/workspace/results/composables/useZarrIonImage'
 import type { KmeansCluster } from '@/features/workspace/results/composables/useOverlayData'
 import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
-import { hexToRgb, rgbCss, type RGB } from '@/features/workspace/results/utils/regionPalette'
+import {
+  COMPARISON_A_OVERLAY_ALPHA,
+  COMPARISON_A_RGB,
+  COMPARISON_B_OVERLAY_ALPHA,
+  COMPARISON_B_RGB,
+  rgbCss,
+  type RGB,
+} from '@/features/workspace/results/utils/regionPalette'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
 // ---------- types ----------
@@ -113,6 +120,11 @@ export function useRegionComparison(deps: {
   })
 
   let cancelled = false
+
+  // 组件卸载时取消进行中的比较，避免后台扫描继续吃 CPU/网络
+  onScopeDispose(() => {
+    cancelled = true
+  })
   // Cached per-member 2D raster masks (with their sources) + dims for overlay
   // building on result click. Members are kept separate so the overlay can
   // paint each member in its own identity color.
@@ -167,22 +179,10 @@ export function useRegionComparison(deps: {
         .filter((r): r is RegionOption => !!r),
   )
 
-  /** Fallback colors while a side has no region selected (neutral gray). */
-  const FALLBACK_RGB: RGB = { r: 148, g: 163, b: 184 }
-
-  function optionRgb(opt: RegionOption | null): RGB {
-    if (!opt) return FALLBACK_RGB
-    if (opt.source.type === 'cluster') {
-      const cluster = deps.kmeansClusters.value.find((c) => c.id === (opt.source as { type: 'cluster'; id: number }).id)
-      if (cluster) return { r: cluster.color[0], g: cluster.color[1], b: cluster.color[2] }
-      return FALLBACK_RGB
-    }
-    return hexToRgb(opt.color) ?? FALLBACK_RGB
-  }
-
-  // Group identity color: first member's color (fallback gray when empty).
-  const colorA = computed(() => optionRgb(selectedRegionsA.value[0] ?? null))
-  const colorB = computed(() => optionRgb(selectedRegionsB.value[0] ?? null))
+  // Group identity colors are fixed (blue A / orange B) regardless of member
+  // colors - see regionPalette.ts for the rationale.
+  const colorA: RGB = COMPARISON_A_RGB
+  const colorB: RGB = COMPARISON_B_RGB
 
   const canCompare = computed(() => {
     if (!featureEnabled) return false
@@ -477,7 +477,9 @@ export function useRegionComparison(deps: {
         )
       } else {
         // ---- Continuous mode: shared m/z axis ----
-        const stats = await store.streamIonStats(
+        // v1.1 双组布局：只取选中区域内像素的谱，工作量与区域大小成正比。
+        // （v1.0 单组布局没有 spectra 组，不在此适配。）
+        const stats = await store.streamRegionStatsBySpectra(
           [maskA.mask, maskB.mask],
           (done, total) => {
             progress.value = Math.round((done / total) * 100)
@@ -485,6 +487,10 @@ export function useRegionComparison(deps: {
           () => cancelled,
         )
         if (cancelled) return
+        if (!stats) {
+          error.value = 'Region comparison requires the pixel-major spectra group (zarr v1.1)'
+          return
+        }
 
         const mzAxis = ctx.mzAxis
         if (!mzAxis) {
@@ -523,41 +529,31 @@ export function useRegionComparison(deps: {
     deps.onSelectMzIndex(ionIndex)
   }
 
-  /** Look up a region source's current display color (kmeans palette / ROI). */
-  function colorForSource(source: RegionSource | null): RGB {
-    if (!source) return FALLBACK_RGB
-    if (source.type === 'cluster') {
-      const cluster = deps.kmeansClusters.value.find((c) => c.id === source.id)
-      return cluster
-        ? { r: cluster.color[0], g: cluster.color[1], b: cluster.color[2] }
-        : FALLBACK_RGB
-    }
-    const roi = deps.confirmedROIs.value.find((r) => r.id === source.id)
-    return roi ? hexToRgb(roi.color) ?? FALLBACK_RGB : FALLBACK_RGB
-  }
-
-  /** Build and show the overlay highlighting region A / B members, each in
-   *  its own identity color. B members are painted after A so overlap reads
-   *  as B - same precedence as before. */
+  /** Build and show the overlay highlighting the two groups in their fixed
+   *  identity colors. B is painted after A with lower alpha so overlap shows
+   *  through instead of reading as B-only. */
   function showOverlay() {
     if (!cachedDims || (!cachedMembersA.length && !cachedMembersB.length)) return
     const { width, height } = cachedDims
     const n = width * height
     const rgba = new Uint8ClampedArray(n * 4)
-    const paint = (members: { source: RegionSource; raster: Uint8Array }[]) => {
+    const paint = (
+      members: { source: RegionSource; raster: Uint8Array }[],
+      c: RGB,
+      alpha: number,
+    ) => {
       for (const m of members) {
-        const c = colorForSource(m.source)
         for (let i = 0; i < n; i++) {
           if (!m.raster[i]) continue
           rgba[i * 4] = c.r
           rgba[i * 4 + 1] = c.g
           rgba[i * 4 + 2] = c.b
-          rgba[i * 4 + 3] = 80 // semi-transparent
+          rgba[i * 4 + 3] = alpha
         }
       }
     }
-    paint(cachedMembersA)
-    paint(cachedMembersB)
+    paint(cachedMembersA, COMPARISON_A_RGB, COMPARISON_A_OVERLAY_ALPHA)
+    paint(cachedMembersB, COMPARISON_B_RGB, COMPARISON_B_OVERLAY_ALPHA)
     // else: transparent (alpha stays 0)
     deps.setComparisonOverlay(rgba)
     overlayVisible.value = true
@@ -593,16 +589,22 @@ export function useRegionComparison(deps: {
     const [height, width] = store.spatialShape
     const dims = { width, height }
 
-    const build = (opts: RegionOption[]): RegionThumbnailRegion[] => {
+    // Every member carries its GROUP's fixed color (not its own identity
+    // color) so the thumbnail paints each group in a single color.
+    const build = (opts: RegionOption[], groupColor: RGB): RegionThumbnailRegion[] => {
       const out: RegionThumbnailRegion[] = []
       for (const opt of opts) {
         const mask = buildRaster(opt.source)
         if (!mask) continue
-        out.push({ value: opt.value, label: opt.label, color: optionRgb(opt), mask })
+        out.push({ value: opt.value, label: opt.label, color: groupColor, mask })
       }
       return out
     }
-    return { a: build(selectedRegionsA.value), b: build(selectedRegionsB.value), dims }
+    return {
+      a: build(selectedRegionsA.value, COMPARISON_A_RGB),
+      b: build(selectedRegionsB.value, COMPARISON_B_RGB),
+      dims,
+    }
   }
 
   // ---------- cleanup ----------
@@ -611,14 +613,15 @@ export function useRegionComparison(deps: {
     cancelled = true
   }
 
-  /** True when the last comparison involved an ROI (either side). Used to
-   *  decide whether clearing/deleting ROIs should also reset the comparison —
-   *  a pure KMeans-vs-KMeans comparison is unaffected by ROI changes. */
-  function involvesRoi(): boolean {
-    return (
-      cachedMembersA.some((m) => m.source.type === 'roi') ||
-      cachedMembersB.some((m) => m.source.type === 'roi')
-    )
+  /** True when the last comparison involved an ROI (either side). With an id,
+   *  only that specific ROI counts. Used to decide whether deleting/clearing
+   *  ROIs should also reset the comparison — a KMeans-vs-KMeans comparison is
+   *  unaffected by ROI changes, and deleting an ROI that wasn't compared
+   *  leaves the results valid. */
+  function involvesRoi(id?: string): boolean {
+    const has = (members: { source: RegionSource }[]) =>
+      members.some((m) => m.source.type === 'roi' && (id === undefined || m.source.id === id))
+    return has(cachedMembersA) || has(cachedMembersB)
   }
 
   function reset() {

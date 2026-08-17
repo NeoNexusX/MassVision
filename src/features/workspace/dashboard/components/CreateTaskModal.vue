@@ -48,7 +48,18 @@
 import { ref, reactive, watch } from 'vue'
 import MzText from '@/shared/components/MzText.vue'
 defineProps<{ open: boolean }>()
-const emit = defineEmits(['update:open', 'created'])
+const emit = defineEmits<{
+  (e: 'update:open', open: boolean): void
+  (e: 'created', payload: {
+    id: string
+    name: string
+    dataset: string
+    methods: string[]
+    status: string
+    created: string
+    params: Record<string, string>
+  }): void
+}>()
 
 // demo datasets & standardized methods - replace with real data/composables
 const datasets = ref([

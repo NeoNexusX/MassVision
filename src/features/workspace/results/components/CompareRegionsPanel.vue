@@ -86,7 +86,7 @@ function onNoiseFloor(e: Event) {
     >
       <SvgIcon
         :type="expanded ? 'chevron_down' : 'chevron_right'"
-        class="w-4 h-4 text-base-content/60"
+        class="text-base-content/60"
       />
       <span class="text-base font-semibold text-base-content">Compare regions</span>
       <!-- Show a compact status when collapsed -->
@@ -112,10 +112,10 @@ function onNoiseFloor(e: Event) {
           <div
             v-for="side in (['a', 'b'] as const)"
             :key="side"
-            class="flex items-start gap-2"
+            class="flex items-center gap-2"
           >
             <span
-              class="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-base text-white font-bold mt-0.5"
+              class="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-lg text-white font-bold"
               :style="{ backgroundColor: side === 'a' ? colorACss : colorBCss }"
               >{{ side.toUpperCase() }}</span
             >
@@ -200,7 +200,7 @@ function onNoiseFloor(e: Event) {
 
         <!-- Error -->
         <div v-if="error" class="text-base text-error flex items-start gap-1.5">
-          <SvgIcon type="error" class="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <SvgIcon type="error" class="shrink-0 mt-0.5" />
           <span>{{ error }}</span>
         </div>
 
@@ -212,7 +212,7 @@ function onNoiseFloor(e: Event) {
             :disabled="!canCompare"
             @click="emit('compare')"
           >
-            <SvgIcon type="scale" class="w-4 h-4" />
+            <SvgIcon type="scale" class="" />
             Compare
           </button>
           <button
@@ -220,7 +220,7 @@ function onNoiseFloor(e: Event) {
             class="btn btn-sm btn-outline flex-1 gap-1.5 text-base"
             @click="emit('cancel')"
           >
-            <SvgIcon type="close" class="w-4 h-4" />
+            <SvgIcon type="close" class="" />
             Cancel
           </button>
         </div>

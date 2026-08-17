@@ -47,18 +47,25 @@
         <option value="hot">Hot</option>
         <option value="gray">Gray</option>
       </select>
-      <!-- 强度标度 -->
-      <select
-        class="select select-sm select-bordered w-36 text-lg"
-        :value="intensityScale"
-        @change="$emit('update:intensityScale', ($event.target as HTMLSelectElement).value)"
-      >
-        <option value="linear">Linear</option>
-        <option value="log">Log</option>
-      </select>
+      <!-- 强度标度：TIC 归一化仅 continuous 模式（processed 本身就是 TIC 图） -->
+      <div class="flex items-center gap-1.5">
+        <span v-if="normalizationLoading" class="loading loading-spinner loading-xs text-primary"></span>
+        <select
+          data-testid="intensity-scale-select"
+          class="select select-sm select-bordered w-36 text-lg"
+          :class="normalizationError ? 'select-error' : ''"
+          :title="normalizationError ? `Normalization failed: ${normalizationError}` : undefined"
+          :value="intensityScale"
+          @change="$emit('update:intensityScale', ($event.target as HTMLSelectElement).value)"
+        >
+          <option value="linear">Linear</option>
+          <option value="log">Log</option>
+          <option v-if="dataMode === 'continuous' && hasTic" value="tic" title="Divide each pixel by its total ion current (pre-computed stats/tic)">TIC norm</option>
+        </select>
+      </div>
       <button class="btn btn-sm btn-ghost text-lg" @click="$emit('reset')">Reset</button>
       <button class="btn btn-sm btn-ghost text-lg gap-1" title="Export current view as PNG" @click="$emit('download')">
-        <SvgIcon type="download" class="w-4 h-4" />
+        <SvgIcon type="download" class="" />
         PNG
       </button>
     </div>
@@ -79,6 +86,12 @@ defineProps<{
   dataMode?: DataMode | null
   /** 当前选中像素坐标（processed 模式） */
   pixelCoord?: { x: number; y: number } | null
+  /** TIC 归一化计算中（读取 stats/tic，通常很快） */
+  normalizationLoading?: boolean
+  /** 归一化计算失败的原因（保留原图并提示） */
+  normalizationError?: string | null
+  /** zarr 是否预存 stats/tic（TIC 归一化的唯一数据源） */
+  hasTic?: boolean
   /** 工具栏标题 */
   title?: string
 }>()

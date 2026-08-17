@@ -9,29 +9,35 @@
           :class="selectedTool === 'rectangle' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'rectangle' ? null : 'rectangle')"
         >
-          <SvgIcon type="square" class="w-4 h-4" /> Rect
+          <SvgIcon type="square" class="" /> Rect
         </button>
         <button
           class="btn btn-sm flex-1 text-base"
           :class="selectedTool === 'freehand' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'freehand' ? null : 'freehand')"
         >
-          <SvgIcon type="pencil" class="w-4 h-4" /> Lasso
+          <SvgIcon type="lasso" class="" /> Lasso
         </button>
       </div>
       <div v-if="draftReady" class="flex gap-1.5 mt-1.5">
         <button class="btn btn-sm btn-success flex-1 text-base" @click="$emit('confirm')">
-          <SvgIcon type="check" class="w-4 h-4" /> Confirm
+          <SvgIcon type="check" class="" /> Confirm
         </button>
         <button
           class="btn btn-sm btn-ghost flex-1 text-base text-error"
           @click="$emit('cancel')"
         >
-          <SvgIcon type="close" class="w-4 h-4" /> Cancel
+          <SvgIcon type="close" class="" /> Cancel
         </button>
       </div>
-      <button v-if="showReset" class="btn btn-sm btn-warning w-full text-base mt-1.5" @click="$emit('reset')">
-        <SvgIcon type="plus" class="w-4 h-4" /> New
+      <button
+        v-if="rois.length"
+        class="btn btn-sm w-full text-base mt-1.5"
+        :class="viewingRoi ? 'btn-primary' : 'btn-ghost'"
+        :title="viewingRoi ? '当前：仅显示 ROI 区域内' : '当前：显示完整离子图'"
+        @click="$emit('update:viewingRoi', !viewingRoi)"
+      >
+        {{ viewingRoi ? 'ROI only' : 'Show all' }}
       </button>
       <div v-if="draftReady" class="text-base text-base-content mt-1">
         {{
@@ -46,21 +52,13 @@
       <div v-else-if="selectedTool === 'freehand'" class="text-base text-base-content mt-1">
         Draw a freeform outline on the ion image
       </div>
-      <button
-        v-if="showImport"
-        class="btn btn-sm btn-outline w-full text-base mt-1.5"
-        title="Import pre-computed reference regions (e.g. pathology annotation)"
-        @click="$emit('import-reference')"
-      >
-        <SvgIcon type="download" class="w-4 h-4" /> Import reference ROIs
-      </button>
     </div>
 
     <!-- ROI List -->
     <div v-if="rois.length">
-      <div class="text-lg font-semibold text-base-content mb-2 tracking-wide">
-        ROIs
-        <button class="text-lg text-error ml-2 hover:underline" @click="$emit('clearAll')">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-lg font-semibold text-base-content tracking-wide">ROIs</span>
+        <button class="text-lg text-error hover:underline" @click="$emit('clearAll')">
           Clear all
         </button>
       </div>
@@ -79,7 +77,7 @@
               class="text-lg text-base-content hover:text-error"
               @click="$emit('delete', roi.id)"
             >
-              <SvgIcon type="trash" class="w-4 h-4" />
+              <SvgIcon type="trash" class="" />
             </button>
           </div>
           <span class="text-lg text-base-content">{{
@@ -115,14 +113,14 @@
 <script setup lang="ts">
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import { cssWithAlpha } from '@/features/workspace/results/utils/regionPalette'
+import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
 
 defineProps<{
   selectedTool: string | null
   draftReady: boolean
-  showReset: boolean
-  rois: any[]
-  /** Local datasets: show the reference-ROI import button. */
-  showImport?: boolean
+  rois: ConfirmedROI[]
+  /** When true, the ion image is filtered to the ROI union ("ROI only"). */
+  viewingRoi: boolean
 }>()
 
 defineEmits<{
@@ -131,8 +129,7 @@ defineEmits<{
   (e: 'cancel'): void
   (e: 'delete', id: string): void
   (e: 'clearAll'): void
-  (e: 'reset'): void
-  (e: 'import-reference'): void
+  (e: 'update:viewingRoi', v: boolean): void
 }>()
 
 function fmt(v: number): string {

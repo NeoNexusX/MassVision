@@ -59,14 +59,14 @@
 
     <!-- Delete Confirmation Modal -->
     <ConfirmDialog
-      :open="isDeleteModalOpen"
+      :open="deleteConfirm.isOpen"
       title="Delete Result"
       :message="`Are you sure you want to delete this result? This action cannot be undone.`"
       confirm-label="Delete"
       :danger="true"
-      :loading="!!deletingId"
-      @confirm="confirmDelete"
-      @cancel="cancelDelete"
+      :loading="deleteConfirm.deleting"
+      @confirm="deleteConfirm.confirm"
+      @cancel="deleteConfirm.cancel"
     />
 
     <!-- Error Modal for failed processes -->
@@ -92,14 +92,17 @@ import SummaryCard from '@/features/workspace/dashboard/components/SummaryCard.v
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import PaginationFooter from '@/shared/components/PaginationFooter.vue'
 import { useWorkspaceDashboard } from '@/features/workspace/dashboard/composables/useWorkspaceDashboard'
-import { useToast } from '@/shared/composables/useToast'
+import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 
-const { createOpen, recentResults, summary, loading, deletingId, size, meta, pagination, onCreated, goToPage, changeSize, deleteResult } = useWorkspaceDashboard()
+const { createOpen, recentResults, summary, loading, size, meta, pagination, onCreated, goToPage, changeSize, deleteResult } = useWorkspaceDashboard()
 
-// Delete
-const { showToast } = useToast()
-const isDeleteModalOpen = ref(false)
-const resultToDelete = ref<string | null>(null)
+// Delete — shared composable
+const deleteConfirm = useConfirmDelete({
+  onDelete: async (id) => {
+    await deleteResult(id)
+  },
+  successMessage: 'Result deleted successfully',
+})
 
 // Error modal for failed processes
 const isErrorModalOpen = ref(false)
@@ -111,25 +114,6 @@ function showErrorModal(message: string) {
 }
 
 function onDeleteClick(id: string) {
-  resultToDelete.value = id
-  isDeleteModalOpen.value = true
-}
-
-async function confirmDelete() {
-  if (!resultToDelete.value) return
-  isDeleteModalOpen.value = false
-  try {
-    await deleteResult(resultToDelete.value)
-    showToast('Result deleted successfully', 'success')
-  } catch (e: any) {
-    showToast(e?.message || 'Failed to delete result', 'error')
-  } finally {
-    resultToDelete.value = null
-  }
-}
-
-function cancelDelete() {
-  isDeleteModalOpen.value = false
-  resultToDelete.value = null
+  deleteConfirm.open(id)
 }
 </script>

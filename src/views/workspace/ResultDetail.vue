@@ -27,7 +27,6 @@ import { useRegionComparison } from '@/features/workspace/results/composables/us
 import { ZARR_STORE } from '@/shared/config/defaults'
 import { getConfig } from '@/shared/config/runtimeConfig'
 import { rgbCss } from '@/features/workspace/results/utils/regionPalette'
-import { fetchReferenceRois, decodeRleMask } from '@/features/workspace/results/utils/referenceRois'
 import { useToast } from '@/shared/composables/useToast'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
@@ -41,21 +40,9 @@ interface ResultDetailState {
   status?: string
 }
 
-/**
- * Local mode: when `localPath` is set (route /workspace/local-result), the
- * page reads a static/local zarr (v1.1 layout) over HTTP instead of going
- * through runId → backend STS → OSS. Cloud behavior is unchanged when the
- * prop is absent.
- */
-const props = defineProps<{ localPath?: string }>()
-const isLocal = computed(() => !!props.localPath)
-
 const state = history.state as ResultDetailState | null
-const runId = computed(() => {
-  if (isLocal.value) return `local:${props.localPath}`
-  return state?.runId != null ? String(state.runId) : ''
-})
-const isStale = computed(() => !isLocal.value && state?.runId == null)
+const runId = computed(() => (state?.runId != null ? String(state.runId) : ''))
+const isStale = computed(() => state?.runId == null)
 const resultFeatureConfig = getConfig().resultFeatures
 const compareEnabled = resultFeatureConfig?.compare !== false
 const annotationEnabled = resultFeatureConfig?.annotation !== false
@@ -101,6 +88,7 @@ const {
   normalizationFactors,
   normalizationLoading,
   normalizationError,
+  hasTic,
   onSpectrumClickByIndex,
   isProcessed,
 } = zarr
@@ -111,7 +99,7 @@ const dataMode = computed<DataMode | null>(() => dataModeRef.value)
 // processed 模式下的图像矩阵（TIC）
 const currentIonMatrix = computed(() => (isProcessed.value ? ticMatrix.value : ionMatrix.value))
 
-// 当前显示强度标度对应的图像矩阵；RMS/TIC 仅在用户选择后按需计算
+// 当前显示强度标度对应的图像矩阵；TIC 仅在用户选择后按需计算
 const normalizedIonMatrix = computed(() => {
   const matrix = currentIonMatrix.value
   const factors = normalizationFactors.value
@@ -129,10 +117,22 @@ const normalizedIonMatrix = computed(() => {
 
 const displaySourceMatrix = computed(() => normalizedIonMatrix.value)
 
+// 数据集没有 stats/tic（旧数据/processed）时归一化选项会被隐藏；
+// 若当前还停在 TIC，强制回到 Linear，避免值与选项不一致。
+watch(hasTic, (v) => {
+  if (!v && intensityScale.value === 'tic') {
+    intensityScale.value = 'linear'
+    clearNormalization()
+  }
+})
+
 // ---- 初始化 ----
 
+// init/dispose 的并发守卫（代次检查）在 useZarrIonImage 内部完成：
+// init() 期间发生 disposeZarrState() 或重新 init() 时，旧的 init 会自行
+// dispose 孤儿 store 并放弃写入模块状态。
 watch(runId, (id) => {
-  zarr.init(isLocal.value ? { kind: 'local', path: props.localPath! } : id)
+  zarr.init(id)
 }, { immediate: true })
 
 // 离开页面时释放模块级状态，避免大数组（mzAxis、meanChartData、ticMatrix 等）
@@ -178,8 +178,6 @@ const {
   roiCancel,
   roiDelete,
   roiClearAll,
-  roiReset,
-  roiAddMask,
   onDraftUpdated,
   onDraftCleared,
 } = useResultROI(displaySourceMatrix, ionCols, ionRows)
@@ -220,8 +218,6 @@ const {
   runId,
   ionRows,
   ionCols,
-  storageMode,
-  { localZarrPath: props.localPath || undefined },
 )
 
 // ---- Region comparison ----
@@ -254,7 +250,7 @@ const {
   kmeansClusters,
   kmeansLabelsAvailable,
   getKmeansLabels,
-  confirmedROIs: confirmedROIs as any,
+  confirmedROIs: confirmedROIs,
   ionCols,
   ionRows,
   dataMode,
@@ -279,54 +275,15 @@ function handleRoiClearAll() {
 }
 
 function handleRoiDelete(id: string) {
-  if (cmpInvolvesRoi()) cmpReset()
+  // Only reset when the deleted ROI was one of the compared regions; deleting
+  // an unrelated ROI (or any ROI when comparing KMeans-vs-KMeans) is harmless.
+  if (cmpInvolvesRoi(id)) cmpReset()
   roiDelete(id)
 }
 
 // ---- Reference ROI import (local mode) ----
 
 const { showToast } = useToast()
-
-/**
- * Import pre-computed reference regions (e.g. the pathology annotation
- * converted by scripts/figMaskToRois.mjs) from
- * `reference/<dataset>.rois.json` and register them as confirmed ROIs so
- * they feed the region-comparison flow. Labels already present are
- * skipped, making re-import idempotent.
- */
-async function importReferenceRois() {
-  if (!isLocal.value || !props.localPath) return
-  const dataset = props.localPath.replace(/\/+$/, '').split('/').pop()!.replace(/\.zarr$/i, '')
-  const url = `${import.meta.env.BASE_URL}reference/${dataset}.rois.json`.replace(/\/+/g, '/')
-  try {
-    const file = await fetchReferenceRois(url)
-    if (file.grid.width !== ionCols.value || file.grid.height !== ionRows.value) {
-      throw new Error(
-        `grid mismatch: file is ${file.grid.width}×${file.grid.height}, dataset is ${ionCols.value}×${ionRows.value}`,
-      )
-    }
-    const existing = new Set(confirmedROIs.value.map((r) => r.label))
-    let added = 0
-    for (const entry of file.rois) {
-      if (existing.has(entry.label)) continue
-      const mask = decodeRleMask(entry.mask_rle, file.grid.width, file.grid.height)
-      if (roiAddMask(mask, entry.label, entry.color)) added++
-    }
-    const iou = file.alignment?.iou
-    showToast(
-      added
-        ? `Imported ${added} reference ROI${added > 1 ? 's' : ''}${iou ? ` (alignment IoU ${iou})` : ''}.`
-        : 'Reference ROIs already imported.',
-      added ? 'success' : 'info',
-    )
-  } catch (e) {
-    console.error('[ResultDetail] reference ROI import failed:', e)
-    showToast(
-      `Reference ROI import failed: ${e instanceof Error ? e.message : String(e)}`,
-      'error',
-    )
-  }
-}
 
 const compareSectionRef = ref<HTMLElement | null>(null)
 // compare 面板与结果表共享展开状态。
@@ -376,7 +333,15 @@ const resetControls = () => {
   colormap.value = 'inferno'
   intensityScale.value = 'linear'
   gamma.value = 1
+  clearNormalization()
   resetRange()
+}
+
+/** 切换强度标度（TIC 归一化需异步加载，其他即时切换） */
+async function onIntensityScaleChange(value: string) {
+  intensityScale.value = value
+  if (value === 'tic') await loadNormalization('tic')
+  else clearNormalization()
 }
 
 const setStripRef = (element: HTMLElement | null) => {
@@ -414,6 +379,7 @@ async function onSelectPixel(col: number, row: number) {
   <ResultVisualizationLayout
     :show-left-panel="annotationEnabled"
     :show-compare="compareEnabled"
+    :left-panel-collapsed="!annotationExpanded"
   >
     <template #left-panel>
       <AnnotationPanel
@@ -452,15 +418,11 @@ async function onSelectPixel(col: number, row: number) {
         :ion-loading="loading"
         :ion-error="ionError"
         :normalization-loading="normalizationLoading"
+        :normalization-error="normalizationError"
+        :has-tic="hasTic"
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
-        @update:intensity-scale="
-          async (value) => {
-            intensityScale = value
-            if (value === 'rms' || value === 'tic') await loadNormalization(value)
-            else clearNormalization()
-          }
-        "
+        @update:intensity-scale="onIntensityScaleChange"
         @reset-controls="resetControls"
         @reset-range="resetRange"
         @strip-ref="setStripRef"
@@ -547,7 +509,7 @@ async function onSelectPixel(col: number, row: number) {
 
     <template #side-panel>
       <ColorBar
-        class="shrink-0 py-4 w-full lg:w-[340px]"
+        class="shrink-0 py-4 w-full"
         :colormap="colormap"
         :global-min="globalMin"
         :global-max="globalMax"
@@ -578,7 +540,6 @@ async function onSelectPixel(col: number, row: number) {
             :kmeans-computing="kmeansComputing"
             :selected-kmeans-ids="selectedKmeansIds"
             :storage-mode="storageMode"
-            :local="isLocal"
             :roi-tool="roiTool"
             :draft-ready="draftReady"
             :viewing-roi="viewingROI"
@@ -595,12 +556,11 @@ async function onSelectPixel(col: number, row: number) {
             @export-umap="exportUmapPng"
             @export-kmeans="exportKmeansPng"
             @update:roi-tool="roiSelectTool"
+            @update:viewing-roi="viewingROI = $event"
             @roi-confirm="roiConfirm"
             @roi-cancel="roiCancel"
             @roi-delete="handleRoiDelete"
             @roi-clear-all="handleRoiClearAll"
-            @roi-reset="roiReset"
-            @import-reference-rois="importReferenceRois"
             @update:gamma="gamma = $event"
           />
         </template>

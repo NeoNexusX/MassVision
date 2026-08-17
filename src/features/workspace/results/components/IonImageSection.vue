@@ -36,6 +36,10 @@ const props = defineProps<{
   ionError?: string | null
   /** 归一化计算是否进行中 */
   normalizationLoading?: boolean
+  /** 归一化计算失败的原因 */
+  normalizationError?: string | null
+  /** zarr 是否预存 stats/tic（TIC 归一化可用） */
+  hasTic?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -148,6 +152,9 @@ onBeforeUnmount(() => {
           :overlay-height="ionRows"
           :data-mode="dataMode"
           :selected-pixel-coord="selectedPixelCoord"
+          :normalization-loading="normalizationLoading"
+          :normalization-error="normalizationError"
+          :has-tic="hasTic"
           :image-title="imageTitle"
           @update:mz-tolerance="emit('update:mzTolerance', $event)"
           @update:colormap="emit('update:colormap', $event)"
@@ -190,7 +197,7 @@ onBeforeUnmount(() => {
         title="Reset to auto range"
         @click="emit('reset-range')"
       >
-        <SvgIcon type="refresh" class="w-4 h-4" />
+        <SvgIcon type="refresh" class="" />
       </button>
       <span
         class="text-base font-mono text-base-content/60 leading-none text-center whitespace-nowrap"
