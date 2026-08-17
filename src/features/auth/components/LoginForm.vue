@@ -26,7 +26,7 @@ const emit = defineEmits<{
 
     <IconInput
       :model-value="username"
-      @update:model-value="emit('update:username', $event)"
+      @update:model-value="emit('update:username', String($event))"
       icon-type="user"
       type="text"
       autocomplete="username"
@@ -36,7 +36,7 @@ const emit = defineEmits<{
 
     <IconInput
       :model-value="password"
-      @update:model-value="emit('update:password', $event)"
+      @update:model-value="emit('update:password', String($event))"
       icon-type="password"
       type="password"
       autocomplete="current-password"

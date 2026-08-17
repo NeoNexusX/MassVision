@@ -24,7 +24,7 @@
       class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-content/30"
     >
       <span class="loading loading-spinner loading-lg text-primary"></span>
-      <p class="text-lg text-base-content/60">{{ loadingText }}</p>
+      <p class="text-xl text-base-content/60">{{ loadingText }}</p>
     </div>
 
     <!-- 错误 -->
@@ -32,10 +32,10 @@
       v-else-if="error"
       class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-content/30"
     >
-      <div class="text-error text-4xl">!</div>
-      <p class="text-lg text-error font-semibold">Failed to load data</p>
-      <p class="text-base text-base-content/50 max-w-md text-center">{{ error }}</p>
-      <button class="btn btn-sm btn-outline mt-2" @click="$emit('retry')">Retry</button>
+      <SvgIcon type="warning" class="w-8 h-8 text-error" />
+      <p class="text-xl text-error font-semibold">Failed to load data</p>
+      <p class="text-lg text-base-content/50 max-w-md text-center">{{ error }}</p>
+      <button class="btn btn-sm btn-outline mt-2 text-base" @click="$emit('retry')">Retry</button>
     </div>
 
     <!-- 谱图 -->
@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import SvgIcon from '@/shared/components/SvgIcon.vue'
 import * as echarts from 'echarts/core'
 import { LineChart, BarChart } from 'echarts/charts'
 import {
@@ -111,7 +112,7 @@ const CHART_LAYOUT = {
   /** 刻度数字带（ECharts 默认 12px 字号，渲染 ~9px） */
   axisLabelBand: 10,
   /** "m/z" 轴名字号，需与 xAxis.nameTextStyle.fontSize 一致 */
-  axisNameFont: 15,
+  axisNameFont: 18,
   /** 轴名空隙，需与 xAxis.nameGap 一致 */
   axisNameMargin: 16,
   /** 滑块厚度，需与 dataZoom slider.height 一致 */
@@ -133,12 +134,7 @@ const { isDark } = useTheme()
 const palette = computed(() => resolveSpectrumPalette(isDark.value ? 'dark' : 'light'))
 
 /** 谱图标题 */
-const title = computed(() => {
-  if (props.dataMode === 'processed' && props.pixelInfo) {
-    return `Spectrum — Pixel (${props.pixelInfo.x}, ${props.pixelInfo.y})`
-  }
-  return props.dataMode === 'processed' ? 'Spectrum' : 'Average Spectrum'
-})
+const title = 'Spectrum View'
 
 /** 加载中文本 */
 const loadingText = computed(() =>
@@ -204,7 +200,7 @@ function buildSelectorGraphic(): unknown[] {
       style: {
         text: label,
         fill: palette.value.selector,
-        font: '12px monospace',
+        font: '16px monospace',
         textAlign: 'left',
         textVerticalAlign: 'bottom',
       },
@@ -290,8 +286,8 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
         const items = params as Array<{ data: ChartPoint; dataIndex: number }>
         if (!items?.length) return ''
         const [mz, intensity] = items[0]!.data
-        return `<div class="font-mono text-xs">
-            <div>m/z: <strong>${mz}</strong></div>
+        return `<div class="font-mono text-base">
+            <div><i>m/z</i>: <strong>${mz}</strong></div>
             <div>Intensity: <strong>${intensity}</strong></div>
           </div>`
       },
@@ -328,7 +324,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
       nameLocation: 'center',
       nameGap: 48,
       axisLabel: { color: colors.axis.label },
-      nameTextStyle: { fontSize: 17, color: colors.axis.nameText },
+      nameTextStyle: { fontSize: 20, color: colors.axis.nameText },
       axisLine: { lineStyle: { color: colors.axis.line } },
       axisTick: { lineStyle: { color: colors.axis.line } },
       splitLine: { lineStyle: { color: colors.axis.splitLine, type: 'dashed' } },
@@ -345,7 +341,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
         borderColor: colors.dataZoom.border,
         fillerColor: colors.dataZoom.filler,
         handleStyle: { color: colors.dataZoom.handle },
-        textStyle: { fontSize: 13 },
+        textStyle: { fontSize: 16 },
       },
     ],
     series: [

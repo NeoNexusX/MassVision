@@ -1,9 +1,9 @@
 <template>
-  <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto scrollbar-thin overflow-x-hidden pr-4 lg:pr-8">
+  <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto scrollbar-thin overflow-x-hidden pr-4 lg:pr-[2em]">
     <!-- ─── Info ─── -->
     <div class="pt-3 border-t border-base-content/25">
-      <div class="text-base font-semibold text-base-content mb-2">Info</div>
-      <div class="space-y-1.5 text-base text-base-content">
+      <div class="text-lg font-semibold text-base-content mb-2">Info</div>
+      <div class="space-y-1.5 text-lg text-base-content">
         <div v-for="row in infoRows" :key="row.label" class="flex justify-between">
           <span>{{ row.label }}</span>
           <span class="font-mono text-base-content">{{ row.value }}</span>
@@ -13,29 +13,29 @@
 
     <!-- ─── Display Range ─── -->
     <div class="mt-5 pt-4 border-t border-base-content/25">
-      <div class="text-base font-semibold text-base-content mb-2">Display range</div>
+      <div class="text-lg font-semibold text-base-content mb-2">Display range</div>
       <div class="space-y-2">
         <div class="flex items-center gap-2">
-          <span class="text-base text-base-content w-7 text-right">Max</span>
+          <span class="text-lg text-base-content w-[1.75em] text-right">Max</span>
           <input
             type="text"
-            class="input input-sm input-bordered flex-1 text-base font-mono"
+            class="input input-sm input-bordered flex-1 text-lg font-mono"
             :value="formatValue(localMax)"
             @change="onMaxInput($event)"
           />
-          <span class="text-base text-base-content w-14 text-right font-bold">{{
+          <span class="text-lg text-base-content w-[3.5em] text-right font-bold">{{
             pctLabel(displayMax)
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-base text-base-content w-7 text-right">Min</span>
+          <span class="text-lg text-base-content w-[1.75em] text-right">Min</span>
           <input
             type="text"
-            class="input input-sm input-bordered flex-1 text-base font-mono"
+            class="input input-sm input-bordered flex-1 text-lg font-mono"
             :value="formatValue(localMin)"
             @change="onMinInput($event)"
           />
-          <span class="text-base text-base-content w-14 text-right font-bold">{{
+          <span class="text-lg text-base-content w-[3.5em] text-right font-bold">{{
             pctLabel(displayMin)
           }}</span>
         </div>
@@ -44,9 +44,9 @@
 
     <!-- ─── Statistic ─── -->
     <div class="mt-5 pt-4 border-t border-base-content/25">
-      <div class="text-base font-semibold text-base-content mb-2">Statistic</div>
+      <div class="text-lg font-semibold text-base-content mb-2">Statistic</div>
       <div class="rounded-lg border border-base-content/25 bg-base-200/50 p-3 space-y-2">
-        <div class="relative h-20 rounded border border-base-content/25 bg-base-200 overflow-visible -mx-3">
+        <div class="relative h-[5em] rounded border border-base-content/25 bg-base-200 overflow-visible -mx-3">
           <canvas ref="histCanvasRef" class="absolute inset-0 w-full h-full" />
           <div
             class="absolute top-0 bottom-0 w-[2px] bg-red-500/80 z-10"
@@ -57,7 +57,7 @@
             :style="{ left: markerLeft(displayMax) + '%' }"
           />
         </div>
-        <div class="space-y-1.5 text-base text-base-content">
+        <div class="space-y-1.5 text-lg text-base-content">
           <div v-for="row in statisticRows" :key="row.label" class="flex justify-between">
             <span>{{ row.label }}</span>
             <span class="font-mono text-base-content">{{ row.value }}</span>
@@ -68,14 +68,14 @@
 
     <!-- ─── Preprocessing ─── -->
     <div v-if="methods.length" class="mt-5 pt-4 border-t border-base-content/25">
-      <div class="text-base font-semibold text-base-content mb-2">Preprocessing</div>
+      <div class="text-lg font-semibold text-base-content mb-2">Preprocessing</div>
       <div class="space-y-1">
         <div
           v-for="m in methods"
           :key="m"
-          class="text-base text-base-content flex items-center gap-1.5 whitespace-nowrap"
+          class="text-lg text-base-content flex items-center gap-1.5 whitespace-nowrap"
         >
-          <span class="w-1 h-1 rounded-full bg-blue-400"></span>
+          <span class="w-[0.25em] h-[0.25em] rounded-full bg-blue-400"></span>
           {{ m }}
         </div>
       </div>

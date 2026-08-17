@@ -65,6 +65,20 @@ export function useCanvasRenderer(
     if (!ctx) return
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
+    drawScene(ctx, W, H, false)
+  }
+
+  /**
+   * Draw the ion image (and overlay) into a context. With transparentBg the
+   * dark backdrop is skipped: zero-intensity pixels and the letterbox area
+   * stay transparent, for PNG export without a background color.
+   */
+  function drawScene(
+    ctx: CanvasRenderingContext2D,
+    W: number,
+    H: number,
+    transparentBg: boolean,
+  ) {
     const data = opts.matrix.value
     const cols = opts.matrixCols.value
     const rows = opts.matrixRows.value
@@ -74,8 +88,10 @@ export function useCanvasRenderer(
 
     ctx.imageSmoothingEnabled = false
     ctx.clearRect(0, 0, W, H)
-    ctx.fillStyle = '#0a0a0f'
-    ctx.fillRect(0, 0, W, H)
+    if (!transparentBg) {
+      ctx.fillStyle = '#0a0a0f'
+      ctx.fillRect(0, 0, W, H)
+    }
 
     const dispMin = opts.displayMin.value ?? cachedP1
     const dispMax = opts.displayMax.value ?? cachedP95
@@ -102,12 +118,12 @@ export function useCanvasRenderer(
     if (!imageData) imageData = offCtx.createImageData(cols, rows)
     const buf = imageData.data
 
-    // Pre-fill with background
+    // Pre-fill with background (or leave transparent when exporting)
     for (let i = 0; i < buf.length; i += 4) {
       buf[i] = 0x0a
       buf[i + 1] = 0x0a
       buf[i + 2] = 0x0f
-      buf[i + 3] = 255
+      buf[i + 3] = transparentBg ? 0 : 255
     }
 
     for (let r = 0; r < rows; r++) {
@@ -160,6 +176,24 @@ export function useCanvasRenderer(
     }
   }
 
+  /**
+   * Render the current scene onto a fresh canvas with a transparent
+   * background, for PNG export without the dark backdrop. Returns null when
+   * there is no data or container size yet.
+   */
+  function exportTransparentCanvas(): HTMLCanvasElement | null {
+    const W = opts.containerW.value
+    const H = opts.containerH.value
+    if (!W || !H || !opts.matrix.value?.length) return null
+    const canvas = document.createElement('canvas')
+    canvas.width = W
+    canvas.height = H
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    drawScene(ctx, W, H, true)
+    return canvas
+  }
+
   function scheduleRender() {
     if (renderRaf) return
     renderRaf = requestAnimationFrame(() => {
@@ -193,5 +227,5 @@ export function useCanvasRenderer(
     cachedData = null
   })
 
-  return { render, scheduleRender, observeContainer }
+  return { render, scheduleRender, observeContainer, exportTransparentCanvas }
 }

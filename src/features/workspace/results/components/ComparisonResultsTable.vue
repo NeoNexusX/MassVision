@@ -6,9 +6,11 @@
  * filter by category, sort by various fields, and click a row to jump to that
  * ion image (with the two regions overlaid as semi-transparent red/blue).
  */
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
+import type { IconType } from '@/shared/components/svgIcons'
 import type { IonComparison, ComparisonCategory } from '@/features/workspace/results/composables/useRegionComparison'
+import { scrollIntoContainer } from '@/features/workspace/results/utils/scrollIntoContainer'
 
 const props = defineProps<{
   results: IonComparison[]
@@ -177,9 +179,9 @@ function setSort(key: typeof sortKey.value) {
   page.value = 0
 }
 
-function sortIcon(key: typeof sortKey.value): string {
-  if (sortKey.value !== key) return ''
-  return sortDir.value === 'desc' ? ' ▼' : ' ▲'
+function sortIcon(key: typeof sortKey.value): IconType | undefined {
+  if (sortKey.value !== key) return undefined
+  return sortDir.value === 'desc' ? 'chevron_down' : 'chevron_up'
 }
 
 // ---------- pagination ----------
@@ -196,6 +198,30 @@ function onFilterChange(e: Event) {
   categoryFilter.value = (e.target as HTMLSelectElement).value as ComparisonCategory | 'all'
   page.value = 0
 }
+
+// ---- Cross-table sync: jump to the page + row of the externally selected m/z ----
+// This table and AnnotationPanel share `selectedMzIndex` (the average-spectrum
+// axis index). When a row is clicked there, we switch to the page containing
+// the matching `ionIndex` and scroll it into view. Rows hidden by the current
+// category filter are left alone (no scroll), respecting the user's view.
+const tableBodyRef = ref<HTMLElement | null>(null)
+const tableScrollRef = ref<HTMLElement | null>(null)
+
+watch(
+  () => props.selectedMzIndex,
+  async (idx) => {
+    if (idx == null || idx < 0) return
+    const pos = sortedResults.value.findIndex((r) => r.ionIndex === idx)
+    if (pos < 0) return
+    const targetPage = Math.floor(pos / PAGE_SIZE)
+    if (targetPage !== page.value) {
+      page.value = targetPage
+      await nextTick()
+    }
+    const tr = tableBodyRef.value?.querySelector<HTMLElement>(`tr[data-ion-index="${idx}"]`)
+    if (tr && tableScrollRef.value) scrollIntoContainer(tr, tableScrollRef.value, 'center')
+  },
+)
 </script>
 
 <template>
@@ -205,27 +231,27 @@ function onFilterChange(e: Event) {
   >
     <!-- Collapsible header bar -->
     <div
-      class="flex min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap px-4 py-2 cursor-pointer hover:bg-base-200/60 select-none"
+      class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-200/60 select-none"
       @click.stop="toggle"
     >
       <SvgIcon
         :type="expanded ? 'chevron_down' : 'chevron_right'"
-        class="w-4 h-4 text-base-content/60"
+        class="text-base-content/60"
       />
-      <span class="shrink-0 text-sm font-semibold text-base-content">Comparison results</span>
-      <span class="shrink-0 text-sm text-base-content">
+      <span class="text-base font-semibold text-base-content whitespace-nowrap shrink-0">Comparison results</span>
+      <span class="text-lg text-base-content whitespace-nowrap shrink-0">
         {{ results.length }} ions
       </span>
       <span v-if="!results.length" class="min-w-0 truncate text-sm text-base-content">
         Select two regions and click Compare to view comparison results.
       </span>
-      <span v-if="filterStats.filtered > 0" class="min-w-0 truncate text-sm text-base-content">
+      <span v-if="filterStats.filtered > 0" class="text-lg text-base-content whitespace-nowrap overflow-hidden text-ellipsis min-w-0" :title="`(${filterStats.filtered} filtered from ${filterStats.total})`">
         ({{ filterStats.filtered }} filtered from {{ filterStats.total }})
       </span>
     </div>
 
     <!-- Expanded content -->
-    <div v-if="expanded" class="border-t border-base-300 px-4 py-3 flex flex-1 min-h-0 flex-col">
+    <div v-if="expanded" class="border-t border-base-300 px-3 py-3 flex flex-1 min-h-0 flex-col">
       <template v-if="results.length">
         <!-- Filter + sort controls -->
         <div class="flex items-center gap-3 flex-wrap mb-3">
@@ -234,7 +260,7 @@ function onFilterChange(e: Event) {
           <span class="text-base text-base-content">Filter</span>
           <select
             :value="categoryFilter"
-            class="select select-bordered select-sm text-sm"
+            class="select select-bordered select-sm text-base"
             @change="onFilterChange"
           >
             <option v-for="opt in FILTER_OPTIONS" :key="opt.value" :value="opt.value">
@@ -249,43 +275,44 @@ function onFilterChange(e: Event) {
 
         <!-- Pagination -->
         <div v-if="totalPages > 1" class="ml-auto flex items-center gap-1">
-          <button class="btn btn-sm btn-square btn-ghost" :disabled="page === 0" @click="prevPage">‹</button>
-          <span class="text-base text-base-content font-mono">{{ page + 1 }}/{{ totalPages }}</span>
-          <button class="btn btn-sm btn-square btn-ghost" :disabled="page >= totalPages - 1" @click="nextPage">›</button>
+          <button class="btn btn-sm btn-square btn-ghost" :disabled="page === 0" @click="prevPage"><SvgIcon type="chevron_left" class="" /></button>
+          <span class="text-lg text-base-content font-mono">{{ page + 1 }}/{{ totalPages }}</span>
+          <button class="btn btn-sm btn-square btn-ghost" :disabled="page >= totalPages - 1" @click="nextPage"><SvgIcon type="chevron_right" class="" /></button>
         </div>
       </div>
 
       <!-- Table -->
-      <div class="min-h-0 flex-1 overflow-auto rounded-lg border border-base-300">
-        <table class="table table-sm text-center text-base">
+      <div ref="tableScrollRef" class="min-h-0 flex-1 overflow-auto rounded-lg border border-base-300">
+        <table class="table table-sm text-center">
           <thead class="sticky top-0 z-10 bg-base-200 text-base-content/70">
-            <tr>
-              <th class="cursor-pointer hover:text-base-content text-center" @click="setSort('mz')">
-                m/z<span class="text-base-content/40">{{ sortIcon('mz') }}</span>
+            <tr class="text-lg">
+              <th class="cursor-pointer hover:text-base-content text-center whitespace-nowrap" @click="setSort('mz')">
+                <i>m/z</i><SvgIcon v-if="sortIcon('mz')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
-              <th class="text-center cursor-pointer hover:text-base-content" @click="setSort('meanA')">
-                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm" :style="{ backgroundColor: regionAColor ?? 'currentColor' }"></span>Mean A</span><span class="text-base-content/40">{{ sortIcon('meanA') }}</span>
+              <th class="text-center cursor-pointer hover:text-base-content whitespace-nowrap" @click="setSort('meanA')">
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionAColor ?? 'currentColor' }"></span>Mean A</span><SvgIcon v-if="sortIcon('meanA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
-              <th class="text-center cursor-pointer hover:text-base-content" @click="setSort('meanB')">
-                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm" :style="{ backgroundColor: regionBColor ?? 'currentColor' }"></span>Mean B</span><span class="text-base-content/40">{{ sortIcon('meanB') }}</span>
+              <th class="text-center cursor-pointer hover:text-base-content whitespace-nowrap" @click="setSort('meanB')">
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionBColor ?? 'currentColor' }"></span>Mean B</span><SvgIcon v-if="sortIcon('meanB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
-              <th class="text-center cursor-pointer hover:text-base-content" @click="setSort('ratio')">
-                A/B<span class="text-base-content/40">{{ sortIcon('ratio') }}</span>
+              <th class="text-center cursor-pointer hover:text-base-content whitespace-nowrap" @click="setSort('ratio')">
+                A/B<SvgIcon v-if="sortIcon('ratio')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
-              <th class="text-center cursor-pointer hover:text-base-content" @click="setSort('detA')">
-                Det A<span class="text-base-content/40">{{ sortIcon('detA') }}</span>
+              <th class="text-center cursor-pointer hover:text-base-content whitespace-nowrap" @click="setSort('detA')">
+                Det A<SvgIcon v-if="sortIcon('detA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
-              <th class="text-center cursor-pointer hover:text-base-content" @click="setSort('detB')">
-                Det B<span class="text-base-content/40">{{ sortIcon('detB') }}</span>
+              <th class="text-center cursor-pointer hover:text-base-content whitespace-nowrap" @click="setSort('detB')">
+                Det B<SvgIcon v-if="sortIcon('detB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
-              <th>Category</th>
+              <th class="whitespace-nowrap">Category</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody ref="tableBodyRef">
             <tr
               v-for="row in pagedResults"
               :key="row.ionIndex"
-              class="hover:bg-base-200/70 cursor-pointer"
+              :data-ion-index="row.ionIndex"
+              class="hover:bg-base-200/70 cursor-pointer text-lg"
               :class="{ 'bg-primary/15': row.ionIndex === selectedMzIndex }"
               @click="emit('select-mz', row.ionIndex)"
             >
@@ -293,12 +320,13 @@ function onFilterChange(e: Event) {
               <td class="text-center font-mono whitespace-nowrap">{{ formatMean(row.meanA) }}</td>
               <td class="text-center font-mono whitespace-nowrap">{{ formatMean(row.meanB) }}</td>
               <td class="text-center font-mono whitespace-nowrap" :style="{ color: row.ratio > 1 ? (regionAColor ?? undefined) : row.ratio < 1 && row.ratio > 0 ? (regionBColor ?? undefined) : undefined }">
-                {{ formatRatio(row.ratio) }}
+                <span v-if="row.ratio === Infinity" class="text-2xl font-bold leading-none align-middle">∞</span>
+                <template v-else>{{ formatRatio(row.ratio) }}</template>
               </td>
               <td class="text-center font-mono whitespace-nowrap text-base-content/70">{{ formatDet(row.detA) }}</td>
               <td class="text-center font-mono whitespace-nowrap text-base-content/70">{{ formatDet(row.detB) }}</td>
-              <td class="text-center">
-                <span class="badge badge-sm" :class="CATEGORY_META[row.category].badge" :style="categoryStyle(row.category)">
+              <td class="text-center whitespace-nowrap">
+                <span class="badge badge-sm text-base whitespace-nowrap" :class="CATEGORY_META[row.category].badge" :style="categoryStyle(row.category)">
                   {{ CATEGORY_META[row.category].label }}
                 </span>
               </td>

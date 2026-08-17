@@ -3,8 +3,10 @@ import { getZarrAccess } from '@/services/zarr/api/zarrAccessApi'
 import { createClustering } from '@/services/clustering/api/clusteringApi'
 import type { ClusteringTaskResponse } from '@/services/clustering/types/clustering'
 import { ClusteringZarrStore } from '@/services/clustering/clusteringZarrStore'
+import type { UmapEmbedding } from '@/services/clustering/types/clustering'
 import { computeKmeansFromUmap, preloadKmeans } from '@/features/workspace/results/utils/kmeans'
 import { kmeansColor } from '@/features/workspace/results/utils/regionPalette'
+import { dataModeRef } from '@/features/workspace/results/composables/useZarrIonImage'
 import { useToast } from '@/shared/composables/useToast'
 import { extractBackendError } from '@/shared/api/httpClient'
 
@@ -43,22 +45,83 @@ function deriveKmeansClusters(labels: Int32Array): KmeansCluster[] {
 }
 
 /**
+ * DEV-only sanity report for a loaded UMAP embedding. The rendered color is a
+ * pure function of the embedding values, so stray saturated pixels on the
+ * UMAP raster (e.g. irregular blue dots) mean stray values in the data, not a
+ * rendering bug. This log tells them apart:
+ *  - nonFinite > 0            → backend wrote NaN/Inf (bad data)
+ *  - outOfRange > 0 / max > 1 → embedding not scaled to [0,1] (bad scaling)
+ *  - min exactly 0 on ≥2 channels + many bluePixels → outlier points sitting
+ *    on the min-max scaling corners (noise/background spectra fed to UMAP)
+ *  - coordinateRange beyond [0, w-1]/[0, h-1]       → mapping would clip
+ */
+function logUmapDiagnostics(emb: UmapEmbedding, image: { width: number; height: number; data: Uint8Array }): void {
+  const { scaledEmbedding, coordinates, count } = emb
+  const min = [Infinity, Infinity, Infinity]
+  const max = [-Infinity, -Infinity, -Infinity]
+  let nonFinite = 0
+  let outOfRange = 0
+  for (let i = 0; i < count * 3; i++) {
+    const v = scaledEmbedding[i]!
+    if (!Number.isFinite(v)) {
+      nonFinite++
+      continue
+    }
+    if (v < 0 || v > 1) outOfRange++
+    const c = i % 3
+    if (v < min[c]!) min[c] = v
+    if (v > max[c]!) max[c] = v
+  }
+  // Points whose rendered pixel is strongly blue-dominant (the reported
+  // symptom): B high, R/G near zero.
+  let bluePixels = 0
+  const d = image.data
+  for (let i = 0; i < d.length / 3; i++) {
+    if (d[i * 3 + 2]! > 150 && d[i * 3]! < 50 && d[i * 3 + 1]! < 50) bluePixels++
+  }
+  const cMin = [Infinity, Infinity]
+  const cMax = [-Infinity, -Infinity]
+  for (let i = 0; i < count * 2; i++) {
+    const v = coordinates[i]!
+    const c = i % 2
+    if (v < cMin[c]!) cMin[c] = v
+    if (v > cMax[c]!) cMax[c] = v
+  }
+  console.log('[useOverlayData] UMAP diagnostics', {
+    points: count,
+    grid: `${image.width}×${image.height}`,
+    channelMin: min.map((v) => (Number.isFinite(v) ? +v.toFixed(4) : v)),
+    channelMax: max.map((v) => (Number.isFinite(v) ? +v.toFixed(4) : v)),
+    nonFinite,
+    outOfRange,
+    coordinateRange: {
+      x: [Number.isFinite(cMin[0]) ? cMin[0] : null, Number.isFinite(cMax[0]) ? cMax[0] : null],
+      y: [Number.isFinite(cMin[1]) ? cMin[1] : null, Number.isFinite(cMax[1]) ? cMax[1] : null],
+    },
+    blueDominantPixels: bluePixels,
+  })
+}
+
+/**
  * UMAP / KMeans overlay data.
  *
- * UMAP comes from the clustering zarr (GET /processes/{run_id}/zarr?
- * zarr_type=clustering): a pre-rendered (H×W×3) uint8 raster whose RGB
- * channels are the quantized 3D UMAP embedding, matching the ion-image grid.
- * KMeans is computed LOCALLY in the browser from that raster (see
- * utils/kmeans.ts) with a user-chosen k.
+ * UMAP comes from the run's own zarr (GET /processes/{run_id}/zarr - the same
+ * credentials as the algorithm data): the backend clustering task writes its
+ * results back into the embedded `analysis/umap` group (raw coordinates +
+ * scaled embedding); ClusteringZarrStore rasterizes that onto the ion-image
+ * grid. KMeans is computed LOCALLY in the browser from the embedding
+ * (see utils/kmeans.ts) with a user-chosen k.
  *
- * Task lifecycle (backend UMAP generation): creating → computing → ready.
- * - Page entry (continuous runs): probeExisting() silently fetches the
- *   clustering zarr. Success means a finished task already exists - the UI
- *   auto-enables without any confirmation. Failure is swallowed (no task /
- *   not finished yet); the user can still opt in manually.
+ * Task lifecycle (backend UMAP generation): null → processing → completed/failed.
+ * - Page entry (continuous runs): probeExisting() silently reads the run
+ *   zarr's analysis/umap group. If the UMAP file exists, the task already
+ *   finished - load + auto-enable. A missing group (never run / still
+ *   computing) is swallowed; the user opts in manually.
  * - Opt-in confirm: createClusteringTask() POSTs (idempotent get-or-create)
- *   and branches on clustering_status. completed → load + ready; otherwise
- *   the UI shows a computing state with a Refresh button that re-POSTs.
+ *   and branches on clustering_status. A processing task is polled by
+ *   re-POSTing every 5s until completed (load + ready) or failed (error;
+ *   retry stays user-initiated — re-POSTing a failed task would re-trigger
+ *   it).
  * - `ready` is only ever set by a successful zarr load - the status fields
  *   steer the UI, but the data itself is the final gate.
  */
@@ -66,7 +129,6 @@ export function useOverlayData(
   runId: Ref<string>,
   ionRows: Ref<number>,
   ionCols: Ref<number>,
-  storageMode: Ref<string>,
 ) {
   // State - UMAP and KMeans are mutually exclusive: only one shows at a time.
   const umapVisible = ref(false)
@@ -83,6 +145,7 @@ export function useOverlayData(
 
   let store: ClusteringZarrStore | null = null
   let umapRgb: Uint8Array | null = null
+  let umapEmbedding: UmapEmbedding | null = null
   let kmeansRgb: Uint8Array | null = null
   let kmeansLabels: Int32Array | null = null
   let dims: { height: number; width: number } | null = null
@@ -110,11 +173,68 @@ export function useOverlayData(
   const clusteringRefreshing = ref(false)
   const { showToast } = useToast()
 
+  // ---- clustering-status polling (guide "方式二": reuse the POST) ----
+  // Poll interval for an in-flight clustering task, per the backend guide.
+  const POLL_INTERVAL_MS = 5000
+  let pollTimer: ReturnType<typeof setTimeout> | null = null
+  /** The run the current poll chain belongs to; a mismatch stops the chain. */
+  let pollingForRun: string | null = null
+
+  function stopPolling() {
+    if (pollTimer) {
+      clearTimeout(pollTimer)
+      pollTimer = null
+    }
+    pollingForRun = null
+  }
+
+  /**
+   * One poll tick: re-POST the (idempotent) clustering endpoint and branch on
+   * clustering_status via applyTaskStatus. Stops on completed/failed —
+   * critical for failed, since the current backend version re-triggers a
+   * failed task on POST. A transient request error keeps the chain alive.
+   */
+  async function pollOnce() {
+    const forRun = runId.value
+    try {
+      const task = await createClustering(forRun)
+      if (pollingForRun !== forRun) return // run changed / polling stopped
+      await applyTaskStatus(task)
+    } catch (e) {
+      console.warn('[useOverlayData] clustering status poll failed:', e)
+      if (pollingForRun === forRun) scheduleNextPoll(forRun)
+    }
+  }
+
+  function scheduleNextPoll(forRun: string) {
+    if (pollingForRun !== forRun) return
+    // One pending tick at most - a manual Refresh hitting the processing
+    // branch must not stack a second timer on top of the chain's own.
+    if (pollTimer) return
+    pollTimer = setTimeout(() => {
+      pollTimer = null
+      if (pollingForRun === forRun) pollOnce()
+    }, POLL_INTERVAL_MS)
+  }
+
+  /** Start a poll chain for the current run (no-op if one is already live).
+   *  The first tick waits one interval - the caller just received a fresh
+   *  status from its own POST, so re-POSTing immediately would be redundant. */
+  function startPolling() {
+    const forRun = runId.value
+    if (pollingForRun === forRun) return
+    stopPolling()
+    pollingForRun = forRun
+    scheduleNextPoll(forRun)
+  }
+
   /** Drop the cached zarr store + rasters and mark the data not-ready. */
   function clearCache() {
+    stopPolling()
     store?.dispose()
     store = null
     umapRgb = null
+    umapEmbedding = null
     kmeansRgb = null
     kmeansLabels = null
     dims = null
@@ -127,23 +247,29 @@ export function useOverlayData(
   }
 
   /**
-   * Load the clustering zarr and cache the UMAP raster (KMeans is computed
-   * locally on demand, so only umap_image is fetched). Pure read - never
-   * POSTs. Safe to call repeatedly; cached after the first success. With
-   * `silent`, failures are swallowed without touching overlayError (used by
-   * the page-entry probe). Returns whether the data is ready afterwards.
+   * Load the clustering zarr and cache the UMAP raster + embedding matrix
+   * (KMeans is computed locally on demand). Pure read - never POSTs. Safe to
+   * call repeatedly; cached after the first success. With `silent`, failures
+   * are swallowed without touching overlayError (used by the page-entry
+   * probe, where "no UMAP group yet" is the normal case). Returns whether
+   * the data is ready afterwards.
    */
-  async function loadClusteringData(opts: { silent?: boolean } = {}): Promise<boolean> {
+  async function loadClusteringData(loadOpts: { silent?: boolean } = {}): Promise<boolean> {
     // Cache hit: umap raster + dims.
     if (umapRgb && dims) return true
     overlayLoading.value = true
-    if (!opts.silent) overlayError.value = null
+    if (!loadOpts.silent) overlayError.value = null
     const forRun = runId.value
     try {
-      const access = await getZarrAccess(forRun, 'clustering')
-      const s = new ClusteringZarrStore(access)
+      // The UMAP group (analysis/umap) is embedded in the run's own zarr -
+      // same STS credentials as the algorithm data, no zarr_type parameter.
+      const s = new ClusteringZarrStore(
+        await getZarrAccess(forRun),
+        // STS 过期时自动重拉凭据（与算法数据同一 zarr，同一凭据端点）
+        () => getZarrAccess(forRun),
+      )
       await s.init()
-      const umap = await s.loadUmapImage()
+      const umap = await s.loadUmap()
       // The user navigated to another run mid-load - discard, don't pollute
       // the new run's cache.
       if (forRun !== runId.value) {
@@ -151,8 +277,10 @@ export function useOverlayData(
         return false
       }
       store = s
-      umapRgb = umap.data
-      dims = { height: umap.height, width: umap.width }
+      umapRgb = umap.image.data
+      umapEmbedding = umap.embedding
+      dims = { height: umap.image.height, width: umap.image.width }
+      if (import.meta.env.DEV) logUmapDiagnostics(umap.embedding, umap.image)
       clusteringReady.value = true
       clusteringComputing.value = false
       // Preload the ml-kmeans chunk now - the user is on the result page and
@@ -160,12 +288,12 @@ export function useOverlayData(
       preloadKmeans()
       return true
     } catch (e) {
-      if (!opts.silent) {
+      if (!loadOpts.silent) {
         console.error('[useOverlayData] failed to load clustering data:', e)
         overlayError.value = e instanceof Error ? e.message : String(e)
       } else {
-        // Keep the probe quiet in the UI, but still log it so backend/zarr
-        // issues don't look like "no clustering task".
+        // Keep the entry probe quiet: a missing UMAP group is the normal
+        // "task not run yet" case, not an error worth surfacing.
         console.warn('[useOverlayData] silent clustering probe failed:', e)
       }
       // NOTE: do NOT clearCache() here. A transient failure (CORS, token,
@@ -178,23 +306,31 @@ export function useOverlayData(
 
   /**
    * Branch on the task record returned by the (idempotent) clustering POST.
-   * 'completed' still has to prove itself by loading the zarr; anything else
-   * keeps the UI in the computing state (or surfaces a failure).
+   * 'completed' still has to prove itself by loading the zarr; 'failed'
+   * surfaces its error; anything else keeps the UI in the computing state and
+   * starts the 5s status polling.
    */
   async function applyTaskStatus(task: ClusteringTaskResponse) {
     const s = (task.clustering_status || '').toLowerCase()
     if (s === 'completed') {
+      stopPolling()
       const ok = await loadClusteringData()
       if (ok) showToast('UMAP/KMeans overlays are ready.', 'success')
       // else: overlayError + Retry already surfaced by loadClusteringData.
       return
     }
     if (s.includes('fail') || task.error_message) {
+      stopPolling()
       clusteringComputing.value = false
       overlayError.value = task.error_message || `Clustering task ${s || 'failed'}.`
       return
     }
     clusteringComputing.value = true
+    // Continue the poll chain: the next tick is one interval away whether this
+    // status came from the initial create POST (startPolling begins the chain)
+    // or from a poll/Refresh tick (scheduleNextPoll keeps it going).
+    if (pollingForRun === runId.value) scheduleNextPoll(runId.value)
+    else startPolling()
   }
 
   /**
@@ -209,7 +345,7 @@ export function useOverlayData(
       const task = await createClustering(runId.value)
       await applyTaskStatus(task)
       if (clusteringComputing.value) {
-        showToast('Clustering task started - use Refresh to check progress.', 'info')
+        showToast('Clustering task started - status is checked automatically every 5s.', 'info')
       }
     } catch (e) {
       showToast(extractBackendError(e, 'Failed to create clustering task'), 'error')
@@ -220,7 +356,8 @@ export function useOverlayData(
 
   /**
    * Refresh button: re-POST (idempotent) and branch on clustering_status.
-   * Only meaningful while the task is computing.
+   * The 5s polling already covers progress; this is a manual accelerator that
+   * only shows while the task is computing.
    */
   async function refreshClusteringStatus() {
     if (clusteringRefreshing.value) return
@@ -239,11 +376,12 @@ export function useOverlayData(
   }
 
   /**
-   * Page-entry probe (continuous runs only): if the clustering zarr already
-   * exists, load it silently and mark ready - the enable toggle then turns
-   * itself on and the buttons work without any confirmation, since no new
-   * compute is triggered. A failed probe means "no task / not finished" and
-   * is swallowed; the user can still opt in manually.
+   * Page-entry probe (continuous runs only): silently try reading the run
+   * zarr's analysis/umap group. If the UMAP file exists, a finished task
+   * already exists - load it and let clusteringReady auto-enable the toggle.
+   * A missing group (task never run / still processing) or a transient read
+   * failure is swallowed; the user can still opt in manually, at which point
+   * the POST reveals the real status and polling takes over.
    */
   async function probeExisting() {
     if (probedForRun === runId.value) return
@@ -345,17 +483,24 @@ export function useOverlayData(
   }
 
   /**
-   * Run KMeans locally over the UMAP raster with a user-chosen k, cache the
-   * resulting labels + rendered RGB, and show the KMeans overlay. Deterministic
-   * (fixed seed): same k → same clusters. Re-running with a different k
-   * replaces the previous result.
+   * Run KMeans locally with a user-chosen k over the raw float32 UMAP
+   * embedding, cache the resulting labels + rendered RGB, and show the KMeans
+   * overlay. Deterministic (fixed seed): same k → same clusters. Re-running
+   * with a different k replaces the previous result.
    */
   async function runKmeans(k: number): Promise<boolean> {
     const ok = await loadClusteringData()
-    if (!ok || !umapRgb || !dims) return false
+    if (!ok || !umapEmbedding || !dims) return false
     kmeansComputing.value = true
     try {
-      const result = await computeKmeansFromUmap(umapRgb, dims.height, dims.width, k)
+      const result = await computeKmeansFromUmap(
+        umapEmbedding,
+        dims.height,
+        dims.width,
+        k,
+        42,
+        30,
+      )
       kmeansRgb = result.rgb
       kmeansLabels = result.labels
       kmeansClusters.value = deriveKmeansClusters(result.labels)
@@ -416,18 +561,13 @@ export function useOverlayData(
   }, { deep: true })
 
   // Recompute overlays once BOTH the raster data and the ion dimensions are
-  // available, whichever arrives last (probe can beat the ion image).
+  // available, whichever arrives last (the zarr load can beat the ion image).
   watch([ionRows, ionCols, clusteringReady], () => {
     if (!ionRows.value || !ionCols.value) return
     if (umapVisible.value && !umapRgb) return
     if (kmeansVisible.value && !kmeansRgb) return
     if (umapVisible.value || kmeansVisible.value) recomputeOverlay()
   })
-
-  // Page-entry probe: once per run, only for continuous storage.
-  watch([runId, storageMode], ([id, mode]) => {
-    if (id && mode === 'continuous') probeExisting()
-  }, { immediate: true })
 
   // Invalidate the cache when the run changes (same component, new result).
   watch(runId, () => {
@@ -441,27 +581,17 @@ export function useOverlayData(
     clusteringRefreshing.value = false
   })
 
+  // Page-entry UMAP probe: once per run, once the zarr data mode is known and
+  // only for continuous storage (processed data has no UMAP).
+  watch([runId, dataModeRef], ([id, mode]) => {
+    if (id && mode === 'continuous') probeExisting()
+  }, { immediate: true })
+
   // Release the clustering zarr store + cached rasters on unmount.
   onBeforeUnmount(() => {
     clearCache()
     overlayData.value = null
   })
-
-  /** Export stub: selected cluster ids + H×W 0/1 mask. null = no filter
-   *  (all clusters). This is the contract for the backend export API. */
-  function getKmeansSelection(): { labels: number[]; mask: Uint8Array } | null {
-    if (!kmeansLabels || !dims || selectedKmeansIds.value === null) return null
-    const selected = selectedKmeansIds.value
-    const mask = new Uint8Array(kmeansLabels.length)
-    for (let i = 0; i < kmeansLabels.length; i++) {
-      const r = kmeansRgb![i * 3]!
-      const g = kmeansRgb![i * 3 + 1]!
-      const b = kmeansRgb![i * 3 + 2]!
-      if (r === 0 && g === 0 && b === 0) continue // background: never exported
-      mask[i] = selected.has(kmeansLabels[i]!) ? 1 : 0
-    }
-    return { labels: [...selected].sort((a, b) => a - b), mask }
-  }
 
   /** Current KMeans labels (Int32Array, -1 = background) or null if not run. */
   function getKmeansLabels(): Int32Array | null {
@@ -471,6 +601,16 @@ export function useOverlayData(
   /** Dimensions of the cached KMeans/UMAP raster grid, or null if not loaded. */
   function getKmeansDims(): { width: number; height: number } | null {
     return dims ? { width: dims.width, height: dims.height } : null
+  }
+
+  /**
+   * Cached raw UMAP embedding (per-tissue-pixel coordinates + 3D vector), or
+   * null before the first successful load. Consumed by the scatter / lasso
+   * view to plot points by their true 3D position rather than the rasterized
+   * grid.
+   */
+  function getUmapEmbedding(): UmapEmbedding | null {
+    return umapEmbedding
   }
 
   /**
@@ -562,11 +702,12 @@ export function useOverlayData(
     toggleKmeansCluster,
     selectAllKmeansClusters,
     clearKmeansClusters,
-    getKmeansSelection,
     /** Current KMeans labels (Int32Array, -1 = background) or null. */
     getKmeansLabels,
     /** Dimensions of the cached KMeans/UMAP raster grid, or null. */
     getKmeansDims,
+    /** Raw UMAP embedding for the scatter/lasso view, or null if not loaded. */
+    getUmapEmbedding,
     /** Set/clear a comparison overlay (region A/B highlight) that overrides UMAP/KMeans. */
     setComparisonOverlay,
     /** Export the UMAP RGB image as a standalone PNG. */

@@ -28,9 +28,6 @@ export interface ZarrAccessResponse {
   expires_in: number
 }
 
-/** Which zarr to access: ion image ('algorithm') or UMAP/KMeans ('clustering'). */
-export type ZarrType = 'algorithm' | 'clustering'
-
 // ── Zarr OSS store domain types ──
 
 export type DataMode = 'continuous' | 'processed'

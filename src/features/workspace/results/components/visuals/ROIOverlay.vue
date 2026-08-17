@@ -140,6 +140,22 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v))
 }
 
+/** Ray-casting point-in-polygon test (matrix coordinates) */
+function pointInPolygon(p: ROIPoint, path: ROIPoint[]): boolean {
+  let inside = false
+  for (let i = 0, j = path.length - 1; i < path.length; j = i++) {
+    const a = path[i]!,
+      b = path[j]!
+    if (
+      a.y > p.y !== b.y > p.y &&
+      p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x
+    ) {
+      inside = !inside
+    }
+  }
+  return inside
+}
+
 // ─── Canvas drawing ───
 function redraw() {
   const c = canvasRef.value
@@ -292,6 +308,35 @@ function onDown(e: MouseEvent) {
       document.addEventListener('mouseup', onUp)
       return
     }
+  }
+
+  // Click inside existing freehand polygon → move
+  if (props.tool === 'freehand' && draftReady.value && pointInPolygon(p, freePath.value)) {
+    const startP = p
+    const startPath = freePath.value.map((pt) => ({ ...pt }))
+    // Keep the whole bounding box inside the image while translating
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const pt of startPath) {
+      if (pt.x < minX) minX = pt.x
+      if (pt.y < minY) minY = pt.y
+      if (pt.x > maxX) maxX = pt.x
+      if (pt.y > maxY) maxY = pt.y
+    }
+    const onMove = (ev: MouseEvent) => {
+      const np = toMatrix(ev.clientX, ev.clientY)
+      const dx = clamp(np.x - startP.x, -minX, props.imageWidth - 1 - maxX)
+      const dy = clamp(np.y - startP.y, -minY, props.imageHeight - 1 - maxY)
+      freePath.value = startPath.map((pt) => ({ x: pt.x + dx, y: pt.y + dy }))
+      redraw()
+      emitFreehand()
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    return
   }
 
   // Start new shape

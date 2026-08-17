@@ -141,6 +141,12 @@ function readBareAdductSign(s: string): string | null {
 // ---- Column-name matching -------------------------------------------------
 
 const MZ_ALIASES = [
+  'tar. m/z',
+  'tar m/z',
+  'target m/z',
+  'target_mz',
+  'tar_mz',
+  'tar mz',
   'exp. m/z',
   'exp m/z',
   'experimental m/z',
@@ -257,6 +263,18 @@ export interface ParsedAnnotationCsv {
 }
 
 /**
+ * Parse a numeric m/z cell, tolerating thousands separators (`1,234.5`).
+ * Commas are stripped unconditionally, so US-style thousands grouping works;
+ * European decimal commas (`885,5499`) are NOT supported (they'd be parsed
+ * as integers). Returns NaN when the value is not a finite positive number.
+ */
+function parseMzCell(raw: string): number {
+  const s = raw.trim().replace(/,/g, '')
+  if (!s) return NaN
+  return parseFloat(s)
+}
+
+/**
  * Parse annotation CSV text into {@link AnnotationRow}s. Throws
  * {@link CsvParseError} for fatal problems (empty file, no m/z column, no data
  * rows); individual rows with a bad m/z are kept and flagged `valid: false`.
@@ -275,7 +293,7 @@ export function parseAnnotationCsv(text: string): ParsedAnnotationCsv {
   const mzCol = matchColumn(headers, MZ_ALIASES)
   if (!mzCol) {
     throw new CsvParseError(
-      'No m/z column found. Expected one of: "Exp. m/z", "m/z", "mz", "MZ", "experimental_mz", "mass", ...',
+      'No m/z column found. Expected one of: "Tar. m/z", "m/z", "mz", "MZ", "target_mz", "mass", ...',
     )
   }
   const formulaCol = matchColumn(headers, FORMULA_ALIASES)
@@ -294,9 +312,9 @@ export function parseAnnotationCsv(text: string): ParsedAnnotationCsv {
     const fields = splitCsvLine(line, delimiter)
     const get = (i: number): string => (i >= 0 && i < fields.length ? (fields[i] ?? '').trim() : '')
 
-    // Tolerate thousands separators / surrounding whitespace in the m/z cell.
-    const expMzRaw = get(mzIdx).replace(/,/g, '').trim()
-    const expMz = parseFloat(expMzRaw)
+    // Parse the m/z cell (commas are stripped as thousands separators;
+    // European decimal comma is NOT supported). See parseMzCell for details.
+    const expMz = parseMzCell(get(mzIdx))
     const valid = Number.isFinite(expMz) && expMz > 0
 
     const candidates = candIdxs
@@ -844,4 +862,53 @@ export function formatIntensity(v: number | null): string {
   if (v >= 1000) return v.toFixed(0)
   if (v >= 10) return v.toFixed(1)
   return v.toFixed(2)
+}
+
+// ---- Export ---------------------------------------------------------------
+
+/** Escape one CSV cell: quote when it contains the delimiter, quotes, or a line break. */
+function csvCell(value: string): string {
+  return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+}
+
+/**
+ * Build the CSV text for exporting matched annotations. Only rows with
+ * matchStatus 'matched' are included; columns pair the experimental m/z with
+ * the annotation name, then the matched peak m/z and the mass difference in
+ * the active unit. `rows` are written in the order given (pass the sorted
+ * list to mirror the on-screen order).
+ */
+export function buildAnnotationExportCsv(
+  rows: MatchedAnnotationRow[],
+  mode: ToleranceMode,
+): string {
+  const header = [
+    'Name',
+    'Candidates',
+    'formula_ion',
+    'Ion type',
+    'Tar. m/z',
+    'Matched m/z',
+    `Mass Difference (${mode})`,
+    'Avg Intensity',
+  ]
+  const lines = [header.join(',')]
+  for (const r of rows) {
+    if (r.matchStatus !== 'matched') continue
+    lines.push(
+      [
+        csvCell(r.name),
+        csvCell(r.candidates.join('; ')),
+        csvCell(r.formulaIon ?? ''),
+        csvCell(r.ionType ?? ''),
+        r.expMz.toFixed(4),
+        r.matchedMz != null ? r.matchedMz.toFixed(4) : '',
+        r.massError != null ? r.massError.toFixed(mode === 'ppm' ? 2 : 4) : '',
+        r.avgIntensity != null && Number.isFinite(r.avgIntensity)
+          ? r.avgIntensity.toFixed(2)
+          : '',
+      ].join(','),
+    )
+  }
+  return lines.join('\r\n')
 }

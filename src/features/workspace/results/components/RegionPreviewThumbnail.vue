@@ -15,7 +15,13 @@
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
-import { hexToRgb, rgbCss, type RGB } from '@/features/workspace/results/utils/regionPalette'
+import {
+  COMPARISON_A_ALPHA,
+  COMPARISON_B_ALPHA,
+  hexToRgb,
+  rgbCss,
+  type RGB,
+} from '@/features/workspace/results/utils/regionPalette'
 
 export interface ThumbnailRegion {
   value: string
@@ -26,8 +32,9 @@ export interface ThumbnailRegion {
 }
 
 const props = defineProps<{
-  a: ThumbnailRegion | null
-  b: ThumbnailRegion | null
+  /** Members of group A / B, each painted in its own identity color. */
+  a: ThumbnailRegion[]
+  b: ThumbnailRegion[]
   rois: ConfirmedROI[]
   matrix: Float32Array | null
   width: number
@@ -38,14 +45,24 @@ const containerRef = ref<HTMLDivElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 const hasAnything = computed(
-  () => !!(props.a || props.b || props.rois.length) && props.width > 0 && props.height > 0,
+  () => !!(props.a.length || props.b.length || props.rois.length) && props.width > 0 && props.height > 0,
 )
 
-const legendA = computed(() =>
-  props.a ? { label: `A · ${props.a.label}`, css: rgbCss(props.a.color) } : null,
+interface LegendEntry {
+  label: string
+  css: string
+}
+// One legend entry per group: member labels joined, swatch in the group's
+// fixed color (all members carry the same group color).
+const legendsA = computed<LegendEntry[]>(() =>
+  props.a.length
+    ? [{ label: `A · ${props.a.map((r) => r.label).join(' + ')}`, css: rgbCss(props.a[0]!.color) }]
+    : [],
 )
-const legendB = computed(() =>
-  props.b ? { label: `B · ${props.b.label}`, css: rgbCss(props.b.color) } : null,
+const legendsB = computed<LegendEntry[]>(() =>
+  props.b.length
+    ? [{ label: `B · ${props.b.map((r) => r.label).join(' + ')}`, css: rgbCss(props.b[0]!.color) }]
+    : [],
 )
 
 // ---------- raster building ----------
@@ -86,18 +103,20 @@ function buildImageData(): ImageData | null {
     buf[off + 3] = 255
   }
 
-  // Confirmed ROIs: colored fill (subtle) + outline (full color). Drawn under
-  // the A/B highlight so the compared regions stay on top.
+  // Confirmed ROIs: same strong fill as the compared regions (KMeans), so all
+  // region types share one visual language in the thumbnail. Drawn under the
+  // A/B highlight so the compared regions stay on top.
   for (const roi of props.rois) {
     const c = hexToRgb(roi.color)
     if (!c) continue
-    paintMask(buf, roi.mask, w, h, c, 0.22, true)
+    paintMask(buf, roi.mask, w, h, c, 0.85, false)
   }
 
-  // Compared regions: strong fill, their own identity color. B after A so
-  // overlap (if any) reads as B - same precedence as the ion-image overlay.
-  if (props.a) paintMask(buf, props.a.mask, w, h, props.a.color, 0.85, false)
-  if (props.b) paintMask(buf, props.b.mask, w, h, props.b.color, 0.85, false)
+  // Compared groups: strong fill in each group's fixed color. B is painted
+  // after A with lower alpha so overlap shows through instead of reading as
+  // B-only - same precedence as the ion-image overlay.
+  for (const r of props.a) paintMask(buf, r.mask, w, h, r.color, COMPARISON_A_ALPHA, false)
+  for (const r of props.b) paintMask(buf, r.mask, w, h, r.color, COMPARISON_B_ALPHA, false)
 
   return img
 }
@@ -196,8 +215,8 @@ watch(
 <template>
   <div class="border-0 rounded-none bg-transparent overflow-visible">
     <div class="px-3 pt-2 pb-1.5 flex items-center justify-between">
-      <span class="text-sm font-semibold text-base-content">Region preview</span>
-      <span v-if="!hasAnything" class="text-xs text-base-content/40">
+      <span class="text-base font-semibold text-base-content">Region preview</span>
+      <span v-if="!hasAnything" class="text-base text-base-content/40">
         Select regions or draw ROIs
       </span>
     </div>
@@ -208,20 +227,20 @@ watch(
         style="image-rendering: pixelated"
       />
     </div>
-    <div v-if="legendA || legendB" class="px-3 pb-2.5 flex flex-wrap gap-x-4 gap-y-1">
-      <span v-if="legendA" class="flex items-center gap-1.5 text-xs text-base-content/80">
+    <div
+      v-if="legendsA.length || legendsB.length"
+      class="px-3 pb-2.5 flex flex-wrap gap-x-4 gap-y-1"
+    >
+      <span
+        v-for="legend in [...legendsA, ...legendsB]"
+        :key="legend.label"
+        class="flex items-center gap-1.5 text-base text-base-content/80"
+      >
         <span
           class="w-2.5 h-2.5 rounded-sm border border-base-content/30 shrink-0"
-          :style="{ backgroundColor: legendA.css }"
+          :style="{ backgroundColor: legend.css }"
         ></span>
-        <span class="truncate max-w-[180px]" :title="legendA.label">{{ legendA.label }}</span>
-      </span>
-      <span v-if="legendB" class="flex items-center gap-1.5 text-xs text-base-content/80">
-        <span
-          class="w-2.5 h-2.5 rounded-sm border border-base-content/30 shrink-0"
-          :style="{ backgroundColor: legendB.css }"
-        ></span>
-        <span class="truncate max-w-[180px]" :title="legendB.label">{{ legendB.label }}</span>
+        <span class="truncate max-w-[180px]" :title="legend.label">{{ legend.label }}</span>
       </span>
     </div>
   </div>

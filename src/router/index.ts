@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
-import { authStorage } from '@/shared/auth/authStorage'
 import { useAuthStore } from '@/shared/auth/authStore'
 
 const routes = [
@@ -79,7 +78,12 @@ const routes = [
     path: '/docs/:pathMatch(.*)*',
     component: { render: () => null },
     beforeEnter: (to: RouteLocationNormalized) => {
-      window.location.assign(to.fullPath)
+      // Only allow same-origin paths under /docs/ — reject anything with a scheme
+      // or that doesn't start with /docs/ (open-redirect guard).
+      const fp = to.fullPath
+      if (fp.startsWith('/docs/') && !/^[a-z][a-z0-9+\-.]*:/i.test(fp)) {
+        window.location.assign(fp)
+      }
       return false
     },
   },
@@ -91,66 +95,38 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-  // Check meta fields
   const authRequired = to.matched.some((record) => record.meta.requiresAuth)
   const adminRequired = to.matched.some((record) => record.meta.requiresAdmin)
-  // Retrieve token via the auth storage utility
-  // Use `let` so we can re-check after attempting to fetch user (fetchUser may clear token on 401)
-  let loggedIn = authStorage.getToken()
+  // Single source of truth: the auth store (cross-tab synced via storage event).
+  const auth = useAuthStore()
+  const loggedIn = !!auth.token
 
-  // Redirect to Profile if already logged in and trying to access login/register pages
-  // But allow it if coming from an auth-required page (token may be stale / backend down)
+  // Redirect already-logged-in users away from login/register/forgot-password
   const fromAuthRequired = from.matched.some((record) => record.meta.requiresAuth)
   if (loggedIn && !fromAuthRequired && ['/login', '/register', '/forgotpassword'].includes(to.path)) {
     return next('/mydatasets')
   }
 
-  // Redirect to login page if authentication is required but user is not logged in
   if (authRequired && !loggedIn) {
-    return next({
-      path: '/login',
-      query: { redirect: to.fullPath },
-    })
+    return next({ path: '/login', query: { redirect: to.fullPath } })
   }
 
-  // If auth is required and we have a token, verify it's still valid
-  if (authRequired && loggedIn) {
-    const auth = useAuthStore()
-    if (!auth.user) {
-      // fetchUser never throws: on 401 it logs out and clears the token, so
-      // re-check the token afterwards instead of relying on try/catch.
-      await auth.fetchUser()
-      if (!auth.token) {
-        return next({ path: '/login', query: { redirect: to.fullPath } })
-      }
+  if (authRequired && loggedIn && !auth.user) {
+    await auth.fetchUser()
+    if (!auth.token) {
+      return next({ path: '/login', query: { redirect: to.fullPath } })
     }
   }
 
-  // If route requires admin, ensure the current user is an admin
   if (adminRequired) {
-    const auth = useAuthStore()
-    // If we have a token but no user loaded, try to fetch the user profile first
-    if (loggedIn && !auth.user) {
-      try {
-        await auth.fetchUser()
-      } catch {
-        // ignore - fetchUser will handle logout on 401
-      }
-      // Re-check token after fetchUser because it may have triggered logout and cleared the token
-      loggedIn = authStorage.getToken()
+    if (!auth.user) {
+      try { await auth.fetchUser() } catch { /* fetchUser handles 401 */ }
     }
-
-    // If user is not admin, block access
     if (!auth.isAdmin) {
-      // If not authenticated, redirect to login; otherwise redirect to profile/home
-      if (!loggedIn) {
-        return next({ path: '/login', query: { redirect: to.fullPath } })
-      }
-      return next({ path: '/profile' })
+      return next(auth.token ? '/profile' : { path: '/login', query: { redirect: to.fullPath } })
     }
   }
 
-  // Proceed with navigation
   return next()
 })
 

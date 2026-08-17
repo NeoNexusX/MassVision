@@ -138,7 +138,10 @@ export function useResultMeta(runId: Ref<string>) {
     }
   }
 
+  let requestId = 0
+
   async function fetchMeta(id: string) {
+    const currentRequest = ++requestId
     loading.value = true
     try {
       const state = history.state as ResultDetailState | null
@@ -153,10 +156,14 @@ export function useResultMeta(runId: Ref<string>) {
 
       // history.state 缺失时（直刷/书签进入）回退到 API 查询
       await fetchProcessMetaFromApi(id)
+
+      // 过期请求丢掉结果（快速切换 runId 时避免旧数据覆盖新数据）
+      if (currentRequest !== requestId) return
     } catch (e) {
+      if (currentRequest !== requestId) return
       console.error('[useResultMeta] fetch failed:', e)
     } finally {
-      loading.value = false
+      if (currentRequest === requestId) loading.value = false
     }
   }
 

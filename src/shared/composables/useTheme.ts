@@ -14,13 +14,15 @@ type Theme = 'light' | 'dark'
 
 const theme = ref<Theme>('light')
 let initialized = false
+/** Reactively track system preference changes (listener reference for cleanup). */
+let systemListener: ((e: MediaQueryListEvent) => void) | null = null
 
 function apply(t: Theme) {
   document.documentElement.setAttribute('data-theme', t)
 }
 
 function systemPrefersDark(): boolean {
-  return !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
+  return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
 }
 
 function readSaved(): Theme | null {
@@ -60,13 +62,14 @@ export function initTheme() {
   apply(initial)
 
   // 用户尚未手动保存偏好时，跟随系统主题变化自动切换
-  window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', (e) => {
+  systemListener = (e: MediaQueryListEvent) => {
     if (!readSaved()) {
       const next: Theme = e.matches ? 'dark' : 'light'
       theme.value = next
       apply(next)
     }
-  })
+  }
+  window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', systemListener)
 }
 
 export function useTheme() {

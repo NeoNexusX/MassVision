@@ -21,6 +21,7 @@ import {
 } from '@/features/workspace/results/composables/useZarrIonImage'
 import {
   parseAnnotationCsv,
+  buildAnnotationExportCsv,
   normalizeResultPolarity,
   runMatchPipeline,
   sortMatchedRows,
@@ -367,7 +368,7 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
       searchQuery.value = v.trim().toLowerCase()
     }, 200)
   })
-  const filter = ref<AnnotationFilter>('all')
+  const filter = ref<AnnotationFilter>('matched')
   const sortKey = ref<AnnotationSortKey>('massError')
   const sortDir = ref<AnnotationSortDir>('asc')
 
@@ -726,6 +727,36 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     }
   }
 
+  /**
+   * Download the currently matched rows as a CSV (name + exp. m/z + matched
+   * m/z + mass difference + intensity). Rows follow the current sort order;
+   * search text and the matched/unmatched filter chips do not narrow the
+   * export - everything that matched goes out.
+   */
+  function exportMatchedCsv(): void {
+    const rows = sortMatchedRows(
+      matchedRows.value.filter((r) => r.matchStatus === 'matched'),
+      sortKey.value,
+      sortDir.value,
+    )
+    if (!rows.length) {
+      showToast('No matched annotations to export.', 'info')
+      return
+    }
+    const csv = '﻿' + buildAnnotationExportCsv(rows, tolMode.value)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const base = (fileName.value ?? 'annotations').replace(/\.csv$/i, '')
+    link.href = url
+    link.download = `${base}_matched_mz.csv`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    showToast(`Exported ${rows.length} matched annotations.`, 'success')
+  }
+
   return {
     // data
     fileName,
@@ -749,5 +780,6 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     clear,
     selectRow,
     toggleSort,
+    exportMatchedCsv,
   }
 }

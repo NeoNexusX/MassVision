@@ -73,15 +73,6 @@ export interface DownloadRawResponse {
   files: DownloadRawEntry[]
 }
 
-// GET /files/{file_id}/images
-// Returns { urls: Record<string, string>, storage_mode: string }
-// - storage_mode "continuous" -> urls contains "umap_image.jpg"
-// - storage_mode "processed"   -> urls contains "tic_image.png"
-export interface FileImagesResponse {
-  urls: Record<string, string>
-  storage_mode: string
-}
-
 // GET /stats/processing - Processing statistics for current user
 export interface ProcessingStats {
   processing: number

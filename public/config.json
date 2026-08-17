@@ -1,6 +1,6 @@
 {
   "appName": "SpatialXomics",
-  "version": "0.5.3",
+  "version": "0.6.1",
   "hero": {
     "taglines": ["OPEN ↗", "FAST ▶︎▶︎", "UNIFIED ≡", "INTELLIGENT ✧"],
     "gallery": [
@@ -34,11 +34,21 @@
   },
 
   "resultFeatures": {
-    "compare": false,
-    "annotation": false
+    "compare": true,
+    "annotation": true
+  },
+
+  "zarr": {
+    "spectraChunkCacheSize": 100,
+    "spectraConcurrency": 16
   },
 
   "timeline": [
+    {
+      "date": "August 16",
+      "version": "0.6.1",
+      "features": ["UMAP and KMeans clustering overlays with PNG export", "Annotation CSV import with m/z matching and PubChem lookup", "Region comparison with statistical analysis and category filtering"]
+    },
     {
       "date": "July 19",
       "version": "0.5.3",

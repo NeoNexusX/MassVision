@@ -10,6 +10,7 @@ export function useUserQuota() {
   // State
   const quotaData = ref<UserQuota | null>(null)
   const loading = ref(false)
+  const error = ref<string | null>(null)
 
   // Computed
   const quota = computed(() => {
@@ -49,14 +50,17 @@ export function useUserQuota() {
   // Methods
   async function fetchQuota() {
     loading.value = true
+    error.value = null
     try {
       quotaData.value = await getUserQuota()
-    } catch {
-      /* ignore */
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      console.warn('[useUserQuota] fetch failed:', msg)
+      error.value = msg
     } finally {
       loading.value = false
     }
   }
 
-  return { quotaData, quota, loading, fetchQuota }
+  return { quotaData, quota, loading, error, fetchQuota }
 }

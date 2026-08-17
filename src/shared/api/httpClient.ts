@@ -56,7 +56,26 @@ export function formatErrorMessage(detail: unknown): string {
   return String(detail) || 'Response Failed'
 }
 
+/**
+ * Global 401 handler: any authenticated endpoint that rejects the token means
+ * the session is dead. Clear the stored credentials so the request
+ * interceptor stops attaching the stale token, and bounce to /login once
+ * (guarded by a module flag to avoid a redirect storm when several requests
+ * fail together). Skipped when a skipAuthRedirect marker is set on the config
+ * (e.g. logout itself, or a page that handles 401s on its own).
+ */
+function handleUnauthorized(error: AxiosError<ErrorResponse>): void {
+  if ((error.config as any)?.skipAuthRedirect) return
+  if (error.response?.status !== 401) return
+  authStorage.clearAuthData()
+  if (typeof window === 'undefined') return
+  const path = window.location.pathname
+  if (path === '/login' || path === '/register' || path === '/forgotpassword') return
+  window.location.assign(`/login?redirect=${encodeURIComponent(path + window.location.search)}`)
+}
+
 const error_catch = (error: AxiosError<ErrorResponse>) => {
+  handleUnauthorized(error)
   if (error.response?.data) {
     const raw = (error.response.data as any) || {}
 
