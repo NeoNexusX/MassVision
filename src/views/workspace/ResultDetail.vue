@@ -304,7 +304,7 @@ const spectrumStats = computed(() => ({
 
 const displayInfo = computed(() => ({
   ...imageInfo.value,
-  polarity: polarity.value || imageInfo.value.polarity,
+  polarity: polarity.value,
   analyzer: analyzer.value,
   ionisationSource: ionSource.value,
   pixelSize: pixelSize.value,

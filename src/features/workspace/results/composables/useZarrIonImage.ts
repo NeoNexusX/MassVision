@@ -44,6 +44,12 @@ export const rowAxisRef = shallowRef<'pixel' | 'ion' | null>(null)
 /** Metadata from /metadata/.zattrs */
 export const metadataAttrsRef = shallowRef<MetadataAttrs | null>(null)
 
+/** Result polarity (e.g. 'positive'/'negative'). Populated from the zarr
+ *  metadata attrs, with an API fallback applied by {@link ../useResultMeta}.
+ *  Shared so consumers (the annotation panel) can read it directly like
+ *  {@link mzAxisRef} instead of threading it through props. */
+export const polarityRef = ref('')
+
 // ---- Mean spectrum state (continuous mode) ----
 
 export const meanChartData = shallowRef<[number, number][]>([])
@@ -117,6 +123,7 @@ function resetModuleState(): void {
   dataModeRef.value = null
   rowAxisRef.value = null
   metadataAttrsRef.value = null
+  polarityRef.value = ''
 
   meanChartData.value = []
   meanSpectrumRef.value = null
