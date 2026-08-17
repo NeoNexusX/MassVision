@@ -85,7 +85,7 @@ export function useDisplayRange(
   const imageInfo = computed(() => {
     const matrix = ionMatrix.value
     if (!matrix || !matrix.length) {
-      return { pixels: '--', nonZero: '--', totalIon: '--', polarity: '' }
+      return { pixels: '--', nonZero: '--', totalIon: '--' }
   }
   const cols = ionCols.value
   const rows = ionRows.value
@@ -100,7 +100,6 @@ export function useDisplayRange(
     pixels: `${cols} × ${rows}`,
     nonZero: ((nonZero / (rows * cols)) * 100).toFixed(1) + '%',
     totalIon: total.toExponential(2),
-    polarity: '',
   }
   })
 
