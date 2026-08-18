@@ -341,10 +341,16 @@ test.describe('My Datasets', () => {
     await expect(page.getByText('Analyzer')).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 10_000 })
 
-    // 清理：回 Workspace 删除刚创建的结果
+    // 清理：回 Workspace 删除刚创建的 raw-convert 结果。
+    // 不能删"第一行"——Workspace 里可能同时有 Peak Alignment 等其它任务，
+    // 第一行未必是本次创建的。按 Methods 列文本 "Direct conversion" 定位那一行。
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-    await page.locator('table tbody tr').first().getByRole('button', { name: 'Delete' }).click()
+    const rawConvertRow = page.locator('table tbody tr')
+      .filter({ hasText: 'Direct conversion' })
+      .first()
+    await expect(rawConvertRow).toBeVisible({ timeout: 10_000 })
+    await rawConvertRow.getByRole('button', { name: 'Delete' }).click()
     await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
     await expect(page.locator('.toast')).toContainText('Result deleted', { timeout: 10_000 })
   })
