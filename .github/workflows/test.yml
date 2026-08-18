@@ -16,9 +16,9 @@ name: Test
 
 on:
   push:
-    branches: [feature/update-UI_fix-bug]
+    branches: [test]
   pull_request:
-    branches: [feature/update-UI_fix-bug]
+    branches: [test]
 
 jobs:
   # ---- Job 1: 静态检查 + 单元测试 ----
