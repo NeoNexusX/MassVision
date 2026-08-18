@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios'
 import { ENV } from '@/shared/config'
 import { authStorage } from '@/shared/auth/authStorage'
+import router from '@/router'
 
 // Top-level Response body
 interface ErrorResponse {
@@ -71,7 +72,13 @@ function handleUnauthorized(error: AxiosError<ErrorResponse>): void {
   if (typeof window === 'undefined') return
   const path = window.location.pathname
   if (path === '/login' || path === '/register' || path === '/forgotpassword') return
-  window.location.assign(`/login?redirect=${encodeURIComponent(path + window.location.search)}`)
+  // 必须 SPA 内导航：httpClient 由懒加载 chunk 引入，401 时 router 已就绪。
+  // 若用 window.location.assign 硬跳转会整页刷新，authStore 会重新读取
+  // localStorage——而此时 token 尚未被 authStore.logout() 清除（router.push 不
+  // 触发 storage 事件，本标签页拿不到跨标签同步），store 会带回已失效的 token，
+  // 已登录用户跳 /login 的守卫再把页面踢回受保护页，造成 /login ↔ 受保护页死循环
+  // （见 e2e/responsive.spec.ts 的历史回归）。
+  router.push({ path: '/login', query: { redirect: path + window.location.search } })
 }
 
 const error_catch = (error: AxiosError<ErrorResponse>) => {
