@@ -281,9 +281,10 @@ test.describe('My Datasets', () => {
     await completedRow.getByRole('button', { name: 'View' }).click()
     await expect(page).toHaveURL(/\/workspace\/results/)
 
-    // TIC 图（processed 模式绘图标题）
+    // TIC 图（processed 模式绘图区）。实际标题是 "Image View"（见 IonImageSection.vue imageTitle），
+    // 不是 "TIC Image"。引导文案在图像加载完成前就在 DOM 里，所以先等占位文案消失再断言标题。
     await expect(page.getByText('Computing TIC image, please wait a moment...')).not.toBeVisible({ timeout: 30_000 })
-    await expect(page.locator('h3:has-text("TIC Image")')).toBeVisible()
+    await expect(page.locator('h3:has-text("Image View")')).toBeVisible()
 
     // 点击前：尚未选中像素，显示引导文案
     await expect(page.getByText('Click a pixel on the TIC image to view its spectrum')).toBeVisible()
