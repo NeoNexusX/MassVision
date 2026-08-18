@@ -118,23 +118,36 @@ test.describe('Result Detail', () => {
 // Cleanup
 // ============================================================
 // 删除 new-analysis.spec.ts 创建的那个任务（见文件头的跨文件依赖说明）。
-// 不检查这一行是不是本次测试创建的，只按"最新一行"删，单独运行本文件时有误删真实数据的风险。
+// 目标是"最新一条 Completed 记录"——工作区可能还有别人/并发留下的 Running 任务，
+// 所以先等第一行跑完，再定位第一条 Completed 行删除，而不是无脑删第一行。
 
 test.describe('Cleanup', () => {
-  test('delete completed result', async ({ page }) => {
+  test('delete completed result', async ({ page, browserName }) => {
+    // 与 new-analysis submit 对应：任务只在 chromium 建，这里也只在 chromium 删
+    test.skip(browserName !== 'chromium', '任务只在 chromium 创建，清理也只在 chromium')
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
-    await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
-      'Loading...',
-      { timeout: 10_000 },
-    )
+
+    // 表格里可能有别人/并发留下的 Running 任务，第一行未必是本次创建的 Completed 结果。
+    // 先轮询等第一行跑完（Running 消失），再删第一条 Completed 记录。
+    const deadline = Date.now() + 120_000
+    while (Date.now() < deadline) {
+      await page.reload()
+      await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+      const firstRow = page.locator('table tbody tr').first()
+      await expect(firstRow.locator('td').first()).not.toHaveText('Loading...', { timeout: 15_000 })
+      if ((await firstRow.getByText('Running').count()) === 0) break
+      await page.waitForTimeout(10_000)
+    }
 
     const openModal = page.locator('dialog.modal-open')
     if (await openModal.isVisible().catch(() => false)) {
       await openModal.getByRole('button').first().click()
     }
 
-    await page.locator('table tbody tr').first().getByRole('button', { name: 'Delete' }).click()
+    const completedRow = page.locator('table tbody tr').filter({ hasText: 'Completed' }).first()
+    await expect(completedRow).toBeVisible({ timeout: 10_000 })
+    await completedRow.getByRole('button', { name: 'Delete' }).click()
 
     await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
     await expect(page.locator('.toast')).toContainText('Result deleted', { timeout: 10_000 })
