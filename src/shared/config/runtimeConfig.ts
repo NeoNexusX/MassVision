@@ -380,6 +380,23 @@ export interface ResultFeatureConfig {
   annotation?: boolean
 }
 
+/**
+ * 云端 zarr 读取调优参数（config.json 的 zarr 块），供按部署环境的网络/内存调整。
+ * 均可缺省，非法值在 loadConfig 里回退默认。
+ */
+export interface ZarrConfig {
+  /**
+   * spectra 组 chunk 缓存上限（LRU，按 chunk 个数计，1 chunk ≈ 1MB，100 ≈ 100MB）。
+   * 缓存的价值在跨请求复用：调整区域后重新比较时，重叠部分直接命中，不重新下载。
+   */
+  spectraChunkCacheSize?: number
+  /**
+   * spectra 组并发下载窗口（同时在下载/解码的 chunk 数上限）。
+   * 1MB chunk 下 ~8 个即可打满常见带宽，16 含裕量；≥1Gbps 链路可到 24-32。
+   */
+  spectraConcurrency?: number
+}
+
 /** config.json 的结构 */
 export interface AppConfig {
   /** 应用名称 */
@@ -400,6 +417,8 @@ export interface AppConfig {
   }
   /** Result 页面功能开关 */
   resultFeatures?: ResultFeatureConfig
+  /** 云端 zarr 读取调优参数；缺省时用内置默认（100MB 缓存 / 16 并发） */
+  zarr?: ZarrConfig
   /** 版本时间线；缺省或为空时不显示时间线区域 */
   timeline?: TimelineItem[]
   /** 分页 */
@@ -470,6 +489,13 @@ export async function loadConfig(): Promise<AppConfig> {
   _config.resultFeatures ??= { compare: true, annotation: true }
   _config.resultFeatures.compare ??= true
   _config.resultFeatures.annotation ??= true
+  _config.zarr ??= {}
+  if (!Number.isInteger(_config.zarr.spectraChunkCacheSize) || _config.zarr.spectraChunkCacheSize! < 1) {
+    _config.zarr.spectraChunkCacheSize = 100
+  }
+  if (!Number.isInteger(_config.zarr.spectraConcurrency) || _config.zarr.spectraConcurrency! < 1) {
+    _config.zarr.spectraConcurrency = 16
+  }
   _config.timeline ??= []
   _config.nav ??= { items: [], userMenu: [], guestLinks: [] }
   _config.fab ??= { main: { iconClosed: 'home', iconOpen: 'close' }, items: [] }

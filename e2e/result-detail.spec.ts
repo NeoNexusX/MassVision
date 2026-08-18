@@ -18,8 +18,8 @@ import { test, expect, type Page } from '@playwright/test'
 
 /** 用真实鼠标点击 ECharts 谱图 canvas */
 async function clickSpectrum(page: Page, xRatio = 0.6) {
-  // 从 Average Spectrum 标题找到谱图容器
-  const heading = page.getByRole('heading', { name: 'Average Spectrum' })
+  // 从 Spectrum View 标题找到谱图容器
+  const heading = page.getByRole('heading', { name: 'Spectrum View' })
   // 结构：h3 → div → div.header → div.root → .overflow-hidden
   const chart = heading.locator('..').locator('..').locator('..').locator('.overflow-hidden')
 
@@ -28,6 +28,16 @@ async function clickSpectrum(page: Page, xRatio = 0.6) {
 
   // grid.left=64，点中心偏右
   await page.mouse.click(box.x + box.width * xRatio, box.y + box.height * 0.4)
+}
+
+/**
+ * 定位 Workspace 表格里本次 new-analysis submit 创建的那条 Peak Alignment 任务。
+ * 必须按 Methods 列 "Peak Alignment" 过滤，不能取第一条 Completed——
+ * 残留的 raw-convert（processed）任务没有 selected-mz（仅 continuous 模式渲染），
+ * 取错行会让 ion-image/谱图交互断言全部超时。
+ */
+function peakAlignmentRow(page: Page) {
+  return page.locator('table tbody tr').filter({ hasText: 'Peak Alignment' }).first()
 }
 
 test.describe('Result Detail', () => {
@@ -44,7 +54,8 @@ test.describe('Result Detail', () => {
       { timeout: 10_000 },
     )
 
-    const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
+    // 定位本次 submit 创建的 Peak Alignment 任务（continuous 模式，有 selected-mz）
+    const completedRow = peakAlignmentRow(page)
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
 
     await completedRow.getByRole('button', { name: 'View' }).click()
@@ -54,12 +65,13 @@ test.describe('Result Detail', () => {
     await expect(page.locator('h1')).not.toBeEmpty()
     await expect(page.getByText('completed')).toBeVisible()
 
-    // ion image + spectrum 加载完成
-    await expect(page.getByText('Loading ion image...')).not.toBeVisible({ timeout: 30_000 })
-    await expect(page.getByText('Loading average spectrum...')).not.toBeVisible({ timeout: 30_000 })
+    // ion image + spectrum 加载完成。UI 文案是 "Loading ion image, please wait a moment..."，
+    // 用正则前缀匹配，同时兼容旧文案（"Loading ion image..."）。
+    await expect(page.getByText(/^Loading ion image/)).not.toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText(/^Loading average spectrum/)).not.toBeVisible({ timeout: 30_000 })
 
     // 平均谱图
-    await expect(page.getByRole('heading', { name: 'Average Spectrum' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Spectrum View' })).toBeVisible()
     await expect(page.getByText(/peaks/)).toBeVisible()
 
     // 右侧 ColorBar 元数据（zarr 加载可能较慢）
@@ -68,7 +80,10 @@ test.describe('Result Detail', () => {
     await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 10_000 })
 
     // 用真实鼠标点击谱图两处，确认选中的真实 m/z 确实发生变化。
+    // selected-mz 只在 dataMode === 'continuous' 时渲染（zarr 加载完成前不存在），
+    // 所以先显式等它出现，再点击谱图。
     const selectedMz = page.getByTestId('selected-mz')
+    await expect(selectedMz).toBeVisible({ timeout: 30_000 })
     await page.waitForTimeout(1000)
     await clickSpectrum(page, 0.2)
     const firstSelectedMz = await selectedMz.innerText()
@@ -81,7 +96,7 @@ test.describe('Result Detail', () => {
     await expect(page.getByText(/Failed to (load|update) ion image/)).not.toBeVisible()
 
     // 确认点击后页面没崩：谱图仍在。
-    await expect(page.getByRole('heading', { name: 'Average Spectrum' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Spectrum View' })).toBeVisible()
   })
 
   test('switches colormap and keeps ion image stable', async ({ page }) => {
@@ -92,20 +107,22 @@ test.describe('Result Detail', () => {
       { timeout: 10_000 },
     )
 
-    const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
+    // 同上一个测试：锁定 Peak Alignment（continuous）任务
+    const completedRow = peakAlignmentRow(page)
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
     await completedRow.getByRole('button', { name: 'View' }).click()
     await expect(page).toHaveURL(/\/workspace\/results/)
 
-    await expect(page.getByText('Loading ion image...')).not.toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText(/^Loading ion image/)).not.toBeVisible({ timeout: 30_000 })
 
-    // 切换到 Viridis
+    // 切换到 Viridis（colormap-select 在 ion image 渲染后才存在）
     const colormapSelect = page.getByTestId('colormap-select')
+    await expect(colormapSelect).toBeVisible({ timeout: 30_000 })
     await colormapSelect.selectOption('viridis')
     await page.waitForTimeout(500)
 
     // ion image 没崩
-    await expect(page.getByText('Loading ion image...')).not.toBeVisible()
+    await expect(page.getByText(/^Loading ion image/)).not.toBeVisible()
   })
 })
 
@@ -113,23 +130,37 @@ test.describe('Result Detail', () => {
 // Cleanup
 // ============================================================
 // 删除 new-analysis.spec.ts 创建的那个任务（见文件头的跨文件依赖说明）。
-// 不检查这一行是不是本次测试创建的，只按"最新一行"删，单独运行本文件时有误删真实数据的风险。
+// 按 Methods 列 "Peak Alignment" 定位本次创建的任务——不能用"第一条 Completed"，
+// 工作区里可能残留 raw-convert（processed，无 selected-mz）等其它任务。
 
 test.describe('Cleanup', () => {
-  test('delete completed result', async ({ page }) => {
+  test('delete completed result', async ({ page, browserName }) => {
+    // 与 new-analysis submit 对应：任务只在 chromium 建，这里也只在 chromium 删
+    test.skip(browserName !== 'chromium', '任务只在 chromium 创建，清理也只在 chromium')
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
-    await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
-      'Loading...',
-      { timeout: 10_000 },
-    )
+
+    // 等本次 Peak Alignment 任务跑完（那行 Running 消失），最多 2 分钟。
+    // 按 Methods 列定位，不看第一行——第一行可能是别人/并发留下的任务。
+    const row = peakAlignmentRow(page)
+    const deadline = Date.now() + 120_000
+    while (Date.now() < deadline) {
+      await page.reload()
+      await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+      await expect(page.locator('table tbody tr').first().locator('td').first())
+        .not.toHaveText('Loading...', { timeout: 15_000 })
+      if ((await row.getByText('Running').count()) === 0) break
+      await page.waitForTimeout(10_000)
+    }
 
     const openModal = page.locator('dialog.modal-open')
     if (await openModal.isVisible().catch(() => false)) {
       await openModal.getByRole('button').first().click()
     }
 
-    await page.locator('table tbody tr').first().getByRole('button', { name: 'Delete' }).click()
+    // 删除本次创建的 Peak Alignment 任务（Completed）
+    await expect(row).toBeVisible({ timeout: 10_000 })
+    await row.getByRole('button', { name: 'Delete' }).click()
 
     await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
     await expect(page.locator('.toast')).toContainText('Result deleted', { timeout: 10_000 })

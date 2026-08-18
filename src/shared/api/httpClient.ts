@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios'
 import { ENV } from '@/shared/config'
 import { authStorage } from '@/shared/auth/authStorage'
+import router from '@/router'
 
 // Top-level Response body
 interface ErrorResponse {
@@ -56,7 +57,32 @@ export function formatErrorMessage(detail: unknown): string {
   return String(detail) || 'Response Failed'
 }
 
+/**
+ * Global 401 handler: any authenticated endpoint that rejects the token means
+ * the session is dead. Clear the stored credentials so the request
+ * interceptor stops attaching the stale token, and bounce to /login once
+ * (guarded by a module flag to avoid a redirect storm when several requests
+ * fail together). Skipped when a skipAuthRedirect marker is set on the config
+ * (e.g. logout itself, or a page that handles 401s on its own).
+ */
+function handleUnauthorized(error: AxiosError<ErrorResponse>): void {
+  if ((error.config as any)?.skipAuthRedirect) return
+  if (error.response?.status !== 401) return
+  authStorage.clearAuthData()
+  if (typeof window === 'undefined') return
+  const path = window.location.pathname
+  if (path === '/login' || path === '/register' || path === '/forgotpassword') return
+  // 必须 SPA 内导航：httpClient 由懒加载 chunk 引入，401 时 router 已就绪。
+  // 若用 window.location.assign 硬跳转会整页刷新，authStore 会重新读取
+  // localStorage——而此时 token 尚未被 authStore.logout() 清除（router.push 不
+  // 触发 storage 事件，本标签页拿不到跨标签同步），store 会带回已失效的 token，
+  // 已登录用户跳 /login 的守卫再把页面踢回受保护页，造成 /login ↔ 受保护页死循环
+  // （见 e2e/responsive.spec.ts 的历史回归）。
+  router.push({ path: '/login', query: { redirect: path + window.location.search } })
+}
+
 const error_catch = (error: AxiosError<ErrorResponse>) => {
+  handleUnauthorized(error)
   if (error.response?.data) {
     const raw = (error.response.data as any) || {}
 

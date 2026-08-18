@@ -98,7 +98,11 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:modelValue', 'change', 'focus'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string): void
+  (e: 'change', value: string): void
+  (e: 'focus'): void
+}>()
 
 const normalizedOptions = computed(() => {
   if (typeof props.options === 'string') {

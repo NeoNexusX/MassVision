@@ -70,22 +70,34 @@ test.describe('authenticated mobile shells', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('access_token', 'responsive-layout-token'))
-    await page.route('**/api/user', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          username: 'responsive-user',
-          identity: 'user',
-          email: 'responsive@example.com',
-          institution: '',
-          position: '',
-          research_field: '',
-          region: '',
-          orcid: '',
-          homepage: '',
-        }),
-      })
+    // 用假 token 假后端，因此必须兜住所有可能 401 的 /api 请求，而不只是 /user：
+    // 一旦漏拦，httpClient 的全局 401 处理会清掉 localStorage 里的 token 并跳
+    // /login，测试就变成在测「未登录守卫」而非响应式布局。
+    await page.route('**/api/**', async (route) => {
+      if (route.request().url().includes('/api/user')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            username: 'responsive-user',
+            identity: 'user',
+            email: 'responsive@example.com',
+            institution: '',
+            position: '',
+            research_field: '',
+            region: '',
+            orcid: '',
+            homepage: '',
+          }),
+        })
+      } else {
+        // 其余接口（列表、配额、统计等）一律返回空 JSON；页面有兜底渲染
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: '{}',
+        })
+      }
     })
   })
 

@@ -16,7 +16,7 @@
           <div class="flex gap-2 flex-wrap">
             <label v-for="m in methods" :key="m" class="cursor-pointer">
               <input type="checkbox" class="checkbox" :value="m" v-model="selectedMethods" />
-              <span class="ml-2">{{ m }}</span>
+              <span class="ml-2"><MzText :text="m" /></span>
             </label>
           </div>
         </label>
@@ -25,7 +25,7 @@
           <span class="label">Method Parameters</span>
           <div class="mt-2">
             <div v-for="m of selectedMethods" :key="m" class="mb-2">
-              <div class="text-sm font-medium">{{ m }}</div>
+              <div class="text-sm font-medium"><MzText :text="m" /></div>
               <input
                 class="input input-bordered w-full mt-1"
                 v-model="params[m]"
@@ -46,8 +46,20 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
+import MzText from '@/shared/components/MzText.vue'
 defineProps<{ open: boolean }>()
-const emit = defineEmits(['update:open', 'created'])
+const emit = defineEmits<{
+  (e: 'update:open', open: boolean): void
+  (e: 'created', payload: {
+    id: string
+    name: string
+    dataset: string
+    methods: string[]
+    status: string
+    created: string
+    params: Record<string, string>
+  }): void
+}>()
 
 // demo datasets & standardized methods - replace with real data/composables
 const datasets = ref([

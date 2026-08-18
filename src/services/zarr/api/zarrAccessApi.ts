@@ -10,21 +10,20 @@
  */
 
 import { auth_api } from '@/shared/api/httpClient'
-import type { ZarrAccessResponse, ZarrType } from '../types/zarr'
+import type { ZarrAccessResponse } from '../types/zarr'
 
 /**
  * Fetch the zarr OSS access credentials for a given run.
  * Note: do not console.log the raw response - the STS secret fields
  * (AccessKeySecret, SecurityToken) are sensitive.
+ *
+ * A run has exactly one zarr: algorithm results and clustering results
+ * (analysis/umap group) live in the same directory. The legacy
+ * `zarr_type=clustering` parameter was removed by the backend.
  */
-export async function getZarrAccess(
-  runId: string,
-  zarrType: ZarrType = 'algorithm',
-): Promise<ZarrAccessResponse> {
+export async function getZarrAccess(runId: string): Promise<ZarrAccessResponse> {
   if (!runId) throw new Error('[zarrAccessApi] runId is required')
-  const { data } = await auth_api.get<ZarrAccessResponse>(`/processes/${runId}/zarr`, {
-    params: { zarr_type: zarrType },
-  })
+  const { data } = await auth_api.get<ZarrAccessResponse>(`/processes/${runId}/zarr`)
   if (!data?.sts_token?.AccessKeyId) {
     throw new Error('[zarrAccessApi] invalid zarr access response: missing sts_token')
   }

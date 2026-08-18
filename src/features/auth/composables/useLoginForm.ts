@@ -37,12 +37,15 @@ export function useLoginForm() {
       const { access_token } = response.data
       if (!access_token) throw new Error('Invalid token received')
 
-      authStore.login(access_token)
+      // Await login(): authStore.login internally awaits fetchUser(), so the
+      // route guard on /mydatasets sees auth.user already populated instead
+      // of racing it with a second GET /user.
+      await authStore.login(access_token)
+      // login() resolved -> token survived the profile fetch (a 401 would have
+      // cleared it and bounced to /login via the http interceptor).
       sessionStorage.setItem('just_logged_in', '1')
       showToast('Login successful! Redirecting...', 'success')
-      setTimeout(() => {
-        router.push('/mydatasets').catch((err) => console.error('Router Push Error:', err))
-      }, 800)
+      router.push('/mydatasets').catch((err) => console.error('Router Push Error:', err))
     } catch (error: any) {
       console.error('Login Error:', error)
       showToast(extractBackendError(error), 'error')
