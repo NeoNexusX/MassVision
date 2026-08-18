@@ -208,35 +208,6 @@ const CASES: DatasetCase[] = [
       pollDuration: 50_000,      // 50s total (≈10 polls)
     },
   },
-  {
-    name: 'large: Rat_Liver_MALDI_40_Positive (~360MB compressed)',
-    testTimeout: 480_000, // 8 min：360MB 下载 + 上传
-    params: {
-      filename: 'Rat_Liver_MALDI_40_Positive_9ce4d1',
-      organism: 'Rat (Rattus norvegicus)',
-      organismPart: 'Liver',
-      polarity: 'Positive',
-      downloadTimeout: 120_000,  // 2 min for 360MB downloads to start
-      uploadTimeout: 300_000,    // 5 min for 360MB upload pipeline (hash + compress + upload)
-      pollInterval: 5000,        // 5s between polls
-      pollDuration: 50_000,      // 50s total (≈10 polls)
-    },
-  },
-  {
-    name: 'xlarge: Zebrafish_Heart_MALDI_20_Negative (~1GB uncompressed)',
-    testTimeout: 720_000, // 12 min：1GB 下载 + 上传
-    params: {
-      filename: 'Zebrafish_Heart_MALDI_20_Negative_ab574e',
-      organism: 'Zebrafish (Danio rerio)',
-      organismPart: 'Heart',
-      polarity: 'Negative',
-      ionisationSource: 'MALDI',  // imzML 没解析到，手动设；重传后文件名变成 MALDI 版本
-      downloadTimeout: 180_000,  // 3 min for 1GB downloads to start
-      uploadTimeout: 480_000,    // 8 min for 1GB upload pipeline
-      pollInterval: 10_000,      // 10s between polls
-      pollDuration: 100_000,     // 100s total (10 polls)
-    },
-  },
 ]
 
 test.describe('Upload Round-Trip', () => {

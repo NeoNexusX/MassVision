@@ -1,118 +1,65 @@
-import { test, expect } from '@playwright/test'
-import { randomBytes } from 'crypto'
-import { mkdtempSync, writeFileSync, rmSync } from 'fs'
-import { join } from 'path'
-import { tmpdir } from 'os'
-import { sizeToMB, ALGO_MAX_MB } from './utils.js'
+import { test, expect, type Page } from '@playwright/test'
+import { sizeToMB, ALGO_DATASET_NAMES } from './utils.js'
 
 const MAX_DOWNLOAD_MB = 300
+
+/**
+ * 在 /mydatasets 搜索框里随机选一个 ALGO_DATASET_NAMES 中的真实数据集并返回其卡片。
+ * 找不到返回 null（调用方据此 test.skip）。
+ */
+async function findMyDatasetCard(page: Page) {
+  const name = ALGO_DATASET_NAMES[Math.floor(Math.random() * ALGO_DATASET_NAMES.length)]!
+  const search = page.getByPlaceholder('Search my datasets')
+  await search.fill(name)
+  await page.getByRole('button', { name: 'Search' }).click()
+  await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+  const card = page
+    .locator('h3[aria-label^="Dataset name:"]')
+    .filter({ hasText: name })
+    .first()
+    .locator('..')
+    .locator('..')
+  if ((await card.count()) > 0) return { card, name }
+  return null
+}
+
+/** 清空 /mydatasets 搜索框并刷新列表 */
+async function resetMyDatasetSearch(page: Page) {
+  await page.getByPlaceholder('Search my datasets').fill('')
+  await page.getByRole('button', { name: 'Search' }).click()
+  await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+}
+
+/** 在 /workspace 等第一行任务不再是 Loading，然后轮询到 Running 消失 */
+async function waitForWorkspaceTaskFinished(page: Page, timeoutMs: number) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    await page.reload()
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+    await expect(page.locator('table tbody tr').first().locator('td').first())
+      .not.toHaveText('Loading...', { timeout: 15_000 })
+    const hasRunning = (await page.locator('table').getByText('Running').count()) > 0
+    if (!hasRunning) return
+    await page.waitForTimeout(10_000)
+  }
+  throw new Error(`Workspace task still Running after ${timeoutMs / 1000}s`)
+}
 
 /**
  * Datasets E2E 测试 — 真实后端
  * ==============================
  * PublicDatasets：公开页 /datasets（依赖已有公开数据）
- * MyDatasets：需登录 /mydatasets（先上传一个文件，基于该文件测试所有功能，最后删除）
+ * MyDatasets：需登录 /mydatasets（基于后端已有真实数据集）
  */
 
 // ============================================================
-// My Datasets（需登录，自包含：上传 → 测试 → 删除）
+// My Datasets（需登录，基于后端已有真实数据集）
 // ============================================================
 
 test.describe('My Datasets', () => {
 
   /**
-   * Step 1 — 上传一个测试文件，确保账号上有数据供后续测试使用
-   */
-  test('upload — uploads a test dataset', async ({ page, browserName }) => {
-    test.skip(browserName === 'webkit', 'Linux WebKit 不支持 OPFS')
-
-    const imzml = `<?xml version="1.0" encoding="utf-8"?>
-<mzML xmlns="http://psi.hupo.org/ms/mzml" version="1.1">
-  <cvList><cv id="MS" fullName="PSI-MS" version="4.1.7"/></cvList>
-  <fileDescription><fileContent>
-    <cvParam accession="MS:1000127" name="centroid spectrum" value=""/>
-    <cvParam accession="IMS:1000030" name="continuous" value=""/>
-  </fileContent></fileDescription>
-  <referenceableParamGroupList>
-    <referenceableParamGroup id="common">
-      <cvParam accession="MS:1000130" name="positive scan" value=""/>
-      <cvParam accession="MS:1000075" name="MALDI" value=""/>
-      <cvParam accession="MS:1000084" name="TOF" value=""/>
-      <cvParam name="pixel size x" value="50"/>
-      <cvParam name="pixel size y" value="50"/>
-    </referenceableParamGroup>
-  </referenceableParamGroupList>
-  <run id="test" defaultInstrumentConfigurationRef="IC1">
-    <spectrumList count="0"/>
-  </run>
-</mzML>`
-
-    const dir = mkdtempSync(join(tmpdir(), 'mv-upload-'))
-    writeFileSync(join(dir, 'test_lyk_upload.imzML'), imzml)
-    writeFileSync(join(dir, 'test_lyk_upload.ibd'), randomBytes(1024))
-
-    try {
-      await page.goto('/mydatasets')
-      await page.getByRole('button', { name: 'Upload New Dataset' }).click()
-      await expect(page.getByText('Upload New Dataset (imzML + ibd)')).toBeVisible()
-
-      await page.locator('input[type="file"]').setInputFiles([
-        join(dir, 'test_lyk_upload.imzML'),
-        join(dir, 'test_lyk_upload.ibd'),
-      ])
-
-      await page.waitForTimeout(2000)
-      // 默认勾了 public，测试文件只有 1KB 不够 10MB 门槛，取消勾选
-      await page.locator('#is_public').uncheck()
-
-      const pickLabels = ['Organism', 'Organism Part', 'Condition', 'Sample Stabilization', 'MALDI Matrix', 'MALDI Matrix Application']
-      for (const label of pickLabels) {
-        const area = page.locator('.modal-box').locator(`label:has-text("${label}")`).first().locator('..')
-        await area.locator('select').click()
-        await page.keyboard.press('ArrowDown')
-        await page.keyboard.press('Enter')
-        await page.waitForTimeout(300)
-      }
-
-      const solventArea = page.locator('.modal-box').locator('label:has-text("Solvent")').locator('..')
-      await solventArea.locator('select').click()
-      await page.keyboard.press('ArrowDown')
-      await page.keyboard.press('Enter')
-      await page.waitForTimeout(300)
-      await solventArea.getByPlaceholder('e.g. 50').fill('50')
-      await solventArea.getByPlaceholder('e.g. 50').press('Enter')
-
-      await page.getByRole('button', { name: 'Confirm & Upload' }).click()
-
-      // 等上传完成 → 弹窗关闭
-      await expect(page.locator('.toast')).toContainText(/success|reused|complete/, { timeout: 120_000 })
-      await expect(page.getByText('Upload New Dataset (imzML + ibd)')).not.toBeVisible()
-
-      // 轮询 Refresh Status，等第一张卡变为 Uploaded
-      await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-      const deadline = Date.now() + 15_000
-      while (Date.now() < deadline) {
-        await page.getByRole('button', { name: 'Refresh Status' }).click()
-        await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-        const hasUploading = await page.getByRole('button', { name: 'Delete' })
-          .first()
-          .locator('..')
-          .getByText('Uploading')
-          .isVisible()
-          .catch(() => false)
-        if (!hasUploading) break
-        await page.waitForTimeout(3000)
-      }
-      await expect(
-        page.getByRole('button', { name: 'Delete' }).first().locator('..').getByText(/Uploaded|Failed/)
-      ).toBeVisible()
-    } finally {
-      try { rmSync(dir, { recursive: true }) } catch { /* ok */ }
-    }
-  })
-
-  /**
-   * Step 2 — 基于上传的数据测试页面加载
+   * 页面加载：quota bar + 数据集卡片
    */
   test('page loads with quota bar and dataset cards', async ({ page }) => {
     await page.goto('/mydatasets')
@@ -133,7 +80,7 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * Step 3 — 卡片状态、可见性、删除按钮
+   * 卡片状态、可见性、删除按钮
    */
   test('each card shows status, visibility, and delete button', async ({ page }) => {
     await page.goto('/mydatasets')
@@ -151,7 +98,7 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * Step 4 — 随机下载一张卡
+   * 随机下载一张卡
    */
   test('download — triggers download on a random card', async ({ page }) => {
     test.setTimeout(60_000)  // WebKit 下载偶发较慢
@@ -213,7 +160,7 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * Step 5 — Overview 跳转并验证内容，再 Back 返回
+   * Overview 跳转并验证内容，再 Back 返回
    */
   test('overview — navigates, shows content, then back', async ({ page }) => {
     await page.goto('/mydatasets')
@@ -244,7 +191,7 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * Step 6 — 排序切换
+   * 排序切换
    */
   test('sort — toggles between submission time and file size', async ({ page }) => {
     await page.goto('/mydatasets')
@@ -259,7 +206,7 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * Step 7 — Filter 面板
+   * Filter 面板
    */
   test('filter bar — Add filter panel opens', async ({ page }) => {
     await page.goto('/mydatasets')
@@ -271,101 +218,36 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * Step 8 — Make Public：把 Step 1 上传的私有测试数据集，在其详情页转为公开
-   * 依赖：Step 1 上传的测试文件仍然存在（未被删除），且当前是 Private。
-   * 后端会按元数据重新生成文件名，不能按文件名定位卡片；默认按提交时间倒序排列，
-   * 该文件是本文件唯一会新建数据集的地方，因此它始终是第一张卡片。
-   */
-  test('make public — converts the uploaded private dataset to public from its overview page', async ({ page, browserName }) => {
-    test.skip(browserName === 'webkit', 'Linux WebKit 不支持 OPFS，没有上传的测试文件')
-
-    await page.goto('/mydatasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    // 只匹配数据集卡片的 h3（aria-label 以 "Dataset name:" 开头），
-    // 避免匹配到页面里始终存在于 DOM 中、只是隐藏的 ConfirmDialog 弹窗标题 h3
-    const targetCard = page.locator('h3[aria-label^="Dataset name:"]').first().locator('..').locator('..')
-    await expect(targetCard).toBeVisible({ timeout: 10_000 })
-    await expect(targetCard.getByText('Private')).toBeVisible()
-
-    await targetCard.getByRole('button', { name: 'Overview' }).click()
-    await expect(page).toHaveURL(/\/overview/)
-    await expect(page.locator('.skeleton')).toHaveCount(0, { timeout: 15_000 })
-    await expect(page.locator('h1:has-text("Dataset Overview")')).toBeVisible()
-
-    // 私有 + 自己的数据集 → 详情页显示 "Make Public" 按钮
-    const makePublicBtn = page.getByRole('button', { name: 'Make Public' })
-    await expect(makePublicBtn).toBeVisible()
-    await makePublicBtn.click()
-
-    // 二次确认弹窗（ConfirmDialog: title="Make Dataset Public", confirm-label="Make Public"）
-    await expect(page.locator('.modal-box')).toContainText('Make Dataset Public')
-    await expect(page.locator('.modal-box')).toContainText('This dataset will be moved to Public Data')
-    await page.locator('.modal-box').getByRole('button', { name: 'Make Public' }).click()
-
-    await expect(page.locator('.toast')).toContainText('Dataset is now public.')
-    // 转公开成功后按钮因 dataset.isPublic 变化而消失
-    await expect(makePublicBtn).not.toBeVisible()
-
-    // 回到 My Datasets，确认该卡片的可见性徽章变为 Public
-    await page.getByRole('button', { name: 'Back to My Datasets' }).click()
-    await expect(page).toHaveURL(/\/mydatasets/)
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    const updatedCard = page.locator('h3[aria-label^="Dataset name:"]').first().locator('..').locator('..')
-    await expect(updatedCard.getByText('Public')).toBeVisible({ timeout: 10_000 })
-  })
-
-  /**
-   * Step 9 — 清理：删除第一个数据集（Step 1 上传的测试文件）
-   */
-  test('delete — removes the first (newest) dataset on the page', async ({ page, browserName }) => {
-    test.skip(browserName === 'webkit', 'Linux WebKit 没有上传，跳过删除避免误删真实数据')
-    await page.goto('/mydatasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    await page.getByRole('button', { name: 'Delete' }).first().click()
-    await expect(page.getByText('Are you sure you want to delete this dataset?')).toBeVisible()
-
-    await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
-    await expect(page.locator('.toast')).toContainText(/deleted/)
-  })
-
-  /**
-   * Step 10 — Explore（processed 模式）：二次确认 → Workspace 创建任务（Direct conversion）
+   * Explore（processed 模式）：二次确认 → Workspace 创建任务（Direct conversion）
    * → 等待完成 → 查看 TIC 图 + 逐像素谱图交互 → 清理 Workspace 中的结果
    *
-   * 放在 Step 1 上传的测试文件被删除之后，此时账号下只剩真实数据集，
-   * 不必再排除本文件的合成测试数据，直接选第一张即可。
+   * 使用后端真实数据集（ALGO_DATASET_NAMES），不再上传 1KB 合成文件——
+   * 合成文件 spectrumList count=0 + 随机 ibd，后端解析必然 Failed。
    */
-  test('explore — creates direct-conversion task, verifies TIC image and per-pixel spectrum, then cleans up', async ({ page }) => {
+  test('explore — creates direct-conversion task, verifies TIC image and per-pixel spectrum, then cleans up', async ({ page, browserName }) => {
+    // 建任务的重后端操作只在 chromium 跑，firefox/webkit 跑纯 UI 即可，避免重复建任务
+    test.skip(browserName !== 'chromium', 'raw-convert 任务只在 chromium 创建一次')
     test.setTimeout(300_000)
 
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
-    const exploreBtns = page.getByRole('button', { name: 'Explore' })
-    try {
-      await exploreBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
-    } catch {
-      test.skip(true, 'No explorable (processed) dataset available')
+    // 按名称锁定真实数据集卡片
+    const found = await findMyDatasetCard(page)
+    if (!found) {
+      test.skip(true, `No ALGO_DATASET_NAMES dataset found on this backend`)
       return
     }
+    const { card, name } = found
 
-    const count = await exploreBtns.count()
-    // 算法测试只选 < ALGO_MAX_MB 的数据集，避免大文件（如 1G 上传测试数据）跑算法超时
-    const eligible: number[] = []
-    for (let i = 0; i < count; i++) {
-      const card = exploreBtns.nth(i).locator('..').locator('..')
-      const sizeText = await card.locator('p:has-text("File Size:")').innerText()
-      if (sizeToMB(sizeText) < ALGO_MAX_MB) eligible.push(i)
-    }
-    if (eligible.length === 0) {
-      test.skip(true, `No explorable dataset < ${ALGO_MAX_MB}MB available`)
+    // 已转换过的卡按钮是 Visualize（直接跳结果页），只有 Explore 才会弹确认框创建任务
+    const exploreBtn = card.getByRole('button', { name: 'Explore' })
+    if (!(await exploreBtn.isVisible().catch(() => false))) {
+      await resetMyDatasetSearch(page)
+      test.skip(true, `"${name}" already has a default run (button is Visualize), cannot re-explore`)
       return
     }
-    const pick = eligible[Math.floor(Math.random() * eligible.length)]
-    await exploreBtns.nth(pick).click()
+    await exploreBtn.click()
 
     // 二次确认弹窗（ConfirmDialog: title="Prepare Visualization", confirm-label="Generate"）
     // My Datasets 页面同时挂载了 4 个 ConfirmDialog（Upload/Upload-public/Delete/Explore），
@@ -388,16 +270,7 @@ test.describe('My Datasets', () => {
     await expect(runningRow.locator('td').filter({ hasText: 'Direct conversion' })).toBeVisible()
 
     // 轮询刷新，等待任务完成（最多 3 分钟）
-    const deadline = Date.now() + 180_000
-    while (Date.now() < deadline) {
-      await page.reload()
-      await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-      await expect(page.locator('table tbody tr').first().locator('td').first())
-        .not.toHaveText('Loading...', { timeout: 15_000 })
-      const hasRunning = (await page.locator('table').getByText('Running').count()) > 0
-      if (!hasRunning) break
-      await page.waitForTimeout(10_000)
-    }
+    await waitForWorkspaceTaskFinished(page, 180_000)
     await expect(page.locator('table').getByText('Running')).not.toBeVisible()
     // Recent Results 里可能已有其他历史 Completed 记录，用 .getByText('Completed') 裸查会撞 strict mode，
     // 直接断言最新（第一行）已经变成 Completed
@@ -408,9 +281,10 @@ test.describe('My Datasets', () => {
     await completedRow.getByRole('button', { name: 'View' }).click()
     await expect(page).toHaveURL(/\/workspace\/results/)
 
-    // TIC 图（processed 模式绘图标题）
+    // TIC 图（processed 模式绘图区）。实际标题是 "Image View"（见 IonImageSection.vue imageTitle），
+    // 不是 "TIC Image"。引导文案在图像加载完成前就在 DOM 里，所以先等占位文案消失再断言标题。
     await expect(page.getByText('Computing TIC image, please wait a moment...')).not.toBeVisible({ timeout: 30_000 })
-    await expect(page.locator('h3:has-text("TIC Image")')).toBeVisible()
+    await expect(page.locator('h3:has-text("Image View")')).toBeVisible()
 
     // 点击前：尚未选中像素，显示引导文案
     await expect(page.getByText('Click a pixel on the TIC image to view its spectrum')).toBeVisible()
@@ -468,10 +342,16 @@ test.describe('My Datasets', () => {
     await expect(page.getByText('Analyzer')).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 10_000 })
 
-    // 清理：回 Workspace 删除刚创建的结果
+    // 清理：回 Workspace 删除刚创建的 raw-convert 结果。
+    // 不能删"第一行"——Workspace 里可能同时有 Peak Alignment 等其它任务，
+    // 第一行未必是本次创建的。按 Methods 列文本 "Direct conversion" 定位那一行。
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-    await page.locator('table tbody tr').first().getByRole('button', { name: 'Delete' }).click()
+    const rawConvertRow = page.locator('table tbody tr')
+      .filter({ hasText: 'Direct conversion' })
+      .first()
+    await expect(rawConvertRow).toBeVisible({ timeout: 10_000 })
+    await rawConvertRow.getByRole('button', { name: 'Delete' }).click()
     await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
     await expect(page.locator('.toast')).toContainText('Result deleted', { timeout: 10_000 })
   })

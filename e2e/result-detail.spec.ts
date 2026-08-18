@@ -30,6 +30,16 @@ async function clickSpectrum(page: Page, xRatio = 0.6) {
   await page.mouse.click(box.x + box.width * xRatio, box.y + box.height * 0.4)
 }
 
+/**
+ * 定位 Workspace 表格里本次 new-analysis submit 创建的那条 Peak Alignment 任务。
+ * 必须按 Methods 列 "Peak Alignment" 过滤，不能取第一条 Completed——
+ * 残留的 raw-convert（processed）任务没有 selected-mz（仅 continuous 模式渲染），
+ * 取错行会让 ion-image/谱图交互断言全部超时。
+ */
+function peakAlignmentRow(page: Page) {
+  return page.locator('table tbody tr').filter({ hasText: 'Peak Alignment' }).first()
+}
+
 test.describe('Result Detail', () => {
   test('shows stale state when accessed directly', async ({ page }) => {
     await page.goto('/workspace/results')
@@ -44,7 +54,8 @@ test.describe('Result Detail', () => {
       { timeout: 10_000 },
     )
 
-    const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
+    // 定位本次 submit 创建的 Peak Alignment 任务（continuous 模式，有 selected-mz）
+    const completedRow = peakAlignmentRow(page)
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
 
     await completedRow.getByRole('button', { name: 'View' }).click()
@@ -96,7 +107,8 @@ test.describe('Result Detail', () => {
       { timeout: 10_000 },
     )
 
-    const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
+    // 同上一个测试：锁定 Peak Alignment（continuous）任务
+    const completedRow = peakAlignmentRow(page)
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
     await completedRow.getByRole('button', { name: 'View' }).click()
     await expect(page).toHaveURL(/\/workspace\/results/)
@@ -118,23 +130,37 @@ test.describe('Result Detail', () => {
 // Cleanup
 // ============================================================
 // 删除 new-analysis.spec.ts 创建的那个任务（见文件头的跨文件依赖说明）。
-// 不检查这一行是不是本次测试创建的，只按"最新一行"删，单独运行本文件时有误删真实数据的风险。
+// 按 Methods 列 "Peak Alignment" 定位本次创建的任务——不能用"第一条 Completed"，
+// 工作区里可能残留 raw-convert（processed，无 selected-mz）等其它任务。
 
 test.describe('Cleanup', () => {
-  test('delete completed result', async ({ page }) => {
+  test('delete completed result', async ({ page, browserName }) => {
+    // 与 new-analysis submit 对应：任务只在 chromium 建，这里也只在 chromium 删
+    test.skip(browserName !== 'chromium', '任务只在 chromium 创建，清理也只在 chromium')
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
-    await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
-      'Loading...',
-      { timeout: 10_000 },
-    )
+
+    // 等本次 Peak Alignment 任务跑完（那行 Running 消失），最多 2 分钟。
+    // 按 Methods 列定位，不看第一行——第一行可能是别人/并发留下的任务。
+    const row = peakAlignmentRow(page)
+    const deadline = Date.now() + 120_000
+    while (Date.now() < deadline) {
+      await page.reload()
+      await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+      await expect(page.locator('table tbody tr').first().locator('td').first())
+        .not.toHaveText('Loading...', { timeout: 15_000 })
+      if ((await row.getByText('Running').count()) === 0) break
+      await page.waitForTimeout(10_000)
+    }
 
     const openModal = page.locator('dialog.modal-open')
     if (await openModal.isVisible().catch(() => false)) {
       await openModal.getByRole('button').first().click()
     }
 
-    await page.locator('table tbody tr').first().getByRole('button', { name: 'Delete' }).click()
+    // 删除本次创建的 Peak Alignment 任务（Completed）
+    await expect(row).toBeVisible({ timeout: 10_000 })
+    await row.getByRole('button', { name: 'Delete' }).click()
 
     await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
     await expect(page.locator('.toast')).toContainText('Result deleted', { timeout: 10_000 })
