@@ -1,90 +1,78 @@
 # Tech Stack
 
-This page is for contributors. It summarizes the actual tech stack, directory layout, and dev scripts used by the SpatialXomics frontend. For the business/module dependency boundaries, see [Frontend Architecture](./frontend-architecture).
+This page records the technologies, layout, and scripts used by the current frontend. See [Frontend Architecture](./frontend-architecture) for module boundaries and [Clustering Integration](./clustering-integration) for the clustering data contract.
 
-## 1. Requirements
+## Requirements
 
 - Node.js `^20.19.0` or `>=22.12.0`
-- Package manager: npm (the repo commits `package-lock.json`)
+- npm (the repository commits `package-lock.json`)
 
 ```bash
 npm install
-npm run dev   # starts both the SPA (5173) and the docs site (5174)
+npm run dev
 ```
 
-## 2. Core Dependencies
+`npm run dev` starts both the SPA (5173) and docs site (5174). Use `npm run dev:app` for the application only.
 
-| Category | Dependency | Purpose |
-|---|---|---|
-| Core framework | Vue 3 + TypeScript | Composition API, SFCs, static typing |
-| Build tool | Vite 7 + `@tailwindcss/vite` | Dev server, production build |
-| State | Pinia | Global/cross-component state per feature (e.g. `authStore`) |
-| Routing | Vue Router | History mode + route guards |
-| UI | Tailwind CSS v4 + DaisyUI v5 + Iconify (offline-bundled, see [Icon Guidelines](./icon-guidelines)) | Utility-first styling and components |
-| Charts | ECharts, vue3-calendar-heatmap | Stat charts, commit heatmap |
-| MSI data | zarrita (Zarr reader), @zip.js/zip.js (upload zip packaging), zstddec (zstd decompression), hash-wasm (file hashing) | Parsing and verifying imzML-derived imaging data |
-| Object storage | ali-oss | Alibaba Cloud OSS multipart upload / pre-signed download URLs |
-| HTTP | Axios + qs | HTTP client and query-string serialization |
-| Crypto | crypto-js | Client-side processing (e.g. password handling before transmission) |
-| Region data | i18n-iso-countries | Country/region options in the user profile |
-| Docs site | VitePress | Bilingual docs under `docs/`, same repo as the SPA — see [Documentation Maintenance](./doc-maintenance) |
-| Testing | Vitest (unit) + Playwright (E2E) | |
-| Linting | ESLint 9 (flat config) + Prettier | |
+## Core Dependencies
 
-See `package.json` at the repo root for exact version pins.
+| Area | Current implementation |
+|---|---|
+| Application | Vue 3, TypeScript, Pinia, Vue Router |
+| Build and styling | Vite 7, Tailwind CSS 4, DaisyUI 5 |
+| Icons | Iconify with build-time offline subsets of `heroicons`, `simple-icons`, and `lucide` |
+| Charts | ECharts, `vue3-calendar-heatmap` |
+| HTTP | Axios, qs |
+| Upload | `hash-wasm` for MD5, `@zip.js/zip.js` for ZIP64, and `ali-oss` multipart upload |
+| Zarr | In-repository Zarr v3/OSS Range reader with `zstddec`; supports MassFlow layouts 1.0 and 1.1 |
+| Clustering | Backend-generated UMAP; browser-side KMeans using `ml-kmeans` over the UMAP embedding |
+| Other | `i18n-iso-countries` for country/region data |
+| Docs and tests | VitePress, Vitest, Playwright |
+| Quality | ESLint 9 flat config, Prettier |
 
-## 3. Project Structure
+The project does not use `zarrita` or `crypto-js`. Password form values are sent over HTTPS; access-token storage and session state live under `src/shared/auth` and use `localStorage`.
 
-```
+Use root `package.json` and `package-lock.json` for exact versions.
+
+## Source Layout
+
+```text
 src/
-├── app/components/        # App-level shell components (Navbar, NavDrawer, NavFab)
-├── assets/                # Tailwind/DaisyUI theme styles
-├── features/              # Modules organized by business domain
-│   ├── assistant/         # Floating AI assistant
-│   ├── auth/               # Login/register/forgot-password, authStore
-│   ├── datasets/            # Dataset browsing, filtering, download
-│   ├── home/                # Homepage (stats, commit heatmap)
-│   ├── upload/               # imzML upload (compression/hashing/OSS multipart/resume)
-│   ├── users/                 # User management (admin panel)
-│   └── workspace/             # Analysis workspace
-│       ├── analysis/          # Analysis builder (data sources, preprocessing pipelines)
-│       ├── dashboard/          # Task/result/activity dashboard
-│       └── results/           # Result visualization (ion image/spectrum/ROI/UMAP-KMeans)
-├── router/                     # Route declarations and guards
-├── services/                    # Cross-feature services (OSS client, remote Zarr access)
-├── shared/                       # Reuse layer with no dependency on any feature (api/components/composables/utils/types)
-├── views/                         # Route pages that compose feature capabilities
-├── workers/                        # Web Workers (imzML compression and other heavy tasks)
-└── main.ts / App.vue
+├── app/                  # Application shell and global entry components
+├── assets/               # Theme and global styles
+├── features/             # Business modules: auth, datasets, upload, workspace, ...
+├── router/               # Routes and guards
+├── services/             # Cross-module OSS, Zarr, and clustering services
+├── shared/               # HTTP, auth, generic components/composables/config/types
+├── views/                # Route pages that compose features
+└── workers/              # Upload ZIP/MD5 worker
 ```
 
-Each `features/<module>` is further split into `api`, `components`, `composables`, `services`, `stores`, `types`, `utils`. Dependency direction and boundary rules are covered in [Frontend Architecture](./frontend-architecture).
+The result feature also owns annotation CSV and KMeans workers under `src/features/workspace/results/utils/`. Feature-specific workers stay close to their owner rather than all living under root `workers/`.
 
-## 4. Common Scripts (see package.json)
+## Common Scripts
 
 | Command | Purpose |
 |---|---|
-| `npm run dev` | Runs the SPA (`vite`, 5173) and docs site (`vitepress dev`, 5174) in parallel |
-| `npm run dev:app` | SPA only |
-| `npm run build` | `type-check` + `vite build`, output to `dist/` |
-| `npm run preview` | Preview the production build |
-| `npm run type-check` | `vue-tsc --build` |
-| `npm run lint` / `lint:check` | ESLint with autofix / check-only (includes the directory import-boundary rule) |
-| `npm run format` / `format:check` | Prettier format `src/` / check-only |
-| `npm run test:unit` | Vitest unit tests (watch mode) |
-| `npm run test:unit:run` | Vitest single run (used in CI, `--passWithNoTests`) |
-| `npm run test:e2e` | Playwright E2E (requires `build` + `preview` first) |
-| `npm run check` | Runs `type-check` + `lint:check` + `test:unit:run` in parallel — used in CI and before sending a PR |
-| `npm run docs:dev` / `docs:build` / `docs:preview` | Docs dev/build/preview — see [Documentation Maintenance](./doc-maintenance) |
+| `npm run dev` | Start SPA and docs in parallel |
+| `npm run dev:app` | Start the SPA only |
+| `npm run build` | Run type checking and the Vite production build in parallel; output `dist/` |
+| `npm run preview` | Preview the SPA production build |
+| `npm run type-check` | Vue/TypeScript type checking |
+| `npm run lint` / `lint:check` | ESLint with fixes / check only |
+| `npm run format` / `format:check` | Format/check `src/` only |
+| `npm run test:unit` / `test:unit:run` | Vitest watch / one-shot run |
+| `npm run test:e2e` | Playwright E2E |
+| `npm run check` | Type check, lint, and unit tests in parallel |
+| `npm run icons:bundle` | Regenerate the offline icon bundle |
+| `npm run docs:dev` / `docs:build` / `docs:preview` | Develop, build, or preview docs |
+| `npm run docs:type-check` | Type-check VitePress config and theme code |
 
-## 5. CI/CD & Deployment
+## Configuration and Deployment
 
-- **Tests** (`.github/workflows/test.yml`): PRs trigger `npm run check`; a separate job runs `npm run build` + `playwright install` + `npm run test:e2e`, uploading the Playwright report on failure.
-- **Deploy** (`deploy-dev.yml` / `deploy-main.yml`): `npm ci` → `npm run check` → build and push a Docker image → deploy to the target server over SSH.
-- **Docker**: `docker/Dockerfile` is a multi-stage build that copies both the SPA's `dist/` and the docs site's `dist-docs/` into the nginx image; `docker/nginx.conf.template`'s `location /docs/` must stay in sync with VitePress's `base: '/docs/'`.
+- Vite environment files live under `env/`. Use `env/.env.development.local` for local overrides. Runtime business configuration comes from `public/config.json` and is loaded before the app mounts.
+- `config.json` controls the application name, contact details, upload fields and ion-source rules, AI-assistant switch, and related UI settings. The default assistant switch is currently off.
+- The `test`-branch workflow runs `npm run check`, the docs build, and Chromium/Firefox/WebKit E2E.
+- Pushes to `dev` and `main` trigger their deployment workflows. The multi-stage Docker build creates both `dist/` and `dist-docs/`; Nginx serves the docs at `/docs/`.
 
-## 6. Other Conventions
-
-- Auth uses backend-issued JWTs; the frontend never stores password hashes — `crypto-js` only processes the password client-side before it's sent. Password recovery goes through an email verification code (see `src/features/auth/composables/useForgotPassword.ts`).
-- Route-level lazy loading and history-mode fallback are already handled by `vite.config.ts` / `vue-router` and `nginx.conf.template` — no manual `try_files` setup needed.
-- Before adding a new dependency or import, check the `shared`/`features` boundary (see [Frontend Architecture](./frontend-architecture)) to avoid circular or out-of-bounds references.
+Whether configuration values are committed is a repository-policy choice. Anything exposed through frontend `VITE_*` variables or `public/config.json` is delivered to the browser and is not a server-side secret.

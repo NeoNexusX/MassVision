@@ -119,9 +119,9 @@ function logUmapDiagnostics(emb: UmapEmbedding, image: { width: number; height: 
  *   computing) is swallowed; the user opts in manually.
  * - Opt-in confirm: createClusteringTask() POSTs (idempotent get-or-create)
  *   and branches on clustering_status. A processing task is polled by
- *   re-POSTing every 5s until completed (load + ready) or failed (error;
- *   retry stays user-initiated — re-POSTing a failed task would re-trigger
- *   it).
+ *   re-POSTing every 5s until completed (load + ready) or failed (stop and
+ *   surface the backend error; the visible Retry action only retries the Zarr
+ *   read).
  * - `ready` is only ever set by a successful zarr load - the status fields
  *   steer the UI, but the data itself is the final gate.
  */
@@ -173,8 +173,8 @@ export function useOverlayData(
   const clusteringRefreshing = ref(false)
   const { showToast } = useToast()
 
-  // ---- clustering-status polling (guide "方式二": reuse the POST) ----
-  // Poll interval for an in-flight clustering task, per the backend guide.
+  // ---- clustering-status polling: reuse POST while the task is in flight ----
+  // Poll interval documented in docs/zh/dev/聚类分析对接.md.
   const POLL_INTERVAL_MS = 5000
   let pollTimer: ReturnType<typeof setTimeout> | null = null
   /** The run the current poll chain belongs to; a mismatch stops the chain. */

@@ -1,54 +1,33 @@
 # 下载数据
 
-本页介绍如何从 SpatialXomics 平台下载已上传的 MSI 原始数据（`.imzML` / `.ibd` 文件对）。
+SpatialXomics 的数据集下载获取的是上传时的两个原始文件：`.imzML` 与 `.ibd`，不是结果页导出的 PNG，也不是分析结果 Zarr。
 
-## 1. 下载须知
+## 前置条件
 
-- **需要登录**：下载操作需要登录账号；未登录状态下点击下载按钮，会自动跳转至登录页并提示需要登录。
-- **下载的是原始文件对**：每次下载会同时获取该数据集对应的 `.imzML` 与 `.ibd` 两个文件。
-- **频率限制**：两次下载操作之间需等待冷却时间(一分钟)，避免频繁请求。
-- **次数配额**：每个账号存在下载次数上限，由管理员统一管理，超出后请联系管理员。
+- 下载必须登录。未登录时，公开数据集页面仍可浏览，但点击下载会提示并跳转到 `/login`。
+- 公开数据集使用公开下载接口，个人数据集使用带认证的下载接口；用户无需手动选择。
+- 同一前端会话同时只允许一个下载请求。
 
-## 2. 操作步骤
+## 从哪里下载
 
-#### 1.从数据集列表页下载
+- **Public Datasets** 或 **My Datasets**：点击数据集卡片上的 **Download**。
+- **Dataset Overview**：点击详情卡片中的 **Download**。
 
-无论是「公开数据集」（Public Datasets）还是「我的数据集」（My Datasets）列表页，每个数据集卡片上都提供下载按钮，点击即可发起下载。
+前端请求 `/files/{file_id}/download_raw`，取得 imzML 和 ibd 的 OSS 预签名地址后，在两个独立的隐藏 iframe 中启动下载，避免后一个文件取消前一个文件。
 
-![download-1](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-1.png)
+## 冷却限制
 
-#### 2.未登录时会跳转登录页
+一次下载成功启动后，前端进入 **60 秒**冷却期：
 
-若未登录时点击下载，会弹出提示并自动跳转到登录页；登录成功后可返回列表页继续操作。
+- 冷却期内再次点击会显示 `Download is limited. Please wait Xs.`。
+- 当前请求仍在进行时再次点击会显示 `A download is already in progress.`。
+- 请求失败不会启动冷却，可以立即重试。
 
-![download-2](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-2.png)
+当前前端代码没有单独实现“账号下载次数配额”；如果后端拒绝下载，页面会直接展示后端返回的错误信息。
 
-#### 3.从数据集详情页下载
+## 常见问题
 
-点击数据集卡片进入详情（Overview）页，页面内同样提供下载按钮，点击即可下载当前数据集，同样需要登录。
-
-![download-3](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-3.png)
-
-#### 4.下载进行中的状态提示
-
-点击下载后，页面顶部会显示下载状态提示（下载中 / 下载已开始）；浏览器会依次下载 `.imzML` 与 `.ibd` 两个文件。
-
-![download-4](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-4.png)
-
-![download-5](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-5.png)
-
-## 3. 下载限制
-
-- **冷却时间**：两次下载之间需等待 60 秒冷却时间；冷却期内点击会提示「Download is limited. Please wait Xs.」。
-
-![download-6](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-6.png)
-
-- **次数配额**：每个账号有下载次数上限，超出后请联系管理员调整。
-
-![download-7](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-7.jpg)
-
-## 4. 小贴士
-
-- 若下载没有反应，请检查浏览器是否拦截了多文件下载弹窗，需在浏览器设置中允许该站点的下载权限。
-- 下载失败时优先检查网络连接，稍后重新点击下载按钮重试。
-- 若长期无法下载，可能是账号配额已用尽，请联系管理员核实。
+- 浏览器可能要求允许该站点进行多个文件下载；被拦截时请在站点权限中放行。
+- 两个文件可能先后出现在浏览器下载列表中，并不代表只下载了一个。
+- 预签名地址有有效期。如果下载启动后长时间停滞，请重新点击下载以获取新地址。
+- 下载按钮显示 **Packing** 时，表示另一个下载准备流程正在进行，需等待完成。
