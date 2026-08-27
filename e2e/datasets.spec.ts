@@ -385,7 +385,9 @@ test.describe('Public Datasets', () => {
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
     const perPageSelect = page.locator('label:has-text("Per page")').locator('..').locator('select')
-    await perPageSelect.selectOption('5')
+    // 每页条数选项来自 config.json（pagination.pageSizeOptions），不写死具体数值
+    const firstSize = await perPageSelect.locator('option').first().getAttribute('value')
+    await perPageSelect.selectOption(firstSize!)
 
     await expect(page.getByText(/Page \d+ of \d+/)).toBeVisible()
     await expect(page.getByText(/records/)).toBeVisible()
@@ -395,6 +397,62 @@ test.describe('Public Datasets', () => {
       await nextBtn.click()
       await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
       await expect(page.getByText('Organism:').first()).toBeVisible()
+    }
+  })
+
+  /**
+   * 「每页条数」下拉的选项来自 public/config.json，不写死在组件里。
+   * 改配置忘了同步测试正是上一次 pagination 用例挂掉的原因，这里把两者绑定起来。
+   */
+  test('per-page options mirror config.json', async ({ page }) => {
+    await page.goto('/datasets')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    const config = await (await page.request.get('/config.json')).json()
+    const expected: string[] = config.pagination.pageSizeOptions.map(String)
+
+    const perPageSelect = page.locator('label:has-text("Per page")').locator('..').locator('select')
+    await expect(perPageSelect.locator('option')).toHaveText(expected)
+    await expect(perPageSelect).toHaveValue(String(config.pagination.defaultPageSize))
+  })
+
+  /**
+   * 卡片预览图（DatasetPreviewGallery）：固定 3 个槽位，
+   * 第 2/3 张推迟到首次悬停才拿到 src（一屏 10 张卡即省下 20 个请求）。
+   *
+   * 断言分两层：
+   * - 悬停前只能有 1 个 <img>，没有元素就不可能发请求（这是省流量的真实保证）；
+   * - 悬停后看 DOM 里的 src 是否补齐，而不是看是否真的发出请求——
+   *   loading="lazy" 下各浏览器的取图时机不同（Firefox 对悬停区外的图可以一直不取），
+   *   而预览图在 OSS 上也可能尚未生成（404），此时该槽位降级为占位 SVG。
+   */
+  test('preview gallery defers its hidden slots until hover', async ({ page }) => {
+    const previewRequests: string[] = []
+    page.on('request', (req) => {
+      if (/\/images\/file_\d+\/preview/.test(req.url())) previewRequests.push(req.url())
+    })
+
+    await page.goto('/datasets')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    const gallery = page.locator('figure.hover-gallery').first()
+    await expect(gallery).toBeVisible()
+    const slots = gallery.locator('> div')
+    await expect(slots).toHaveCount(3)
+
+    // 悬停前：只有第 1 张挂了 src，第 2/3 张连 <img> 都没有
+    await expect(gallery.locator('img')).toHaveCount(1)
+    expect(previewRequests.filter((u) => /preview_[23]\.jpg/.test(u))).toHaveLength(0)
+
+    await gallery.hover()
+
+    // 悬停后：三个槽位各自补齐，且每格要么是图片、要么是占位 SVG，不留空白
+    const expectedSlot = ['preview.jpg', 'preview_2.jpg', 'preview_3.jpg']
+    for (let i = 0; i < 3; i++) {
+      const slot = slots.nth(i)
+      await expect(slot.locator('img, svg')).toHaveCount(1, { timeout: 15_000 })
+      const src = await slot.locator('img').getAttribute('src').catch(() => null)
+      if (src !== null) expect(src).toContain(expectedSlot[i]!)
     }
   })
 
