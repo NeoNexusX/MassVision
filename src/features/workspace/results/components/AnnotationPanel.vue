@@ -57,6 +57,10 @@ const {
   coarseFiltered,
   search,
   filter,
+  filterAdduct,
+  filterFormula,
+  adductOptions,
+  formulaOptions,
   sortKey,
   sortDir,
   filteredRows,
@@ -99,14 +103,15 @@ function rowClass(row: { matchStatus: string; matchedIndex: number | null }): st
   return active ? 'bg-primary/10' : 'opacity-60'
 }
 
-/** Step for the tolerance <input>, finer in Da mode. */
-const tolStep = computed(() => (tolMode.value === 'ppm' ? 0.5 : 0.001))
+/** Step for the tolerance <input>, finer in Da mode so high-resolution masses
+ *  (e.g. 0.05 Da) can be tuned precisely. */
+const tolStep = computed(() => (tolMode.value === 'ppm' ? 0.1 : 0.0001))
 
 // ---- Sort control (moved from table headers into the toolbar) ----
 
 const SORT_OPTIONS: { value: AnnotationSortKey; label: string }[] = [
   { value: 'name', label: 'Name' },
-  { value: 'expMz', label: 'Tar. m/z' },
+  { value: 'expMz', label: 'Target m/z' },
   { value: 'massError', label: 'Mass Difference' },
   { value: 'avgIntensity', label: 'Intensity' },
 ]
@@ -424,7 +429,7 @@ watch(
             v-if="hasData"
             class="btn btn-ghost btn-xs btn-square"
             :class="{ 'btn-disabled opacity-40': !counts.matched }"
-            title="Export matched annotations (name, tar. m/z, matched m/z, mass difference) as CSV"
+            title="Export matched annotations (name, target m/z, matched m/z, mass difference) as CSV"
             :disabled="!counts.matched"
             @click="exportMatchedCsv"
           >
@@ -489,7 +494,7 @@ watch(
             type="number"
             min="0"
             :step="tolStep"
-            class="input input-bordered input-sm w-20 text-[1em]"
+            class="input input-bordered input-sm w-24 text-[1em]"
           />
           <select v-model="tolMode" class="select select-bordered select-sm ml-auto text-[1em]">
             <option value="ppm">ppm</option>
@@ -560,10 +565,30 @@ watch(
         >
           Unmatched {{ counts.unmatched + counts.invalid }}
         </button>
-        <!-- Coarse pre-filter drops (polarity / m/z range). Shown on every
-             applied result, not just at import: a spectrum or polarity that
-             resolves AFTER import drops rows on the debounced rematch, and a
-             silent drop looks exactly like lost data. -->
+      </div>
+
+      <!-- Adduct / formula dropdown filters: intersect with status + search, so
+           the user can multi-condition on candidate metadata (not just keyword
+           search). Adduct sits on the first row, formula below it. -->
+      <!-- Adduct + formula dropdown filters (one row); coarse-filter note below -->
+      <div v-if="hasData" class="shrink-0 space-y-1">
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex flex-col gap-0.5 text-xs min-w-0">
+            <span class="text-base-content/60">Adduct</span>
+            <select v-model="filterAdduct" class="select select-bordered select-xs w-full">
+              <option value="">All</option>
+              <option v-for="opt in adductOptions" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-0.5 text-xs min-w-0">
+            <span class="text-base-content/60">Formula</span>
+            <select v-model="filterFormula" class="select select-bordered select-xs w-full">
+              <option value="">All</option>
+              <option v-for="opt in formulaOptions" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+          </label>
+        </div>
+        <!-- 匹配后粗筛掉的（极性 / m/z 范围），放到下拉筛选下方 -->
         <span
           v-if="coarseFiltered > 0"
           class="text-[0.75em] text-base-content/50"
@@ -601,11 +626,11 @@ watch(
         class="max-h-[60dvh] overflow-auto rounded-lg border border-base-300 bg-base-100 lg:max-h-none lg:flex-1 lg:min-h-0"
         @scroll.passive="onTableScroll"
       >
-        <table class="table table-sm">
+        <table class="table table-sm w-full table-fixed">
           <thead class="sticky top-0 z-10 bg-base-200 text-base-content/70">
             <tr>
               <th>Annotation</th>
-              <th class="text-right" title="Target m/z from the CSV">Tar. <i>m/z</i></th>
+              <th class="text-right w-[120px]" title="Target m/z from the CSV">Target <i>m/z</i></th>
             </tr>
           </thead>
           <tbody ref="tableBodyRef">
@@ -637,9 +662,7 @@ watch(
                      shorter than the measured rowH. -->
                 <div class="min-h-4 text-[0.75em] text-base-content/50 truncate">
                   <span v-if="row.formulaIon" class="font-mono">{{ row.formulaIon }}</span>
-                  <span v-if="row.ionType" class="text-base-content/40">
-                    &#183; {{ row.ionType }}</span
-                  >
+                  <span v-if="row.ionType" class="text-base-content/40">&nbsp;{{ row.ionType }}</span>
                   <span v-if="row.candidates.length > 1" class="text-primary/50">
                     &#183; +{{ row.candidates.length - 1 }}</span
                   >
@@ -650,7 +673,7 @@ watch(
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
-                {{ row.valid ? row.expMz.toFixed(4) : '-' }}
+                {{ row.valid ? row.expMz.toFixed(6) : '-' }}
               </td>
             </tr>
             <!-- Bottom spacer (same block-height trick as the top one) -->
@@ -716,29 +739,39 @@ watch(
     @mouseleave="onTooltipLeave"
   >
     <!-- Header: name (left) + copy/PubChem buttons (right) -->
-    <div class="flex items-start justify-between gap-2 mb-1">
-      <div class="min-w-0 flex-1">
-        <div class="font-semibold text-base-content break-words">{{ tooltipRow.name }}</div>
-        <div v-if="tooltipRow.formulaIon" class="font-mono text-base-content/60">
-          {{ tooltipRow.formulaIon }}
-          <span v-if="tooltipRow.ionType"> &#183; {{ tooltipRow.ionType }}</span>
-        </div>
+    <div class="mb-1">
+      <div
+        class="font-semibold text-base-content truncate"
+        :title="tooltipRow.name"
+      >
+        {{ tooltipRow.name }}
+      </div>
+      <!-- 加合离子在上、分子式在下 -->
+      <div v-if="tooltipRow.ionType" class="font-mono text-base-content/60">
+        {{ tooltipRow.ionType }}
+      </div>
+      <div v-if="tooltipRow.formulaIon" class="font-mono text-base-content/60">
+        {{ tooltipRow.formulaIon }}
+      </div>
+      <!-- 复制 + PubChem 放在名字/内容下方（统一按钮尺寸/样式） -->
+      <div class="mt-1.5 flex items-center gap-1.5">
         <button
-          class="btn btn-ghost btn-xs btn-square opacity-60 hover:opacity-100 mt-0.5"
+          class="btn btn-sm btn-outline gap-1"
           title="Copy name"
           @click.stop="copyName(tooltipRow.name)"
         >
-          <SvgIcon type="duplicate" />
+          <SvgIcon type="duplicate" class="" />
+          Copy
+        </button>
+        <button
+          class="btn btn-sm btn-outline btn-primary gap-1 text-[1em]"
+          title="Search PubChem"
+          @click.stop="searchPubChem(tooltipRow.name)"
+        >
+          <SvgIcon type="search" class="" />
+          PubChem
         </button>
       </div>
-      <button
-        class="btn btn-sm btn-outline btn-primary gap-1 text-[1em]"
-        title="Search PubChem"
-        @click.stop="searchPubChem(tooltipRow.name)"
-      >
-        <SvgIcon type="search" />
-        PubChem
-      </button>
     </div>
 
     <!-- Detail fields moved from the table -->
@@ -759,7 +792,7 @@ watch(
           <span
             class="font-mono"
             :class="tooltipRow.matchedMz != null ? 'text-success/80' : 'text-base-content/30'"
-            >{{ tooltipRow.matchedMz != null ? tooltipRow.matchedMz.toFixed(4) : '-' }}</span
+            >{{ tooltipRow.matchedMz != null ? tooltipRow.matchedMz.toFixed(6) : '-' }}</span
           >
         </span>
       </div>
@@ -787,11 +820,11 @@ watch(
         <li
           v-for="(c, i) in tooltipRow.candidates"
           :key="i"
-          class="text-base-content flex items-center justify-between gap-1 group"
+          class="text-base-content flex items-center justify-between gap-1"
         >
           <span class="truncate select-text">{{ c }}</span>
           <button
-            class="btn btn-ghost btn-xs btn-square opacity-0 group-hover:opacity-100 transition-opacity"
+            class="btn btn-ghost btn-xs shrink-0 btn-square text-base-content/40 hover:text-primary hover:bg-primary/10"
             title="Search PubChem"
             @click.stop="searchPubChem(c)"
           >

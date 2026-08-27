@@ -321,7 +321,7 @@ watch(
               :class="{ 'bg-primary/15': row.ionIndex === selectedMzIndex }"
               @click="emit('select-mz', row.ionIndex)"
             >
-              <td :class="TD_NUM">{{ row.mz.toFixed(4) }}</td>
+              <td :class="TD_NUM">{{ row.mz.toFixed(6) }}</td>
               <td :class="TD_NUM">{{ formatMean(row.meanA) }}</td>
               <td :class="TD_NUM">{{ formatMean(row.meanB) }}</td>
               <td :class="TD_NUM" :style="{ color: row.ratio > 1 ? (regionAColor ?? undefined) : row.ratio < 1 && row.ratio > 0 ? (regionBColor ?? undefined) : undefined }">
