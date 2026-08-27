@@ -61,7 +61,7 @@ const props = defineProps({
     default: '',
   },
   options: {
-    type: [String, Array, Object] as PropType<string | string[] | Record<string, string>>,
+    type: [String, Array, Object] as PropType<string | readonly string[] | Record<string, string>>,
     required: true,
   },
   label: {

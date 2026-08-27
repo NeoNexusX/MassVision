@@ -35,7 +35,7 @@ import { normalizeOtherInput, toTitleCase, validateOtherInput } from '@/shared/u
 
 const props = defineProps<{
   modelValue: string
-  options: string[]
+  options: readonly string[]
   placeholder?: string
   otherPlaceholder?: string
   iconType?: string

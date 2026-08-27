@@ -25,7 +25,7 @@ Additional rules:
 - Pixel Size X/Y must be integers from `1` to `200`.
 - Sample Growth Conditions and Tissue Modification are optional.
 - The m/z and Resolving Power fields under Detector resolving power are optional; valid values are submitted as numbers.
-- Whether Solvent, MALDI Matrix, and MALDI Matrix Application are required is driven by the ion-source rules in `public/config.json`. The form starts with `100% Water`; MALDI-family sources generally also require matrix details.
+- Whether Solvent, MALDI Matrix, and MALDI Matrix Application are required is driven by the ion-source rules in `src/features/upload/utils/ionSourceRules.ts`. The form starts with `100% Water`; MALDI-family sources generally also require matrix details.
 - Selecting **Other** requires a concrete custom value; the literal value `Other` cannot be submitted for required select-with-other fields.
 
 ## Public or Private

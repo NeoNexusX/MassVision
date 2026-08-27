@@ -25,7 +25,6 @@ import { useResultROI } from '@/features/workspace/results/composables/useResult
 import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
 import { useRegionComparison } from '@/features/workspace/results/composables/useRegionComparison'
 import { ZARR_STORE } from '@/shared/config/defaults'
-import { getConfig } from '@/shared/config/runtimeConfig'
 import { rgbCss } from '@/features/workspace/results/utils/regionPalette'
 import { useToast } from '@/shared/composables/useToast'
 import type { DataMode } from '@/services/zarr/types/zarr'
@@ -43,9 +42,6 @@ interface ResultDetailState {
 const state = history.state as ResultDetailState | null
 const runId = computed(() => (state?.runId != null ? String(state.runId) : ''))
 const isStale = computed(() => state?.runId == null)
-const resultFeatureConfig = getConfig().resultFeatures
-const compareEnabled = resultFeatureConfig?.compare !== false
-const annotationEnabled = resultFeatureConfig?.annotation !== false
 
 // ---- 元数据 ----
 
@@ -147,7 +143,6 @@ onUnmounted(() => {
 const {
   globalMin,
   globalMax,
-  dataMax,
   sortedNonZero,
   displayMin,
   displayMax,
@@ -231,7 +226,6 @@ const {
   progress: cmpProgress,
   error: cmpError,
   results: cmpResults,
-  hasResults: cmpHasResults,
   filterStats: cmpFilterStats,
   availableRegions: cmpAvailableRegions,
   canCompare: cmpCanCompare,
@@ -246,7 +240,6 @@ const {
   reset: cmpReset,
   involvesRoi: cmpInvolvesRoi,
 } = useRegionComparison({
-  enabled: compareEnabled,
   kmeansClusters,
   kmeansLabelsAvailable,
   getKmeansLabels,
@@ -291,7 +284,7 @@ const comparisonExpanded = ref(false)
 
 // 展开 compare 时将中列平滑滚到该区域顶部，展示完整控件和结果。
 watch(comparisonExpanded, async (expanded) => {
-  if (!compareEnabled || !expanded) return
+  if (!expanded) return
   await nextTick()
   compareSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 })
@@ -376,14 +369,9 @@ async function onSelectPixel(col: number, row: number) {
 </script>
 
 <template>
-  <ResultVisualizationLayout
-    :show-left-panel="annotationEnabled"
-    :show-compare="compareEnabled"
-    :left-panel-collapsed="!annotationExpanded"
-  >
+  <ResultVisualizationLayout :left-panel-collapsed="!annotationExpanded">
     <template #left-panel>
       <AnnotationPanel
-        v-if="annotationEnabled"
         v-model:expanded="annotationExpanded"
         :select-mz-index="handleSelectMzIndex"
         :selected-mz-index="selectedMzIndex"
@@ -404,7 +392,6 @@ async function onSelectPixel(col: number, row: number) {
         :gamma="gamma"
         :display-min="displayMin"
         :display-max="displayMax"
-        :data-max="dataMax"
         :ion-cols="ionCols"
         :ion-rows="ionRows"
         :roi-tool="roiTool"
@@ -450,7 +437,6 @@ async function onSelectPixel(col: number, row: number) {
       <!-- Region comparison：左 controls+preview，右结果表。
            桌面端折叠栏保留在首屏，展开后由中列承载滚动。 -->
       <div
-        v-if="compareEnabled"
         ref="compareSectionRef"
         class="w-full flex flex-col items-stretch gap-4 lg:flex-row lg:items-stretch"
       >
@@ -458,7 +444,6 @@ async function onSelectPixel(col: number, row: number) {
         <div class="w-full min-w-0 flex flex-col lg:w-0 lg:flex-[2_1_0%]">
           <CompareRegionsPanel
             :regions="cmpAvailableRegions"
-            :data-mode="dataMode"
             :spectrum-mode="spectrumMode"
             v-model:region-a-ids="cmpRegionAIds"
             v-model:region-b-ids="cmpRegionBIds"
@@ -468,7 +453,6 @@ async function onSelectPixel(col: number, row: number) {
             :comparing="cmpComparing"
             :progress="cmpProgress"
             :error="cmpError"
-            :has-results="cmpHasResults"
             :can-compare="cmpCanCompare"
             :color-a="cmpColorA"
             :color-b="cmpColorB"

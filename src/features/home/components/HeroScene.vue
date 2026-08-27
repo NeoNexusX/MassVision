@@ -2,9 +2,9 @@
 import BaseScene from './BaseScene.vue'
 import HoverGallery from '@/shared/components/HoverGallery.vue'
 import { getBrandParts } from '@/shared/config/appName'
-import { getConfig } from '@/shared/config/runtimeConfig'
+import { getContent } from '@/features/home/config/contentConfig'
 
-const { taglines: HERO_TAGLINES, gallery: HERO_GALLERY = [] } = getConfig().hero
+const { taglines: HERO_TAGLINES, gallery: HERO_GALLERY = [] } = getContent().hero
 
 // 每个 tagline 停留 2000ms，整圈时长 = 数量 × 2000ms
 const rotateDuration = `${HERO_TAGLINES.length * 2000}ms`

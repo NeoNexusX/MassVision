@@ -187,11 +187,8 @@ export function useROI(
     selectedTool,
     confirmedROIs,
     selectTool,
-    clearDraft,
     confirmROI,
     deleteROI,
     clearAllROIs,
-    generateMask,
-    computeStats,
   }
 }

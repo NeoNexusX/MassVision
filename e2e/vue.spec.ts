@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test'
  *   Hero → Features → Stats → Footer
  * 页面使用 scroll-snap，每个场景占满视口。
  *
- * 首页内容来自 public/config.json + 后端 /stats/* 接口。
+ * 首页内容来自 public/content.json + 后端 /stats/* 接口。
  * 后端不可用时，Stats 卡片标题仍然渲染，数字显示 loading 或 error。
  */
 

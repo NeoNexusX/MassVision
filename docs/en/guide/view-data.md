@@ -26,7 +26,7 @@ On desktop, the page contains:
 - Metadata, range, statistics, Visualization, clustering, and ROI controls on the right.
 - Collapsible **Compare regions / Comparison results** below the main visualization.
 
-Small screens stack these sections vertically. `resultFeatures.annotation` and `resultFeatures.compare` in `public/config.json` can disable the respective panels, so deployments may differ.
+Small screens stack these sections vertically. The annotation panel and region comparison are enabled in every deployment.
 
 ## Continuous and Processed Modes
 

@@ -6,7 +6,7 @@ import { useAuthStore } from '@/shared/auth/authStore'
 import { extractBackendError } from '@/shared/api/httpClient'
 import { useSendEmailCode } from '@/shared/composables/useSendEmailCode'
 import { useUserQuota } from '@/shared/composables/useUserQuota'
-import { getPositionOptions } from '@/shared/constants/profileOptions'
+import { POSITION_OPTIONS } from '@/shared/constants/profileOptions'
 import { getRegionOptions } from '@/shared/utils/regionOptions'
 import { SESSION_KEYS } from '@/shared/config'
 import {
@@ -233,7 +233,7 @@ export function useUserProfileForm() {
 
   return {
     loading,
-    positionOptions: getPositionOptions(),
+    positionOptions: POSITION_OPTIONS,
     regionOptions,
     formData,
     isEmailModalOpen,
@@ -256,6 +256,5 @@ export function useUserProfileForm() {
     closePasswordModal,
     submitPasswordChange,
     handleSave,
-    handleLogout,
   }
 }

@@ -43,20 +43,18 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
 
     <!-- Step 1: Enter email -->
     <template v-if="step === 'email'">
-      <div class="flex flex-col gap-4">
-        <IconInput
-          v-model="form.email"
-          icon-type="email"
-          type="email"
-          required
-          validator
-          placeholder="Email"
-          :pattern="patterns.email"
-          :error="errors.email"
-          @blur="validateField('email')"
-          @focus="clearError('email')"
-        />
-      </div>
+      <IconInput
+        v-model="form.email"
+        icon-type="email"
+        type="email"
+        required
+        validator
+        placeholder="Email"
+        :pattern="patterns.email"
+        :error="errors.email"
+        @blur="validateField('email')"
+        @focus="clearError('email')"
+      />
 
       <div class="form-control w-full mt-2">
         <button
@@ -151,11 +149,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
       </div>
 
       <div class="form-control w-full mt-2">
-        <button
-          class="btn btn-primary w-full"
-          :disabled="loading.reset"
-          @click="submitReset"
-        >
+        <button class="btn btn-primary w-full" :disabled="loading.reset" @click="submitReset">
           <span v-if="loading.reset" class="loading loading-spinner loading-sm"></span>
           {{ loading.reset ? 'Resetting...' : 'Reset Password' }}
         </button>

@@ -175,7 +175,6 @@ export function useWorkspaceDashboard() {
     meta,
     pagination,
     onCreated,
-    fetchProcesses,
     goToPage,
     changeSize,
     deleteResult,

@@ -1,74 +1,17 @@
 {
   "appName": "SpatialXomics",
   "version": "0.6.1",
-  "hero": {
-    "taglines": ["OPEN ↗", "FAST ▶︎▶︎", "UNIFIED ≡", "INTELLIGENT ✧"],
-    "gallery": [
-      "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/dataset_2_tic.png",
-      "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/dataset_2_umap.png",
-      "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/dataset_2_kmeans.png"
-
-    ]
-  },
-  "features": {
-    "items": [
-      {
-        "word": "OPEN",
-        "title": "Open & Interoperable",
-        "desc": "Designed with an open-source spirit from the ground up, we break down data silos, enable open knowledge sharing, and collectively advance the spatial omics community.",
-        "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mz726.539885.png"
-      },
-      {
-        "word": "SMART",
-        "title": "SMART Analysis",
-        "desc": "Powered by cloud-native infrastructure and AI, every analysis becomes faster, smarter, and more accessible to researchers at any scale.",
-        "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/kmeans_image2.png"
-      },
-      {
-        "word": "FAST",
-        "title": "Fast at Scale",
-        "desc": "Backed by a homegrown computing framework and cloud-native infrastructure, SpatialXomics delivers high-performance computation that scales effortlessly with your data.",
-        "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/umap_image2.png"
-      }
-    ]
-  },
-
-  "resultFeatures": {
-    "compare": true,
-    "annotation": true
-  },
-
   "zarr": {
     "spectraChunkCacheSize": 100,
     "spectraConcurrency": 16
   },
-
-  "timeline": [
-    {
-      "date": "August 16",
-      "version": "0.6.1",
-      "features": ["UMAP and KMeans clustering overlays with PNG export", "Annotation CSV import with m/z matching and PubChem lookup", "Region comparison with statistical analysis and category filtering"]
-    },
-    {
-      "date": "July 19",
-      "version": "0.5.3",
-      "features": ["Unified page typography", "Improved mobile layouts across key workflows", "Added Playwright mobile regression coverage"]
-    },
-    {
-      "date": "July 17",
-      "version": "0.5.2",
-      "features": ["Updated documentation", "Added real file upload/download tests", "Fixed memory leak in result page", "Style adjustments on several pages"]
-    },
-    {
-      "date": "July 10",
-      "version": "0.5.1",
-      "features": ["Refactored pages and updated documentation", "Fixed bugs"]
-    }
-  ],
-
   "pagination": {
     "defaultPageSize": 10,
-    "pageSizeOptions": [5,10,20]
+    "pageSizeOptions": [
+      6,
+      10,
+      20
+    ]
   },
   "verification": {
     "countdownSeconds": 60,
@@ -77,15 +20,6 @@
   "carousel": {
     "interval": 3000,
     "endPause": 5000
-  },
-  "githubHeatmap": {
-    "owner": "NeoNexusX",
-    "repo": "MassVision",
-    "branch": "dev",
-    "days": 365,
-    "title": "SpatialXomics · Activity",
-    "repoUrl": "https://github.com/NeoNexusX/MassFlow",
-    "orientation": "auto"
   },
   "nav": {
     "mode": "navbar",
@@ -98,15 +32,32 @@
     "themeToggle": true,
     "guestHint": "Sign in",
     "items": [
-      { "kind": "link", "to": "/", "icon": "home", "label": "Home", "active": true },
+      {
+        "kind": "link",
+        "to": "/",
+        "icon": "home",
+        "label": "Home",
+        "active": true
+      },
       {
         "kind": "group",
         "icon": "circle_stack",
         "label": "Datahub",
         "active": true,
         "children": [
-          { "to": "/datasets", "icon": "queue_list", "label": "Public Datasets", "active": true },
-          { "to": "/mydatasets", "icon": "folder", "label": "My Datasets", "active": true, "requireAuth": true }
+          {
+            "to": "/datasets",
+            "icon": "queue_list",
+            "label": "Public Datasets",
+            "active": true
+          },
+          {
+            "to": "/mydatasets",
+            "icon": "folder",
+            "label": "My Datasets",
+            "active": true,
+            "requireAuth": true
+          }
         ]
       },
       {
@@ -115,338 +66,96 @@
         "label": "Workspace",
         "active": true,
         "children": [
-          { "to": "/workspace", "icon": "code-bracket", "label": "Workspace", "active": true },
-          { "to": "/workspace/new", "icon": "plus", "label": "New Analysis", "active": true }
+          {
+            "to": "/workspace",
+            "icon": "code-bracket",
+            "label": "Workspace",
+            "active": true
+          },
+          {
+            "to": "/workspace/new",
+            "icon": "plus",
+            "label": "New Analysis",
+            "active": true
+          }
         ]
       },
-      { "kind": "link", "to": "/docs/", "icon": "book", "label": "Documentation", "active": true, "external": true }
+      {
+        "kind": "link",
+        "to": "/docs/",
+        "icon": "book",
+        "label": "Documentation",
+        "active": true,
+        "external": true
+      }
     ],
     "userMenu": [
-      { "kind": "link", "to": "/profile", "icon": "user-circle", "label": "Profile", "active": true },
-      { "kind": "link", "to": "/users", "icon": "users", "label": "Users", "active": true, "requireAdmin": true },
-      { "kind": "action", "action": "logout", "label": "Sign out", "active": true }
+      {
+        "kind": "link",
+        "to": "/profile",
+        "icon": "user-circle",
+        "label": "Profile",
+        "active": true
+      },
+      {
+        "kind": "link",
+        "to": "/users",
+        "icon": "users",
+        "label": "Users",
+        "active": true,
+        "requireAdmin": true
+      },
+      {
+        "kind": "action",
+        "action": "logout",
+        "label": "Sign out",
+        "active": true
+      }
     ],
     "guestLinks": [
-      { "to": "/login", "icon": "signin", "label": "Sign in", "active": true },
-      { "to": "/register", "icon": "user_plus", "label": "Create account", "active": true, "primary": true }
+      {
+        "to": "/login",
+        "icon": "signin",
+        "label": "Sign in",
+        "active": true
+      },
+      {
+        "to": "/register",
+        "icon": "user_plus",
+        "label": "Create account",
+        "active": true,
+        "primary": true
+      }
     ]
   },
   "fab": {
-    "main": { "iconClosed": "bars3", "iconOpen": "close" },
+    "main": {
+      "iconClosed": "bars3",
+      "iconOpen": "close"
+    },
     "items": [
-      { "kind": "action", "action": "toggle-theme", "icon": "sun", "label": "Toggle theme", "active": true },
-      { "kind": "action", "action": "toggle-ai", "icon": "sparkles", "label": "AI Assistant", "active": false, "requireAuth": true },
-      { "kind": "action", "action": "logout", "icon": "signin", "label": "Sign out", "active": true, "requireAuth": true }
-    ]
-  },
-  "contact": {
-    "website": "https://bionet.xmu.edu.cn/",
-    "email": "jydong@xmu.edu.cn",
-    "github": "https://github.com/BioNet-XMU",
-    "wechat": "https://files.seeusercontent.com/2026/06/03/Yw8r/Snipaste_2026-06-03_11-14-27.png",
-    "recruitment": "https://bionet.xmu.edu.cn/lxwm.htm"
-  },
-  "team": [
-    {
-      "name": "Jiyang Dong",
-      "role": "Project Sponsor",
-      "degree": "Professor",
-      "school": "Xiamen University",
-      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780303224964.jpg",
-      "homepage": "https://ese.xmu.edu.cn/info/1071/1735.htm"
-    },
-    {
-      "name": "Lei Guo",
-      "role": "Project Sponsor",
-      "degree": "Associate Professor",
-      "school": "Fuzhou University",
-      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780300337455.jpg",
-      "homepage": "https://iime.fzu.edu.cn/info/1038/1481.htm"
-    },
-    {
-      "name": "Zeyu Zhu",
-      "role": "Project Lead",
-      "degree": "Ph.D. Student",
-      "school": "Xiamen University",
-      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Asuka.jpg",
-      "homepage": "https://neonexusx.github.io/"
-    },
-    {
-      "name": "Yongkun Lin",
-      "role": "Frontend Engineer",
-      "degree": "M.Sc. Student",
-      "school": "Xiamen University",
-      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780209856433_888.jpg",
-      "homepage": "https://bionet.xmu.edu.cn/info/1073/2600.htm"
-    },
-    {
-      "name": "Qiurong Xiong",
-      "role": "Backend Engineer",
-      "degree": "M.Sc. Student",
-      "school": "ECUT",
-      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780299201986_41.jpeg",
-      "homepage": "https://bionet.xmu.edu.cn/info/1073/2630.htm"
-    },
-    {
-      "name": "Leqiang Dong",
-      "role": "Algorithm Engineer",
-      "degree": "M.Sc. Student",
-      "school": "Xiamen University",
-      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780299557207_374.jpg",
-      "homepage": "https://dil666555.github.io/"
-    },
-    {
-      "name": "Xun Zhong",
-      "role": "Backend Engineer",
-      "degree": "B.Sc.",
-      "school": "Xiamen University",
-      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780299787497.jpg",
-      "homepage": "https://b23.tv/ih7QjCW"
-    },
-    {
-      "name": "🐱Zai zai🐱",
-      "role": "Trouble Maker",
-      "degree": "Cat B.Sc.",
-      "school": "Cat University",
-      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1781240570533.jpg",
-      "homepage": "https://neonexusx.github.io/2026/06/17/zaizai/"
-    }
-  ],
-  "options": {
-    "position": [
-      "Researcher",
-      "Postdoctoral Researcher",
-      "Research Assistant",
-      "Research Engineer",
-      "Senior Researcher",
-      "Professor",
-      "Associate Professor",
-      "Lecture",
-      "PhD Student",
-      "Master's Student"
-    ],
-    "researchField": [
-      "Chemistry",
-      "Biology",
-      "Medicine",
-      "Pharmaceutical Science",
-      "Biomedical Engineering",
-      "Materials Science",
-      "Analytical Chemistry",
-      "Biotechnology",
-      "Environmental Science",
-      "Food Science",
-      "Other"
-    ],
-    "polarity": ["Positive", "Negative"],
-    "ionSource": [
-      "MALDI",
-      "DESI",
-      "SIMS",
-      "AP-MALDI",
-      "AP-SMALDI",
-      "nano-DESI",
-      "LDI",
-      "SALDI",
-      "MALDI-2",
-      "LAESI",
-      "IR-MALDESI",
-      "Other"
-    ],
-    "analyzer": [
-      "Orbitrap Exploris 480",
-      "Orbitrap Exploris 240",
-      "Orbitrap Exploris 120",
-      "Q Exactive HF",
-      "Q Exactive",
-      "timsTOF fleX",
-      "Orbitrap",
-      "FTICR",
-      "TOF",
-      "FTMS",
-      "Q-TOF",
-      "Other"
-    ],
-    "spectrumMode": ["profile", "centroid"],
-    "storageMode": ["continuous", "processed"],
-    "experimentType": ["imzML", "Other"],
-    "organism": [
-      "Human (Homo sapiens)",
-      "Mouse (Mus musculus)",
-      "Rat (Rattus norvegicus)",
-      "Zebrafish (Danio rerio)",
-      "Fruit fly (Drosophila melanogaster)",
-      "Arabidopsis (Arabidopsis thaliana)",
-      "E. coli (Escherichia coli)",
-      "Yeast (Saccharomyces cerevisiae)",
-      "Other"
-    ],
-    "organismPart": [
-      "Brain",
-      "Heart",
-      "Liver",
-      "Lung",
-      "Kidney",
-      "Spleen",
-      "Pancreas",
-      "Intestine",
-      "Stomach",
-      "Skin",
-      "Blood",
-      "Tumor",
-      "Muscle",
-      "Bone",
-      "Eye",
-      "Embryo",
-      "Fetus",
-      "Whole organism",
-      "Other"
-    ],
-    "condition": [
-      "Control",
-      "Disease",
-      "Cancer",
-      "Infection",
-      "Drug-treated",
-      "Genetic modification",
-      "Time-course",
-      "Other"
-    ],
-    "sampleGrowthCondition": [
-      "In vivo",
-      "Ex vivo",
-      "In vitro",
-      "Cell culture",
-      "2D culture",
-      "3D culture",
-      "Organoid",
-      "Other"
-    ],
-    "sampleStabilization": [
-      "Fresh",
-      "Fresh frozen",
-      "Snap frozen",
-      "FFPE (Formalin-fixed paraffin-embedded)",
-      "Fixed (formalin)",
-      "Ethanol fixed",
-      "Dried",
-      "Other"
-    ],
-    "tissueModification": [
-      "None",
-      "Sectioned",
-      "Cryosectioned",
-      "Microdissected",
-      "Washed",
-      "Digested",
-      "Stained",
-      "Enzymatic treatment",
-      "Chemical derivatization",
-      "Other"
-    ],
-    "maldiMatrix": [
-      "CHCA (α-Cyano-4-hydroxycinnamic acid)",
-      "DHB (2,5-Dihydroxybenzoic acid)",
-      "NEDC(N-(1-naphthyl)ethylenediamine dihydrochloride)",
-      "Sinapinic acid",
-      "9-AA (9-Aminoacridine)",
-      "Norharmane",
-      "DAN (1,5-Diaminonaphthalene)",
-      "DHAP (2,6-Dihydroxyacetophenone)",
-      "Ionic liquid matrices",
-      "Gold nanoparticle",
-      "Silver nanoparticle",
-      "Other"
-    ],
-    "maldiMatrixApplication": [
-      "Spraying",
-      "Airbrush",
-      "Automated sprayer",
-      "Sublimation",
-      "Spotting",
-      "Droplet deposition",
-      "Inkjet printing",
-      "Other"
-    ],
-    "solvent": [
-      "Water",
-      "Acetonitrile (ACN)",
-      "Methanol (MeOH)",
-      "Ethanol",
-      "Isopropanol (IPA)",
-      "Acetone",
-      "Formic acid",
-      "Trifluoroacetic acid (TFA)",
-      "Ammonium hydroxide",
-      "Other"
-    ]
-  },
-
-  "ionSourceFieldRules": {
-    "defaults": {
-      "solvent":           { "required": false, "label": "Solvent",                    "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
-      "maldiMatrix":       { "required": false, "label": "MALDI Matrix" },
-      "maldiMatrixApplication": { "required": false, "label": "MALDI Matrix Application" }
-    },
-    "families": [
       {
-        "key": "ir-maldesi",
-        "match": ["ir-maldesi", "maldesi"],
-        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 50% MeOH / 50% H2O" }
+        "kind": "action",
+        "action": "toggle-theme",
+        "icon": "sun",
+        "label": "Toggle theme",
+        "active": true
       },
       {
-        "key": "nano-desi",
-        "match": ["nano-desi", "nanodesi"],
-        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. MeOH / H2O" }
+        "kind": "action",
+        "action": "toggle-ai",
+        "icon": "sparkles",
+        "label": "AI Assistant",
+        "active": false,
+        "requireAuth": true
       },
       {
-        "key": "desi",
-        "match": ["desi"],
-        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 95% MeOH / 5% H2O" }
-      },
-      {
-        "key": "ap-smaldi",
-        "match": ["ap-smaldi", "smaldi"],
-        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
-        "maldiMatrix": { "required": true },
-        "maldiMatrixApplication": { "required": true }
-      },
-      {
-        "key": "ap-maldi",
-        "match": ["ap-maldi"],
-        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
-        "maldiMatrix": { "required": true },
-        "maldiMatrixApplication": { "required": true }
-      },
-      {
-        "key": "maldi-2",
-        "match": ["maldi-2", "maldi2"],
-        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
-        "maldiMatrix": { "required": true },
-        "maldiMatrixApplication": { "required": true }
-      },
-      {
-        "key": "maldi",
-        "match": ["maldi"],
-        "solvent": { "required": true, "label": "Solvent", "placeholder": "e.g. 70% ACN / 30% H2O / 0.1% TFA" },
-        "maldiMatrix": { "required": true },
-        "maldiMatrixApplication": { "required": true }
-      },
-      {
-        "key": "laesi",
-        "match": ["laesi"]
-      },
-      {
-        "key": "sims",
-        "match": ["sims"]
-      },
-      {
-        "key": "saldi",
-        "match": ["saldi"]
-      },
-      {
-        "key": "ldi",
-        "match": ["ldi"]
+        "kind": "action",
+        "action": "logout",
+        "icon": "signin",
+        "label": "Sign out",
+        "active": true,
+        "requireAuth": true
       }
     ]
   }

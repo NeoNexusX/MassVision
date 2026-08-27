@@ -6,7 +6,7 @@
  *   - processed (pixel-major): TIC image + per-pixel spectrum (new feature)
  *
  * selectedMzIndex is the single source of truth for continuous mode;
- * selectedPixelIndex is the source of truth for processed mode.
+ * pixelSpectrum is the source of truth for processed mode.
  * selectedMz is derived from selectedMzIndex + mzAxis (continuous only).
  *
  * ⚠️ 模块级单例：store / mzAxisRef / dataModeRef 等约 20 个状态挂在模块作用域，
@@ -345,15 +345,6 @@ export function findClosestMzIndex(target: number): number {
   return Math.abs(target - a[prev]!) <= Math.abs(a[lo]! - target) ? prev : lo
 }
 
-export function findClosestPeak(mz: number, tolerance: number): number {
-  const axis = mzAxisRef.value
-  if (!axis || !axis.length) return -1
-  const idx = findClosestMzIndex(mz)
-  if (idx < 0) return -1
-  if (Math.abs(axis[idx]! - mz) <= tolerance) return idx
-  return -1
-}
-
 const normalizationCache = new Map<'tic', Float32Array>()
 const normalizationPending = new Map<
   'tic',
@@ -377,9 +368,6 @@ export function useZarrIonImage() {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const ready = ref(false)
-
-  // Processed mode state
-  const selectedPixelIndex = ref(-1)
 
   // Computed
   const ionCols = computed(() => ionDims.value?.width ?? 0)
@@ -523,15 +511,6 @@ export function useZarrIonImage() {
     }
   })
 
-  // ---- Processed mode: load pixel spectrum ----
-
-  const loadSpectrumForPixel = async (pixelIdx: number) => {
-    if (!ready.value) return
-    if (dataModeRef.value !== 'processed') return
-    selectedPixelIndex.value = pixelIdx
-    await loadPixelSpectrum(pixelIdx)
-  }
-
   // ---- Initialization ----
 
   const init = async (runId: string) => {
@@ -650,9 +629,5 @@ export function useZarrIonImage() {
     normalizationLoading,
     normalizationError,
     hasTic,
-
-    // Processed mode
-    selectedPixelIndex,
-    loadSpectrumForPixel,
   }
 }

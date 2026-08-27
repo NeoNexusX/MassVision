@@ -85,7 +85,7 @@ import SelectWithOther from '@/shared/components/SelectWithOther.vue'
 
 const props = defineProps<{
   modelValue: string
-  solventOptions: string[]
+  solventOptions: readonly string[]
 }>()
 
 const emit = defineEmits<{

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { defineAsyncComponent, ref } from 'vue'
 import DatasetList from '@/features/datasets/components/DatasetList.vue'
 import DatasetFilterBar from '@/features/datasets/components/DatasetFilterBar.vue'
-import UploadModal from '@/features/upload/components/UploadModal.vue'
 import ExploreConfirmDialog from '@/features/datasets/components/ExploreConfirmDialog.vue'
 import { listFiles } from '@/features/datasets/api/datasetApi'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
@@ -11,11 +10,17 @@ import { useExploreDataset } from '@/features/datasets/composables/useExploreDat
 import { useRequireAuth } from '@/shared/composables/useRequireAuth'
 import { createDefaultDatasetFilters } from '@/features/datasets/constants/datasetMetadata'
 
+// 上传流程（表单/解析/OSS 分片上传）约 60KB，只读列表页多数访客用不到。
+// 懒加载 + 下面的 uploadModalMounted 守卫，把它推迟到用户真的点「上传」时才下载。
+const UploadModal = defineAsyncComponent(
+  () => import('@/features/upload/components/UploadModal.vue'),
+)
+
 // Use composable for datasets (fetch/map/pagination/sort)
 const initialFilters = createDefaultDatasetFilters()
 
 const fetcher = async (f: Record<string, any>, p: number, s: number) => {
-  return await listFiles(f, p, s, true)  // 列表加载不需要登录
+  return await listFiles(f, p, s, true) // 列表加载不需要登录
 }
 
 const {
@@ -50,6 +55,10 @@ const { requireAuth } = useRequireAuth('/datasets')
 
 // Upload modal state
 const isUploadOpen = ref(false)
+// 只翻一次的挂载标志：UploadModal 内部 onBeforeUnmount 会中止进行中的上传，
+// 且 useUploadFlow 持有断点续传/表单状态，所以关闭时不能卸载。
+// 首次打开挂上之后就常驻，此后开关行为与改动前完全一致（含 modal 动画）。
+const uploadModalMounted = ref(false)
 
 // Card actions
 const handleDownload = (id?: string) => {
@@ -66,6 +75,7 @@ const handleExplore = (id?: string) => {
 
 const handleUpload = () => {
   if (!requireAuth()) return
+  uploadModalMounted.value = true
   isUploadOpen.value = true
 }
 
@@ -92,29 +102,28 @@ const handleUploadSuccess = (_datasetName: string) => {
       />
 
       <UploadModal
+        v-if="uploadModalMounted"
         :is-open="isUploadOpen"
         @close="isUploadOpen = false"
         @upload-success="handleUploadSuccess"
       />
 
-      <div>
-        <DatasetList
-          :datasets="datasets"
-          :loading="loading"
-          :error="error"
-          :meta="meta"
-          :size="size"
-          :pagination="pagination"
-          :packingIds="packingIds"
-          @view-overview="viewOverview"
-          @download="handleDownload"
-          @explore="handleExplore"
-          @change-size="changeSize"
-          @go-to-page="goToPage"
-        >
-          <template #empty> No public datasets found matching your filters. </template>
-        </DatasetList>
-      </div>
+      <DatasetList
+        :datasets="datasets"
+        :loading="loading"
+        :error="error"
+        :meta="meta"
+        :size="size"
+        :pagination="pagination"
+        :packingIds="packingIds"
+        @view-overview="viewOverview"
+        @download="handleDownload"
+        @explore="handleExplore"
+        @change-size="changeSize"
+        @go-to-page="goToPage"
+      >
+        <template #empty> No public datasets found matching your filters. </template>
+      </DatasetList>
 
       <!-- Explore / Raw-Convert Confirmation -->
       <ExploreConfirmDialog

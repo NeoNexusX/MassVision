@@ -91,9 +91,7 @@ export function useExploreDataset() {
 
   return {
     showExploreConfirm,
-    exploringDataset,
     isConverting,
-    openExploreConfirm,
     cancelExplore,
     confirmExplore,
     handleExplore,

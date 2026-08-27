@@ -4,7 +4,7 @@ import { useSendEmailCode } from '@/shared/composables/useSendEmailCode'
 import { usrSignupApi } from '@/shared/auth/authApi'
 import type { UsrSignup } from '@/shared/auth/types'
 import { useToast } from '@/shared/composables/useToast'
-import { getPositionOptions, getResearchFieldOptions } from '@/shared/constants/profileOptions'
+import { POSITION_OPTIONS, RESEARCH_FIELD_OPTIONS } from '@/shared/constants/profileOptions'
 import { getRegionOptions } from '@/shared/utils/regionOptions'
 import { SESSION_KEYS } from '@/shared/config'
 import { VALIDATION_PATTERNS } from '@/features/auth/constants/validationPatterns'
@@ -246,8 +246,8 @@ export function useRegisterForm() {
     patterns,
     loading,
     regionOptions,
-    positionOptions: getPositionOptions(),
-    researchFieldOptions: getResearchFieldOptions(),
+    positionOptions: POSITION_OPTIONS,
+    researchFieldOptions: RESEARCH_FIELD_OPTIONS,
     countdown,
     isCountdownActive,
     isExhausted,

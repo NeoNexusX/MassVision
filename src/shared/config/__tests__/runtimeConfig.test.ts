@@ -15,29 +15,43 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('result feature config', () => {
-  it('enables result features when an older config omits the flags', async () => {
+describe('zarr tuning config', () => {
+  it('falls back to built-in defaults when the block is missing', async () => {
     mockConfig({ appName: 'Test' })
 
     await loadConfig()
 
-    expect(getConfig().resultFeatures).toEqual({
-      compare: true,
-      annotation: true,
+    expect(getConfig().zarr).toEqual({
+      spectraChunkCacheSize: 100,
+      spectraConcurrency: 16,
     })
   })
 
-  it('preserves explicitly disabled result features', async () => {
+  it('preserves valid explicit values', async () => {
     mockConfig({
       appName: 'Test',
-      resultFeatures: { compare: false, annotation: false },
+      zarr: { spectraChunkCacheSize: 40, spectraConcurrency: 32 },
     })
 
     await loadConfig()
 
-    expect(getConfig().resultFeatures).toEqual({
-      compare: false,
-      annotation: false,
+    expect(getConfig().zarr).toEqual({
+      spectraChunkCacheSize: 40,
+      spectraConcurrency: 32,
+    })
+  })
+
+  it('rejects out-of-range or non-integer values', async () => {
+    mockConfig({
+      appName: 'Test',
+      zarr: { spectraChunkCacheSize: 0, spectraConcurrency: 1.5 },
+    })
+
+    await loadConfig()
+
+    expect(getConfig().zarr).toEqual({
+      spectraChunkCacheSize: 100,
+      spectraConcurrency: 16,
     })
   })
 })

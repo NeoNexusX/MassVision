@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import DeveloperCard from './DeveloperCard.vue'
 import { getConfig } from '@/shared/config'
+import { getContent } from '@/features/home/config/contentConfig'
 import { useCarouselScroll } from '@/features/home/composables/useCarouselScroll'
 
-const { team: TEAM_MEMBERS, carousel } = getConfig()
+// 成员名单属首页展示内容（content.json），轮播节奏属全站 UI 调参（config.json）
+const { team: TEAM_MEMBERS } = getContent()
+const { carousel } = getConfig()
 
 const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage } =
   useCarouselScroll({ interval: carousel.interval, endPause: carousel.endPause })

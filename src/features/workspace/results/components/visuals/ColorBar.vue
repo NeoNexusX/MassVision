@@ -1,9 +1,9 @@
 <template>
-  <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto scrollbar-thin overflow-x-hidden pr-4 lg:pr-[2em]">
+  <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto scrollbar-thin overflow-x-hidden pr-4 lg:pr-[1em]">
     <!-- ─── Info ─── -->
-    <div class="pt-3 border-t border-base-content/25">
-      <div class="text-lg font-semibold text-base-content mb-2">Info</div>
-      <div class="space-y-1.5 text-lg text-base-content">
+    <div class="pt-3 border-t border-base-content/50">
+      <div class="text-[1.3em] font-semibold text-base-content mb-2">Info</div>
+      <div class="space-y-1.5 text-[1.1em] text-base-content">
         <div v-for="row in infoRows" :key="row.label" class="flex justify-between">
           <span>{{ row.label }}</span>
           <span class="font-mono text-base-content">{{ row.value }}</span>
@@ -12,41 +12,48 @@
     </div>
 
     <!-- ─── Display Range ─── -->
-    <div class="mt-5 pt-4 border-t border-base-content/25">
-      <div class="text-lg font-semibold text-base-content mb-2">Display range</div>
+    <div class="mt-5 pt-4 border-t border-base-content/50">
+      <div class="text-[1.2em] font-semibold text-base-content mb-2">Display range</div>
+      <!-- The two fixed columns keep their width on the wrapper, which sits at the
+           section's base font size: an em width on the same element as text-[1.125em]
+           would resolve against that larger size instead (1.75em -> 1.97em). -->
       <div class="space-y-2">
         <div class="flex items-center gap-2">
-          <span class="text-lg text-base-content w-[1.75em] text-right">Max</span>
+          <div class="w-[2em] text-right">
+            <span class="text-[1.125em] text-base-content">Max</span>
+          </div>
           <input
             type="text"
-            class="input input-sm input-bordered flex-1 text-lg font-mono"
+            class="input input-sm input-bordered flex-1 text-[1.125em] font-mono"
             :value="formatValue(localMax)"
             @change="onMaxInput($event)"
           />
-          <span class="text-lg text-base-content w-[3.5em] text-right font-bold">{{
-            pctLabel(displayMax)
-          }}</span>
+          <div class="w-[4em] text-right">
+            <span class="text-[1.125em] text-base-content font-bold">{{ pctLabel(displayMax) }}</span>
+          </div>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-lg text-base-content w-[1.75em] text-right">Min</span>
+          <div class="w-[2em] text-right">
+            <span class="text-[1.125em] text-base-content">Min</span>
+          </div>
           <input
             type="text"
-            class="input input-sm input-bordered flex-1 text-lg font-mono"
+            class="input input-sm input-bordered flex-1 text-[1.125em] font-mono"
             :value="formatValue(localMin)"
             @change="onMinInput($event)"
           />
-          <span class="text-lg text-base-content w-[3.5em] text-right font-bold">{{
-            pctLabel(displayMin)
-          }}</span>
+          <div class="w-[4em] text-right">
+            <span class="text-[1.125em] text-base-content font-bold">{{ pctLabel(displayMin) }}</span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ─── Statistic ─── -->
-    <div class="mt-5 pt-4 border-t border-base-content/25">
-      <div class="text-lg font-semibold text-base-content mb-2">Statistic</div>
-      <div class="rounded-lg border border-base-content/25 bg-base-200/50 p-3 space-y-2">
-        <div class="relative h-[5em] rounded border border-base-content/25 bg-base-200 overflow-visible -mx-3">
+    <div class="mt-5 pt-4 border-t border-base-content/50">
+      <div class="text-[1.3em] font-semibold text-base-content mb-2">Statistic</div>
+      <div class="space-y-2 p-2">
+        <div class="relative h-[5em] rounded border border-base-content/50 bg-base-200">
           <canvas ref="histCanvasRef" class="absolute inset-0 w-full h-full" />
           <div
             class="absolute top-0 bottom-0 w-[2px] bg-red-500/80 z-10"
@@ -57,7 +64,7 @@
             :style="{ left: markerLeft(displayMax) + '%' }"
           />
         </div>
-        <div class="space-y-1.5 text-lg text-base-content">
+        <div class="space-y-1.5 text-[1.2em] text-base-content">
           <div v-for="row in statisticRows" :key="row.label" class="flex justify-between">
             <span>{{ row.label }}</span>
             <span class="font-mono text-base-content">{{ row.value }}</span>
@@ -67,16 +74,17 @@
     </div>
 
     <!-- ─── Preprocessing ─── -->
-    <div v-if="methods.length" class="mt-5 pt-4 border-t border-base-content/25">
-      <div class="text-lg font-semibold text-base-content mb-2">Preprocessing</div>
+    <div v-if="methods.length" class="mt-5 pt-4 border-t border-base-content/50">
+      <div class="text-[1.2em] font-semibold text-base-content mb-2">Preprocessing</div>
       <div class="space-y-1">
         <div
           v-for="m in methods"
           :key="m"
-          class="text-lg text-base-content flex items-center gap-1.5 whitespace-nowrap"
+          :title="m"
+          class="text-[1em] text-base-content flex items-center gap-1.5 min-w-0"
         >
-          <span class="w-[0.25em] h-[0.25em] rounded-full bg-blue-400"></span>
-          {{ m }}
+          <span class="shrink-0 w-[0.25em] h-[0.25em] rounded-full bg-blue-400"></span>
+          <span class="truncate">{{ m }}</span>
         </div>
       </div>
     </div>

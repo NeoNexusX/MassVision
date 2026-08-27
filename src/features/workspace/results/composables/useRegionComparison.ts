@@ -88,7 +88,6 @@ const PROCESSED_BIN_WIDTH = 0.01
 // ---------- composable ----------
 
 export function useRegionComparison(deps: {
-  enabled?: boolean
   kmeansClusters: Ref<KmeansCluster[]>
   kmeansLabelsAvailable: Ref<boolean>
   getKmeansLabels: () => Int32Array | null
@@ -99,7 +98,6 @@ export function useRegionComparison(deps: {
   onSelectMzIndex: (idx: number) => void | Promise<void>
   setComparisonOverlay: (rgba: Uint8ClampedArray | null) => void
 }) {
-  const featureEnabled = deps.enabled !== false
   const regionAIds = ref<string[]>([])
   const regionBIds = ref<string[]>([])
   const minDetectionRate = ref(5) // percentage, 1-50
@@ -108,10 +106,7 @@ export function useRegionComparison(deps: {
   const progress = ref(0)
   const error = ref<string | null>(null)
   const results = shallowRef<IonComparison[]>([])
-  const hasResults = ref(false)
   const overlayVisible = ref(false)
-  /** Total ions in the m/z axis (before any filtering). */
-  const totalIons = ref(0)
   /** Breakdown of how many ions were filtered out and why. */
   const filterStats = ref<{ total: number; kept: number; filtered: number }>({
     total: 0,
@@ -133,7 +128,6 @@ export function useRegionComparison(deps: {
   let cachedDims: { width: number; height: number } | null = null
 
   const availableRegions = computed<RegionOption[]>(() => {
-    if (!featureEnabled) return []
     const regions: RegionOption[] = []
     if (deps.kmeansLabelsAvailable.value) {
       for (const c of deps.kmeansClusters.value) {
@@ -158,12 +152,10 @@ export function useRegionComparison(deps: {
 
   // Deleted regions must not linger in the selectors - otherwise the
   // thumbnail/overlay would keep showing a region that no longer exists.
-  if (featureEnabled) {
-    watch(availableRegions, (regions) => {
-      regionAIds.value = regionAIds.value.filter((id) => regions.some((r) => r.value === id))
-      regionBIds.value = regionBIds.value.filter((id) => regions.some((r) => r.value === id))
-    })
-  }
+  watch(availableRegions, (regions) => {
+    regionAIds.value = regionAIds.value.filter((id) => regions.some((r) => r.value === id))
+    regionBIds.value = regionBIds.value.filter((id) => regions.some((r) => r.value === id))
+  })
 
   /** Selected A/B options (stale ids filtered out). */
   const selectedRegionsA = computed(
@@ -185,7 +177,6 @@ export function useRegionComparison(deps: {
   const colorB: RGB = COMPARISON_B_RGB
 
   const canCompare = computed(() => {
-    if (!featureEnabled) return false
     if (comparing.value) return false
     if (!regionAIds.value.length || !regionBIds.value.length) return false
     // A region may not participate in both groups
@@ -362,7 +353,6 @@ export function useRegionComparison(deps: {
       })
     }
 
-    totalIons.value = nItems
     filterStats.value = {
       total: nItems,
       kept: comparisons.length,
@@ -379,7 +369,6 @@ export function useRegionComparison(deps: {
   }
 
   async function compare() {
-    if (!featureEnabled) return
     if (!canCompare.value) return
     const ctx = getSharedZarrContext()
     const store = ctx.store
@@ -401,7 +390,6 @@ export function useRegionComparison(deps: {
     progress.value = 0
     error.value = null
     results.value = []
-    hasResults.value = false
     overlayVisible.value = false
     deps.setComparisonOverlay(null)
 
@@ -511,7 +499,6 @@ export function useRegionComparison(deps: {
       }
 
       results.value = comparisons
-      hasResults.value = true
     } catch (e) {
       console.error('[useRegionComparison] compare failed:', e)
       error.value = e instanceof Error ? e.message : String(e)
@@ -525,7 +512,6 @@ export function useRegionComparison(deps: {
   /** Click a result row: load the ion image (continuous mode only).
    *  Processed mode has no ion image - the row click is a no-op. */
   function selectMz(ionIndex: number) {
-    if (!featureEnabled) return
     deps.onSelectMzIndex(ionIndex)
   }
 
@@ -582,7 +568,6 @@ export function useRegionComparison(deps: {
     b: RegionThumbnailRegion[]
     dims: { width: number; height: number }
   } | null {
-    if (!featureEnabled) return null
     const ctx = getSharedZarrContext()
     const store = ctx.store
     if (!store) return null
@@ -627,12 +612,10 @@ export function useRegionComparison(deps: {
   function reset() {
     cancelled = true
     results.value = []
-    hasResults.value = false
     error.value = null
     progress.value = 0
     comparing.value = false
     overlayVisible.value = false
-    totalIons.value = 0
     filterStats.value = { total: 0, kept: 0, filtered: 0 }
     cachedMembersA = []
     cachedMembersB = []
@@ -650,9 +633,7 @@ export function useRegionComparison(deps: {
     progress,
     error,
     results,
-    hasResults,
     overlayVisible,
-    totalIons,
     filterStats,
     availableRegions,
     canCompare,
