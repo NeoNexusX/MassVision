@@ -1,12 +1,9 @@
-import type { FileImagesResponse } from '@/features/datasets/types/dataset'
-
-/** 根据 storage_mode 从 urls 中取出正确的图片 URL */
-export function pickImageUrl(images: FileImagesResponse): string {
-  const { storage_mode: mode, urls } = images
-  const values = Object.values(urls)
-  const fallback = values[0] ?? ''
-
-  if (mode === 'continuous') return urls['umap_image.jpg'] || fallback
-  if (mode === 'processed')   return urls['tic_image.png']  || fallback
-  return fallback
+/**
+ * 直连 OSS 预览图 URL。该路径已放开公共读权限，无需再调后端接口换下载 URL。
+ * 拼接规则见 public/oss-direct-url.md：
+ *   https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com/images/file_{id}/preview.jpg
+ * 预览图尚未生成时返回 404，由调用方 <img @error> 兜底占位图。
+ */
+export function buildPreviewImageUrl(fileId: string | number): string {
+  return `https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com/images/file_${fileId}/preview.jpg`
 }

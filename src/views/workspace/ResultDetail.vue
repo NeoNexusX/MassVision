@@ -27,6 +27,7 @@ import { useRegionComparison } from '@/features/workspace/results/composables/us
 import { ZARR_STORE } from '@/shared/config/defaults'
 import { getConfig } from '@/shared/config/runtimeConfig'
 import { rgbCss } from '@/features/workspace/results/utils/regionPalette'
+import { useToast } from '@/shared/composables/useToast'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
 interface ResultDetailState {
@@ -82,13 +83,14 @@ const {
   ionRows,
   loading,
   error: ionError,
-  onSpectrumClickByIndex,
-  isProcessed,
   loadNormalization,
   clearNormalization,
   normalizationFactors,
   normalizationLoading,
   normalizationError,
+  hasTic,
+  onSpectrumClickByIndex,
+  isProcessed,
 } = zarr
 
 // 当前数据模式
@@ -97,7 +99,7 @@ const dataMode = computed<DataMode | null>(() => dataModeRef.value)
 // processed 模式下的图像矩阵（TIC）
 const currentIonMatrix = computed(() => (isProcessed.value ? ticMatrix.value : ionMatrix.value))
 
-// 当前显示强度标度对应的图像矩阵；RMS/TIC 仅在用户选择后按需计算
+// 当前显示强度标度对应的图像矩阵；TIC 仅在用户选择后按需计算
 const normalizedIonMatrix = computed(() => {
   const matrix = currentIonMatrix.value
   const factors = normalizationFactors.value
@@ -115,15 +117,23 @@ const normalizedIonMatrix = computed(() => {
 
 const displaySourceMatrix = computed(() => normalizedIonMatrix.value)
 
+// 数据集没有 stats/tic（旧数据/processed）时归一化选项会被隐藏；
+// 若当前还停在 TIC，强制回到 Linear，避免值与选项不一致。
+watch(hasTic, (v) => {
+  if (!v && intensityScale.value === 'tic') {
+    intensityScale.value = 'linear'
+    clearNormalization()
+  }
+})
+
 // ---- 初始化 ----
 
-watch(
-  runId,
-  (id) => {
-    zarr.init(id)
-  },
-  { immediate: true },
-)
+// init/dispose 的并发守卫（代次检查）在 useZarrIonImage 内部完成：
+// init() 期间发生 disposeZarrState() 或重新 init() 时，旧的 init 会自行
+// dispose 孤儿 store 并放弃写入模块状态。
+watch(runId, (id) => {
+  zarr.init(id)
+}, { immediate: true })
 
 // 离开页面时释放模块级状态，避免大数组（mzAxis、meanChartData、ticMatrix 等）
 // 和 ZarrOssStore 缓存在 SPA 导航后仍驻留内存
@@ -168,7 +178,6 @@ const {
   roiCancel,
   roiDelete,
   roiClearAll,
-  roiReset,
   onDraftUpdated,
   onDraftCleared,
 } = useResultROI(displaySourceMatrix, ionCols, ionRows)
@@ -205,13 +214,17 @@ const {
   toggleKmeansCluster,
   selectAllKmeansClusters,
   clearKmeansClusters,
-} = useOverlayData(runId, ionRows, ionCols, storageMode)
+} = useOverlayData(
+  runId,
+  ionRows,
+  ionCols,
+)
 
 // ---- Region comparison ----
 
 const {
-  regionAId: cmpRegionAId,
-  regionBId: cmpRegionBId,
+  regionAIds: cmpRegionAIds,
+  regionBIds: cmpRegionBIds,
   minDetectionRate: cmpMinDetectionRate,
   noiseFloorPercentile: cmpNoiseFloorPercentile,
   comparing: cmpComparing,
@@ -222,8 +235,8 @@ const {
   filterStats: cmpFilterStats,
   availableRegions: cmpAvailableRegions,
   canCompare: cmpCanCompare,
-  selectedRegionA: cmpSelectedRegionA,
-  selectedRegionB: cmpSelectedRegionB,
+  selectedRegionsA: cmpSelectedRegionsA,
+  selectedRegionsB: cmpSelectedRegionsB,
   colorA: cmpColorA,
   colorB: cmpColorB,
   buildThumbnailRegions: cmpBuildThumbnailRegions,
@@ -231,19 +244,46 @@ const {
   cancel: cmpCancel,
   selectMz: cmpSelectMz,
   reset: cmpReset,
+  involvesRoi: cmpInvolvesRoi,
 } = useRegionComparison({
   enabled: compareEnabled,
   kmeansClusters,
   kmeansLabelsAvailable,
   getKmeansLabels,
-  confirmedROIs: confirmedROIs as any,
+  confirmedROIs: confirmedROIs,
   ionCols,
   ionRows,
+  dataMode,
   onSelectMzIndex: handleSelectMzIndex,
   setComparisonOverlay,
 })
 
 const cmpThumbnail = computed(() => cmpBuildThumbnailRegions())
+
+// Re-running KMeans always invalidates any existing comparison (clusters may
+// be renumbered), so reset unconditionally. Clearing/deleting ROIs only
+// invalidates the comparison when an ROI was actually one of the compared
+// regions — a KMeans-vs-KMeans comparison is unaffected and should survive.
+function handleRunKmeans(k: number) {
+  cmpReset()
+  return runKmeans(k)
+}
+
+function handleRoiClearAll() {
+  if (cmpInvolvesRoi()) cmpReset()
+  roiClearAll()
+}
+
+function handleRoiDelete(id: string) {
+  // Only reset when the deleted ROI was one of the compared regions; deleting
+  // an unrelated ROI (or any ROI when comparing KMeans-vs-KMeans) is harmless.
+  if (cmpInvolvesRoi(id)) cmpReset()
+  roiDelete(id)
+}
+
+// ---- Reference ROI import (local mode) ----
+
+const { showToast } = useToast()
 
 const compareSectionRef = ref<HTMLElement | null>(null)
 // compare 面板与结果表共享展开状态。
@@ -264,7 +304,7 @@ const spectrumStats = computed(() => ({
 
 const displayInfo = computed(() => ({
   ...imageInfo.value,
-  polarity: polarity.value || imageInfo.value.polarity,
+  polarity: polarity.value,
   analyzer: analyzer.value,
   ionisationSource: ionSource.value,
   pixelSize: pixelSize.value,
@@ -282,12 +322,7 @@ const selectedPixelCoord = computed(() => {
 
 // ---- 事件处理 ----
 
-/**
- * 切换 m/z：直接加载新离子的 slice，保持当前强度标度。
- * RMS/TIC 归一化因子是 per-pixel、跨所有离子计算的，与当前 ion 无关，
- * 因此切 m/z 时无需回到 linear--缓存的归一化因子会通过 normalizedIonMatrix
- * 自动套用到新离子图上，不重新计算。
- */
+/** 切换 m/z：直接加载新离子的 slice，保持当前强度标度。 */
 async function handleSelectMzIndex(idx: number) {
   await onSpectrumClickByIndex(idx)
 }
@@ -298,7 +333,15 @@ const resetControls = () => {
   colormap.value = 'inferno'
   intensityScale.value = 'linear'
   gamma.value = 1
+  clearNormalization()
   resetRange()
+}
+
+/** 切换强度标度（TIC 归一化需异步加载，其他即时切换） */
+async function onIntensityScaleChange(value: string) {
+  intensityScale.value = value
+  if (value === 'tic') await loadNormalization('tic')
+  else clearNormalization()
 }
 
 const setStripRef = (element: HTMLElement | null) => {
@@ -336,6 +379,7 @@ async function onSelectPixel(col: number, row: number) {
   <ResultVisualizationLayout
     :show-left-panel="annotationEnabled"
     :show-compare="compareEnabled"
+    :left-panel-collapsed="!annotationExpanded"
   >
     <template #left-panel>
       <AnnotationPanel
@@ -374,15 +418,11 @@ async function onSelectPixel(col: number, row: number) {
         :ion-loading="loading"
         :ion-error="ionError"
         :normalization-loading="normalizationLoading"
+        :normalization-error="normalizationError"
+        :has-tic="hasTic"
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
-        @update:intensity-scale="
-          async (value) => {
-            intensityScale = value
-            if (value === 'rms' || value === 'tic') await loadNormalization(value)
-            else clearNormalization()
-          }
-        "
+        @update:intensity-scale="onIntensityScaleChange"
         @reset-controls="resetControls"
         @reset-range="resetRange"
         @strip-ref="setStripRef"
@@ -420,8 +460,8 @@ async function onSelectPixel(col: number, row: number) {
             :regions="cmpAvailableRegions"
             :data-mode="dataMode"
             :spectrum-mode="spectrumMode"
-            v-model:region-a-id="cmpRegionAId"
-            v-model:region-b-id="cmpRegionBId"
+            v-model:region-a-ids="cmpRegionAIds"
+            v-model:region-b-ids="cmpRegionBIds"
             v-model:min-detection-rate="cmpMinDetectionRate"
             v-model:noise-floor-percentile="cmpNoiseFloorPercentile"
             v-model:expanded="comparisonExpanded"
@@ -436,11 +476,14 @@ async function onSelectPixel(col: number, row: number) {
             @cancel="cmpCancel"
           >
             <template #preview>
+              <!-- Only the selected A/B regions are drawn (clusters or ROIs).
+                   Unselected confirmed ROIs are NOT shown, so the thumbnail
+                   stays focused on the current comparison. -->
               <RegionPreviewThumbnail
-                v-if="kmeansLabelsAvailable && cmpThumbnail"
+                v-if="cmpThumbnail"
                 :a="cmpThumbnail.a"
                 :b="cmpThumbnail.b"
-                :rois="confirmedROIs as any"
+                :rois="[]"
                 :matrix="currentIonMatrix"
                 :width="cmpThumbnail.dims.width"
                 :height="cmpThumbnail.dims.height"
@@ -466,7 +509,7 @@ async function onSelectPixel(col: number, row: number) {
 
     <template #side-panel>
       <ColorBar
-        class="shrink-0 py-4 w-full lg:w-[340px]"
+        class="shrink-0 py-4 w-full"
         :colormap="colormap"
         :global-min="globalMin"
         :global-max="globalMax"
@@ -509,15 +552,15 @@ async function onSelectPixel(col: number, row: number) {
             @toggle-kmeans-cluster="toggleKmeansCluster"
             @kmeans-select-all="selectAllKmeansClusters"
             @kmeans-clear-all="clearKmeansClusters"
-            @run-kmeans="runKmeans"
+            @run-kmeans="handleRunKmeans"
             @export-umap="exportUmapPng"
             @export-kmeans="exportKmeansPng"
             @update:roi-tool="roiSelectTool"
+            @update:viewing-roi="viewingROI = $event"
             @roi-confirm="roiConfirm"
             @roi-cancel="roiCancel"
-            @roi-delete="roiDelete"
-            @roi-clear-all="roiClearAll"
-            @roi-reset="roiReset"
+            @roi-delete="handleRoiDelete"
+            @roi-clear-all="handleRoiClearAll"
             @update:gamma="gamma = $event"
           />
         </template>

@@ -3,7 +3,10 @@ import { computed, ref, watch, onBeforeUnmount, type Ref } from 'vue'
 const GRADIENT_STOPS: Record<string, string[]> = {
   viridis: ['#440154', '#482777', '#3f4a8a', '#31678e', '#26838f', '#1f9d8a', '#6cce5a', '#fee825'],
   inferno: ['#000004', '#280b54', '#65156e', '#9f2a63', '#d44842', '#f57d15', '#fac127', '#fcffa4'],
-  plasma: ['#0d0887', '#46039f', '#7201a8', '#9c179e', '#bd3786', '#d8576b', '#ed7953', '#fdb42f'],
+  // magma: black -> purple -> orange -> pale yellow (even samples, matches colormapLut)
+  magma: ['#000004', '#221150', '#5f187f', '#982d80', '#d3436e', '#f8765c', '#febb81', '#fcfdbf'],
+  // hot: black -> red -> yellow -> white (even samples, matches colormapLut)
+  hot: ['#000000', '#6d0000', '#db0000', '#ff4900', '#ffb600', '#ffff24', '#ffff92', '#ffffff'],
   gray: ['#000000', '#ffffff'],
 }
 
@@ -85,7 +88,7 @@ export function useDisplayRange(
   const imageInfo = computed(() => {
     const matrix = ionMatrix.value
     if (!matrix || !matrix.length) {
-      return { pixels: '--', nonZero: '--', totalIon: '--', polarity: '' }
+      return { pixels: '--', nonZero: '--', totalIon: '--' }
   }
   const cols = ionCols.value
   const rows = ionRows.value
@@ -100,7 +103,6 @@ export function useDisplayRange(
     pixels: `${cols} × ${rows}`,
     nonZero: ((nonZero / (rows * cols)) * 100).toFixed(1) + '%',
     totalIon: total.toExponential(2),
-    polarity: '',
   }
   })
 

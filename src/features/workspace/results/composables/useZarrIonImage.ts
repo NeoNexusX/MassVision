@@ -8,13 +8,22 @@
  * selectedMzIndex is the single source of truth for continuous mode;
  * selectedPixelIndex is the source of truth for processed mode.
  * selectedMz is derived from selectedMzIndex + mzAxis (continuous only).
+ *
+ * ⚠️ 模块级单例：store / mzAxisRef / dataModeRef 等约 20 个状态挂在模块作用域，
+ * 由 ResultDetail 独占使用（useRegionComparison / useAnnotationMatch 等横向消费）。
+ * 路由是单实例（/workspace/results 组件复用 + onUnmounted dispose），因此成立；
+ * 但切勿同时挂载两个消费者（KeepAlive 多实例、第二页签组件），否则后 init 的
+ * 实例会 dispose 前者仍在用的 store。如需多实例，须重构为 provide/inject 工厂。
+ * 生命周期竞态由 initGeneration 代次守卫：init() 进行中发生 disposeZarrState()
+ * 或新一轮 init()，旧 init 在每个 await 检查点放弃并 dispose 自己的孤儿 store。
  */
 
-import { computed, ref, shallowRef } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { getZarrAccess } from '@/services/zarr/api/zarrAccessApi'
 import { ZarrOssStore } from '@/services/zarr/zarrOssStore'
 import type { MetadataAttrs, DataMode } from '@/services/zarr/types/zarr'
 import { ZARR_STORE } from '@/shared/config/defaults'
+import { getConfig } from '@/shared/config'
 
 // ---- Module-level shared state ----
 
@@ -34,6 +43,12 @@ export const rowAxisRef = shallowRef<'pixel' | 'ion' | null>(null)
 
 /** Metadata from /metadata/.zattrs */
 export const metadataAttrsRef = shallowRef<MetadataAttrs | null>(null)
+
+/** Result polarity (e.g. 'positive'/'negative'). Populated from the zarr
+ *  metadata attrs, with an API fallback applied by {@link ../useResultMeta}.
+ *  Shared so consumers (the annotation panel) can read it directly like
+ *  {@link mzAxisRef} instead of threading it through props. */
+export const polarityRef = ref('')
 
 // ---- Mean spectrum state (continuous mode) ----
 
@@ -108,6 +123,7 @@ function resetModuleState(): void {
   dataModeRef.value = null
   rowAxisRef.value = null
   metadataAttrsRef.value = null
+  polarityRef.value = ''
 
   meanChartData.value = []
   meanSpectrumRef.value = null
@@ -130,6 +146,7 @@ function resetModuleState(): void {
  * of persisting for the entire SPA lifetime.
  */
 export function disposeZarrState(): void {
+  initGeneration++ // 作废进行中的 init（若有），它会在下个检查点自行清理
   store?.dispose()
   store = null
 
@@ -328,13 +345,24 @@ export function findClosestMzIndex(target: number): number {
   return Math.abs(target - a[prev]!) <= Math.abs(a[lo]! - target) ? prev : lo
 }
 
-const normalizationCache = new Map<'tic' | 'rms', Float32Array>()
+export function findClosestPeak(mz: number, tolerance: number): number {
+  const axis = mzAxisRef.value
+  if (!axis || !axis.length) return -1
+  const idx = findClosestMzIndex(mz)
+  if (idx < 0) return -1
+  if (Math.abs(axis[idx]! - mz) <= tolerance) return idx
+  return -1
+}
+
+const normalizationCache = new Map<'tic', Float32Array>()
 const normalizationPending = new Map<
-  'tic' | 'rms',
+  'tic',
   { store: ZarrOssStore; promise: Promise<Float32Array> }
 >()
 let normalizationRequestId = 0
 let ionImageRequestId = 0
+/** init 代次：disposeZarrState() / 每次 init() 递增，用于作废进行中的旧 init。 */
+let initGeneration = 0
 
 // ---- Main composable ----
 
@@ -362,6 +390,9 @@ export function useZarrIonImage() {
 
   const isContinuous = computed(() => dataModeRef.value === 'continuous')
   const isProcessed = computed(() => dataModeRef.value === 'processed')
+
+  /** zarr 是否预存 stats/tic（TIC 归一化的唯一数据源，ready 后才有值） */
+  const hasTic = computed(() => (ready.value ? !!store?.hasTIC : false))
 
   // selectedMz is DERIVED from selectedMzIndex + mzAxis — never written directly
   const selectedMz = computed(() => {
@@ -400,7 +431,7 @@ export function useZarrIonImage() {
     }
   }
 
-  const loadNormalization = async (mode: 'tic' | 'rms') => {
+  const loadNormalization = async (mode: 'tic') => {
     if (!store || !ready.value) return
     const requestId = ++normalizationRequestId
     const requestStore = store
@@ -418,7 +449,17 @@ export function useZarrIonImage() {
       const pending = normalizationPending.get(mode)
       let promise = pending && pending.store === requestStore ? pending.promise : null
       if (!promise) {
-        promise = requestStore.computePixelNormalization(mode)
+        // 归一化因子只来自 zarr 预存的 stats/tic 矩阵（一个小数组请求），
+        // 不在前端扫描 intensity；旧数据没有 stats/tic 时直接报错。
+        // TIC：x / TIC[p]。
+        // （RMS 归一化暂未提供：真·RMS（√(ΣI²/N)）无法从 ΣI 还原，
+        //  等后端存了逐像素 RMS/平方和矩阵再加。）
+        const computeFactors = async () => {
+          const tic = await requestStore.loadTIC()
+          if (!tic) throw new Error('This dataset has no pre-computed TIC (stats/tic)')
+          return tic
+        }
+        promise = computeFactors()
         const trackedPromise = promise.finally(() => {
           if (normalizationPending.get(mode)?.promise === trackedPromise) {
             normalizationPending.delete(mode)
@@ -462,6 +503,26 @@ export function useZarrIonImage() {
     await loadForMzIndex(idx)
   }
 
+  // ---- Tolerance change → reload current ion image ----
+  // 输入框每按一次键都会触发 update:mzTolerance，因此做 300ms 防抖，
+  // 避免连续请求 OSS chunk。防抖后仅重载当前 m/z，保持当前强度标度。
+  let toleranceTimer: ReturnType<typeof setTimeout> | null = null
+  watch(mzTolerance, () => {
+    if (!ready.value || dataModeRef.value !== 'continuous') return
+    if (selectedMzIndex.value < 0) return
+    if (toleranceTimer) clearTimeout(toleranceTimer)
+    toleranceTimer = setTimeout(() => {
+      loadForMzIndex(selectedMzIndex.value)
+    }, 300)
+  })
+
+  onBeforeUnmount(() => {
+    if (toleranceTimer) {
+      clearTimeout(toleranceTimer)
+      toleranceTimer = null
+    }
+  })
+
   // ---- Processed mode: load pixel spectrum ----
 
   const loadSpectrumForPixel = async (pixelIdx: number) => {
@@ -479,7 +540,10 @@ export function useZarrIonImage() {
     error.value = null
     ready.value = false
 
-    // Reset all state
+    // Reset all state. Bumping initGeneration first invalidates any init still
+    // in flight: it will abort at its next checkpoint and dispose its own
+    // orphaned store (it must NOT touch the new session's store).
+    const gen = ++initGeneration
     store?.dispose()
     store = null
     ionImageRequestId++
@@ -491,15 +555,35 @@ export function useZarrIonImage() {
     ionMatrix.value = null
     resetModuleState()
 
+    /** True while this init is still the latest lifecycle (no dispose/re-init since). */
+    const isCurrent = () => gen === initGeneration
+    /** Abort this stale init: dispose the store we created (it is no longer
+     *  reachable via the module-level `store`) and stop writing shared refs. */
+    const abortIfStale = (s: ZarrOssStore): boolean => {
+      if (isCurrent() && store === s) return false
+      s.dispose()
+      return true
+    }
+
     try {
-      const access = await getZarrAccess(runId)
-      const s = new ZarrOssStore(access, {
+      // spectra 读取的缓存/并发走运行时 config.json 的 zarr 块（缺省 100MB/16）
+      const zarrCfg = getConfig().zarr
+      const s = new ZarrOssStore(await getZarrAccess(runId), {
         intensityChunkCacheSize: ZARR_STORE.intensityChunkCacheSize,
+        spectraChunkCacheSize: zarrCfg?.spectraChunkCacheSize,
+        spectraConcurrency: zarrCfg?.spectraConcurrency,
+        // STS 过期时自动重拉凭据，避免结果页久置后所有 OSS 读取 403
+        refreshAccess: () => getZarrAccess(runId),
       })
+      // 如果 await getZarrAccess 期间发生了 dispose/重新 init，直接放弃本次加载
+      if (!isCurrent()) {
+        s.dispose()
+        return
+      }
       store = s
       await s.init()
       // 如果 await 期间发生了 disposeZarrState()（用户离开页面）或重新 init()，放弃本次加载
-      if (store !== s) return
+      if (abortIfStale(s)) return
 
       // Set mode and row axis
       dataModeRef.value = s.dataMode
@@ -513,7 +597,7 @@ export function useZarrIonImage() {
       if (s.dataMode === 'continuous') {
         // Load shared m/z axis
         const mzAxis = await s.loadMzAxis()
-        if (store !== s) return
+        if (abortIfStale(s)) return
         if (!mzAxis) throw new Error('[useZarrIonImage] continuous data is missing its m/z axis')
         mzAxisRef.value = mzAxis
 
@@ -525,7 +609,7 @@ export function useZarrIonImage() {
 
         ready.value = true
         await loadDefaultImage()
-        if (store !== s) return
+        if (abortIfStale(s)) return
         loadMeanSpectrum() // background
       } else {
         // Processed mode: load TIC image
@@ -533,10 +617,11 @@ export function useZarrIonImage() {
         await loadTICImage()
       }
     } catch (e) {
+      if (!isCurrent()) return // 本次会话已被 dispose/替换，错误不必再呈现
       console.error('[useZarrIonImage] init failed:', e)
       error.value = e instanceof Error ? e.message : String(e)
     } finally {
-      loading.value = false
+      if (isCurrent()) loading.value = false
     }
   }
 
@@ -564,6 +649,7 @@ export function useZarrIonImage() {
     normalizationFactors,
     normalizationLoading,
     normalizationError,
+    hasTic,
 
     // Processed mode
     selectedPixelIndex,

@@ -2,7 +2,6 @@ import { auth_api, api } from '@/shared/api/httpClient'
 import { getConfig } from '@/shared/config/runtimeConfig'
 import type {
   DownloadRawResponse,
-  FileImagesResponse,
   ProcessingStats,
 } from '@/features/datasets/types/dataset'
 
@@ -25,13 +24,6 @@ export async function getFileMetadata(fileId: string | number, isPublic = false)
 export async function getDownloadRaw(fileId: string, isPublic = false): Promise<DownloadRawResponse> {
   const client = isPublic ? api : auth_api
   const res = await client.get(`/files/${fileId}/download_raw`)
-  return res.data
-}
-
-// GET /files/{file_id}/images
-export async function getFileImages(fileId: string | number, isPublic = false): Promise<FileImagesResponse> {
-  const client = isPublic ? api : auth_api
-  const res = await client.get(`/files/${fileId}/images`)
   return res.data
 }
 

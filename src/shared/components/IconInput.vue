@@ -43,7 +43,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const emit = defineEmits(['update:modelValue', 'blur', 'input', 'focus', 'keydown'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string | number): void
+  (e: 'blur', ev: Event): void
+  (e: 'input', ev: Event): void
+  (e: 'focus', ev: Event): void
+  (e: 'keydown', ev: KeyboardEvent): void
+}>()
 
 const props = defineProps({
   label: { type: String, default: '' },

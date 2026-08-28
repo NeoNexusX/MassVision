@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import IconSelect from '@/shared/components/IconSelect.vue'
+import MzText from '@/shared/components/MzText.vue'
 import type { MethodGroup } from '@/features/workspace/analysis/composables/usePreprocessingMethods'
 
 defineProps<{
@@ -28,7 +29,7 @@ defineProps<{
         class="flex items-start gap-2 p-3 rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-lg text-blue-700 dark:text-blue-300"
       >
         <span class="mt-0.5">ℹ</span>
-        <span>{{ modeNotice }}</span>
+        <span><MzText :text="modeNotice" /></span>
       </div>
       <div
         v-for="group in availableMethods"
@@ -73,9 +74,7 @@ defineProps<{
               class="mt-2 ml-4 grid grid-cols-2 gap-2"
             >
               <div v-for="param in method.params" :key="param.key" class="flex items-center gap-2">
-                <span class="text-lg text-base-content/60 w-32 shrink-0 whitespace-nowrap" :title="param.hint">{{
-                  param.label
-                }}</span>
+                <span class="text-lg text-base-content/60 w-32 shrink-0 whitespace-nowrap" :title="param.hint"><MzText :text="param.label" /></span>
                 <template v-if="param.type === 'select'">
                   <IconSelect
                     class="flex-1 max-w-28"

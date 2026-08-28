@@ -16,7 +16,14 @@ defineProps({
   packingIds: { type: Object as PropType<Set<string>>, required: false, default: () => new Set() },
 })
 
-const emit = defineEmits(['view-overview', 'download', 'delete', 'explore', 'change-size', 'go-to-page'])
+const emit = defineEmits<{
+  (e: 'view-overview', id: string): void
+  (e: 'download', id: string): void
+  (e: 'delete', id: string): void
+  (e: 'explore', id: string): void
+  (e: 'change-size', size: number): void
+  (e: 'go-to-page', page: number): void
+}>()
 
 const onChangeSize = (v: number) => emit('change-size', v)
 const onGoToPage = (p: number) => emit('go-to-page', p)

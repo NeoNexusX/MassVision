@@ -49,6 +49,27 @@ export const REGION_PALETTE: readonly RGB[] = ALL.map(([r, g, b]) => ({ r, g, b 
 /** Number of leading palette slots reserved for KMeans clusters. */
 export const KMEANS_COLOR_COUNT = TAB20.length // 20
 
+/**
+ * Fixed identity colors for comparison groups A/B. Chosen as a colorblind-safe
+ * blue/orange pair (the conventional A/B contrast in MSI tools), deliberately
+ * outside the tab20-derived palette hues used by clusters/ROIs so the compared
+ * groups never read as "just another region".
+ */
+export const COMPARISON_A_RGB: RGB = { r: 37, g: 99, b: 235 } // #2563eb blue-600
+export const COMPARISON_B_RGB: RGB = { r: 234, g: 88, b: 12 } // #ea580c orange-600
+
+/**
+ * Fill alpha per group in the region preview thumbnail. B is painted second
+ * with lower alpha so A/B overlap shows through instead of reading as B-only.
+ */
+export const COMPARISON_A_ALPHA = 0.75
+export const COMPARISON_B_ALPHA = 0.45
+
+/** Same idea for the semi-transparent comparison overlay on the ion image
+ *  (alpha on the 0-255 scale used by Uint8ClampedArray). */
+export const COMPARISON_A_OVERLAY_ALPHA = 110
+export const COMPARISON_B_OVERLAY_ALPHA = 65
+
 /** First palette index available to ROIs (kmeans never reaches this far). */
 export const ROI_COLOR_OFFSET = KMEANS_COLOR_COUNT
 

@@ -3,10 +3,13 @@ withDefaults(
   defineProps<{
     showLeftPanel?: boolean
     showCompare?: boolean
+    /** 左侧面板（Annotation）是否收起；收起时左列不占弹性份额，中列占满 */
+    leftPanelCollapsed?: boolean
   }>(),
   {
     showLeftPanel: true,
     showCompare: true,
+    leftPanelCollapsed: false,
   },
 )
 </script>
@@ -15,7 +18,7 @@ withDefaults(
   <div
     :class="[
       // Small screens
-      'flex flex-col bg-base-100',
+      'result-page flex flex-col bg-base-100',
       // Desktop
       'lg:h-[100dvh] lg:overflow-hidden',
     ]"
@@ -44,8 +47,9 @@ withDefaults(
           :class="[
             // Small screens
             'w-full scrollbar-thin',
-            // Desktop
-            'lg:h-full lg:w-auto lg:min-h-0 lg:shrink-0 lg:self-stretch lg:overflow-y-auto',
+            // Desktop: 收起时只占内容宽度（窄条），展开时占 1 份弹性空间
+            'lg:h-full lg:min-h-0 lg:min-w-0 lg:self-stretch lg:overflow-y-auto lg:text-result',
+            leftPanelCollapsed ? 'lg:flex-none lg:w-auto' : 'lg:flex-[1_1_0%]',
           ]"
         >
           <slot name="left-panel"></slot>
@@ -55,8 +59,8 @@ withDefaults(
           :class="[
             // Small screens
             'flex min-w-0 flex-col gap-4 no-scrollbar',
-            // Desktop
-            'lg:h-full lg:min-h-0 lg:flex-1 lg:overflow-y-auto',
+            // Desktop: 弹性列（3 份），内部字号/图标用 em 等比缩放
+            'lg:h-full lg:min-h-0 lg:min-w-0 lg:flex-[3_1_0%] lg:overflow-y-auto lg:text-result',
           ]"
         >
           <div
@@ -90,8 +94,8 @@ withDefaults(
           :class="[
             // Small screens
             'w-full scrollbar-thin',
-            // Desktop
-            'lg:w-auto lg:min-h-0 lg:shrink-0 lg:overflow-y-auto',
+            // Desktop: 弹性列（1 份），封顶 340px，内部字号/图标用 em 等比缩放
+            'lg:min-w-0 lg:flex-[1_1_0%] lg:max-w-[340px] lg:min-h-0 lg:overflow-y-auto lg:text-result',
           ]"
         >
           <slot name="side-panel"></slot>

@@ -34,9 +34,10 @@ export async function getCurrentUser() {
   return auth_api.get<UsrProfile>('/user')
 }
 
-// Logout endpoint
+// Logout endpoint. skipAuthRedirect: an already-expired token returning 401
+// here is expected — the 401 handler must not bounce to /login for it.
 export async function logoutApi() {
-  return auth_api.post('/logout')
+  return auth_api.post('/logout', null, { skipAuthRedirect: true } as any)
 }
 
 // Update user profile

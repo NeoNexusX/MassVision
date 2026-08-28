@@ -29,7 +29,7 @@ export function bytesPerElement(dtype: string): number {
     case 'float64': case 'int64': case 'uint64': return 8
     case 'int16': case 'uint16': return 2
     case 'int8': case 'uint8': return 1
-    default: return 4
+    default: throw new Error(`[zarrDtype] unsupported dtype: ${dtype}`)
   }
 }
 
@@ -46,5 +46,8 @@ export function makeTypedArray(dtype: string, buf: ArrayBuffer) {
     case 'uint8': return new Uint8Array(buf)
     case 'int64': return new BigInt64Array(buf)
     case 'uint64': return new BigUint64Array(buf)
+    // Fail loudly instead of returning undefined: callers used to degrade to
+    // an empty array and render a fully transparent image with no error.
+    default: throw new Error(`[zarrDtype] unsupported dtype: ${dtype}`)
   }
 }

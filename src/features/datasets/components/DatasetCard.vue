@@ -88,13 +88,12 @@
 </style>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { File } from '@/features/datasets/types/dataset'
 import type { IconType } from '@/shared/components/svgIcons'
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
 import { formatBytes } from '@/shared/utils/format'
-import { getFileImages } from '@/features/datasets/api/datasetApi'
-import { pickImageUrl } from '@/features/datasets/utils/imageUtils'
+import { buildPreviewImageUrl } from '@/features/datasets/utils/imageUtils'
 
 const props = defineProps<{
   dataset: File
@@ -109,17 +108,8 @@ const emit = defineEmits<{
   (e: 'explore', id: string): void
 }>()
 
-const ticImageUrl = ref<string>('')
+const ticImageUrl = ref<string>(buildPreviewImageUrl(props.dataset.id))
 const ticImageError = ref(false)
-
-onMounted(async () => {
-  try {
-    const images = await getFileImages(props.dataset.id)
-    ticImageUrl.value = pickImageUrl(images)
-  } catch {
-    ticImageUrl.value = ''
-  }
-})
 
 const submitDate = computed(() =>
   props.dataset.submitTime

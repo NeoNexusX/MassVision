@@ -80,13 +80,6 @@ export function useResultROI(
     roiOverlayRef.value?.clearAll()
   }
 
-  const roiReset = () => {
-    currentDraft.value = null
-    roiOverlayRef.value?.clearAll()
-    roiSelectTool(null)
-    viewingROI.value = false
-  }
-
   return {
     roiOverlayRef,
     roiTool,
@@ -99,7 +92,6 @@ export function useResultROI(
     roiCancel,
     roiDelete,
     roiClearAll,
-    roiReset,
     onDraftUpdated,
     onDraftCleared,
   }

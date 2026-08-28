@@ -48,6 +48,8 @@ const upload = useUploadFlow({
           <UploadMetadataForm
             :form="upload.form.value"
             :parsing-metadata="upload.parsingMetadata.value"
+            :detected-spectrum-mode="upload.detectedSpectrumMode.value"
+            :detected-storage-mode="upload.detectedStorageMode.value"
           />
         </div>
 

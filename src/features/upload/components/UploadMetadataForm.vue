@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
 import IconSelect from '@/shared/components/IconSelect.vue'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import SolventPicker from '@/features/upload/components/SolventPicker.vue'
 import {
   isValidPixelSize,
@@ -30,6 +31,8 @@ const {
 const props = defineProps<{
   form: UploadMetadataFormState
   parsingMetadata: boolean
+  detectedSpectrumMode?: string
+  detectedStorageMode?: string
 }>()
 
 const pixelSizeXError = ref('')
@@ -48,6 +51,58 @@ function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
 const ionRules = computed(() =>
   getIonSourceFieldRules(props.form.ionisation_source),
 )
+
+// ---- Spectrum / Storage Mode 二次确认 ----
+const modeConfirmOpen = ref(false)
+const modeConfirmTitle = ref('')
+const modeConfirmMessage = ref('')
+let pendingModeField: 'spectrum_mode' | 'storage_mode' | null = null
+let pendingModeValue = ''
+
+/**
+ * 当用户手动修改与自动识别值不同的 spectrum/storage mode 时,
+ * 弹出二次确认对话框,防止误操作。
+ */
+const handleModeChange = (
+  field: 'spectrum_mode' | 'storage_mode',
+  value: string,
+) => {
+  const detected =
+    field === 'spectrum_mode'
+      ? props.detectedSpectrumMode
+      : props.detectedStorageMode
+  const label = field === 'spectrum_mode' ? 'Spectrum Mode' : 'Storage Mode'
+
+  // 没有识别值或选择与识别值相同,直接应用
+  if (!detected || !value || value === detected) {
+    props.form[field] = value
+    return
+  }
+
+  // 用户选择了与识别值不同的选项,弹窗确认
+  pendingModeField = field
+  pendingModeValue = value
+  modeConfirmTitle.value = `Change ${label}?`
+  modeConfirmMessage.value =
+    `The detected ${label.toLowerCase()} is "${detected}". ` +
+    `Are you sure you want to change it to "${value}"?`
+  modeConfirmOpen.value = true
+}
+
+const confirmModeChange = () => {
+  if (pendingModeField) {
+    props.form[pendingModeField] = pendingModeValue
+  }
+  modeConfirmOpen.value = false
+  pendingModeField = null
+  pendingModeValue = ''
+}
+
+const cancelModeChange = () => {
+  modeConfirmOpen.value = false
+  pendingModeField = null
+  pendingModeValue = ''
+}
 </script>
 
 <template>
@@ -162,10 +217,11 @@ const ionRules = computed(() =>
             ></label
           >
           <IconSelect
-            v-model="form.spectrum_mode"
+            :model-value="form.spectrum_mode"
             :options="SPECTRUM_MODES"
             placeholder="Select..."
             hide-label
+            @change="(v: string) => handleModeChange('spectrum_mode', v)"
           />
         </div>
         <div class="flex flex-col">
@@ -175,10 +231,11 @@ const ionRules = computed(() =>
             ></label
           >
           <IconSelect
-            v-model="form.storage_mode"
+            :model-value="form.storage_mode"
             :options="STORAGE_MODES"
             placeholder="Select..."
             hide-label
+            @change="(v: string) => handleModeChange('storage_mode', v)"
           />
         </div>
       </div>
@@ -235,7 +292,7 @@ const ionRules = computed(() =>
       <div class="grid grid-cols-2 gap-3">
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-xl">m/z</span></label
+            ><span class="label-text font-medium text-base-content text-xl"><i>m/z</i></span></label
           >
           <input
             v-model="form.mz"
@@ -348,5 +405,15 @@ const ionRules = computed(() =>
       </div>
 
     </div>
+
+    <ConfirmDialog
+      :open="modeConfirmOpen"
+      :title="modeConfirmTitle"
+      :message="modeConfirmMessage"
+      confirm-label="Change"
+      danger
+      @confirm="confirmModeChange"
+      @cancel="cancelModeChange"
+    />
   </div>
 </template>

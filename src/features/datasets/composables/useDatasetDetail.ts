@@ -1,11 +1,8 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getFileMetadata, getFileImages, setFilePublic } from '@/features/datasets/api/datasetApi'
-import {
-  getSharedOverviewImages,
-  getSharedOverviewMetadata,
-} from '@/features/datasets/api/overviewShareApi'
-import { pickImageUrl } from '@/features/datasets/utils/imageUtils'
+import { getFileMetadata, setFilePublic } from '@/features/datasets/api/datasetApi'
+import { getSharedOverviewMetadata } from '@/features/datasets/api/overviewShareApi'
+import { buildPreviewImageUrl } from '@/features/datasets/utils/imageUtils'
 import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
 import type { File } from '@/features/datasets/types/dataset'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
@@ -133,7 +130,10 @@ export function useDatasetDetail() {
     }
   }
 
+  let requestId = 0
+
   const fetchDatasetDetails = async () => {
+    const currentRequest = ++requestId
     const targetFileId = fileId.value
     if (!targetFileId) {
       dataset.value = null
@@ -147,25 +147,18 @@ export function useDatasetDetail() {
       const metadata = isShareView.value
         ? await getSharedOverviewMetadata(targetFileId)
         : await getFileMetadata(targetFileId, isPublic.value)
+      if (currentRequest !== requestId) return
       dataset.value = metadata ? mapItemToDataset(metadata) : null
-      // Fetch TIC image after dataset is loaded
       if (dataset.value?.id) {
-        try {
-          ticImageError.value = false
-          const images = isShareView.value
-            ? await getSharedOverviewImages(dataset.value.id)
-            : await getFileImages(dataset.value.id, isPublic.value)
-          ticImageUrl.value = pickImageUrl(images)
-        } catch {
-          ticImageUrl.value = ''
-          ticImageError.value = true
-        }
+        ticImageError.value = false
+        ticImageUrl.value = buildPreviewImageUrl(dataset.value.id)
       }
     } catch (error) {
+      if (currentRequest !== requestId) return
       console.error('Error fetching dataset details', error)
       dataset.value = null
     } finally {
-      loading.value = false
+      if (currentRequest === requestId) loading.value = false
     }
   }
 

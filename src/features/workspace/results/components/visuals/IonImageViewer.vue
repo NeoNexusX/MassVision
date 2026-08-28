@@ -7,6 +7,9 @@
       :intensity-scale="intensityScale"
       :data-mode="dataMode"
       :pixel-coord="selectedPixelCoord"
+      :normalization-loading="normalizationLoading"
+      :normalization-error="normalizationError"
+      :has-tic="hasTic"
       :title="imageTitle"
       @update:mz-tolerance="$emit('update:mzTolerance', $event)"
       @update:colormap="$emit('update:colormap', $event)"
@@ -39,7 +42,7 @@
       <!-- 悬停提示 -->
       <div
         v-if="hoverPixel"
-        class="absolute pointer-events-none bg-base-100/90 backdrop-blur-sm text-sm px-2 py-1 rounded shadow border border-base-300 font-mono"
+        class="absolute pointer-events-none bg-base-100/90 backdrop-blur-sm text-base px-2 py-1 rounded shadow border border-base-300 font-mono"
         :style="{ left: hoverPixel.x + 12 + 'px', top: hoverPixel.y + 12 + 'px' }"
       >
         <template v-if="dataMode === 'processed'">
@@ -55,25 +58,25 @@
         class="absolute bottom-2 right-2 flex items-center gap-1 bg-base-100/80 backdrop-blur-sm rounded-lg px-1.5 py-1 border border-base-300"
       >
         <button
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70 text-lg font-bold"
+          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70"
           title="Zoom out"
           @click="zoomOut"
         >
-          −
+          <SvgIcon type="minus" class="" />
         </button>
-        <span class="text-xs font-mono w-10 text-center text-base-content/60"
+        <span class="text-base font-mono w-10 text-center text-base-content/60"
           >{{ zoom.toFixed(1) }}x</span
         >
         <button
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70 text-lg font-bold"
+          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70"
           title="Zoom in"
           @click="zoomIn"
         >
-          +
+          <SvgIcon type="plus" class="" />
         </button>
         <button
           v-if="zoom > 1"
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/50 text-xs ml-0.5"
+          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/50 text-base ml-0.5"
           title="Reset zoom"
           @click="resetZoom"
         >
@@ -86,6 +89,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, type PropType } from 'vue'
+import SvgIcon from '@/shared/components/SvgIcon.vue'
 import IonImageToolbar from './IonImageToolbar.vue'
 import { useZoomPan } from '../../composables/useZoomPan'
 import { useCanvasRenderer } from '../../composables/useCanvasRenderer'
@@ -111,6 +115,12 @@ const props = defineProps({
   dataMode: { type: String as PropType<DataMode | null>, default: null },
   /** 当前选中像素坐标（processed 模式） */
   selectedPixelCoord: { type: Object as PropType<{ x: number; y: number } | null>, default: null },
+  /** TIC 归一化计算中 */
+  normalizationLoading: { type: Boolean, default: false },
+  /** 归一化计算失败的原因 */
+  normalizationError: { type: String as PropType<string | null>, default: null },
+  /** zarr 是否预存 stats/tic（TIC 归一化可用） */
+  hasTic: { type: Boolean, default: false },
   /** 图片区域标题 */
   imageTitle: { type: String, default: 'Ion Image' },
 })
@@ -143,7 +153,7 @@ const { zoom, panX, panY, resetZoom, zoomIn, zoomOut, onWheel, onPanStart } = us
   () => containerH.value,
 )
 
-const { scheduleRender, observeContainer } = useCanvasRenderer({
+const { scheduleRender, observeContainer, exportTransparentCanvas } = useCanvasRenderer({
   canvasRef,
   containerW,
   containerH,
@@ -280,9 +290,9 @@ watch(
   () => scheduleRender(),
 )
 
-/** Export the current canvas content as a PNG download. */
+/** Export the current view as a PNG download (transparent background). */
 function exportPng() {
-  const canvas = canvasRef.value
+  const canvas = exportTransparentCanvas()
   if (!canvas) return
   const dataUrl = canvas.toDataURL('image/png')
   const link = document.createElement('a')

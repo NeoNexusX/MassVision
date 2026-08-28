@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
+import SvgIcon from '@/shared/components/SvgIcon.vue'
 import IonImageViewer from '@/features/workspace/results/components/visuals/IonImageViewer.vue'
 import ROIOverlay from '@/features/workspace/results/components/visuals/ROIOverlay.vue'
 import type { ROIType } from '@/features/workspace/results/composables/useROI'
@@ -35,6 +36,10 @@ const props = defineProps<{
   ionError?: string | null
   /** 归一化计算是否进行中 */
   normalizationLoading?: boolean
+  /** 归一化计算失败的原因 */
+  normalizationError?: string | null
+  /** zarr 是否预存 stats/tic（TIC 归一化可用） */
+  hasTic?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -58,8 +63,8 @@ const roiOverlayRef = ref<InstanceType<typeof ROIOverlay> | null>(null)
 
 watch(roiOverlayRef, (el) => emit('roi-overlay-ref', el ?? null))
 
-/** 根据模式选择标题 */
-const imageTitle = computed(() => (props.dataMode === 'processed' ? 'TIC Image' : 'Ion Image'))
+/** 图像标题 */
+const imageTitle = 'Image View'
 
 /** 图像加载占位提示 */
 const processedPlaceholder = computed(() => {
@@ -112,8 +117,8 @@ onBeforeUnmount(() => {
         v-if="isStale"
         class="flex-1 flex flex-col items-center justify-center text-base-content/40 gap-1"
       >
-        <p class="text-lg">No result selected</p>
-        <p class="text-sm">Navigate from the Workspace dashboard to view a result.</p>
+        <p class="text-xl">No result selected</p>
+        <p class="text-base">Navigate from the Workspace dashboard to view a result.</p>
       </div>
       <div
         v-else-if="ionError && !ionMatrix"
@@ -124,7 +129,7 @@ onBeforeUnmount(() => {
       </div>
       <div
         v-else-if="!ionMatrix"
-        class="flex-1 flex items-center justify-center text-base-content/40 text-lg"
+        class="flex-1 flex items-center justify-center text-base-content/40 text-xl"
       >
         {{ processedPlaceholder }}
       </div>
@@ -147,6 +152,9 @@ onBeforeUnmount(() => {
           :overlay-height="ionRows"
           :data-mode="dataMode"
           :selected-pixel-coord="selectedPixelCoord"
+          :normalization-loading="normalizationLoading"
+          :normalization-error="normalizationError"
+          :has-tic="hasTic"
           :image-title="imageTitle"
           @update:mz-tolerance="emit('update:mzTolerance', $event)"
           @update:colormap="emit('update:colormap', $event)"
@@ -154,16 +162,6 @@ onBeforeUnmount(() => {
           @reset="emit('reset-controls')"
           @select-pixel="(col, row) => emit('select-pixel', col, row)"
         />
-        <!-- 归一化计算遮罩 -->
-        <div
-          v-if="normalizationLoading"
-          class="absolute inset-0 flex items-center justify-center bg-base-100/80 backdrop-blur-[2px] z-20"
-        >
-          <div class="flex flex-col items-center gap-3">
-            <span class="loading loading-spinner loading-lg text-primary"></span>
-            <span class="text-base-content/70 text-lg">Computing normalization…</span>
-          </div>
-        </div>
         <!-- 切换 m/z 时的加载遮罩（延迟出现，避免快速切换一闪而过） -->
         <div
           v-if="showLoadingOverlay && ionMatrix"
@@ -171,7 +169,7 @@ onBeforeUnmount(() => {
         >
           <div class="flex flex-col items-center gap-3">
             <span class="loading loading-spinner loading-lg text-primary"></span>
-            <span class="text-base-content/70 text-lg">Updating ion image…</span>
+            <span class="text-base-content/70 text-xl">Updating ion image…</span>
           </div>
         </div>
         <ROIOverlay
@@ -195,14 +193,14 @@ onBeforeUnmount(() => {
     <!-- 强度条 -->
     <div class="shrink-0 flex flex-col items-center gap-1.5 w-12">
       <button
-        class="text-sm text-base-content/40 hover:text-base-content"
+        class="text-base text-base-content/40 hover:text-base-content"
         title="Reset to auto range"
         @click="emit('reset-range')"
       >
-        ↺
+        <SvgIcon type="refresh" class="" />
       </button>
       <span
-        class="text-sm font-mono text-base-content/60 leading-none text-center whitespace-nowrap"
+        class="text-base font-mono text-base-content/60 leading-none text-center whitespace-nowrap"
       >
         {{ formatVal(dataMax) }}
       </span>
@@ -228,7 +226,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <span
-        class="text-sm font-mono text-base-content/60 leading-none text-center whitespace-nowrap"
+        class="text-base font-mono text-base-content/60 leading-none text-center whitespace-nowrap"
       >
         {{ formatVal(displayMin) }}
       </span>
