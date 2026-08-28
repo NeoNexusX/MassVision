@@ -9,23 +9,24 @@ const slots = {
   'side-panel': '<div>side-slot</div>',
 }
 
-describe('ResultVisualizationLayout feature visibility', () => {
-  it('shows optional result areas by default', () => {
+describe('ResultVisualizationLayout', () => {
+  it('renders every column slot', () => {
     const wrapper = mount(ResultVisualizationLayout, { slots })
 
     expect(wrapper.text()).toContain('annotation-slot')
+    expect(wrapper.text()).toContain('viz-slot')
     expect(wrapper.text()).toContain('compare-slot')
+    expect(wrapper.text()).toContain('side-slot')
   })
 
-  it('removes disabled areas while retaining visualization and metadata', () => {
-    const wrapper = mount(ResultVisualizationLayout, {
-      props: { showLeftPanel: false, showCompare: false },
+  it('lets the left column shrink to a rail when collapsed', () => {
+    const expanded = mount(ResultVisualizationLayout, { slots })
+    const collapsed = mount(ResultVisualizationLayout, {
+      props: { leftPanelCollapsed: true },
       slots,
     })
 
-    expect(wrapper.text()).not.toContain('annotation-slot')
-    expect(wrapper.text()).not.toContain('compare-slot')
-    expect(wrapper.text()).toContain('viz-slot')
-    expect(wrapper.text()).toContain('side-slot')
+    expect(expanded.html()).toContain('lg:flex-[1_1_0%]')
+    expect(collapsed.html()).toContain('lg:flex-none')
   })
 })

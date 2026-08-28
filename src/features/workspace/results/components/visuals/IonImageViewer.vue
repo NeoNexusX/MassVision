@@ -20,7 +20,7 @@
     <div
       data-testid="ion-image-viewer"
       ref="containerRef"
-      class="relative flex-1 min-h-0 bg-base-200 rounded-lg border border-base-300 overflow-hidden"
+      class="ion-image-viewport relative flex-1 min-h-0 bg-base-200 rounded-lg border border-base-300 overflow-hidden"
       :class="containerCursorClass"
       @mousedown="onContainerMouseDown"
       @click="onContainerClick"
@@ -42,7 +42,7 @@
       <!-- 悬停提示 -->
       <div
         v-if="hoverPixel"
-        class="absolute pointer-events-none bg-base-100/90 backdrop-blur-sm text-base px-2 py-1 rounded shadow border border-base-300 font-mono"
+        class="absolute pointer-events-none bg-base-100/90 backdrop-blur-sm px-2 py-1 rounded shadow border border-base-300 font-mono"
         :style="{ left: hoverPixel.x + 12 + 'px', top: hoverPixel.y + 12 + 'px' }"
       >
         <template v-if="dataMode === 'processed'">
@@ -55,29 +55,37 @@
       </div>
       <!-- 缩放控件 -->
       <div
-        class="absolute bottom-2 right-2 flex items-center gap-1 bg-base-100/80 backdrop-blur-sm rounded-lg px-1.5 py-1 border border-base-300"
+        class="zoom-controls absolute flex items-center bg-base-100/80 backdrop-blur-sm border border-base-300"
+        @mousedown.stop
+        @click.stop
       >
         <button
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70"
+          type="button"
+          class="zoom-control-button flex items-center justify-center hover:bg-base-300 text-base-content/70"
           title="Zoom out"
+          aria-label="Zoom out"
           @click="zoomOut"
         >
-          <SvgIcon type="minus" class="" />
+          <SvgIcon type="minus" class="zoom-control-icon" />
         </button>
-        <span class="text-base font-mono w-10 text-center text-base-content/60"
-          >{{ zoom.toFixed(1) }}x</span
-        >
+        <span class="w-[3.5em] leading-none font-mono text-center text-base-content/60">
+          {{ zoom.toFixed(1) }}x
+        </span>
         <button
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/70"
+          type="button"
+          class="zoom-control-button flex items-center justify-center hover:bg-base-300 text-base-content/70"
           title="Zoom in"
+          aria-label="Zoom in"
           @click="zoomIn"
         >
-          <SvgIcon type="plus" class="" />
+          <SvgIcon type="plus" class="zoom-control-icon" />
         </button>
         <button
           v-if="zoom > 1"
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-base-300 text-base-content/50 text-base ml-0.5"
+          type="button"
+          class="zoom-control-button ms-[0.125em] flex items-center justify-center hover:bg-base-300 text-base-content/50"
           title="Reset zoom"
+          aria-label="Reset zoom"
           @click="resetZoom"
         >
           1:1
@@ -306,3 +314,37 @@ function exportPng() {
 
 defineExpose({ canvasContainer: containerRef })
 </script>
+
+<style scoped>
+/* Query the image view itself, so the controls follow the middle column rather
+   than the browser viewport. Inline-size containment is safe for this flex item. */
+.ion-image-viewport {
+  container-type: inline-size;
+}
+
+.zoom-controls {
+  --zoom-control-size: clamp(1rem, calc(1.2rem + 1.25cqi), 2.625rem);
+
+  inset-inline-end: clamp(0.5rem, 1cqi, 0.75rem);
+  inset-block-end: clamp(0.5rem, 1cqi, 0.75rem);
+  gap: clamp(0.25rem, 0.5cqi, 0.375rem);
+  padding: clamp(0.25rem, 0.5cqi, 0.375rem) clamp(0.375rem, 0.75cqi, 0.625rem);
+  border-radius: clamp(0.5rem, 1cqi, 0.75rem);
+  font-size: clamp(0.875rem, calc(0.75rem + 0.35cqi), 1rem);
+}
+
+.zoom-control-button {
+  flex: 0 0 auto;
+  inline-size: var(--zoom-control-size);
+  block-size: var(--zoom-control-size);
+  border-radius: 0.35em;
+  font-size: inherit;
+}
+
+/* Class selector (not a utility) so this reliably overrides SvgIcon's built-in
+   w/h utilities regardless of the order Tailwind emits them in. */
+.zoom-control-icon {
+  inline-size: 1.25em;
+  block-size: 1.25em;
+}
+</style>

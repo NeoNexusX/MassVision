@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import PaginationBar from '@/shared/components/PaginationBar.vue'
 import { getConfig } from '@/shared/config/runtimeConfig'
 
@@ -7,7 +6,7 @@ import { getConfig } from '@/shared/config/runtimeConfig'
  * 列表分页页脚：「Page x of y — z records」+ 每页条数下拉 + PaginationBar。
  * variant="compact" 为表格底部工具栏形态（右对齐、小一号字体、无页码文本），见 UserTable。
  */
-const props = withDefaults(
+withDefaults(
   defineProps<{
     currentPage: number
     totalPages: number
@@ -31,9 +30,6 @@ const emit = defineEmits<{
   (e: 'go-to-page', page: number): void
   (e: 'change-size', size: number): void
 }>()
-
-const from = computed(() => (props.currentPage - 1) * props.size + 1)
-const to = computed(() => Math.min(props.currentPage * props.size, props.totalItems))
 
 const onChangeSize = (e: Event) => {
   emit('change-size', Number((e.target as HTMLSelectElement).value))
@@ -83,9 +79,6 @@ const onChangeSize = (e: Event) => {
       <PaginationBar
         :current-page="currentPage"
         :total-pages="totalPages"
-        :total-items="totalItems"
-        :from="from"
-        :to="to"
         :page-range="pageRange"
         class="!justify-center"
         @prev-page="emit('go-to-page', currentPage - 1)"

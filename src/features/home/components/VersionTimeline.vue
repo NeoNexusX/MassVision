@@ -3,9 +3,9 @@
  * 版本时间线 —— 纵向 DaisyUI timeline，展示版本迭代历程。
  * 奇偶项左右交替（different sides）。
  *
- * 数据从 config.json 的 timeline 数组读取，每个节点含 date / version / features。
+ * 数据从 content.json 的 timeline 数组读取，每个节点含 date / version / features。
  */
-import type { TimelineItem } from '@/shared/config/runtimeConfig'
+import type { TimelineItem } from '@/features/home/config/contentConfig'
 
 defineProps<{
   items: TimelineItem[]

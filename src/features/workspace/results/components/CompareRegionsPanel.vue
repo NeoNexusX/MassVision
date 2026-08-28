@@ -10,12 +10,10 @@
 import { computed } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import type { RegionOption } from '@/features/workspace/results/composables/useRegionComparison'
-import type { DataMode } from '@/services/zarr/types/zarr'
 import { rgbCss, type RGB } from '@/features/workspace/results/utils/regionPalette'
 
 const props = defineProps<{
   regions: RegionOption[]
-  dataMode?: DataMode | null
   spectrumMode?: string
   regionAIds: string[]
   regionBIds: string[]
@@ -24,7 +22,6 @@ const props = defineProps<{
   comparing: boolean
   progress: number
   error: string | null
-  hasResults: boolean
   canCompare: boolean
   /** Identity colors of groups A/B (first member's color; gray when empty). */
   colorA: RGB
@@ -79,30 +76,29 @@ function onNoiseFloor(e: Event) {
 
 <template>
   <div class="rounded-xl border-2 border-base-content/30 bg-base-100 overflow-hidden flex flex-col">
-    <!-- Collapsible header bar -->
+    <!-- Collapsible header bar: the whole strip is the toggle (side panel, collapsed state) -->
     <div
       class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-200/60 select-none"
       @click.stop="toggle"
     >
-      <SvgIcon
-        :type="expanded ? 'chevron_down' : 'chevron_right'"
-        class="text-base-content/60"
-      />
-      <span class="text-base font-semibold text-base-content">Compare regions</span>
+      <!-- Expand / collapse chevron -->
+      <SvgIcon :type="expanded ? 'chevron_down' : 'chevron_right'" class="text-base-content/60" />
+      <!-- Title -->
+      <span class="text-[1.2em] font-semibold text-base-content">Compare regions</span>
       <!-- Show a compact status when collapsed -->
-      <span v-if="!expanded && comparing" class="ml-auto flex items-center gap-1 text-base text-base-content/50">
+      <span v-if="!expanded && comparing" class="ml-auto flex items-center gap-1 text-base-content/50">
         <span class="loading loading-spinner loading-xs"></span>
         {{ progress }}%
       </span>
     </div>
 
-    <!-- Expanded content -->
+    <!-- Expanded content (side panel, expanded state) -->
     <div v-if="expanded" class="px-3 pb-2.5 space-y-2">
-      <div v-if="!isComparisonAvailable" class="text-base text-base-content/60 leading-relaxed">
+      <div v-if="!isComparisonAvailable" class="text-base-content/60 leading-relaxed text-[1.2em]">
         Region comparison is only available for centroid data
       </div>
       <!-- No regions hint -->
-      <div v-else-if="noRegions" class="text-base text-base-content/50 leading-relaxed">
+      <div v-else-if="noRegions" class="text-base-content/50 leading-relaxed text-[1.2em]">
         Run KMeans or create ROIs first to compare regions.
       </div>
 
@@ -115,7 +111,7 @@ function onNoiseFloor(e: Event) {
             class="flex items-center gap-2"
           >
             <span
-              class="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-lg text-white font-bold"
+              class="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[1.125em] text-white font-bold"
               :style="{ backgroundColor: side === 'a' ? colorACss : colorBCss }"
               >{{ side.toUpperCase() }}</span
             >
@@ -125,7 +121,7 @@ function onNoiseFloor(e: Event) {
               <label
                 v-for="r in regions"
                 :key="r.value"
-                class="flex items-center gap-1.5 text-base cursor-pointer"
+                class="flex items-center gap-1.5 cursor-pointer"
                 :class="
                   isDisabled(side, r.value)
                     ? 'opacity-40 cursor-not-allowed'
@@ -147,14 +143,14 @@ function onNoiseFloor(e: Event) {
               </label>
             </div>
           </div>
-          <div class="text-base text-base-content/50">
+          <div class="text-base-content/50">
             Members of a group are combined (union) before comparing.
           </div>
         </div>
 
         <!-- Detection rate slider -->
         <div class="space-y-0.5">
-          <div class="flex items-center justify-between text-base text-base-content/60">
+          <div class="flex items-center justify-between text-base-content/60">
             <span>Min detection rate</span>
             <span class="font-mono text-base-content">{{ minDetectionRate }}%</span>
           </div>
@@ -171,7 +167,7 @@ function onNoiseFloor(e: Event) {
 
         <!-- Noise floor (intensity percentile) slider -->
         <div class="space-y-0.5">
-          <div class="flex items-center justify-between text-base text-base-content/60">
+          <div class="flex items-center justify-between text-base-content/60">
             <span>Intensity threshold</span>
             <span class="font-mono text-base-content">{{ noiseFloorPercentile }}%</span>
           </div>
@@ -188,7 +184,7 @@ function onNoiseFloor(e: Event) {
 
         <!-- Progress bar -->
         <div v-if="comparing" class="space-y-1">
-          <div class="flex items-center justify-between text-base text-base-content/60">
+          <div class="flex items-center justify-between text-base-content/60">
             <span class="flex items-center gap-1.5">
               <span class="loading loading-spinner loading-xs"></span>
               Scanning...
@@ -199,7 +195,7 @@ function onNoiseFloor(e: Event) {
         </div>
 
         <!-- Error -->
-        <div v-if="error" class="text-base text-error flex items-start gap-1.5">
+        <div v-if="error" class="text-error flex items-start gap-1.5">
           <SvgIcon type="error" class="shrink-0 mt-0.5" />
           <span>{{ error }}</span>
         </div>
@@ -208,19 +204,19 @@ function onNoiseFloor(e: Event) {
         <div class="flex gap-2">
           <button
             v-if="!comparing"
-            class="btn btn-sm btn-primary flex-1 gap-1.5 text-base"
+            class="btn btn-sm btn-primary flex-1 gap-1.5 text-[1em]"
             :disabled="!canCompare"
             @click="emit('compare')"
           >
-            <SvgIcon type="scale" class="" />
+            <SvgIcon type="scale" />
             Compare
           </button>
           <button
             v-else
-            class="btn btn-sm btn-outline flex-1 gap-1.5 text-base"
+            class="btn btn-sm btn-outline flex-1 gap-1.5 text-[1em]"
             @click="emit('cancel')"
           >
-            <SvgIcon type="close" class="" />
+            <SvgIcon type="close" />
             Cancel
           </button>
         </div>

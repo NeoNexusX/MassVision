@@ -1,49 +1,17 @@
 <template>
-  <div
-    :class="[
-      // Small screens
-      'flex min-w-0 items-start gap-3',
-      // Medium and larger screens
-      'sm:items-center',
-    ]"
-  >
-    <h1
-      :class="[
-        // Small screens
-        'min-w-0 break-words text-xl font-bold',
-        // Medium and larger screens
-        'sm:text-xl',
-      ]"
-    >
+  <div class="flex min-w-0 items-start gap-3 sm:items-center">
+    <h1 class="min-w-0 break-words text-[1.5em] font-bold">
       {{ datasetName }}
     </h1>
-    <span
-      v-if="status"
-      class="shrink-0 rounded-full px-3 py-1 text-sm font-semibold"
-      :class="statusClass"
-      >{{ status }}</span
-    >
+    <StatusBadge v-if="status" :status="status" class="shrink-0 text-[1em]" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import StatusBadge from '@/shared/components/StatusBadge.vue'
 
-const props = defineProps<{
+defineProps<{
   datasetName: string
   status?: string
 }>()
-
-const statusClass = computed(() => {
-  switch (props.status) {
-    case 'completed':
-      return 'bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200'
-    case 'processing':
-      return 'bg-yellow-200 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
-    case 'failed':
-      return 'bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-200'
-    default:
-      return 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
-  }
-})
 </script>

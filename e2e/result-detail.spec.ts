@@ -18,10 +18,9 @@ import { test, expect, type Page } from '@playwright/test'
 
 /** 用真实鼠标点击 ECharts 谱图 canvas */
 async function clickSpectrum(page: Page, xRatio = 0.6) {
-  // 从 Spectrum View 标题找到谱图容器
-  const heading = page.getByRole('heading', { name: 'Spectrum View' })
-  // 结构：h3 → div → div.header → div.root → .overflow-hidden
-  const chart = heading.locator('..').locator('..').locator('..').locator('.overflow-hidden')
+  // 谱图容器自带 testid（AverageSpectrum.vue），不要靠 h3 往上数祖先——
+  // 标题区一改层级，locator('..') 链就会静默指到别的元素上
+  const chart = page.getByTestId('average-spectrum-chart')
 
   const box = await chart.boundingBox()
   if (!box) throw new Error('Spectrum chart bounding box not found')

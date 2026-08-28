@@ -55,7 +55,7 @@ bootstrap().catch((err) => {
             The application failed to start because the server configuration could not be loaded.
             This is not your fault &mdash; it&rsquo;s an error on our side.
           </p>
-          <!-- 联系方式与 config.json 的 contact 块保持一致；此页恰在 config 加载失败时显示，只能写死 -->
+          <!-- 联系方式与 content.json 的 contact 块保持一致；此页恰在 config 加载失败时显示，只能写死 -->
           <p style="margin:0 0 1.75rem;line-height:1.6;color:#4b5563">
             Please try again in a moment, or contact the BioNet team via
             <a href="mailto:jydong@xmu.edu.cn" style="color:#2563eb;text-decoration:underline">email</a>

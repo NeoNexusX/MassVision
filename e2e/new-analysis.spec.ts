@@ -18,15 +18,16 @@ import { ALGO_DATASET_NAMES } from './utils.js'
 
 test.describe('New Analysis', () => {
 
-  test('page loads with Step 1, Step 2 visible and Step 3 hidden', async ({ page }) => {
+  test('page loads with exactly the two pipeline steps', async ({ page }) => {
     await page.goto('/workspace/new')
 
     await expect(page.locator('h1:has-text("Create New Analysis")')).toBeVisible()
     await expect(page.getByText('Step 1: Data Source')).toBeVisible()
     await expect(page.getByText('Step 2: Preprocessing Pipeline')).toBeVisible()
 
-    // Step 3 已隐藏
-    await expect(page.getByText('Step 3: Annotation Settings')).not.toBeVisible()
+    // 向导只有两步。原来这里断言 "Step 3: Annotation Settings" 不可见，
+    // 但该文案早已从代码里删除，断言恒真、测不到任何回归。
+    await expect(page.getByText(/^Step \d+:/)).toHaveCount(2)
   })
 
   test('summary panel shows disabled state when no dataset selected', async ({ page }) => {

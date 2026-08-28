@@ -5,9 +5,7 @@ import type { MethodGroup } from '@/features/workspace/analysis/composables/useP
 
 defineProps<{
   availableMethods: MethodGroup[]
-  isFiltered: boolean
   modeNotice: string
-  selectedMethods: Record<string, string>
   methodParams: Record<string, string | number>
   buildParamKey: (groupKey: string, methodId: string, paramKey: string) => string
   getParam: (groupKey: string, methodId: string, paramKey: string) => string | number | undefined
@@ -36,13 +34,9 @@ defineProps<{
         :key="group.key"
         class="border border-base-200 rounded-md p-4"
       >
-        <div>
-          <div class="flex items-center justify-between">
-            <div class="font-medium text-xl">{{ group.title }}</div>
-          </div>
-          <div v-if="group.hint" class="text-base text-base-content/60 mt-1">
-            {{ group.hint }}
-          </div>
+        <div class="font-medium text-xl">{{ group.title }}</div>
+        <div v-if="group.hint" class="text-base text-base-content/60 mt-1">
+          {{ group.hint }}
         </div>
         <div class="mt-3 flex flex-wrap gap-3">
           <div v-for="method in group.methods" :key="method.id" class="flex flex-col">
@@ -62,7 +56,9 @@ defineProps<{
                 :value="method.id"
                 :checked="isSelected(group.key, method.id)"
               />
-              <span v-if="isSelected(group.key, method.id)" class="text-blue-600 dark:text-blue-400">✔</span>
+              <span v-if="isSelected(group.key, method.id)" class="text-blue-600 dark:text-blue-400"
+                >✔</span
+              >
               <span class="truncate">{{ method.label }}</span>
               <span v-if="method.note" class="ml-2 text-base text-base-content/50">{{
                 method.note
@@ -74,7 +70,11 @@ defineProps<{
               class="mt-2 ml-4 grid grid-cols-2 gap-2"
             >
               <div v-for="param in method.params" :key="param.key" class="flex items-center gap-2">
-                <span class="text-lg text-base-content/60 w-32 shrink-0 whitespace-nowrap" :title="param.hint"><MzText :text="param.label" /></span>
+                <span
+                  class="text-lg text-base-content/60 w-32 shrink-0 whitespace-nowrap"
+                  :title="param.hint"
+                  ><MzText :text="param.label"
+                /></span>
                 <template v-if="param.type === 'select'">
                   <IconSelect
                     class="flex-1 max-w-28"

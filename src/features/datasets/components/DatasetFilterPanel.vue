@@ -1,19 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
-import { getDatasetMetadata } from '@/features/datasets/constants/datasetMetadata'
-
-const {
-  EXPERIMENT_TYPES,
-  ORGANISMS,
-  ORGANISM_PARTS,
+import {
   CONDITIONS,
-  SAMPLE_STABILIZATIONS,
-  TISSUE_MODIFICATIONS,
+  EXPERIMENT_TYPES,
   MALDI_MATRICES,
   MALDI_MATRIX_APPLICATIONS,
+  ORGANISMS,
+  ORGANISM_PARTS,
+  SAMPLE_STABILIZATIONS,
   SOLVENTS,
-} = getDatasetMetadata()
+  TISSUE_MODIFICATIONS,
+} from '@/features/datasets/constants/datasetMetadata'
 
 const emit = defineEmits<{
   (e: 'apply', payload: Record<string, string>): void
@@ -25,7 +23,7 @@ interface FilterField {
   label: string
   type: 'text' | 'select'
   placeholder?: string
-  options?: string[]
+  options?: readonly string[]
   otherPlaceholder?: string
 }
 

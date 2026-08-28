@@ -24,7 +24,7 @@ export function useAnalysisBuilder(
   const spectrumMode = ref('')
   const storageMode = ref('')
   const selectedMethods = reactive<Record<string, string>>({})
-  const { availableMethods, isFiltered, modeNotice } = usePreprocessingMethods(
+  const { availableMethods, modeNotice } = usePreprocessingMethods(
     spectrumMode,
     storageMode,
     selectedMethods,
@@ -267,29 +267,22 @@ export function useAnalysisBuilder(
   return {
     allMethodGroups,
     availableMethods,
-    isFiltered,
     modeNotice,
-    selectedMethods,
     methodParams,
-    analysisForm,
     quota,
     quotaLoading,
-    quotaTasks,
     submitting,
-    totalSelectedCount,
     canSubmit,
     pipelineSummary,
     msSettingsList,
     statusBadge,
     buildParamKey,
     getParam,
-    setParam,
     onIntInput,
     onFloatInput,
     onNumBlur,
     isSelected,
     toggleSingle,
-    getMethodLabel,
     submit,
   }
 }

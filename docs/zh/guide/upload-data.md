@@ -25,7 +25,7 @@
 - Pixel Size X/Y 必须是 `1–200` 的整数。
 - Sample Growth Conditions 和 Tissue Modification 可选。
 - Detector resolving power 下的 m/z 与 Resolving Power 可选，合法数值会以数字提交。
-- Solvent、MALDI Matrix 和 MALDI Matrix Application 是否必填由 `public/config.json` 中的离子源规则决定。表单默认带有 `100% Water`；MALDI 类离子源通常还要求基质及施加方式。
+- Solvent、MALDI Matrix 和 MALDI Matrix Application 是否必填由离子源规则决定（定义在 `src/features/upload/utils/ionSourceRules.ts`）。表单默认带有 `100% Water`；MALDI 类离子源通常还要求基质及施加方式。
 - 选择下拉框中的 **Other** 后必须填写自定义值，不能直接提交 `Other`。
 
 ## 公开与私有

@@ -51,7 +51,8 @@ src/
 docs/                            # Bilingual VitePress sources
 e2e/                             # Playwright tests
 env/                             # Vite environment files
-public/config.json               # Runtime configuration loaded before the app mounts
+public/config.json               # App-wide runtime configuration loaded before mount
+public/content.json              # Home page content (team, timeline, hero copy)
 docker/                          # Docker/nginx deployment
 ```
 
@@ -106,7 +107,11 @@ npm run icons:bundle      # regenerate the offline icon subset
 
 ## Runtime Configuration
 
-The application loads `public/config.json` before mounting Vue. It controls the app name, home content, navigation, feature flags, pagination, form options, result annotation/comparison switches, and Zarr read tuning. A missing or invalid file produces a startup error page.
+The application loads `public/config.json` before mounting Vue. It controls the app name, navigation, pagination, verification, and Zarr read tuning. A missing or invalid file produces a startup error page.
+
+Home page content (hero copy, feature showcase, timeline, team, contact details, commit heatmap) lives in `public/content.json` and is fetched only when the home route is entered; if it cannot be loaded the home page simply omits those sections. Both files can be edited on a deployed server and take effect on reload.
+
+Form dropdown vocabularies and ion-source requirement rules are no longer JSON — they are compiled into the bundle (`src/features/datasets/constants/datasetMetadata.ts`, `src/features/upload/utils/ionSourceRules.ts`) and require a rebuild to change.
 
 ## Documentation and Deployment
 

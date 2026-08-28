@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { TeamMember } from '@/shared/config'
+import type { TeamMember } from '@/features/home/config/contentConfig'
 
 /**
  * 开发者卡片 —— 竖向矩形（portrait），3D 悬浮采用 daisyUI `hover-3d`（纯 CSS）。

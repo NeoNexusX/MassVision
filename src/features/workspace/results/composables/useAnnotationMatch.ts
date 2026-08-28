@@ -718,15 +718,6 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     void selectMzIndex(row.matchedIndex)
   }
 
-  function toggleSort(key: AnnotationSortKey): void {
-    if (sortKey.value === key) {
-      sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-    } else {
-      sortKey.value = key
-      sortDir.value = 'asc'
-    }
-  }
-
   /**
    * Download the currently matched rows as a CSV (name + exp. m/z + matched
    * m/z + mass difference + intensity). Rows follow the current sort order;
@@ -766,7 +757,6 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     tolMode,
     tolValue,
     spectrumAvailable,
-    matchedRows,
     counts,
     coarseFiltered,
     // table controls
@@ -779,7 +769,6 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     importFile,
     clear,
     selectRow,
-    toggleSort,
     exportMatchedCsv,
   }
 }

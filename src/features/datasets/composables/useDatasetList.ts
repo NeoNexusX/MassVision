@@ -134,8 +134,6 @@ export function useDatasetList(
     fetchFiles,
     applyFilters,
     handleSort,
-    currentSort,
-    sortDesc,
     goToPage,
     changeSize,
     pagination,

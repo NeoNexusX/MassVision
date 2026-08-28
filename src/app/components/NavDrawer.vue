@@ -12,7 +12,7 @@
         class="menu p-[clamp(1rem,5.2vw,2.5rem)] w-[clamp(260px,55vw,420px)] min-h-full bg-base-100 text-base-content flex flex-col gap-[clamp(0.6rem,2.5vw,1.2rem)] overflow-y-auto overflow-x-hidden shadow-2xl"
       >
         <!-- Header -->
-        <li class="menu-title mb-8 flex items-center gap-4 px-2">
+        <li class="menu-title mb-8 flex items-center px-2">
           <span class="text-[clamp(1.4rem,4.2vw,2rem)] font-medium leading-none">
             {{ namePre
             }}<span
@@ -27,20 +27,27 @@
           <!-- Group item -->
           <li v-if="item.kind === 'group'">
             <details>
-              <summary class="flex items-center gap-[clamp(0.6rem,2.5vw,1.2rem)] 
-                              py-[clamp(0.6rem,2.5vw,1.2rem)] 
-                              px-[clamp(0.4rem,1.7vw,0.8rem)] text-[clamp(0.95rem,3vw,1.4rem)] 
-                              font-medium rounded-lg transition-colors hover:bg-base-200/70 cursor-pointer">
-                <span class="flex items-center justify-center shrink-0"
-                      :style="{ width: 'clamp(1.5rem, 4.6vw, 2.2rem)', height: 'clamp(1.5rem, 4.6vw, 2.2rem)' }">
-                  <SvgIcon :type="(item.icon as IconType)" class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]" />
+              <summary
+                class="flex items-center gap-[clamp(0.6rem,2.5vw,1.2rem)] py-[clamp(0.6rem,2.5vw,1.2rem)] px-[clamp(0.4rem,1.7vw,0.8rem)] text-[clamp(0.95rem,3vw,1.4rem)] font-medium rounded-lg transition-colors hover:bg-base-200/70 cursor-pointer"
+              >
+                <span
+                  class="flex items-center justify-center shrink-0"
+                  :style="{
+                    width: 'clamp(1.5rem, 4.6vw, 2.2rem)',
+                    height: 'clamp(1.5rem, 4.6vw, 2.2rem)',
+                  }"
+                >
+                  <SvgIcon
+                    :type="item.icon as IconType"
+                    class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]"
+                  />
                 </span>
                 <span class="whitespace-nowrap">{{ item.label }}</span>
               </summary>
 
-              <ul class="ml-[clamp(1.8rem,5.2vw,2.5rem)] mt-[clamp(0.2rem,1vw,0.5rem)] 
-                        flex flex-col gap-[clamp(0.4rem,1.6vw,0.75rem)] 
-                        border-l-2 border-base-200/60 pl-[clamp(0.5rem,2vw,1rem)]">
+              <ul
+                class="ml-[clamp(1.8rem,5.2vw,2.5rem)] mt-[clamp(0.2rem,1vw,0.5rem)] flex flex-col gap-[clamp(0.4rem,1.6vw,0.75rem)] border-l-2 border-base-200/60 pl-[clamp(0.5rem,2vw,1rem)]"
+              >
                 <li v-for="child in item.children" :key="child.to">
                   <a
                     v-if="child.external"
@@ -50,9 +57,17 @@
                     @click="open = false"
                     class="flex items-center gap-[clamp(0.5rem,2vw,1rem)] py-[clamp(0.5rem,1.9vw,0.9rem)] px-[clamp(0.3rem,1.3vw,0.6rem)] text-[clamp(0.9rem,2.5vw,1.2rem)] font-medium rounded-lg transition-colors hover:bg-base-200/60"
                   >
-                    <span class="flex items-center justify-center shrink-0"
-                          :style="{ width: 'clamp(1.2rem, 3.8vw, 1.8rem)', height: 'clamp(1.2rem, 3.8vw, 1.8rem)' }">
-                      <SvgIcon :type="(child.icon as IconType)" class="w-full h-full text-base-content/60 [&_svg]:stroke-[1.6]" />
+                    <span
+                      class="flex items-center justify-center shrink-0"
+                      :style="{
+                        width: 'clamp(1.2rem, 3.8vw, 1.8rem)',
+                        height: 'clamp(1.2rem, 3.8vw, 1.8rem)',
+                      }"
+                    >
+                      <SvgIcon
+                        :type="child.icon as IconType"
+                        class="w-full h-full text-base-content/60 [&_svg]:stroke-[1.6]"
+                      />
                     </span>
                     <span class="whitespace-nowrap">{{ child.label }}</span>
                   </a>
@@ -63,9 +78,17 @@
                     class="flex items-center gap-[clamp(0.5rem,2vw,1rem)] py-[clamp(0.5rem,1.9vw,0.9rem)] px-[clamp(0.3rem,1.3vw,0.6rem)] text-[clamp(0.9rem,2.5vw,1.2rem)] font-medium rounded-lg transition-colors hover:bg-base-200/60"
                     active-class="!bg-primary/10 !text-primary font-medium"
                   >
-                    <span class="flex items-center justify-center shrink-0"
-                          :style="{ width: 'clamp(1.2rem, 3.8vw, 1.8rem)', height: 'clamp(1.2rem, 3.8vw, 1.8rem)' }">
-                      <SvgIcon :type="(child.icon as IconType)" class="w-full h-full text-base-content/60 [&_svg]:stroke-[1.6]" />
+                    <span
+                      class="flex items-center justify-center shrink-0"
+                      :style="{
+                        width: 'clamp(1.2rem, 3.8vw, 1.8rem)',
+                        height: 'clamp(1.2rem, 3.8vw, 1.8rem)',
+                      }"
+                    >
+                      <SvgIcon
+                        :type="child.icon as IconType"
+                        class="w-full h-full text-base-content/60 [&_svg]:stroke-[1.6]"
+                      />
                     </span>
                     <span class="whitespace-nowrap">{{ child.label }}</span>
                   </router-link>
@@ -83,9 +106,17 @@
               class="flex items-center gap-[clamp(0.6rem,2.5vw,1.2rem)] py-[clamp(0.6rem,2.5vw,1.2rem)] px-[clamp(0.4rem,1.7vw,0.8rem)] text-[clamp(0.95rem,3vw,1.4rem)] font-medium rounded-lg transition-colors hover:bg-base-200/70"
               @click="open = false"
             >
-              <span class="flex items-center justify-center shrink-0"
-                    :style="{ width: 'clamp(1.5rem, 4.6vw, 2.2rem)', height: 'clamp(1.5rem, 4.6vw, 2.2rem)' }">
-                <SvgIcon :type="(item.icon as IconType)" class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]" />
+              <span
+                class="flex items-center justify-center shrink-0"
+                :style="{
+                  width: 'clamp(1.5rem, 4.6vw, 2.2rem)',
+                  height: 'clamp(1.5rem, 4.6vw, 2.2rem)',
+                }"
+              >
+                <SvgIcon
+                  :type="item.icon as IconType"
+                  class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]"
+                />
               </span>
               <span class="whitespace-nowrap">{{ item.label }}</span>
             </a>
@@ -96,9 +127,17 @@
               active-class="!bg-primary/10 !text-primary font-medium"
               @click="item.closeOnClick !== false ? (open = false) : null"
             >
-              <span class="flex items-center justify-center shrink-0"
-                    :style="{ width: 'clamp(1.5rem, 4.6vw, 2.2rem)', height: 'clamp(1.5rem, 4.6vw, 2.2rem)' }">
-                <SvgIcon :type="(item.icon as IconType)" class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]" />
+              <span
+                class="flex items-center justify-center shrink-0"
+                :style="{
+                  width: 'clamp(1.5rem, 4.6vw, 2.2rem)',
+                  height: 'clamp(1.5rem, 4.6vw, 2.2rem)',
+                }"
+              >
+                <SvgIcon
+                  :type="item.icon as IconType"
+                  class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]"
+                />
               </span>
               <span class="whitespace-nowrap">{{ item.label }}</span>
             </router-link>

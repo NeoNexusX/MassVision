@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col sm:flex-row items-center justify-between gap-4 w-full sm:w-auto">
+  <div class="flex flex-col sm:flex-row items-center w-full sm:w-auto">
     <div
       v-if="totalPages > 0"
       class="flex flex-wrap sm:flex-nowrap items-center justify-center gap-2 sm:gap-3 w-full sm:w-auto"
@@ -64,9 +64,6 @@ import { ref } from 'vue'
 const props = defineProps<{
   currentPage: number
   totalPages: number
-  totalItems: number
-  from: number
-  to: number
   pageRange: (number | string)[]
 }>()
 

@@ -604,16 +604,6 @@ export function useOverlayData(
   }
 
   /**
-   * Cached raw UMAP embedding (per-tissue-pixel coordinates + 3D vector), or
-   * null before the first successful load. Consumed by the scatter / lasso
-   * view to plot points by their true 3D position rather than the rasterized
-   * grid.
-   */
-  function getUmapEmbedding(): UmapEmbedding | null {
-    return umapEmbedding
-  }
-
-  /**
    * Export an RGB raster (H×W×3 uint8) as a scaled-up PNG download.
    * Background pixels (0,0,0) become transparent. Used by the UMAP/KMeans
    * export buttons so the user gets a clean image without the ion image.
@@ -695,7 +685,6 @@ export function useOverlayData(
     /** Selected cluster ids (null = all); drives overlay + export mask. */
     selectedKmeansIds,
     toggleOverlay,
-    recomputeOverlay,
     retryClustering,
     /** Run KMeans locally over the UMAP raster with a user-chosen k. */
     runKmeans,
@@ -706,8 +695,6 @@ export function useOverlayData(
     getKmeansLabels,
     /** Dimensions of the cached KMeans/UMAP raster grid, or null. */
     getKmeansDims,
-    /** Raw UMAP embedding for the scatter/lasso view, or null if not loaded. */
-    getUmapEmbedding,
     /** Set/clear a comparison overlay (region A/B highlight) that overrides UMAP/KMeans. */
     setComparisonOverlay,
     /** Export the UMAP RGB image as a standalone PNG. */

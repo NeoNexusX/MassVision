@@ -26,7 +26,7 @@
 - 右侧信息、显示范围、统计、Visualization、聚类和 ROI 控件。
 - 主可视化下方可折叠的 **Compare regions / Comparison results**。
 
-小屏幕会把这些区域改为纵向排列。`public/config.json` 的 `resultFeatures.annotation` 和 `resultFeatures.compare` 可以分别关闭注释或区域比较，因此不同部署可能看不到对应面板。
+小屏幕会把这些区域改为纵向排列。注释面板与区域比较在所有部署中均启用。
 
 ## Continuous 与 Processed
 

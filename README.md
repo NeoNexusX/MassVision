@@ -51,7 +51,8 @@ src/
 docs/                            # VitePress 中英文文档
 e2e/                             # Playwright 测试
 env/                             # Vite 环境变量
-public/config.json               # 无需重新构建即可调整的运行时配置
+public/config.json               # 无需重新构建即可调整的全站运行时配置
+public/content.json              # 首页展示内容（团队、时间线、Hero 文案）
 docker/                          # Docker/nginx 部署
 ```
 
@@ -106,7 +107,11 @@ npm run icons:bundle      # 更新离线图标子集
 
 ## 运行时配置
 
-应用启动时先加载 `public/config.json`，再挂载 Vue。该文件控制应用名称、首页内容、导航、功能开关、分页、表单选项，以及区域比较/注释和 Zarr 读取参数。JSON 缺失或格式错误时应用会显示启动失败页。
+应用启动时先加载 `public/config.json`，再挂载 Vue。该文件控制应用名称、导航、分页、验证码和 Zarr 读取参数；缺失或格式错误时应用会显示启动失败页。
+
+首页展示内容（Hero 文案、功能展示、时间线、团队、联系方式、提交热力图）拆在 `public/content.json`，只在进入首页时加载，取不到时首页降级为不显示这些区块。两份文件都可在部署后直接修改、刷新即生效。
+
+表单下拉选项与离子源必填规则不再走 JSON，已编译进代码（`src/features/datasets/constants/datasetMetadata.ts`、`src/features/upload/utils/ionSourceRules.ts`），修改后需重新构建。
 
 ## 文档与部署
 

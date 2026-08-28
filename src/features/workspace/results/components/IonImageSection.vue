@@ -17,7 +17,6 @@ const props = defineProps<{
   gamma: number
   displayMin: number
   displayMax: number
-  dataMax: number
   ionCols: number
   ionRows: number
   roiTool: ROIType | null
@@ -112,24 +111,24 @@ onBeforeUnmount(() => {
     :data-loading="ionLoading ? 'true' : 'false'"
     class="flex gap-2 p-2 min-h-[520px] shrink-0 lg:h-auto lg:min-h-0 lg:flex-[5_1_0%] lg:shrink"
   >
-    <div class="flex-1 card bg-base-100 rounded-xl flex flex-col overflow-hidden">
+    <div class="flex-1 card bg-base-100 rounded-xl overflow-hidden">
       <div
         v-if="isStale"
         class="flex-1 flex flex-col items-center justify-center text-base-content/40 gap-1"
       >
-        <p class="text-xl">No result selected</p>
-        <p class="text-base">Navigate from the Workspace dashboard to view a result.</p>
+        <p class="text-[1.25em]">No result selected</p>
+        <p class="text-[1.25em]"> Navigate from the Workspace dashboard to view a result.</p>
       </div>
       <div
         v-else-if="ionError && !ionMatrix"
         class="flex-1 flex flex-col items-center justify-center gap-2 px-6 text-center"
       >
-        <p class="text-lg font-semibold text-error">Failed to load ion image</p>
-        <p class="text-sm text-base-content/60 break-words">{{ ionError }}</p>
+        <p class="text-[1.5em] font-semibold text-error">Failed to load ion image</p>
+        <p class="text-[0.875em] text-base-content/60 break-words">{{ ionError }}</p>
       </div>
       <div
         v-else-if="!ionMatrix"
-        class="flex-1 flex items-center justify-center text-base-content/40 text-xl"
+        class="flex-1 flex items-center justify-center text-base-content/40 text-[1.25em]"
       >
         {{ processedPlaceholder }}
       </div>
@@ -169,7 +168,7 @@ onBeforeUnmount(() => {
         >
           <div class="flex flex-col items-center gap-3">
             <span class="loading loading-spinner loading-lg text-primary"></span>
-            <span class="text-base-content/70 text-xl">Updating ion image…</span>
+            <span class="text-base-content/70 text-[1.25em]">Updating ion image…</span>
           </div>
         </div>
         <ROIOverlay
@@ -183,7 +182,7 @@ onBeforeUnmount(() => {
         />
         <div
           v-if="ionError"
-          class="absolute left-3 right-3 top-3 z-30 rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-sm text-error shadow-sm backdrop-blur-sm"
+          class="absolute left-3 right-3 top-3 z-30 rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-[0.875em] text-error shadow-sm backdrop-blur-sm"
         >
           Failed to update ion image: {{ ionError }}
         </div>
@@ -191,45 +190,48 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- 强度条 -->
-    <div class="shrink-0 flex flex-col items-center gap-1.5 w-12">
+    <div class="shrink-0 flex flex-col items-center gap-2 w-[3em] text-[1.2em]">
       <button
-        class="text-base text-base-content/40 hover:text-base-content"
+        class="text-base-content/40 hover:text-base-content w-[3em]"
         title="Reset to auto range"
         @click="emit('reset-range')"
       >
-        <SvgIcon type="refresh" class="" />
+        <SvgIcon type="refresh" />
       </button>
-      <span
-        class="text-base font-mono text-base-content/60 leading-none text-center whitespace-nowrap"
-      >
-        {{ formatVal(dataMax) }}
-      </span>
+      <span class="range-label">{{ formatVal(displayMax) }}</span>
       <div
         :ref="(element) => emit('strip-ref', element as HTMLElement | null)"
-        class="flex-1 w-5 rounded-sm border border-base-300 relative cursor-pointer bg-base-200"
+        class="flex-1 w-[1.5em] rounded-sm border border-base-300 relative cursor-pointer bg-base-200"
         @mousedown.prevent="emit('strip-mouse-down', $event)"
       >
         <div class="absolute inset-0 rounded-sm" :style="{ background: gradientCss }"></div>
+        <!-- 上下两个拖拽手柄结构一致，只是绑定的端点不同 -->
         <div
+          v-for="handle in ['max', 'min'] as const"
+          :key="handle"
           class="absolute left-0 right-0 h-3 cursor-ns-resize z-10 flex items-center justify-center"
-          :style="{ top: clampPct(calcHandleTop(displayMax)) + '%', transform: 'translateY(-50%)' }"
-          @mousedown.prevent.stop="emit('start-strip-drag', 'max', $event)"
-        >
-          <div class="w-full h-[3px] bg-base-100 rounded shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"></div>
-        </div>
-        <div
-          class="absolute left-0 right-0 h-3 cursor-ns-resize z-10 flex items-center justify-center"
-          :style="{ top: clampPct(calcHandleTop(displayMin)) + '%', transform: 'translateY(-50%)' }"
-          @mousedown.prevent.stop="emit('start-strip-drag', 'min', $event)"
+          :style="{
+            top: clampPct(calcHandleTop(handle === 'max' ? displayMax : displayMin)) + '%',
+            transform: 'translateY(-50%)',
+          }"
+          @mousedown.prevent.stop="emit('start-strip-drag', handle, $event)"
         >
           <div class="w-full h-[3px] bg-base-100 rounded shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"></div>
         </div>
       </div>
-      <span
-        class="text-base font-mono text-base-content/60 leading-none text-center whitespace-nowrap"
-      >
-        {{ formatVal(displayMin) }}
-      </span>
+      <span class="range-label">{{ formatVal(displayMin) }}</span>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 强度条两端的数值标签：等宽字体让拖动手柄时数字不左右抖动，
+   nowrap 避免 formatVal 输出科学计数法（如 1.2e+05）时被 3em 宽的列折行。 */
+.range-label {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: color-mix(in oklch, var(--color-base-content) 60%, transparent);
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+</style>

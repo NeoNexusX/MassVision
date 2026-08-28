@@ -6,7 +6,6 @@ import {
   meanChartData,
   spectrumLoading,
   spectrumError,
-  nMz,
   findClosestMzIndex,
   loadMeanSpectrum,
   pixelSpectrum,
@@ -25,8 +24,6 @@ const props = defineProps<{
   spectrumMode?: string
   /** 数据模式 */
   dataMode?: DataMode | null
-  /** processed 模式下选中的像素索引 */
-  selectedPixelIndex?: number
 }>()
 
 const emit = defineEmits<{
@@ -81,11 +78,6 @@ const currentError = computed(() =>
   props.dataMode === 'processed' ? pixelSpectrumError.value : spectrumError.value,
 )
 
-/** 当前峰数 */
-const currentPeakCount = computed(() =>
-  props.dataMode === 'processed' ? pixelChartData.value.length : nMz.value,
-)
-
 /** 当前谱图重试 */
 async function onRetry() {
   if (props.dataMode === 'processed') {
@@ -95,13 +87,6 @@ async function onRetry() {
     await onRetryMeanSpectrum()
   }
 }
-
-/** 像素信息（processed 模式） */
-const pixelInfo = computed(() => {
-  const spec = pixelSpectrum.value
-  if (!spec) return null
-  return { x: spec.x, y: spec.y }
-})
 
 // ---- 底部统计信息 ----
 
@@ -134,23 +119,23 @@ const currentStats = computed(() =>
 <template>
   <!-- 桌面端在首屏剩余空间内与离子图按 2:5 分高，并允许随视口收缩。 -->
   <div
-    class="shrink-0 lg:h-auto lg:min-h-0 lg:flex-[2_1_0%] lg:shrink card bg-base-100 border-2 border-base-content/30 p-2 flex flex-col"
+    class="shrink-0 lg:h-auto lg:min-h-0 lg:flex-[2_1_0%] lg:shrink card bg-base-100 border-2 border-base-content/30 p-2"
   >
     <div
       v-if="isStale"
-      class="flex-1 flex items-center justify-center text-base-content/40 text-xl"
+      class="flex-1 flex items-center justify-center text-base-content/40 text-[1.25em]"
     >
       No spectrum data available
     </div>
     <div
       v-else-if="dataMode === 'processed' && !pixelSpectrum"
-      class="flex-1 flex items-center justify-center text-base-content/40 text-xl"
+      class="flex-1 flex items-center justify-center text-base-content/40 text-[1.25em]"
     >
       <template v-if="pixelSpectrumLoading">
         <span class="loading loading-spinner loading-lg text-primary mr-3"></span>
         <div class="text-center">
           <div>Loading spectrum...</div>
-          <div class="text-base text-base-content/40 mt-1">First load may take a moment while fetching data</div>
+          <div class="text-base-content/40 mt-1">First load may take a moment while fetching data</div>
         </div>
       </template>
       <template v-else> Click a pixel on the TIC image to view its spectrum </template>
@@ -162,17 +147,15 @@ const currentStats = computed(() =>
       :selected-mz="selectedMz"
       :loading="currentLoading"
       :error="currentError"
-      :n-mz="currentPeakCount"
       :spectrum-mode="spectrumMode"
       :data-mode="dataMode"
-      :pixel-info="pixelInfo"
       @select-mz="onSelectMz"
       @retry="onRetry"
     />
   </div>
 
   <!-- 底部统计信息 -->
-  <div class="shrink-0 flex flex-wrap gap-4 text-lg lg:text-xl text-base-content/60 pl-4 pr-1">
+  <div class="shrink-0 flex flex-wrap gap-4 text-[1.25em] text-base-content/60 pl-4 pr-1">
     <span v-for="stat in currentStats" :key="stat.label">
       {{ stat.label }}:
       <strong class="text-base-content font-mono">{{ stat.value }}</strong>
