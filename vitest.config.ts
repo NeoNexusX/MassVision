@@ -12,6 +12,14 @@ export default defineConfig((configEnv) =>
         environment: 'jsdom',
         exclude: [...configDefaults.exclude, 'e2e/**'],
         root: fileURLToPath(new URL('./', import.meta.url)),
+        coverage: {
+          provider: 'v8',
+          reporter: ['text', 'html'],
+          // 只统计业务源码。当前覆盖率很低，先不设全局阈值——
+          // 阈值现在只会逼人删阈值；待 zarr 等核心模块覆盖起来后再加
+          include: ['src/**/*.{ts,vue}'],
+          exclude: ['src/**/__tests__/**'],
+        },
       },
     }),
   ),

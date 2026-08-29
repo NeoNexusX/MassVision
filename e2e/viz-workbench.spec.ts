@@ -73,7 +73,7 @@ test.describe('Result Detail', () => {
     await expect(page.getByRole('heading', { name: 'Spectrum View' })).toBeVisible()
     await expect(page.getByText(/peaks/)).toBeVisible()
 
-    // 右侧 ColorBar 元数据（zarr 加载可能较慢）
+    // 右侧信息栏元数据（zarr 加载可能较慢）
     await expect(page.getByText('Polarity')).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText('Analyzer')).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 10_000 })

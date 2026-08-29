@@ -97,7 +97,6 @@
 import { computed, ref, onMounted, onBeforeUnmount, watch, type PropType } from 'vue'
 
 const props = defineProps({
-  colormap: { type: String, default: 'viridis' },
   globalMin: { type: Number, required: true },
   globalMax: { type: Number, required: true },
   displayMin: { type: Number, required: true },

@@ -573,16 +573,16 @@ watch(
       <!-- Adduct + formula dropdown filters (one row); coarse-filter note below -->
       <div v-if="hasData" class="shrink-0 space-y-1">
         <div class="grid grid-cols-2 gap-2">
-          <label class="flex flex-col gap-0.5 text-[0.875em] min-w-0">
+          <label class="flex flex-col gap-0.5 text-[1em] min-w-0">
             <span class="text-base-content/60">Adduct</span>
-            <select v-model="filterAdduct" class="select select-bordered select-xs w-full">
+            <select v-model="filterAdduct" class="select select-bordered select-sm w-full text-[1em]">
               <option value="">All</option>
               <option v-for="opt in adductOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>
           </label>
-          <label class="flex flex-col gap-0.5 text-[0.875em] min-w-0">
+          <label class="flex flex-col gap-0.5 text-[1em] min-w-0">
             <span class="text-base-content/60">Formula</span>
-            <select v-model="filterFormula" class="select select-bordered select-xs w-full">
+            <select v-model="filterFormula" class="select select-bordered select-sm w-full text-[1em]">
               <option value="">All</option>
               <option v-for="opt in formulaOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>
@@ -655,12 +655,12 @@ watch(
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
-                <div class="font-medium text-[1.125em] text-base-content truncate">{{ row.name }}</div>
+                <div class="font-medium text-[1.25em] text-base-content truncate">{{ row.name }}</div>
                 <!-- min-h-4 keeps one line box even when all three spans are
                      v-if'd out: the virtual scroll assumes a uniform row
                      height, and an empty subtitle would make this row ~20px
                      shorter than the measured rowH. -->
-                <div class="min-h-4 text-[1em] text-base-content/50 truncate">
+                <div class="min-h-4 text-[1.125em] text-base-content/50 truncate">
                   <span v-if="row.formulaIon" class="font-mono">{{ row.formulaIon }}</span>
                   <span v-if="row.ionType" class="text-base-content/40">&nbsp;{{ row.ionType }}</span>
                   <span v-if="row.candidates.length > 1" class="text-primary/50">
@@ -669,7 +669,7 @@ watch(
                 </div>
               </td>
               <td
-                class="text-right font-mono whitespace-nowrap text-[1.125em]"
+                class="text-right font-mono whitespace-nowrap text-[1.25em]"
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >

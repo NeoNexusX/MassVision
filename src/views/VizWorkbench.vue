@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onUnmounted, nextTick } from 'vue'
-import ColorBar from '@/features/vizworkbench/components/visuals/ColorBar.vue'
+import VizInfoPanel from '@/features/vizworkbench/components/visuals/VizInfoPanel.vue'
 import ResultVisualizationLayout from '@/features/vizworkbench/components/ResultVisualizationLayout.vue'
 import ResultHeader from '@/features/vizworkbench/components/visuals/ResultHeader.vue'
 import IonImageSection from '@/features/vizworkbench/components/IonImageSection.vue'
@@ -521,9 +521,8 @@ async function onSelectPixel(col: number, row: number) {
     </template>
 
     <template #side-panel>
-      <ColorBar
+      <VizInfoPanel
         class="shrink-0 py-4 w-full"
-        :colormap="colormap"
         :global-min="globalMin"
         :global-max="globalMax"
         :display-min="displayMin"
@@ -577,7 +576,7 @@ async function onSelectPixel(col: number, row: number) {
             @update:gamma="gamma = $event"
           />
         </template>
-      </ColorBar>
+      </VizInfoPanel>
     </template>
   </ResultVisualizationLayout>
 </template>

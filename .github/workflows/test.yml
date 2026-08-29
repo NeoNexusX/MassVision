@@ -16,9 +16,9 @@ name: Test
 
 on:
   push:
-    branches: [test]
+    branches: [feature/update_architecture]
   pull_request:
-    branches: [test]
+    branches: [feature/update_architecture]
 
 jobs:
   # ---- Job 1: 静态检查 + 单元测试 ----
