@@ -42,6 +42,9 @@
     "spectraChunkCacheSize": 100,
     "spectraConcurrency": 16
   },
+  "oss": {
+    "previewImageBase": "https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com"
+  },
 
   "timeline": [
     {
