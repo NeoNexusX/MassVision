@@ -45,7 +45,10 @@ test.describe('Result Detail', () => {
     await expect(page.getByText('No result selected')).toBeVisible()
   })
 
-  test('loads ion image, spectrum, metadata, and responds to click', async ({ page }) => {
+  test('loads ion image, spectrum, metadata, and responds to click', async ({ page, browserName }) => {
+    // 依赖 new-analysis.spec.ts 在 chromium 提交的 Peak Alignment 任务；
+    // firefox/webkit 不提交，故无此行，跳过（与 Cleanup 的 skip 理由一致）。
+    test.skip(browserName !== 'chromium', '分析任务只在 chromium 创建，依赖它的断言不跨浏览器')
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
@@ -98,7 +101,9 @@ test.describe('Result Detail', () => {
     await expect(page.getByRole('heading', { name: 'Spectrum View' })).toBeVisible()
   })
 
-  test('switches colormap and keeps ion image stable', async ({ page }) => {
+  test('switches colormap and keeps ion image stable', async ({ page, browserName }) => {
+    // 同上：依赖 chromium 提交的 Peak Alignment 任务
+    test.skip(browserName !== 'chromium', '分析任务只在 chromium 创建，依赖它的断言不跨浏览器')
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
