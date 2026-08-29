@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { getConfig } from '@/shared/config/runtimeConfig'
+import { ANALYZERS, ION_SOURCES } from '@/features/datasets/constants/datasetMetadata'
 import { getIonSourceFieldRules } from '@/features/upload/utils/ionSourceRules'
 
 export interface UploadMetadataFormState {
@@ -106,14 +106,14 @@ export function useUploadMetadataForm() {
   }
 
   const applyParsedSettings = (settings: any) => {
-    const opts = getConfig().options
     if (settings.polarity) {
       form.value.polarity = settings.polarity === 'negative' ? 'Negative' : 'Positive'
     }
-    if (settings.ionSource && opts.ionSource.includes(settings.ionSource)) {
+    // imzML 解析出的值是任意字符串，用 readonly string[] 断言绕开字面量联合的 includes 约束
+    if (settings.ionSource && (ION_SOURCES as readonly string[]).includes(settings.ionSource)) {
       form.value.ionisation_source = settings.ionSource
     }
-    if (settings.analyzer && opts.analyzer.includes(settings.analyzer)) {
+    if (settings.analyzer && (ANALYZERS as readonly string[]).includes(settings.analyzer)) {
       form.value.analyzer = settings.analyzer
     }
     if (settings.pixelSizeX != null) {

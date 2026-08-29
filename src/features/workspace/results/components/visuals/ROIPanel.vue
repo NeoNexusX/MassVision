@@ -1,55 +1,55 @@
 <template>
-  <div class="flex flex-col gap-3 text-lg">
+  <div class="flex flex-col gap-3 text-[1.125em]">
     <!-- ROI Tools -->
     <div>
-      <div class="text-lg font-semibold text-base-content mb-2 tracking-wide">ROI Tools</div>
+      <div class="font-semibold text-base-content mb-2 tracking-wide">ROI Tools</div>
       <div class="flex gap-1.5">
         <button
-          class="btn btn-sm flex-1 text-base"
+          class="btn btn-sm flex-1 text-[1em]"
           :class="selectedTool === 'rectangle' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'rectangle' ? null : 'rectangle')"
         >
-          <SvgIcon type="square" class="" /> Rect
+          <SvgIcon type="square" /> Rect
         </button>
         <button
-          class="btn btn-sm flex-1 text-base"
+          class="btn btn-sm flex-1 text-[1em]"
           :class="selectedTool === 'freehand' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'freehand' ? null : 'freehand')"
         >
-          <SvgIcon type="lasso" class="" /> Lasso
+          <SvgIcon type="lasso" /> Lasso
         </button>
       </div>
       <div v-if="draftReady" class="flex gap-1.5 mt-1.5">
-        <button class="btn btn-sm btn-success flex-1 text-base" @click="$emit('confirm')">
-          <SvgIcon type="check" class="" /> Confirm
+        <button class="btn btn-sm btn-success flex-1 text-[1em]" @click="$emit('confirm')">
+          <SvgIcon type="check" /> Confirm
         </button>
         <button
-          class="btn btn-sm btn-ghost flex-1 text-base text-error"
+          class="btn btn-sm btn-ghost flex-1 text-error text-[1em]"
           @click="$emit('cancel')"
         >
-          <SvgIcon type="close" class="" /> Cancel
+          <SvgIcon type="close" /> Cancel
         </button>
       </div>
       <button
         v-if="rois.length"
-        class="btn btn-sm w-full text-base mt-1.5"
+        class="btn btn-sm w-full mt-1.5 text-[1em]"
         :class="viewingRoi ? 'btn-primary' : 'btn-ghost'"
         :title="viewingRoi ? '当前：仅显示 ROI 区域内' : '当前：显示完整离子图'"
         @click="$emit('update:viewingRoi', !viewingRoi)"
       >
         {{ viewingRoi ? 'ROI only' : 'Show all' }}
       </button>
-      <div v-if="draftReady" class="text-base text-base-content mt-1">
+      <div v-if="draftReady" class="text-base-content mt-1">
         {{
           selectedTool === 'freehand'
             ? 'Selection ready — confirm, or drag inside to move'
             : 'Selection ready — confirm or drag handles to adjust'
         }}
       </div>
-      <div v-else-if="selectedTool === 'rectangle'" class="text-base text-base-content mt-1">
+      <div v-else-if="selectedTool === 'rectangle'" class="text-base-content mt-1">
         Drag on the ion image to draw a rectangle
       </div>
-      <div v-else-if="selectedTool === 'freehand'" class="text-base text-base-content mt-1">
+      <div v-else-if="selectedTool === 'freehand'" class="text-base-content mt-1">
         Draw a freeform outline on the ion image
       </div>
     </div>
@@ -57,8 +57,8 @@
     <!-- ROI List -->
     <div v-if="rois.length">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-lg font-semibold text-base-content tracking-wide">ROIs</span>
-        <button class="text-lg text-error hover:underline" @click="$emit('clearAll')">
+        <span class="font-semibold text-base-content tracking-wide">ROIs</span>
+        <button class="text-error hover:underline" @click="$emit('clearAll')">
           Clear all
         </button>
       </div>
@@ -70,20 +70,20 @@
           :style="{ borderColor: cssWithAlpha(roi.color, 0.25), background: cssWithAlpha(roi.color, 0.03) }"
         >
           <div class="flex items-center justify-between mb-1">
-            <span class="font-semibold text-lg" :style="{ color: roi.color }">{{
+            <span class="font-semibold" :style="{ color: roi.color }">{{
               roi.label
             }}</span>
             <button
-              class="text-lg text-base-content hover:text-error"
+              class="text-base-content hover:text-error"
               @click="$emit('delete', roi.id)"
             >
-              <SvgIcon type="trash" class="" />
+              <SvgIcon type="trash" />
             </button>
           </div>
-          <span class="text-lg text-base-content">{{
+          <span class="text-base-content">{{
             roi.type === 'freehand' ? 'Lasso' : 'Rectangle'
           }}</span>
-          <div v-if="roi.stats" class="mt-1 space-y-0.5 text-lg font-mono text-base-content">
+          <div v-if="roi.stats" class="mt-1 space-y-0.5 font-mono text-base-content">
             <div class="flex justify-between">
               <span>Pixels</span><span>{{ roi.stats.pixelCount }}</span>
             </div>
@@ -104,7 +104,7 @@
       </div>
     </div>
 
-    <div v-else-if="!selectedTool" class="text-lg text-base-content">
+    <div v-else-if="!selectedTool" class="text-base-content">
       Select Rect or Lasso to draw on the ion image.
     </div>
   </div>

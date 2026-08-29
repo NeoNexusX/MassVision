@@ -2,9 +2,9 @@
 import BaseScene from './BaseScene.vue'
 import RepoCommitHeatmap from './RepoCommitHeatmap.vue'
 import DatasetStatsPanel from './DatasetStatsPanel.vue'
-import { getConfig } from '@/shared/config/runtimeConfig'
+import { getContent } from '@/features/home/config/contentConfig'
 
-const hm = getConfig().githubHeatmap
+const hm = getContent().githubHeatmap
 </script>
 
 <template>

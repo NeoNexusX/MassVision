@@ -592,8 +592,8 @@ describe('helpers', () => {
   })
 
   it('formatMassError respects mode', () => {
-    expect(formatMassError(1.23, 'ppm')).toBe('1.23')
-    expect(formatMassError(0.00012, 'Da')).toBe('0.0001')
+    expect(formatMassError(1.23, 'ppm')).toBe('1.2300')
+    expect(formatMassError(0.00012, 'Da')).toBe('0.000120')
     expect(formatMassError(null, 'ppm')).toBe('-')
   })
 

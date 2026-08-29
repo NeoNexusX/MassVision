@@ -292,12 +292,6 @@ export function usePreprocessingMethods(
 ) {
   const modeKey = computed(() => resolveModeKey(spectrumMode.value, storageMode.value))
 
-  const isFiltered = computed(() => {
-    if (!spectrumMode.value && !storageMode.value) return false
-    const allowed = methodRulesByMode[modeKey.value]
-    return !!allowed && allowed.length < allMethodGroups.length
-  })
-
   const modeNotice = computed(() => {
     const s = spectrumMode.value
     const t = storageMode.value
@@ -338,5 +332,5 @@ export function usePreprocessingMethods(
     })
   })
 
-  return { availableMethods, isFiltered, modeNotice }
+  return { availableMethods, modeNotice }
 }

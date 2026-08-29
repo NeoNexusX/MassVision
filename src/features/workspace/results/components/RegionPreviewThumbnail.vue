@@ -11,7 +11,9 @@
  *
  * Rendering: masks are H×W grids (row*width+col), drawn into a 1:1 ImageData
  * and upscaled with drawImage - same pattern as the main canvas renderer, so
- * colors and geometry match the ion image exactly.
+ * colors and geometry match the ion image exactly. The canvas itself is a
+ * fixed-size box (see BOX_ASPECT); the image is contain-fitted and centred
+ * inside it, so datasets of any aspect ratio render into the same footprint.
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
@@ -43,10 +45,6 @@ const props = defineProps<{
 
 const containerRef = ref<HTMLDivElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-
-const hasAnything = computed(
-  () => !!(props.a.length || props.b.length || props.rois.length) && props.width > 0 && props.height > 0,
-)
 
 interface LegendEntry {
   label: string
@@ -164,6 +162,16 @@ function paintMask(
 
 // ---------- canvas ----------
 
+// The canvas is a fixed viewport, not a data-shaped element: its height comes
+// from the column width via a constant ratio (clamped), never from the
+// dataset's aspect. A portrait dataset (e.g. 48x100) would otherwise make the
+// canvas twice as tall as the column is wide, and since the left column's
+// natural height drives the whole compare section, it stretched the results
+// table with it.
+const BOX_ASPECT = 0.75 // box height / box width
+const BOX_MIN_H = 180
+const BOX_MAX_H = 360
+
 function draw() {
   const canvas = canvasRef.value
   const container = containerRef.value
@@ -171,8 +179,7 @@ function draw() {
 
   const cw = container.clientWidth
   if (!cw) return
-  const aspect = props.height / props.width
-  const ch = Math.max(1, Math.round(cw * aspect))
+  const ch = Math.min(BOX_MAX_H, Math.max(BOX_MIN_H, Math.round(cw * BOX_ASPECT)))
 
   const dpr = window.devicePixelRatio || 1
   canvas.width = Math.round(cw * dpr)
@@ -181,19 +188,26 @@ function draw() {
 
   const ctx = canvas.getContext('2d')
   if (!ctx) return
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0) // draw in CSS pixels
   ctx.imageSmoothingEnabled = false
   ctx.fillStyle = `rgb(${BG.r},${BG.g},${BG.b})`
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.fillRect(0, 0, cw, ch)
 
   const img = buildImageData()
   if (!img) return
 
-  // 1:1 offscreen → upscaled blit (pixelated), matching the main renderer.
+  // 1:1 offscreen → contain-fit blit (pixelated), matching the main renderer:
+  // the image is scaled to fit inside the box and centred, so the leftover
+  // space stays backdrop-coloured instead of resizing the box.
   const off = document.createElement('canvas')
   off.width = img.width
   off.height = img.height
   off.getContext('2d')!.putImageData(img, 0, 0)
-  ctx.drawImage(off, 0, 0, canvas.width, canvas.height)
+
+  const scale = Math.min(cw / img.width, ch / img.height)
+  const dw = Math.max(1, Math.round(img.width * scale))
+  const dh = Math.max(1, Math.round(img.height * scale))
+  ctx.drawImage(off, Math.round((cw - dw) / 2), Math.round((ch - dh) / 2), dw, dh)
 }
 
 let ro: ResizeObserver | null = null
@@ -215,17 +229,7 @@ watch(
 <template>
   <div class="border-0 rounded-none bg-transparent overflow-visible">
     <div class="px-3 pt-2 pb-1.5 flex items-center justify-between">
-      <span class="text-base font-semibold text-base-content">Region preview</span>
-      <span v-if="!hasAnything" class="text-base text-base-content/40">
-        Select regions or draw ROIs
-      </span>
-    </div>
-    <div ref="containerRef" class="px-3 pb-2">
-      <canvas
-        ref="canvasRef"
-        class="block w-full max-w-full rounded-md border border-base-300"
-        style="image-rendering: pixelated"
-      />
+      <span class="font-semibold text-base-content text-[1.2em]">Region preview</span>
     </div>
     <div
       v-if="legendsA.length || legendsB.length"
@@ -234,7 +238,7 @@ watch(
       <span
         v-for="legend in [...legendsA, ...legendsB]"
         :key="legend.label"
-        class="flex items-center gap-1.5 text-base text-base-content/80"
+        class="flex items-center gap-1.5 text-base-content/80"
       >
         <span
           class="w-2.5 h-2.5 rounded-sm border border-base-content/30 shrink-0"
@@ -242,6 +246,13 @@ watch(
         ></span>
         <span class="truncate max-w-[180px]" :title="legend.label">{{ legend.label }}</span>
       </span>
+    </div>
+    <div ref="containerRef" class="px-3 pb-2">
+      <canvas
+        ref="canvasRef"
+        class="block w-full max-w-full rounded-md border border-base-300"
+        style="image-rendering: pixelated"
+      />
     </div>
   </div>
 </template>

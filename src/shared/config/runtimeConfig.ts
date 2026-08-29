@@ -6,144 +6,13 @@
  * - 应用启动时（main.ts 的 bootstrap）先 `await loadConfig()`，再动态导入并挂载应用，
  *   因此任何模块（含模块顶层）都能安全地通过 `getConfig()` 读取配置。
  * - 注意：与「部署环境/构建工具链」相关的后端地址仍走 env/ 目录的 .env 文件（见 env.ts），不在此文件中。
- */
-
-/** 各类下拉选项表（与表单字段一一对应） */
-export interface OptionLists {
-  /** 职位 */
-  position: string[]
-  /** 研究领域 */
-  researchField: string[]
-  /** 极性 */
-  polarity: string[]
-  /** 离子源 */
-  ionSource: string[]
-  /** 分析器 */
-  analyzer: string[]
-  /** 谱图模式 */
-  spectrumMode: string[]
-  /** 存储模式 */
-  storageMode: string[]
-  /** 实验类型 */
-  experimentType: string[]
-  /** 物种 */
-  organism: string[]
-  /** 取材部位 */
-  organismPart: string[]
-  /** 样本状态 / 条件 */
-  condition: string[]
-  /** 样本培养条件 */
-  sampleGrowthCondition: string[]
-  /** 样本稳定化处理 */
-  sampleStabilization: string[]
-  /** 组织修饰 */
-  tissueModification: string[]
-  /** MALDI 基质 */
-  maldiMatrix: string[]
-  /** 基质涂布方式 */
-  maldiMatrixApplication: string[]
-  /** 溶剂 */
-  solvent: string[]
-}
-
-// ---- Ion Source 动态字段规则（config.json 的 ionSourceFieldRules） ----
-
-/** 单个字段的规则片段（required 及展示文案） */
-interface IonSourceFieldRuleConfig {
-  required: boolean
-  label: string
-  placeholder?: string
-}
-
-/** 一个离子源家族的匹配规则 */
-interface IonSourceFamilyConfig {
-  /** 家族标识（如 "maldi"、"desi"） */
-  key: string
-  /** 归一化后用于匹配的关键词列表，命中任一即匹配该家族 */
-  match: string[]
-  /** 覆盖默认 solvent 规则 */
-  solvent?: Partial<IonSourceFieldRuleConfig>
-  /** 覆盖默认 MALDI Matrix 规则 */
-  maldiMatrix?: Partial<IonSourceFieldRuleConfig>
-  /** 覆盖默认 MALDI Matrix Application 规则 */
-  maldiMatrixApplication?: Partial<IonSourceFieldRuleConfig>
-}
-
-/** ionSourceFieldRules 配置块 */
-interface IonSourceRulesConfig {
-  /** 三个字段的默认规则（所有字段 optional） */
-  defaults: {
-    solvent: IonSourceFieldRuleConfig
-    maldiMatrix: IonSourceFieldRuleConfig
-    maldiMatrixApplication: IonSourceFieldRuleConfig
-  }
-  /** 离子源家族列表，按顺序匹配，先命中先生效 */
-  families: IonSourceFamilyConfig[]
-}
-
-/**
- * 开发团队成员（数据存于 config.json 的 `team`，非技术同学可直接编辑、刷新即生效）。
  *
- * 字段说明（编辑 config.json 的 team 时参考）：
- * - name:     姓名
- * - role:     职位 / 角色
- * - degree:   学位，如 'Ph.D.' / 'M.Sc.' / 'B.Sc.'（可选，不需要时填 "" 或删除该键）
- * - school:   学校 / 机构（可选）
- * - avatar:   头像 URL（OSS 链接）；留空或加载失败时，卡片自动回退为
- *             「姓名首字母 + 渐变背景」头像
- * - homepage: 个人主页链接；填写后整张卡片可点击跳转（新标签页打开），
- *             留空则卡片不可点击
+ * 这里只放**全站都要用的部署开关**。两类内容已分出去，以免它们的体积压在启动关键路径上：
+ * - 首页展示内容（团队、时间线、Hero 文案……）→ `public/content.json`，
+ *   见 features/home/config/contentConfig.ts，由 `/` 路由按需加载；
+ * - 表单词表与离子源规则 → 编译进包，见 features/datasets/constants/datasetMetadata.ts
+ *   与 features/upload/utils/ionSourceRules.ts。
  */
-export interface TeamMember {
-  /** 姓名 */
-  name: string
-  /** 职位 / 角色 */
-  role: string
-  /** 学位，如 'Ph.D.' / 'M.Sc.' / 'B.Sc.' */
-  degree?: string
-  /** 学校 / 机构 */
-  school?: string
-  /** 头像 URL（OSS 链接）；可选 */
-  avatar?: string
-  /** 个人主页链接；填写后点击卡片跳转 */
-  homepage?: string
-}
-
-/**
- * 功能展示项（FeatureScene 联动画廊的「联动单元」：词语 + 图片 + 卡片文案，按数组顺序一一对应）。
- *
- * 悬停画廊里第 i 张图时，左侧卡片同步展示第 i 项的 word/title/desc，实现「图 ↔ 卡片」联动。
- * 字段说明（编辑 config.json 的 features.items 时参考）：
- * - word:  画廊图片上方的词，如 'OPEN' / 'FAST' / 'INTELLIGENT'
- * - title: 左侧卡片标题（可选）
- * - desc:  左侧卡片描述（可选）
- * - image: 图片 URL（可选）；留空则回退到 hero.gallery 中同序号的图，便于先复用 Hero 的配图
- */
-export interface FeatureItem {
-  /** 画廊图片上方的词，如 'OPEN' */
-  word: string
-  /** 左侧卡片标题 */
-  title?: string
-  /** 左侧卡片描述 */
-  desc?: string
-  /** 图片 URL；留空回退到 hero.gallery 同序号图 */
-  image?: string
-}
-
-/**
- * 版本时间线项（编辑 config.json 的 timeline 时参考）。
- * - date:     时间节点，如 '2024 Q1'
- * - version:  版本号，如 '1.0' / '2.5'
- * - features: 该版本新增特性列表
- */
-export interface TimelineItem {
-  /** 时间节点 */
-  date: string
-  /** 版本号 */
-  version: string
-  /** 版本更新特性 */
-  features: string[]
-}
 
 /**
  * 侧边导航栏菜单项（config.json 的 `nav` 块）。
@@ -356,30 +225,6 @@ export interface FabConfig {
   items: FabItem[]
 }
 
-/** GitHub 提交（commit）热力图配置（config.json 的 githubHeatmap 块） */
-export interface GithubHeatmapConfig {
-  /** GitHub 仓库拥有者，如 "BioNet-XMU" */
-  owner: string
-  /** GitHub 仓库名，如 "MassVision" */
-  repo: string
-  /** 统计哪个分支的提交，默认 "dev" */
-  branch?: string
-  /** 统计最近多少天，默认 365 */
-  days?: number
-  /** 热力图标题；缺省时显示 "{owner}/{repo} Commit Activity" */
-  title?: string
-  /** 点击标题跳转的仓库页面地址；缺省时标题不可点击 */
-  repoUrl?: string
-  /** 热力图朝向：'auto'（大屏纵向/小屏横向，默认）| 'horizontal' | 'vertical' */
-  orientation?: 'auto' | 'horizontal' | 'vertical'
-}
-
-/** Result 页面可独立关闭的功能。缺省时均启用，以兼容旧配置。 */
-export interface ResultFeatureConfig {
-  compare?: boolean
-  annotation?: boolean
-}
-
 /**
  * 云端 zarr 读取调优参数（config.json 的 zarr 块），供按部署环境的网络/内存调整。
  * 均可缺省，非法值在 loadConfig 里回退默认。
@@ -419,26 +264,10 @@ export interface AppConfig {
   appName: string
   /** 应用版本号，如 "0.3.0" */
   version?: string
-  /** 首屏 Hero 区 */
-  hero: {
-    /** 轮播展示的标语（每行一句，可含符号，如 "FREE ∞"） */
-    taglines: string[]
-    /** 悬停画廊：一组图片 URL，横向并排，悬停某张时展开放大；留空则不显示 */
-    gallery?: string[]
-  }
-  /** 功能展示区（FeatureScene 联动画廊）；缺省或为空时该场景回退为占位标题 */
-  features?: {
-    /** 联动单元列表，按序对应画廊从左到右的图片 */
-    items: FeatureItem[]
-  }
-  /** Result 页面功能开关 */
-  resultFeatures?: ResultFeatureConfig
   /** 云端 zarr 读取调优参数；缺省时用内置默认（100MB 缓存 / 16 并发） */
   zarr?: ZarrConfig
   /** OSS 直连域名等；缺省时回退内置默认（测试环境 bucket） */
   oss?: OssConfig
-  /** 版本时间线；缺省或为空时不显示时间线区域 */
-  timeline?: TimelineItem[]
   /** 分页 */
   pagination: {
     /** 列表默认每页条数 */
@@ -460,33 +289,10 @@ export interface AppConfig {
     /** 滚到末尾后停留多久（ms）再平滑返回开头 */
     endPause: number
   }
-  /** 开发团队成员 */
-  team: TeamMember[]
-  /** 联系方式 */
-  contact?: {
-    /** 实验室 / 项目官网 */
-    website?: string
-    /** 主联系邮箱 */
-    email?: string
-    /** 备用联系邮箱 */
-    emailAlt?: string
-    /** GitHub 组织主页 */
-    github?: string
-    /** 微信公众号 / 二维码页面链接 */
-    wechat?: string
-    /** 学术招募页面链接 */
-    recruitment?: string
-  }
-  /** GitHub 提交热力图（StatsScene 展示用） */
-  githubHeatmap?: GithubHeatmapConfig
   /** 统一导航（navbar / drawer 按路由二选一）；缺省时只渲染空导航骨架 */
   nav?: NavConfig
   /** 悬浮按钮（NavFab）；缺省时 NavFab 不渲染任何子项，但仍渲染主按钮以切换 drawer */
   fab?: FabConfig
-  /** 表单下拉选项表 */
-  options: OptionLists
-  /** Ion Source 动态字段规则 */
-  ionSourceFieldRules: IonSourceRulesConfig
 }
 
 let _config: AppConfig | null = null
@@ -494,19 +300,21 @@ let _config: AppConfig | null = null
 /**
  * 加载 config.json。必须在挂载应用、以及导入任何依赖配置的模块之前 await 完成。
  * 加 no-cache 以便修改后刷新即可看到最新值。
+ *
+ * index.html 顶部的内联脚本已在 HTML 解析阶段发起同一个请求并挂在 window.__configPromise 上，
+ * 这里优先复用，把这次往返折叠进入口 JS 的下载窗口。取用后立即清空：Response 的 body 只能
+ * 消费一次，清空后万一有第二次调用会走下面的 fetch 兜底，与改动前行为一致。
+ * 没有内联脚本的环境（单测的 jsdom 等）__configPromise 为 undefined，同样走 fetch 兜底。
  */
 export async function loadConfig(): Promise<AppConfig> {
   const url = `${import.meta.env.BASE_URL}config.json`
-  const res = await fetch(url, { cache: 'no-cache' })
+  const preloaded = typeof window !== 'undefined' ? window.__configPromise : undefined
+  if (typeof window !== 'undefined') window.__configPromise = undefined
+  const res = await (preloaded ?? fetch(url, { cache: 'no-cache' }))
   if (!res.ok) {
     throw new Error(`Failed to load ${url}: ${res.status} ${res.statusText}`)
   }
   _config = (await res.json()) as AppConfig
-  _config.hero ??= { taglines: [], gallery: [] }
-  _config.features ??= { items: [] }
-  _config.resultFeatures ??= { compare: true, annotation: true }
-  _config.resultFeatures.compare ??= true
-  _config.resultFeatures.annotation ??= true
   _config.zarr ??= {}
   if (!Number.isInteger(_config.zarr.spectraChunkCacheSize) || _config.zarr.spectraChunkCacheSize! < 1) {
     _config.zarr.spectraChunkCacheSize = 100
@@ -517,7 +325,6 @@ export async function loadConfig(): Promise<AppConfig> {
   _config.oss ??= {}
   // 缺省回退测试环境域名，保证未配置 oss 块的旧配置行为不变
   _config.oss.previewImageBase ??= 'https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com'
-  _config.timeline ??= []
   _config.nav ??= { items: [], userMenu: [], guestLinks: [] }
   _config.fab ??= { main: { iconClosed: 'home', iconOpen: 'close' }, items: [] }
   return _config

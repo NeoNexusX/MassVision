@@ -1,11 +1,17 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
 import { useAuthStore } from '@/shared/auth/authStore'
+import { loadContent } from '@/features/home/config/contentConfig'
 
 const routes = [
   {
+    // 首页内容（团队/时间线/Hero 文案）来自 public/content.json，只有这个路由用得到。
+    // 与 HomeView 的 chunk 并行加载，两者都就绪后才 resolve，因此 HomeView 及其子组件
+    // 渲染时 getContent() 必然已就位，不必在组件里处理 pending 状态。
+    // loadContent() 自带失败兜底，不会让路由 resolve 失败。
     path: '/',
     name: 'Home',
-    component: () => import('../views/HomeView.vue'),
+    component: () =>
+      Promise.all([import('../views/HomeView.vue'), loadContent()]).then(([m]) => m.default),
   },
   {
     path: '/datasets',
@@ -104,7 +110,8 @@ router.beforeEach(async (to, from, next) => {
   // Redirect already-logged-in users away from login/register/forgot-password
   const fromAuthRequired = from.matched.some((record) => record.meta.requiresAuth)
   if (loggedIn && !fromAuthRequired && ['/login', '/register', '/forgotpassword'].includes(to.path)) {
-    return next('/mydatasets')
+    // 与 useLoginForm 登录成功后的落地页保持一致：公开数据集列表
+    return next('/datasets')
   }
 
   if (authRequired && !loggedIn) {

@@ -4,10 +4,11 @@ import { Icon } from '@iconify/vue'
 import BaseScene from './BaseScene.vue'
 import DeveloperCarousel from './footer/DeveloperCarousel.vue'
 import { getConfig } from '@/shared/config/runtimeConfig'
+import { getContent } from '@/features/home/config/contentConfig'
 
 const year = new Date().getFullYear()
 const config = getConfig()
-const { contact = {} } = config
+const { contact } = getContent()
 
 type SocialLink = { icon: string; label: string; href: string }
 

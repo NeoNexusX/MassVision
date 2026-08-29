@@ -63,21 +63,28 @@ export function useAnalysisDatasets() {
 
   // Watchers
 
-  // Debounced server-side search
+  // 防抖服务器端搜索。过滤键与数据集列表页一致用 filename（不是 name）。
+  // status=completed 已在 defaultFilters 里，这里只追加/更新 filename。
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
+  const runSearch = (query: string) => {
+    const filters = { filename: query.trim() }
+    if (activeTab.value === 'public') {
+      publicApplyFilters(filters)
+      fetchPublicFiles({ page: 1, size: publicSize.value })
+    } else {
+      myApplyFilters(filters)
+      fetchMyFiles({ page: 1, size: mySize.value })
+    }
+  }
   watch(datasetQuery, (query) => {
     if (debounceTimer) clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(() => {
-      const trimmed = query.trim()
-      const filters = trimmed ? { name: trimmed } : {}
-      if (activeTab.value === 'public') {
-        publicApplyFilters(filters)
-        fetchPublicFiles({ page: 1, size: publicSize.value })
-      } else {
-        myApplyFilters(filters)
-        fetchMyFiles({ page: 1, size: mySize.value })
-      }
-    }, 300)
+    debounceTimer = setTimeout(() => runSearch(query), 300)
+  })
+
+  // 切 tab 时用当前搜索词重新拉取，避免沿用上一个 tab 的过滤结果
+  watch(activeTab, () => {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    runSearch(datasetQuery.value)
   })
 
   // Clear any pending debounced search on unmount so it can't fire

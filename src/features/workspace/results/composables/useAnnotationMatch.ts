@@ -369,6 +369,14 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     }, 200)
   })
   const filter = ref<AnnotationFilter>('matched')
+  /** Adduct / ion-type dropdown filter ('' = all). Intersects with the status
+   *  filter and the search query. Matches the representative's own `ionType`
+   *  OR any archived `altAdducts` from merged isobars, so a compound whose
+   *  adduct was folded away stays selectable. */
+  const filterAdduct = ref('')
+  /** Molecular-formula dropdown filter ('' = all). Mirrors {@link filterAdduct}
+   *  but for `formulaIon` / `altFormulas`. */
+  const filterFormula = ref('')
   const sortKey = ref<AnnotationSortKey>('massError')
   const sortDir = ref<AnnotationSortDir>('asc')
 
@@ -390,6 +398,28 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
    *  worker snapshots replaced wholesale, so deep reactivity would only proxy
    *  hundreds of thousands of objects on first read for no benefit. */
   const matchedRows = shallowRef<MatchedAnnotationRow[]>([])
+
+  /** Distinct adduct values in the current (collapsed) matched set, for the
+   *  dropdown. Sorted so the list is stable across re-renders. */
+  const adductOptions = computed<string[]>(() => {
+    const set = new Set<string>()
+    for (const r of matchedRows.value) {
+      if (r.ionType) set.add(r.ionType)
+      for (const a of r.altAdducts) set.add(a)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b))
+  })
+
+  /** Distinct molecular-formula values in the current matched set (see
+   *  {@link adductOptions}). */
+  const formulaOptions = computed<string[]>(() => {
+    const set = new Set<string>()
+    for (const r of matchedRows.value) {
+      if (r.formulaIon) set.add(r.formulaIon)
+      for (const f of r.altFormulas) set.add(f)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b))
+  })
 
   /** Counts shown in the filter badges. Populated by the worker (which already
    *  counts statuses while matching) or the main-thread fallback - never
@@ -566,6 +596,16 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     if (filter.value !== 'all') {
       rows = rows.filter((r) => r.matchStatus === filter.value)
     }
+    if (filterAdduct.value) {
+      rows = rows.filter(
+        (r) => r.ionType === filterAdduct.value || r.altAdducts.includes(filterAdduct.value),
+      )
+    }
+    if (filterFormula.value) {
+      rows = rows.filter(
+        (r) => r.formulaIon === filterFormula.value || r.altFormulas.includes(filterFormula.value),
+      )
+    }
     const q = searchQuery.value
     if (q) {
       rows = rows.filter(
@@ -599,6 +639,9 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
 
   async function importFile(file: File): Promise<void> {
     parseError.value = null
+    // A new file invalidates adduct/formula values picked for the old one.
+    filterAdduct.value = ''
+    filterFormula.value = ''
     isImporting.value = true
     // Invalidate any in-flight rematch against the previous file: its result
     // must not land on top of this import (or after a mid-import clear()).
@@ -702,6 +745,8 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     matchedRows.value = []
     counts.value = EMPTY_COUNTS
     coarseFiltered.value = 0
+    filterAdduct.value = ''
+    filterFormula.value = ''
     cachedParsedRows = []
     cachedMzColumn = ''
     cachedText = null
@@ -716,15 +761,6 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
   function selectRow(row: MatchedAnnotationRow): void {
     if (row.matchStatus !== 'matched' || row.matchedIndex == null) return
     void selectMzIndex(row.matchedIndex)
-  }
-
-  function toggleSort(key: AnnotationSortKey): void {
-    if (sortKey.value === key) {
-      sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-    } else {
-      sortKey.value = key
-      sortDir.value = 'asc'
-    }
   }
 
   /**
@@ -766,12 +802,15 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     tolMode,
     tolValue,
     spectrumAvailable,
-    matchedRows,
     counts,
     coarseFiltered,
     // table controls
     search,
     filter,
+    filterAdduct,
+    filterFormula,
+    adductOptions,
+    formulaOptions,
     sortKey,
     sortDir,
     filteredRows,
@@ -779,7 +818,6 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     importFile,
     clear,
     selectRow,
-    toggleSort,
     exportMatchedCsv,
   }
 }

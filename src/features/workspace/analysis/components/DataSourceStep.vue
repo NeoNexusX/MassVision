@@ -2,7 +2,7 @@
 import PaginationBar from '@/shared/components/PaginationBar.vue'
 import { formatBytes } from '@/shared/utils/format'
 
-const props = defineProps<{
+defineProps<{
   activeTab: 'my' | 'public'
   datasetQuery: string
   loading: boolean
@@ -10,8 +10,6 @@ const props = defineProps<{
   datasets: any[]
   selectedDataset: any
   meta: Record<string, any>
-  page: number
-  size: number
   pagination: (number | string)[]
 }>()
 
@@ -60,9 +58,6 @@ const emit = defineEmits<{
           <PaginationBar
             :current-page="meta.current_page"
             :total-pages="meta.total_pages"
-            :total-items="meta.total_records"
-            :from="(meta.current_page - 1) * size + 1"
-            :to="Math.min(meta.current_page * size, meta.total_records)"
             :page-range="pagination"
             class="w-full sm:w-auto"
             @prev-page="emit('prev-page')"

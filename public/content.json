@@ -1,0 +1,149 @@
+{
+  "hero": {
+    "taglines": [
+      "OPEN ↗",
+      "FAST ▶︎▶︎",
+      "UNIFIED ≡",
+      "INTELLIGENT ✧"
+    ],
+    "gallery": [
+      "https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260826173023933.png",
+      "https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260826173023909.png",
+      "https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260826173023945.png"
+    ]
+  },
+  "features": {
+    "items": [
+      {
+        "word": "OPEN",
+        "title": "Open & Interoperable",
+        "desc": "Designed with an open-source spirit from the ground up, we break down data silos, enable open knowledge sharing, and collectively advance the spatial omics community.",
+        "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mz726.539885.png"
+      },
+      {
+        "word": "SMART",
+        "title": "SMART Analysis",
+        "desc": "Powered by cloud-native infrastructure and AI, every analysis becomes faster, smarter, and more accessible to researchers at any scale.",
+        "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/kmeans_image2.png"
+      },
+      {
+        "word": "FAST",
+        "title": "Fast at Scale",
+        "desc": "Backed by a homegrown computing framework and cloud-native infrastructure, SpatialXomics delivers high-performance computation that scales effortlessly with your data.",
+        "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/umap_image2.png"
+      }
+    ]
+  },
+  "timeline": [
+    {
+      "date": "August 16",
+      "version": "0.6.1",
+      "features": [
+        "UMAP and KMeans clustering overlays with PNG export",
+        "Annotation CSV import with m/z matching and PubChem lookup",
+        "Region comparison with statistical analysis and category filtering"
+      ]
+    },
+    {
+      "date": "July 19",
+      "version": "0.5.3",
+      "features": [
+        "Unified page typography",
+        "Improved mobile layouts across key workflows",
+        "Added Playwright mobile regression coverage"
+      ]
+    },
+    {
+      "date": "July 17",
+      "version": "0.5.2",
+      "features": [
+        "Updated documentation",
+        "Added real file upload/download tests",
+        "Fixed memory leak in result page",
+        "Style adjustments on several pages"
+      ]
+    }
+  ],
+  "team": [
+    {
+      "name": "Jiyang Dong",
+      "role": "Project Sponsor",
+      "degree": "Professor",
+      "school": "Xiamen University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780303224964.jpg",
+      "homepage": "https://ese.xmu.edu.cn/info/1071/1735.htm"
+    },
+    {
+      "name": "Lei Guo",
+      "role": "Project Sponsor",
+      "degree": "Associate Professor",
+      "school": "Fuzhou University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780300337455.jpg",
+      "homepage": "https://iime.fzu.edu.cn/info/1038/1481.htm"
+    },
+    {
+      "name": "Zeyu Zhu",
+      "role": "Project Lead",
+      "degree": "Ph.D. Student",
+      "school": "Xiamen University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Asuka.jpg",
+      "homepage": "https://neonexusx.github.io/"
+    },
+    {
+      "name": "Yongkun Lin",
+      "role": "Frontend Engineer",
+      "degree": "M.Sc. Student",
+      "school": "Xiamen University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780209856433_888.jpg",
+      "homepage": "https://bionet.xmu.edu.cn/info/1073/2600.htm"
+    },
+    {
+      "name": "Qiurong Xiong",
+      "role": "Backend Engineer",
+      "degree": "M.Sc. Student",
+      "school": "ECUT",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780299201986_41.jpeg",
+      "homepage": "https://bionet.xmu.edu.cn/info/1073/2630.htm"
+    },
+    {
+      "name": "Leqiang Dong",
+      "role": "Algorithm Engineer",
+      "degree": "M.Sc. Student",
+      "school": "Xiamen University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780299557207_374.jpg",
+      "homepage": "https://dil666555.github.io/"
+    },
+    {
+      "name": "Xun Zhong",
+      "role": "Backend Engineer",
+      "degree": "B.Sc.",
+      "school": "Xiamen University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780299787497.jpg",
+      "homepage": "https://b23.tv/ih7QjCW"
+    },
+    {
+      "name": "🐱Zai zai🐱",
+      "role": "Trouble Maker",
+      "degree": "Cat B.Sc.",
+      "school": "Cat University",
+      "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1781240570533.jpg",
+      "homepage": "https://neonexusx.github.io/2026/06/17/zaizai/"
+    }
+  ],
+  "contact": {
+    "website": "https://bionet.xmu.edu.cn/",
+    "email": "jydong@xmu.edu.cn",
+    "github": "https://github.com/BioNet-XMU",
+    "wechat": "https://files.seeusercontent.com/2026/06/03/Yw8r/Snipaste_2026-06-03_11-14-27.png",
+    "recruitment": "https://bionet.xmu.edu.cn/lxwm.htm"
+  },
+  "githubHeatmap": {
+    "owner": "NeoNexusX",
+    "repo": "MassVision",
+    "branch": "dev",
+    "days": 365,
+    "title": "SpatialXomics · Activity",
+    "repoUrl": "https://github.com/NeoNexusX/MassFlow",
+    "orientation": "auto"
+  }
+}

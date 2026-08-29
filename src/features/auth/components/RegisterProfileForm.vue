@@ -8,9 +8,9 @@ defineProps<{
   errors: Record<string, string>
   patterns: Record<string, string>
   loading: { register: boolean; sendCode: boolean }
-  positionOptions: string[]
+  positionOptions: readonly string[]
   regionOptions: Record<string, string>
-  researchFieldOptions: string[]
+  researchFieldOptions: readonly string[]
   validateField: (field: any) => void
   clearError: (field: any) => void
   register: () => void

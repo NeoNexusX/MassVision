@@ -1,18 +1,11 @@
 <template>
-  <div
-    :class="[
-      // Small screens
-      'flex h-[320px] flex-col',
-      // Desktop
-      'lg:h-full',
-    ]"
-  >
+  <div class="flex h-[320px] flex-col lg:h-full">
     <!-- 标题区 -->
     <div class="flex items-center gap-3 mb-3">
-      <h3 class="text-lg font-semibold">{{ title }}</h3>
+      <h3 class="text-[1.25em] font-semibold">{{ title }}</h3>
       <div
         v-if="!loading && !error && showPeakCount"
-        class="ml-auto text-base text-base-content/50 font-mono"
+        class="ml-auto text-base-content/50 font-mono"
       >
         {{ peakCountLabel }}
       </div>
@@ -24,7 +17,7 @@
       class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-content/30"
     >
       <span class="loading loading-spinner loading-lg text-primary"></span>
-      <p class="text-xl text-base-content/60">{{ loadingText }}</p>
+      <p class="text-[1.25em] text-base-content/60">{{ loadingText }}</p>
     </div>
 
     <!-- 错误 -->
@@ -33,9 +26,9 @@
       class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-content/30"
     >
       <SvgIcon type="warning" class="w-8 h-8 text-error" />
-      <p class="text-xl text-error font-semibold">Failed to load data</p>
-      <p class="text-lg text-base-content/50 max-w-md text-center">{{ error }}</p>
-      <button class="btn btn-sm btn-outline mt-2 text-base" @click="$emit('retry')">Retry</button>
+      <p class="text-[1.25em] text-error font-semibold">Failed to load data</p>
+      <p class="text-[1.125em] text-base-content/50 max-w-md text-center">{{ error }}</p>
+      <button class="btn btn-sm btn-outline mt-2 text-[1em]" @click="$emit('retry')">Retry</button>
     </div>
 
     <!-- 谱图 -->
@@ -88,14 +81,10 @@ const props = defineProps<{
   selectedMz?: number
   loading: boolean
   error: string | null
-  /** 总峰数（continuous 模式为 nMz，processed 模式为选中像素的峰数） */
-  nMz: number
   /** 'centroid' → 柱状图, 'profile' → 折线图 */
   spectrumMode?: string
   /** 数据模式 */
   dataMode?: DataMode | null
-  /** processed 模式下的像素信息 */
-  pixelInfo?: { x: number; y: number } | null
 }>()
 
 const emit = defineEmits<{
@@ -119,7 +108,17 @@ const CHART_LAYOUT = {
   zoomHeight: 24,
   /** 滑块底距，需与 dataZoom slider.bottom 一致 */
   zoomBottom: 8,
+  /** 红色选择线上方 m/z 标签字号，需与 buildSelectorGraphic 的 font 一致 */
+  selectorLabelFont: 16,
+  /** 标签底边与网格顶边的间隙，需与 buildSelectorGraphic 的 position 偏移一致 */
+  selectorLabelGap: 2,
 } as const
+
+/**
+ * grid.top：红色选择线的 m/z 标签画在网格顶边之上（textVerticalAlign: 'bottom'），
+ * 顶边留白不够时标签上半截会被容器的 overflow-hidden 裁掉，所以按标签实际占高预留。
+ */
+const GRID_TOP = Math.ceil(CHART_LAYOUT.selectorLabelFont * 1.25) + CHART_LAYOUT.selectorLabelGap
 
 /** grid.bottom：以上各项之和 */
 const GRID_BOTTOM =
@@ -196,11 +195,11 @@ function buildSelectorGraphic(): unknown[] {
       type: 'text',
       z: 100,
       silent: true,
-      position: [x + 4, topY - 2],
+      position: [x + 4, topY - CHART_LAYOUT.selectorLabelGap],
       style: {
         text: label,
         fill: palette.value.selector,
-        font: '16px monospace',
+        font: `${CHART_LAYOUT.selectorLabelFont}px monospace`,
         textAlign: 'left',
         textVerticalAlign: 'bottom',
       },
@@ -286,13 +285,13 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
         const items = params as Array<{ data: ChartPoint; dataIndex: number }>
         if (!items?.length) return ''
         const [mz, intensity] = items[0]!.data
-        return `<div class="font-mono text-base">
+        return `<div class="font-mono">
             <div><i>m/z</i>: <strong>${mz}</strong></div>
             <div>Intensity: <strong>${intensity}</strong></div>
           </div>`
       },
     },
-    grid: { left: 54, right: 54, top: 16, bottom: GRID_BOTTOM },
+    grid: { left: 54, right: 54, top: GRID_TOP, bottom: GRID_BOTTOM },
     xAxis: {
       type: 'value',
       name: 'm/z',

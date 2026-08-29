@@ -73,7 +73,11 @@ test.describe('authenticated mobile shells', () => {
     // 用假 token 假后端，因此必须兜住所有可能 401 的 /api 请求，而不只是 /user：
     // 一旦漏拦，httpClient 的全局 401 处理会清掉 localStorage 里的 token 并跳
     // /login，测试就变成在测「未登录守卫」而非响应式布局。
-    await page.route('**/api/**', async (route) => {
+    //
+    // 必须把 /api 锚在站点根路径上：glob '**/api/**' 会连 dev server 直供的源码
+    // 模块 /src/shared/api/httpClient.ts 一起拦下，让 router 的动态 import 收到
+    // application/json 而整页启动失败（CI 跑构建产物没有源码路径，只有本地 dev 会中招）。
+    await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
       if (route.request().url().includes('/api/user')) {
         await route.fulfill({
           status: 200,

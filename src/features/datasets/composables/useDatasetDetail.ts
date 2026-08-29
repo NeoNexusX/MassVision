@@ -182,7 +182,6 @@ export function useDatasetDetail() {
     goBack,
     downloadCurrent,
     isPacking,
-    fetchDatasetDetails,
     makingPublic,
     showPublicConfirm,
     openPublicConfirm,

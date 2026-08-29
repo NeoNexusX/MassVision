@@ -57,6 +57,10 @@ const {
   coarseFiltered,
   search,
   filter,
+  filterAdduct,
+  filterFormula,
+  adductOptions,
+  formulaOptions,
   sortKey,
   sortDir,
   filteredRows,
@@ -99,14 +103,15 @@ function rowClass(row: { matchStatus: string; matchedIndex: number | null }): st
   return active ? 'bg-primary/10' : 'opacity-60'
 }
 
-/** Step for the tolerance <input>, finer in Da mode. */
-const tolStep = computed(() => (tolMode.value === 'ppm' ? 0.5 : 0.001))
+/** Step for the tolerance <input>, finer in Da mode so high-resolution masses
+ *  (e.g. 0.05 Da) can be tuned precisely. */
+const tolStep = computed(() => (tolMode.value === 'ppm' ? 0.1 : 0.0001))
 
 // ---- Sort control (moved from table headers into the toolbar) ----
 
 const SORT_OPTIONS: { value: AnnotationSortKey; label: string }[] = [
   { value: 'name', label: 'Name' },
-  { value: 'expMz', label: 'Tar. m/z' },
+  { value: 'expMz', label: 'Target m/z' },
   { value: 'massError', label: 'Mass Difference' },
   { value: 'avgIntensity', label: 'Intensity' },
 ]
@@ -374,57 +379,38 @@ watch(
   <!-- Mobile participates in the page's vertical flow; desktop keeps the collapsible side rail. -->
   <aside
     :class="[
-      // Small screens
-      'static flex w-full flex-col overflow-hidden rounded-xl border-2 border-base-content/30 bg-base-100 shadow-sm',
-      // Desktop
-      'lg:h-full lg:max-w-none lg:shrink-0 lg:transition-[width] lg:duration-200 lg:ease-out',
+      'static flex w-full flex-col overflow-hidden rounded-xl border-2 border-base-content/30 bg-base-100 shadow-sm lg:h-full lg:max-w-none lg:shrink-0 lg:transition-[width] lg:duration-200 lg:ease-out',
       expanded ? 'lg:w-full' : 'lg:w-11 lg:min-w-11',
     ]"
   >
     <!-- Mobile collapsed bar: stays in normal flow instead of becoming a floating button. -->
     <button
       v-show="!expanded"
-      :class="[
-        // Small screens
-        'flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-base-200/60',
-        // Desktop
-        'lg:hidden',
-      ]"
+      class="flex w-full items-center justify-between gap-3 px-4 py-3 hover:bg-base-200/60 lg:hidden"
       title="Expand annotation panel"
       @click="expand"
     >
-      <span class="text-base font-medium text-base-content/70">Annotations</span>
-      <SvgIcon type="chevron_down" class="text-base-content/70" />
+      <span class="text-[1.2em] font-semibold">Annotations</span>
+      <SvgIcon type="chevron_down" />
     </button>
 
     <!-- Collapsed rail (desktop only): click to expand -->
     <div
       v-show="!expanded"
-      :class="[
-        // Small screens
-        'hidden h-full w-full cursor-pointer flex-col items-center justify-center gap-2 py-3 hover:bg-base-200/60',
-        // Desktop
-        'lg:flex',
-      ]"
+      class="hidden h-full w-full cursor-pointer flex-col items-center justify-center gap-2 py-3 hover:bg-base-200/60 lg:flex"
       title="Expand annotation panel"
       @click="expand"
     >
-      <SvgIcon type="chevron_right" class="text-base-content/70" />
-      <span
-        class="[writing-mode:vertical-rl] text-base text-base-content/70 font-medium tracking-wide"
-        >Annotations</span
-      >
+      <SvgIcon type="chevron_right" />
+      <span class="[writing-mode:vertical-rl] text-[1.1em] font-medium tracking-wide">
+        Annotations
+      </span>
     </div>
 
     <!-- Expanded content -->
     <div
       v-show="expanded"
-      :class="[
-        // Small screens
-        'flex h-auto min-h-0 flex-col gap-2 p-3',
-        // Desktop
-        'lg:h-full',
-      ]"
+      class="flex h-auto min-h-0 flex-col gap-2 p-3 lg:h-full"
       @dragenter="onDragEnter"
       @dragover="onDragOver"
       @dragleave="onDragLeave"
@@ -433,8 +419,8 @@ watch(
       <!-- Header -->
       <div class="flex items-center justify-between gap-2 shrink-0">
         <div class="min-w-0">
-          <h3 class="text-lg font-semibold text-base-content leading-tight">Annotations</h3>
-          <p v-if="fileName" class="text-base text-base-content/50 truncate" :title="fileName">
+          <h3 class="text-[1.125em] font-semibold text-base-content leading-tight">Annotations</h3>
+          <p v-if="fileName" class="text-[0.875em] text-base-content/50 truncate" :title="fileName">
             {{ fileName }}
           </p>
         </div>
@@ -443,11 +429,11 @@ watch(
             v-if="hasData"
             class="btn btn-ghost btn-xs btn-square"
             :class="{ 'btn-disabled opacity-40': !counts.matched }"
-            title="Export matched annotations (name, tar. m/z, matched m/z, mass difference) as CSV"
+            title="Export matched annotations (name, target m/z, matched m/z, mass difference) as CSV"
             :disabled="!counts.matched"
             @click="exportMatchedCsv"
           >
-            <SvgIcon type="download" class="" />
+            <SvgIcon type="download" />
           </button>
           <button
             v-if="hasData"
@@ -455,7 +441,7 @@ watch(
             title="Clear imported annotations"
             @click="clear"
           >
-            <SvgIcon type="trash" class="" />
+            <SvgIcon type="trash" />
           </button>
           <button class="btn btn-ghost btn-xs btn-square" title="Collapse" @click="collapse">
             <SvgIcon type="chevron_right" class="rotate-180" />
@@ -472,8 +458,9 @@ watch(
           class="hidden"
           @change="onFileChange"
         />
+        <!-- Import button -->
         <button
-          class="btn btn-sm btn-primary w-full gap-2"
+          class="btn btn-sm btn-primary w-full gap-2 text-[1em]"
           :disabled="isImporting"
           @click="fileInput?.click()"
         >
@@ -485,32 +472,31 @@ watch(
           <SvgIcon v-else type="upload" class="w-4 h-4" />
           {{ isImporting ? 'Importing…' : 'Import CSV' }}
         </button>
-        <p class="text-center text-base text-base-content/40">or drag &amp; drop a CSV anywhere on this panel</p>
 
-        <div v-if="spectrumMode !== 'centroid'" class="text-base text-warning flex items-start gap-1.5">
+        <div v-if="spectrumMode !== 'centroid'" class="text-warning flex items-start gap-1.5">
           <SvgIcon type="warning" class="shrink-0 mt-0.5" />
           <span>Annotation is only available for continuous centroid data.</span>
         </div>
-        <div v-else-if="!spectrumAvailable" class="text-base text-warning flex items-start gap-1.5">
+        <div v-else-if="!spectrumAvailable" class="text-warning flex items-start gap-1.5">
           <SvgIcon type="warning" class="shrink-0 mt-0.5" />
           <span>Average spectrum not loaded - <i>m/z</i> matching unavailable for this result.</span>
         </div>
-        <div v-if="parseError" class="text-base text-error flex items-start gap-1.5">
+        <div v-if="parseError" class="text-error flex items-start gap-1.5">
           <SvgIcon type="error" class="shrink-0 mt-0.5" />
           <span>{{ parseError }}</span>
         </div>
 
         <!-- Tolerance controls -->
         <div class="flex items-center gap-2">
-          <span class="text-base text-base-content/60 shrink-0">Tolerance</span>
+          <span class="shrink-0 text-[1em]">Tolerance</span>
           <input
             v-model.number="tolValue"
             type="number"
             min="0"
             :step="tolStep"
-            class="input input-bordered input-sm w-20 text-base"
+            class="input input-bordered input-sm w-24 text-[1em]"
           />
-          <select v-model="tolMode" class="select select-bordered select-sm ml-auto text-base">
+          <select v-model="tolMode" class="select select-bordered select-sm ml-auto text-[1em]">
             <option value="ppm">ppm</option>
             <option value="Da">Da</option>
           </select>
@@ -518,10 +504,10 @@ watch(
 
         <!-- Sort by -->
         <div class="flex items-center gap-2">
-          <span class="text-base text-base-content/60 shrink-0">Sort by</span>
+          <span class="shrink-0 text-[1em]">Sort by</span>
           <select
             :value="sortKey"
-            class="select select-bordered select-sm flex-1 text-base"
+            class="select select-bordered select-sm flex-1 text-[1em]"
             @change="onSortKeyChange"
           >
             <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">
@@ -529,7 +515,7 @@ watch(
             </option>
           </select>
           <button
-            class="btn btn-outline btn-sm btn-square shrink-0"
+            class="btn btn-outline btn-sm btn-square"
             :title="
               sortDir === 'asc'
                 ? 'Ascending (click for descending)'
@@ -537,7 +523,7 @@ watch(
             "
             @click="toggleSortDir"
           >
-            <SvgIcon :type="sortDir === 'asc' ? 'chevron_up' : 'chevron_down'" class="" />
+            <SvgIcon :type="sortDir === 'asc' ? 'chevron_up' : 'chevron_down'" />
           </button>
         </div>
 
@@ -551,7 +537,7 @@ watch(
             v-model="search"
             type="text"
             placeholder="Search name / formula / m/z"
-            class="input input-bordered input-sm w-full pl-8 text-base"
+            class="input input-bordered input-sm w-full pl-8 text-[1em]"
           />
         </div>
       </div>
@@ -559,33 +545,53 @@ watch(
       <!-- Counts + filter chips -->
       <div v-if="hasData" class="flex items-center justify-center gap-1.5 flex-wrap shrink-0">
         <button
-          class="badge badge-sm text-sm cursor-pointer transition-colors"
+          class="badge badge-sm text-[0.875em] cursor-pointer transition-colors"
           :class="filter === 'all' ? 'badge-primary' : 'badge-ghost'"
           @click="filter = 'all'"
         >
           All {{ counts.total }}
         </button>
         <button
-          class="badge badge-sm text-sm cursor-pointer transition-colors"
+          class="badge badge-sm text-[0.875em] cursor-pointer transition-colors"
           :class="filter === 'matched' ? 'badge-success badge-outline' : 'badge-ghost'"
           @click="filter = 'matched'"
         >
           Matched {{ counts.matched }}
         </button>
         <button
-          class="badge badge-sm text-sm cursor-pointer transition-colors"
+          class="badge badge-sm text-[0.875em] cursor-pointer transition-colors"
           :class="filter === 'unmatched' ? 'badge-warning badge-outline' : 'badge-ghost'"
           @click="filter = 'unmatched'"
         >
           Unmatched {{ counts.unmatched + counts.invalid }}
         </button>
-        <!-- Coarse pre-filter drops (polarity / m/z range). Shown on every
-             applied result, not just at import: a spectrum or polarity that
-             resolves AFTER import drops rows on the debounced rematch, and a
-             silent drop looks exactly like lost data. -->
+      </div>
+
+      <!-- Adduct / formula dropdown filters: intersect with status + search, so
+           the user can multi-condition on candidate metadata (not just keyword
+           search). Adduct sits on the first row, formula below it. -->
+      <!-- Adduct + formula dropdown filters (one row); coarse-filter note below -->
+      <div v-if="hasData" class="shrink-0 space-y-1">
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex flex-col gap-0.5 text-xs min-w-0">
+            <span class="text-base-content/60">Adduct</span>
+            <select v-model="filterAdduct" class="select select-bordered select-xs w-full">
+              <option value="">All</option>
+              <option v-for="opt in adductOptions" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-0.5 text-xs min-w-0">
+            <span class="text-base-content/60">Formula</span>
+            <select v-model="filterFormula" class="select select-bordered select-xs w-full">
+              <option value="">All</option>
+              <option v-for="opt in formulaOptions" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+          </label>
+        </div>
+        <!-- 匹配后粗筛掉的（极性 / m/z 范围），放到下拉筛选下方 -->
         <span
           v-if="coarseFiltered > 0"
-          class="text-xs text-base-content/50"
+          class="text-[0.75em] text-base-content/50"
           title="Rows dropped before matching because their adduct/formula implies the opposite polarity, or their m/z lies outside the spectrum's range"
         >
           {{ coarseFiltered }} filtered by polarity / m/z range
@@ -602,36 +608,29 @@ watch(
           class="inline-block size-9 animate-spin rounded-full border-4 border-current border-t-transparent text-primary will-change-transform"
           aria-hidden="true"
         ></span>
-        <p class="text-base text-base-content/50">Parsing and matching annotations…</p>
+        <p class="text-[0.875em] text-base-content/50">Parsing and matching annotations…</p>
       </div>
 
       <!-- Table: only Annotation + Exp. m/z (details on hover card).
            Virtual-scrolled: only the visible window is rendered so huge
-           CSVs (hundreds of thousands of rows) don't OOM the tab. -->
+           CSVs (hundreds of thousands of rows) don't OOM the tab.
+           max-h-[60dvh] is load-bearing on small screens: the expanded panel is
+           height-unbounded (h-auto), and without an explicit cap the spacer rows
+           stretch the page to millions of px, the "viewport" becomes the full
+           list and every row renders at once - the OOM this exists to prevent.
+           On desktop the lg:h-full ancestors bound it, so it just fills the
+           panel's flex column instead. -->
       <div
         v-else-if="hasData"
         ref="tableScrollEl"
-        :class="[
-          // Small screens: the expanded panel is height-unbounded (h-auto), so
-          // cap the scroll box explicitly - without this the spacer rows stretch
-          // the page to millions of px, the 'viewport' becomes the full list and
-          // virtual scrolling renders every row at once (the OOM it exists to
-          // prevent).
-          'max-h-[60dvh] overflow-auto rounded-lg border border-base-300 bg-base-100',
-          // Desktop: fill the panel's flex column (lg:h-full ancestors bound it).
-          'lg:max-h-none lg:flex-1 lg:min-h-0',
-        ]"
+        class="max-h-[60dvh] overflow-auto rounded-lg border border-base-300 bg-base-100 lg:max-h-none lg:flex-1 lg:min-h-0"
         @scroll.passive="onTableScroll"
       >
-        <!-- table-fixed + w-full：按表头定列宽，名字列在剩余宽度内截断省略，
-             Tar. m/z 列不再被长名字挤出可视区（完整名字在悬浮卡片里可看）。 -->
-        <table class="table table-sm table-fixed w-full">
+        <table class="table table-sm w-full table-fixed">
           <thead class="sticky top-0 z-10 bg-base-200 text-base-content/70">
             <tr>
-              <th class="w-full">Annotation</th>
-              <th class="w-28 text-right whitespace-nowrap" title="Target m/z from the CSV">
-                Tar. <i>m/z</i>
-              </th>
+              <th>Annotation</th>
+              <th class="text-right w-[120px]" title="Target m/z from the CSV">Target <i>m/z</i></th>
             </tr>
           </thead>
           <tbody ref="tableBodyRef">
@@ -656,27 +655,25 @@ watch(
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
-                <div class="font-medium text-base text-base-content truncate">{{ row.name }}</div>
+                <div class="font-medium text-[0.875em] text-base-content truncate">{{ row.name }}</div>
                 <!-- min-h-4 keeps one line box even when all three spans are
                      v-if'd out: the virtual scroll assumes a uniform row
                      height, and an empty subtitle would make this row ~20px
                      shorter than the measured rowH. -->
-                <div class="min-h-4 text-xs text-base-content/50 truncate">
+                <div class="min-h-4 text-[0.75em] text-base-content/50 truncate">
                   <span v-if="row.formulaIon" class="font-mono">{{ row.formulaIon }}</span>
-                  <span v-if="row.ionType" class="text-base-content/40">
-                    &#183; {{ row.ionType }}</span
-                  >
+                  <span v-if="row.ionType" class="text-base-content/40">&nbsp;{{ row.ionType }}</span>
                   <span v-if="row.candidates.length > 1" class="text-primary/50">
                     &#183; +{{ row.candidates.length - 1 }}</span
                   >
                 </div>
               </td>
               <td
-                class="text-right font-mono whitespace-nowrap text-base"
+                class="text-right font-mono whitespace-nowrap"
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
-                {{ row.valid ? row.expMz.toFixed(4) : '-' }}
+                {{ row.valid ? row.expMz.toFixed(6) : '-' }}
               </td>
             </tr>
             <!-- Bottom spacer (same block-height trick as the top one) -->
@@ -687,7 +684,7 @@ watch(
             </tr>
           </tbody>
         </table>
-        <div v-if="!filteredRows.length" class="p-4 text-center text-base text-base-content/50">
+        <div v-if="!filteredRows.length" class="p-4 text-center text-[0.875em] text-base-content/50">
           <!-- counts.total === 0 means the coarse polarity / m/z-range
                pre-filter discarded the whole file at import, not the user's
                filter/search - say so instead of blaming the wrong control. -->
@@ -704,10 +701,10 @@ watch(
         class="flex-1 min-h-0 flex flex-col items-center justify-center gap-2 text-center px-4"
       >
         <SvgIcon type="upload" class="w-8 h-8 text-base-content/30" />
-        <p class="text-base text-base-content/60">
+        <p class="text-base-content/60">
           Import an annotation CSV to match against the average spectrum.
         </p>
-        <p class="text-base text-base-content/40">
+        <p class="text-[0.875em] text-base-content/40">
           Columns: <span class="font-mono">Exp. m/z</span>,
           <span class="font-mono">Candidate_1..5</span>, <span class="font-mono">formula_ion</span>,
           <span class="font-mono">Ion type</span>
@@ -722,7 +719,7 @@ watch(
                rounded-lg border-2 border-dashed border-primary bg-primary/15"
       >
         <SvgIcon type="upload" class="w-8 h-8 text-primary" />
-        <p class="text-lg font-medium text-primary">Drop CSV to import annotations</p>
+        <p class="text-[1.125em] font-medium text-primary">Drop CSV to import annotations</p>
       </div>
     </div>
   </aside>
@@ -731,7 +728,7 @@ watch(
        Fixed so not clipped by table overflow; placed to the right of the panel. -->
   <div
     v-if="tooltipRow"
-    class="fixed z-[60] overflow-auto rounded-lg border border-base-300 bg-base-100 shadow-xl p-3 text-base select-text"
+    class="fixed z-[60] overflow-auto rounded-lg border border-base-300 bg-base-100 shadow-xl p-3 select-text text-[1em]"
     :style="{
       left: tooltipX + 'px',
       top: tooltipY + 'px',
@@ -742,29 +739,39 @@ watch(
     @mouseleave="onTooltipLeave"
   >
     <!-- Header: name (left) + copy/PubChem buttons (right) -->
-    <div class="flex items-start justify-between gap-2 mb-1">
-      <div class="min-w-0 flex-1">
-        <div class="font-semibold text-base-content break-words">{{ tooltipRow.name }}</div>
-        <div v-if="tooltipRow.formulaIon" class="text-base font-mono text-base-content/60">
-          {{ tooltipRow.formulaIon }}
-          <span v-if="tooltipRow.ionType"> &#183; {{ tooltipRow.ionType }}</span>
-        </div>
+    <div class="mb-1">
+      <div
+        class="font-semibold text-base-content truncate"
+        :title="tooltipRow.name"
+      >
+        {{ tooltipRow.name }}
+      </div>
+      <!-- 加合离子在上、分子式在下 -->
+      <div v-if="tooltipRow.ionType" class="font-mono text-base-content/60">
+        {{ tooltipRow.ionType }}
+      </div>
+      <div v-if="tooltipRow.formulaIon" class="font-mono text-base-content/60">
+        {{ tooltipRow.formulaIon }}
+      </div>
+      <!-- 复制 + PubChem 放在名字/内容下方（统一按钮尺寸/样式） -->
+      <div class="mt-1.5 flex items-center gap-1.5">
         <button
-          class="btn btn-ghost btn-xs shrink-0 btn-square opacity-60 hover:opacity-100 mt-0.5"
+          class="btn btn-sm btn-outline gap-1"
           title="Copy name"
           @click.stop="copyName(tooltipRow.name)"
         >
           <SvgIcon type="duplicate" class="" />
+          Copy
+        </button>
+        <button
+          class="btn btn-sm btn-outline btn-primary gap-1 text-[1em]"
+          title="Search PubChem"
+          @click.stop="searchPubChem(tooltipRow.name)"
+        >
+          <SvgIcon type="search" class="" />
+          PubChem
         </button>
       </div>
-      <button
-        class="btn btn-sm btn-outline btn-primary gap-1 shrink-0 text-base"
-        title="Search PubChem"
-        @click.stop="searchPubChem(tooltipRow.name)"
-      >
-        <SvgIcon type="search" class="" />
-        PubChem
-      </button>
     </div>
 
     <!-- Detail fields moved from the table -->
@@ -785,7 +792,7 @@ watch(
           <span
             class="font-mono"
             :class="tooltipRow.matchedMz != null ? 'text-success/80' : 'text-base-content/30'"
-            >{{ tooltipRow.matchedMz != null ? tooltipRow.matchedMz.toFixed(4) : '-' }}</span
+            >{{ tooltipRow.matchedMz != null ? tooltipRow.matchedMz.toFixed(6) : '-' }}</span
           >
         </span>
       </div>
@@ -806,18 +813,18 @@ watch(
 
     <!-- Candidates list with per-candidate PubChem lookup -->
     <div v-if="tooltipRow.candidates.length" class="border-t border-base-content/15 pt-1.5 mt-1.5">
-      <div class="text-base text-base-content/50 mb-1">
+      <div class="text-base-content/50 mb-1">
         Candidates ({{ tooltipRow.candidates.length }})
       </div>
       <ul class="space-y-0.5">
         <li
           v-for="(c, i) in tooltipRow.candidates"
           :key="i"
-          class="text-base text-base-content flex items-center justify-between gap-1 group"
+          class="text-base-content flex items-center justify-between gap-1"
         >
           <span class="truncate select-text">{{ c }}</span>
           <button
-            class="btn btn-ghost btn-xs shrink-0 btn-square opacity-0 group-hover:opacity-100 transition-opacity"
+            class="btn btn-ghost btn-xs shrink-0 btn-square text-base-content/40 hover:text-primary hover:bg-primary/10"
             title="Search PubChem"
             @click.stop="searchPubChem(c)"
           >

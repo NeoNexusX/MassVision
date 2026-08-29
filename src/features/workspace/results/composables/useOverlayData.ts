@@ -119,9 +119,9 @@ function logUmapDiagnostics(emb: UmapEmbedding, image: { width: number; height: 
  *   computing) is swallowed; the user opts in manually.
  * - Opt-in confirm: createClusteringTask() POSTs (idempotent get-or-create)
  *   and branches on clustering_status. A processing task is polled by
- *   re-POSTing every 5s until completed (load + ready) or failed (error;
- *   retry stays user-initiated — re-POSTing a failed task would re-trigger
- *   it).
+ *   re-POSTing every 5s until completed (load + ready) or failed (stop and
+ *   surface the backend error; the visible Retry action only retries the Zarr
+ *   read).
  * - `ready` is only ever set by a successful zarr load - the status fields
  *   steer the UI, but the data itself is the final gate.
  */
@@ -173,8 +173,8 @@ export function useOverlayData(
   const clusteringRefreshing = ref(false)
   const { showToast } = useToast()
 
-  // ---- clustering-status polling (guide "方式二": reuse the POST) ----
-  // Poll interval for an in-flight clustering task, per the backend guide.
+  // ---- clustering-status polling: reuse POST while the task is in flight ----
+  // Poll interval documented in docs/zh/dev/聚类分析对接.md.
   const POLL_INTERVAL_MS = 5000
   let pollTimer: ReturnType<typeof setTimeout> | null = null
   /** The run the current poll chain belongs to; a mismatch stops the chain. */
@@ -604,16 +604,6 @@ export function useOverlayData(
   }
 
   /**
-   * Cached raw UMAP embedding (per-tissue-pixel coordinates + 3D vector), or
-   * null before the first successful load. Consumed by the scatter / lasso
-   * view to plot points by their true 3D position rather than the rasterized
-   * grid.
-   */
-  function getUmapEmbedding(): UmapEmbedding | null {
-    return umapEmbedding
-  }
-
-  /**
    * Export an RGB raster (H×W×3 uint8) as a scaled-up PNG download.
    * Background pixels (0,0,0) become transparent. Used by the UMAP/KMeans
    * export buttons so the user gets a clean image without the ion image.
@@ -695,7 +685,6 @@ export function useOverlayData(
     /** Selected cluster ids (null = all); drives overlay + export mask. */
     selectedKmeansIds,
     toggleOverlay,
-    recomputeOverlay,
     retryClustering,
     /** Run KMeans locally over the UMAP raster with a user-chosen k. */
     runKmeans,
@@ -706,8 +695,6 @@ export function useOverlayData(
     getKmeansLabels,
     /** Dimensions of the cached KMeans/UMAP raster grid, or null. */
     getKmeansDims,
-    /** Raw UMAP embedding for the scatter/lasso view, or null if not loaded. */
-    getUmapEmbedding,
     /** Set/clear a comparison overlay (region A/B highlight) that overrides UMAP/KMeans. */
     setComparisonOverlay,
     /** Export the UMAP RGB image as a standalone PNG. */

@@ -243,7 +243,6 @@ export function useDisplayRange(
   return {
     globalMin,
     globalMax,
-    dataMax,
     sortedNonZero,
     displayMin,
     displayMax,
@@ -252,7 +251,6 @@ export function useDisplayRange(
     intensityHistogram,
     imageInfo,
     getIntensityRange,
-    applyRange,
     resetRange,
     calcHandleTop,
     clampPct,

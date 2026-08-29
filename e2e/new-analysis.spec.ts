@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { sizeToMB, ALGO_MAX_MB } from './utils.js'
+import { ALGO_DATASET_NAMES } from './utils.js'
 
 /**
  * NewAnalysis E2E 测试 — 真实后端
@@ -18,15 +18,16 @@ import { sizeToMB, ALGO_MAX_MB } from './utils.js'
 
 test.describe('New Analysis', () => {
 
-  test('page loads with Step 1, Step 2 visible and Step 3 hidden', async ({ page }) => {
+  test('page loads with exactly the two pipeline steps', async ({ page }) => {
     await page.goto('/workspace/new')
 
     await expect(page.locator('h1:has-text("Create New Analysis")')).toBeVisible()
     await expect(page.getByText('Step 1: Data Source')).toBeVisible()
     await expect(page.getByText('Step 2: Preprocessing Pipeline')).toBeVisible()
 
-    // Step 3 已隐藏
-    await expect(page.getByText('Step 3: Annotation Settings')).not.toBeVisible()
+    // 向导只有两步。原来这里断言 "Step 3: Annotation Settings" 不可见，
+    // 但该文案早已从代码里删除，断言恒真、测不到任何回归。
+    await expect(page.getByText(/^Step \d+:/)).toHaveCount(2)
   })
 
   test('summary panel shows disabled state when no dataset selected', async ({ page }) => {
@@ -136,28 +137,28 @@ test.describe('New Analysis', () => {
 
   // 注意：测试名里的 "delete" 指的是 result-detail.spec.ts 末尾的 Cleanup 测试，
   // 本测试自己只创建任务、等待完成，不做删除（见文件头的跨文件依赖说明）
-  test('submit, wait for completion, then delete', async ({ page }) => {
+  test('submit, wait for completion, then delete', async ({ page, browserName }) => {
+    // 建任务的重后端操作只在 chromium 跑，避免 firefox/webkit 重复建 Peak Alignment 任务
+    test.skip(browserName !== 'chromium', '分析任务只在 chromium 创建一次')
     test.setTimeout(180_000)
     await page.goto('/workspace/new')
     await page.locator('.tab:has-text("My Datasets")').click()
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
-    const radios = page.locator('input[name="selectedDataset"]')
-    await radios.first().waitFor({ state: 'visible', timeout: 10_000 })
-    const count = await radios.count()
-    // 算法测试只选 < ALGO_MAX_MB 的数据集，避免大文件跑算法超时
-    const eligible: number[] = []
-    for (let i = 0; i < count; i++) {
-      const li = radios.nth(i).locator('..')
-      const text = await li.innerText()
-      if (sizeToMB(text) < ALGO_MAX_MB) eligible.push(i)
-    }
-    if (eligible.length === 0) {
-      test.skip(true, `No dataset < ${ALGO_MAX_MB}MB available for analysis`)
+    // 用真实数据集跑算法（不再随机挑 <ALGO_MAX_MB 的卡——可能选中 1KB 合成测试文件，
+    // 后端解析必然 Failed）。从 ALGO_DATASET_NAMES 里随机选一个，用搜索框按名称过滤后选中。
+    const search = page.getByPlaceholder('Search...')
+    const name = ALGO_DATASET_NAMES[Math.floor(Math.random() * ALGO_DATASET_NAMES.length)]!
+    await search.fill(name)
+    await page.waitForTimeout(500) // datasetQuery 有 300ms 防抖
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    const radio = page.locator('input[name="selectedDataset"]').first()
+    if (!(await radio.isVisible().catch(() => false))) {
+      test.skip(true, `Dataset "${name}" not found on this backend`)
       return
     }
-    const pick = eligible[Math.floor(Math.random() * eligible.length)]
-    await radios.nth(pick).locator('..').click()
+    await radio.locator('..').click()
 
     const methodLabels = page.locator('details[open] label')
     await methodLabels.nth(await methodLabels.count() - 1).click()
@@ -171,21 +172,21 @@ test.describe('New Analysis', () => {
     const runningRow = page.locator('table tr').filter({ hasText: 'Running' }).first()
     await expect(runningRow).toBeVisible({ timeout: 15_000 })
 
-    // 轮询刷新，等到 Running 消失，最多 2 分钟
+    // 轮询刷新，等第一行（最新一条，即本次创建的任务）Running 消失，最多 2 分钟。
+    // 不能等全表 Running 清零——Workspace 里可能有别人/并发留下的 Running 任务。
     const deadline = Date.now() + 120_000
     while (Date.now() < deadline) {
       await page.reload()
       await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
       // 等表格数据真正加载完（不再是 "Loading..."）
-      await expect(page.locator('table tbody tr').first().locator('td').first())
+      const firstRow = page.locator('table tbody tr').first()
+      await expect(firstRow.locator('td').first())
         .not.toHaveText('Loading...', { timeout: 15_000 })
-      const hasRunning = (await page.locator('table')
-        .getByText('Running')
-        .count()) > 0
-      if (!hasRunning) break
+      const firstRunning = (await firstRow.getByText('Running').count()) > 0
+      if (!firstRunning) break
       await page.waitForTimeout(10_000)
     }
-    await expect(page.locator('table').getByText('Running')).not.toBeVisible()
+    await expect(page.locator('table tbody tr').first().getByText('Running')).not.toBeVisible()
   })
 })
 
