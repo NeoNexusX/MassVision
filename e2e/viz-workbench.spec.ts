@@ -11,8 +11,10 @@ import { test, expect, type Page } from '@playwright/test'
  * （"submit, wait for completion, then delete"）创建并等待完成，但那个测试本身
  * 不删除它——本文件的测试直接查看/操作"当前最新的 Completed 结果"，
  * 最后由本文件末尾的 "Cleanup > delete completed result" 统一删除。
- * 每个浏览器在 new-analysis 里都会自建自己的 Peak Alignment 任务，
- * 故本文件三个依赖真实任务的用例不在浏览器间 skip（old chromium-only skip 已移除）。
+ * 注意：真实 Peak Alignment 后端任务只在 chromium 创建一次（new-analysis 里同款 skip），
+ * 且该任务在 firefox/webkit 后端完成时间不可控（180s 都等不到），故本文件 3 个依赖
+ * 真实任务的用例也在 chromium 跑（loads ion image / switches colormap / 以及 Cleanup），
+ * firefox/webkit 只覆盖不依赖真实任务的 "shows stale state when accessed directly"。
  * 必须两个文件一起跑（按文件名字母序，new-analysis 在本文件之前）才是完整链路。
  * 如果单独只跑本文件，Cleanup 会删除 Workspace 里"当前最新的 Completed 结果"——
  * 若没有 new-analysis 留下的任务，可能会误删真实数据，请勿单独运行本文件。
@@ -69,11 +71,11 @@ test.describe('Result Detail', () => {
     await expect(page.getByText('No result selected')).toBeVisible()
   })
 
-  test('loads ion image, spectrum, metadata, and responds to click', async ({ page }) => {
-    // 依赖 new-analysis.spec.ts 在【当前】浏览器提交的 Peak Alignment 任务；
-    // 每个浏览器都自建任务，故不再按浏览器 skip。
-    // 任务提交后要排队+计算，不一定在 30s 默认超时内变成 Complete（后端可能并发排队），
-    // 需放宽到跟 submit 测试一致的预算，让 waitForPeakAlignmentReady 能等到它可查看。
+  test('loads ion image, spectrum, metadata, and responds to click', async ({ page, browserName }) => {
+    // 依赖 new-analysis.spec.ts 在 chromium 提交的 Peak Alignment 任务。
+    // 该任务只在 chromium 创建（new-analysis 做了同款 skip），且真实任务在 firefox/webkit
+    // 后端完成时间不可控（180s 都等不到），故这里同样只跑 chromium。
+    test.skip(browserName !== 'chromium', 'Peak Alignment 任务只在 chromium 创建，依赖它的断言不跨浏览器')
     test.setTimeout(180_000)
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
@@ -128,8 +130,9 @@ test.describe('Result Detail', () => {
     await expect(page.getByRole('heading', { name: 'Spectrum View' })).toBeVisible()
   })
 
-  test('switches colormap and keeps ion image stable', async ({ page }) => {
-    // 同上：依赖当前浏览器提交的 Peak Alignment 任务，不再按浏览器 skip
+  test('switches colormap and keeps ion image stable', async ({ page, browserName }) => {
+    // 同上：依赖 chromium 提交的 Peak Alignment 任务，二者 skip 保持一致
+    test.skip(browserName !== 'chromium', 'Peak Alignment 任务只在 chromium 创建，依赖它的断言不跨浏览器')
     test.setTimeout(180_000)
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
@@ -165,8 +168,9 @@ test.describe('Result Detail', () => {
 // 工作区里可能残留 raw-convert（processed，无 selected-mz）等其它任务。
 
 test.describe('Cleanup', () => {
-  test('delete completed result', async ({ page }) => {
-    // 与 new-analysis submit 对应：每个浏览器自建任务，故清理不再按浏览器 skip
+  test('delete completed result', async ({ page, browserName }) => {
+    // 与 new-analysis submit 对应：任务只在 chromium 建，这里也只在 chromium 删
+    test.skip(browserName !== 'chromium', 'Peak Alignment 任务只在 chromium 创建，清理也只在 chromium')
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
 
