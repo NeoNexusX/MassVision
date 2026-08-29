@@ -44,9 +44,24 @@
 
     <!-- Main content -->
     <section class="bg-base-100 rounded-lg border border-base-200 shadow-sm p-3 sm:p-4 lg:p-6">
-      <h2 class="text-xl sm:text-2xl font-medium mb-3 sm:mb-4">Recent Results</h2>
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3 sm:mb-4">
+        <h2 class="text-xl sm:text-2xl font-medium">Recent Results</h2>
+        <!-- 可见搜索框：按名称/数据集/方法过滤当前页结果 -->
+        <div class="relative w-full sm:w-72">
+          <svg-icon
+            type="search"
+            class="w-4 h-4 text-base-content/40 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+          />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search name / dataset / method"
+            class="input input-bordered input-md w-full pl-8"
+          />
+        </div>
+      </div>
       <ResultTable
-        :results="recentResults"
+        :results="filteredResults"
         :loading="loading"
         @delete="onDeleteClick"
         @view-error="showErrorModal"
@@ -96,13 +111,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import ResultTable from '@/features/workspace/dashboard/components/ResultTable.vue'
 import CreateTaskModal from '@/features/workspace/dashboard/components/CreateTaskModal.vue'
 import SummaryCard from '@/features/workspace/dashboard/components/SummaryCard.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import PaginationFooter from '@/shared/components/PaginationFooter.vue'
-import { useWorkspaceDashboard } from '@/features/workspace/dashboard/composables/useWorkspaceDashboard'
+import { useWorkspaceDashboard, type TaskRow } from '@/features/workspace/dashboard/composables/useWorkspaceDashboard'
 import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 
 const {
@@ -118,6 +133,19 @@ const {
   changeSize,
   deleteResult,
 } = useWorkspaceDashboard()
+
+// ---- 结果列表搜索（可见输入框，按任务名 / 数据集 / 方法过滤） ----
+const searchQuery = ref('')
+const filteredResults = computed<TaskRow[]>(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return recentResults.value
+  return recentResults.value.filter(
+    (r) =>
+      r.name.toLowerCase().includes(q) ||
+      r.dataset.toLowerCase().includes(q) ||
+      r.methods.some((m) => m.toLowerCase().includes(q)),
+  )
+})
 
 // Delete — shared composable
 const deleteConfirm = useConfirmDelete({

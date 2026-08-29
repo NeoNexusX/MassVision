@@ -850,7 +850,8 @@ export function runMatchPipeline(rows: AnnotationRow[], inputs: MatchInputs): Ma
 /** Format a mass error for display with the active unit. */
 export function formatMassError(err: number | null, mode: ToleranceMode): string {
   if (err == null || !Number.isFinite(err)) return '-'
-  const digits = mode === 'ppm' ? 2 : 4
+  // Finer precision to match the tolerance step (0.1 ppm / 0.0001 Da) the panel now allows.
+  const digits = mode === 'ppm' ? 4 : 6
   return err.toFixed(digits)
 }
 

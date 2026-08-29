@@ -109,7 +109,7 @@ const chip = computed(() => {
     return {
       label: 'm/z',
       italic: true,
-      value: props.selectedMz.toFixed(4),
+      value: props.selectedMz.toFixed(6),
       testid: 'selected-mz',
     }
   }

@@ -94,7 +94,7 @@ async function onRetry() {
 const continuousStats = computed<{ label: string; value: string }[]>(() => [
   { label: 'Peaks', value: totalPeaks.value },
   { label: 'Intensity', value: props.intensityRange ?? '--' },
-  { label: 'Selected', value: props.selectedMz.toFixed(4) },
+  { label: 'Selected', value: props.selectedMz.toFixed(6) },
   { label: 'Tolerance', value: `±${props.mzTolerance}` },
 ])
 
