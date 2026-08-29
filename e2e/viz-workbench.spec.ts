@@ -58,7 +58,7 @@ test.describe('Result Detail', () => {
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
 
     await completedRow.getByRole('button', { name: 'View' }).click()
-    await expect(page).toHaveURL(/\/workspace\/results/)
+    await expect(page).toHaveURL(/\/vizworkbench/)
 
     // header
     await expect(page.locator('h1')).not.toBeEmpty()
@@ -110,7 +110,7 @@ test.describe('Result Detail', () => {
     const completedRow = peakAlignmentRow(page)
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
     await completedRow.getByRole('button', { name: 'View' }).click()
-    await expect(page).toHaveURL(/\/workspace\/results/)
+    await expect(page).toHaveURL(/\/vizworkbench/)
 
     await expect(page.getByText(/^Loading ion image/)).not.toBeVisible({ timeout: 30_000 })
 

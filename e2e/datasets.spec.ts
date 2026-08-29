@@ -279,7 +279,7 @@ test.describe('My Datasets', () => {
     // 查看结果（后端按最新在前返回，刚完成的任务在第一行）
     const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
     await completedRow.getByRole('button', { name: 'View' }).click()
-    await expect(page).toHaveURL(/\/workspace\/results/)
+    await expect(page).toHaveURL(/\/vizworkbench/)
 
     // TIC 图（processed 模式绘图区）。实际标题是 "Image View"（见 IonImageSection.vue imageTitle），
     // 不是 "TIC Image"。引导文案在图像加载完成前就在 DOM 里，所以先等占位文案消失再断言标题。
