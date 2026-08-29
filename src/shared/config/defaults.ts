@@ -26,9 +26,9 @@ export const ZARR_STORE = {
   /** data/mz chunk 缓存数量（LRU），仅 processed 模式使用 */
   mzChunkCacheSize: 5,
   /** 默认 m/z 容差 */
-  defaultMzTolerance: 0.05,
-  /** m/z 容差取值范围：最小 0.001，最大 1 */
-  minMzTolerance: 0.001,
+  defaultMzTolerance: 0.0001,
+  /** m/z 容差取值范围：最小 1e-8，最大 1 */
+  minMzTolerance: 1e-8,
   maxMzTolerance: 1,
 } as const
 

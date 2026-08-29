@@ -393,7 +393,7 @@ watch(
       title="Expand annotation panel"
       @click="expand"
     >
-      <span class="text-sm font-medium text-base-content/70">Annotations</span>
+      <span class="text-base font-medium text-base-content/70">Annotations</span>
       <SvgIcon type="chevron_down" class="text-base-content/70" />
     </button>
 
@@ -411,7 +411,7 @@ watch(
     >
       <SvgIcon type="chevron_right" class="text-base-content/70" />
       <span
-        class="[writing-mode:vertical-rl] text-sm text-base-content/70 font-medium tracking-wide"
+        class="[writing-mode:vertical-rl] text-base text-base-content/70 font-medium tracking-wide"
         >Annotations</span
       >
     </div>
@@ -434,7 +434,7 @@ watch(
       <div class="flex items-center justify-between gap-2 shrink-0">
         <div class="min-w-0">
           <h3 class="text-lg font-semibold text-base-content leading-tight">Annotations</h3>
-          <p v-if="fileName" class="text-sm text-base-content/50 truncate" :title="fileName">
+          <p v-if="fileName" class="text-base text-base-content/50 truncate" :title="fileName">
             {{ fileName }}
           </p>
         </div>
@@ -602,7 +602,7 @@ watch(
           class="inline-block size-9 animate-spin rounded-full border-4 border-current border-t-transparent text-primary will-change-transform"
           aria-hidden="true"
         ></span>
-        <p class="text-sm text-base-content/50">Parsing and matching annotations…</p>
+        <p class="text-base text-base-content/50">Parsing and matching annotations…</p>
       </div>
 
       <!-- Table: only Annotation + Exp. m/z (details on hover card).
@@ -623,11 +623,15 @@ watch(
         ]"
         @scroll.passive="onTableScroll"
       >
-        <table class="table table-sm">
+        <!-- table-fixed + w-full：按表头定列宽，名字列在剩余宽度内截断省略，
+             Tar. m/z 列不再被长名字挤出可视区（完整名字在悬浮卡片里可看）。 -->
+        <table class="table table-sm table-fixed w-full">
           <thead class="sticky top-0 z-10 bg-base-200 text-base-content/70">
             <tr>
-              <th>Annotation</th>
-              <th class="text-right" title="Target m/z from the CSV">Tar. <i>m/z</i></th>
+              <th class="w-full">Annotation</th>
+              <th class="w-28 text-right whitespace-nowrap" title="Target m/z from the CSV">
+                Tar. <i>m/z</i>
+              </th>
             </tr>
           </thead>
           <tbody ref="tableBodyRef">
@@ -648,11 +652,11 @@ watch(
               @click="selectRow(row)"
             >
               <td
-                class="min-w-0"
+                class="min-w-0 overflow-hidden"
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
-                <div class="font-medium text-sm text-base-content truncate">{{ row.name }}</div>
+                <div class="font-medium text-base text-base-content truncate">{{ row.name }}</div>
                 <!-- min-h-4 keeps one line box even when all three spans are
                      v-if'd out: the virtual scroll assumes a uniform row
                      height, and an empty subtitle would make this row ~20px
@@ -683,7 +687,7 @@ watch(
             </tr>
           </tbody>
         </table>
-        <div v-if="!filteredRows.length" class="p-4 text-center text-sm text-base-content/50">
+        <div v-if="!filteredRows.length" class="p-4 text-center text-base text-base-content/50">
           <!-- counts.total === 0 means the coarse polarity / m/z-range
                pre-filter discarded the whole file at import, not the user's
                filter/search - say so instead of blaming the wrong control. -->
@@ -703,7 +707,7 @@ watch(
         <p class="text-base text-base-content/60">
           Import an annotation CSV to match against the average spectrum.
         </p>
-        <p class="text-sm text-base-content/40">
+        <p class="text-base text-base-content/40">
           Columns: <span class="font-mono">Exp. m/z</span>,
           <span class="font-mono">Candidate_1..5</span>, <span class="font-mono">formula_ion</span>,
           <span class="font-mono">Ion type</span>

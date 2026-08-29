@@ -47,6 +47,16 @@ export function useDisplayRange(
   const sortedNonZero = ref<number[]>([])
   const displayMin = ref(0)
   const displayMax = ref(1)
+  /** User's manual display range as fractions of [globalMin, globalMax]
+   *  (0..1; typed inputs may fall outside). Once set, a matrix change (m/z
+   *  switch, TIC toggle) re-applies these fractions to the new data span
+   *  instead of snapping back to the auto range - a max dragged to 100%
+   *  stays at 100% of whatever loads next. Cleared by resetRange. */
+  let userRange: { lo: number; hi: number } | null = null
+  /** True while displayMin/displayMax are assigned programmatically
+   *  (applyRange / the ionMatrix watcher), so the recording watch below
+   *  doesn't file those assignments as user input. */
+  let applyingProgrammatic = false
   const stripRef = ref<HTMLElement | null>(null)
   let stripDragDir: 'min' | 'max' | null = null
   let activeDragMove: ((e: MouseEvent) => void) | null = null
@@ -108,15 +118,18 @@ export function useDisplayRange(
 
   // Methods
   const applyRange = (range: ReturnType<typeof computeRange>) => {
+    applyingProgrammatic = true
     globalMin.value = range.displayMin
     globalMax.value = range.dataMax
     dataMax.value = range.dataMax
     sortedNonZero.value = range.sorted
     displayMin.value = range.displayMin
     displayMax.value = range.displayMax
+    applyingProgrammatic = false
   }
 
   const resetRange = () => {
+    userRange = null
     if (ionMatrix.value) applyRange(computeRange(ionMatrix.value))
   }
 
@@ -185,9 +198,40 @@ export function useDisplayRange(
   watch(
     ionMatrix,
     (matrix) => {
-      if (matrix) applyRange(computeRange(matrix))
+      if (!matrix) return
+      const range = computeRange(matrix)
+      applyingProgrammatic = true
+      globalMin.value = range.displayMin
+      globalMax.value = range.dataMax
+      dataMax.value = range.dataMax
+      sortedNonZero.value = range.sorted
+      if (userRange) {
+        // Keep the user's manual range (e.g. a max at 100%) by re-applying
+        // its fractions to the new data span; only Reset restores auto.
+        const span = globalMax.value - globalMin.value || 1
+        displayMin.value = globalMin.value + userRange.lo * span
+        displayMax.value = globalMin.value + userRange.hi * span
+      } else {
+        displayMin.value = range.displayMin
+        displayMax.value = range.displayMax
+      }
+      applyingProgrammatic = false
     },
     { immediate: true },
+  )
+
+  // Record manual display-range edits (strip drag / click / numeric input) as
+  // fractions of the current global range. Sync flush so the programmatic
+  // flag above is still set when applyRange's assignments pass through here.
+  watch(
+    [displayMin, displayMax],
+    ([lo, hi]) => {
+      if (applyingProgrammatic) return
+      if (!Number.isFinite(lo) || !Number.isFinite(hi)) return
+      const span = globalMax.value - globalMin.value || 1
+      userRange = { lo: (lo - globalMin.value) / span, hi: (hi - globalMin.value) / span }
+    },
+    { flush: 'sync' },
   )
 
   // Remove any pending drag listeners if the component unmounts mid-drag

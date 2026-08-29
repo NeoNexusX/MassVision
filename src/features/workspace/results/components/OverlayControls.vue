@@ -216,7 +216,7 @@ function cancelEnable() {
         <span class="loading loading-spinner loading-xs"></span>
         <span class="flex-1">Clustering is computing…</span>
         <button
-          class="btn btn-ghost btn-xs text-sm"
+          class="btn btn-ghost btn-xs text-base"
           :disabled="clusteringRefreshing"
           @click="emit('refresh-clustering')"
         >

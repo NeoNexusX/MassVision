@@ -16,6 +16,7 @@ import {
   pixelSpectrum,
   loadPixelSpectrum,
   dataModeRef,
+  mzAxisRef,
   getSharedZarrContext,
   disposeZarrState,
 } from '@/features/workspace/results/composables/useZarrIonImage'
@@ -27,6 +28,7 @@ import { useRegionComparison } from '@/features/workspace/results/composables/us
 import { ZARR_STORE } from '@/shared/config/defaults'
 import { getConfig } from '@/shared/config/runtimeConfig'
 import { rgbCss } from '@/features/workspace/results/utils/regionPalette'
+import { findClosestIndex } from '@/features/workspace/results/utils/csvAnnotation'
 import { useToast } from '@/shared/composables/useToast'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
@@ -327,6 +329,32 @@ async function handleSelectMzIndex(idx: number) {
   await onSpectrumClickByIndex(idx)
 }
 
+/** m/z 搜索：在质量轴上二分查找最近的峰，落在容差内则切换离子，否则提示。 */
+async function onSearchMz(raw: string) {
+  const target = Number(raw.trim())
+  if (!Number.isFinite(target) || target <= 0) {
+    showToast('Please enter a valid m/z value.', 'error')
+    return
+  }
+  const axis = mzAxisRef.value
+  if (!axis || !axis.length) {
+    showToast('m/z axis is not loaded yet.', 'error')
+    return
+  }
+  const idx = findClosestIndex(axis, target)
+  const nearest = axis[idx]!
+  const delta = Math.abs(nearest - target)
+  if (delta > mzTolerance.value) {
+    const fmtDelta = delta < 0.001 ? delta.toExponential(2) : delta.toFixed(4)
+    showToast(
+      `No peak within ±${mzTolerance.value} of ${target}: nearest is ${nearest.toFixed(4)} (Δ ${fmtDelta}). Widen the tolerance or try another value.`,
+      'error',
+    )
+    return
+  }
+  await handleSelectMzIndex(idx)
+}
+
 /** 重置所有控件到默认值 */
 const resetControls = () => {
   mzTolerance.value = ZARR_STORE.defaultMzTolerance
@@ -423,6 +451,7 @@ async function onSelectPixel(col: number, row: number) {
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
         @update:intensity-scale="onIntensityScaleChange"
+        @search-mz="onSearchMz"
         @reset-controls="resetControls"
         @reset-range="resetRange"
         @strip-ref="setStripRef"

@@ -70,14 +70,14 @@ test.describe('Result Detail', () => {
 
     // 用真实鼠标点击谱图两处，确认选中的真实 m/z 确实发生变化。
     // selected-mz 只在 dataMode === 'continuous' 时渲染（zarr 加载完成前不存在），
-    // 所以先显式等它出现，再点击谱图。
+    // 所以先显式等它出现，再点击谱图。（m/z 框是可填写的搜索输入框，用 inputValue 读取。）
     const selectedMz = page.getByTestId('selected-mz')
     await expect(selectedMz).toBeVisible({ timeout: 30_000 })
     await page.waitForTimeout(1000)
     await clickSpectrum(page, 0.2)
-    const firstSelectedMz = await selectedMz.innerText()
+    const firstSelectedMz = await selectedMz.inputValue()
     await clickSpectrum(page, 0.8)
-    await expect(selectedMz).not.toHaveText(firstSelectedMz, { timeout: 10_000 })
+    await expect(selectedMz).not.toHaveValue(firstSelectedMz, { timeout: 10_000 })
     // 等 ion image 响应完成，并确认没有进入显式错误态。
     await expect(page.getByTestId('ion-image-section')).toHaveAttribute('data-loading', 'false', {
       timeout: 30_000,

@@ -4,14 +4,35 @@
       <h3 class="text-xl font-semibold">{{ title }}</h3>
     </div>
     <div class="ml-auto flex flex-wrap items-center gap-2">
-      <!-- m/z 显示（continuous 模式） -->
-      <div
-        v-if="dataMode === 'continuous'"
-        class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-lg h-8 flex items-center"
-      >
-        <span class="text-base-content/50"><i>m/z</i>&nbsp;</span>
-        <span data-testid="selected-mz" class="font-mono font-semibold">{{ selectedMz.toFixed(4) }}</span>
-      </div>
+      <!-- m/z 搜索（continuous 模式）：可填写目标值，Search/回车命中最近的峰；
+           悬停显示更高精度的当前值 -->
+      <template v-if="dataMode === 'continuous'">
+        <div
+          class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 text-lg h-8 flex items-center"
+          :title="`m/z ${selectedMz.toFixed(8)}`"
+        >
+          <span class="text-base-content/50"><i>m/z</i>&nbsp;</span>
+          <input
+            data-testid="selected-mz"
+            type="text"
+            inputmode="decimal"
+            autocomplete="off"
+            spellcheck="false"
+            class="bg-transparent outline-none w-24 font-mono font-semibold"
+            :value="mzInput"
+            @input="onMzInput"
+            @blur="onMzBlur"
+            @keydown.enter.prevent="onSearchMz"
+          />
+        </div>
+        <button
+          class="btn btn-sm h-8 btn-ghost text-lg"
+          title="Jump to the nearest m/z peak within tolerance"
+          @click="onSearchMz"
+        >
+          Search
+        </button>
+      </template>
       <!-- 像素坐标显示（processed 模式） -->
       <div
         v-if="dataMode === 'processed' && pixelCoord"
@@ -73,11 +94,12 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch, nextTick } from 'vue'
 import type { DataMode } from '@/services/zarr/types/zarr'
 import { ZARR_STORE } from '@/shared/config/defaults'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 
-defineProps<{
+const props = defineProps<{
   selectedMz: number
   mzTolerance: number
   colormap: string
@@ -100,9 +122,46 @@ const emit = defineEmits<{
   (e: 'update:mzTolerance', v: number): void
   (e: 'update:colormap', v: string): void
   (e: 'update:intensityScale', v: string): void
+  (e: 'search-mz', v: string): void
   (e: 'reset'): void
   (e: 'download'): void
 }>()
+
+// ---- m/z 搜索框 ----
+
+/** 输入框内容：默认随 selectedMz 同步（谱图点击/搜索命中后刷新），
+ *  用户键入的值保留为待搜索内容。 */
+const mzInput = ref(props.selectedMz.toFixed(4))
+
+watch(
+  () => props.selectedMz,
+  (v) => {
+    mzInput.value = v.toFixed(4)
+  },
+)
+
+function onMzInput(e: Event) {
+  mzInput.value = (e.target as HTMLInputElement).value
+}
+
+/** 失焦时仅修正空/非法输入（含 Number('') === 0 的清空场景）：
+ *  合法数值保留，避免 blur 先于 Search 的 click 触发把待搜索值冲掉。 */
+function onMzBlur() {
+  const raw = Number(mzInput.value)
+  if (!(raw > 0)) mzInput.value = props.selectedMz.toFixed(4)
+}
+
+/** 发起搜索：解析、最近峰命中与容差判定在父级完成（需要 m/z 轴与 tolerance）。
+ *  emit 后父级会同步更新 selectedMz（loadForMzIndex 在首个 await 前赋值索引），
+ *  nextTick 强制回显实际命中值——命中的就是当前峰时 selectedMz 不变、
+ *  watch 不触发，输入框会停留在用户的查询文本（如搜 445.0497 命中
+ *  445.0494）；命中其他峰时 watch 也会同步，两种情况都收敛到实际值。 */
+function onSearchMz() {
+  emit('search-mz', mzInput.value)
+  void nextTick(() => {
+    mzInput.value = props.selectedMz.toFixed(4)
+  })
+}
 
 /**
  * 容差输入钳位到 [min, max]。
@@ -117,7 +176,7 @@ function onToleranceInput(e: Event) {
   emit('update:mzTolerance', v)
 }
 
-/** 失焦时校验：清空/非法输入回退到默认容差（0.05），合法值则钳位后同步显示 */
+/** 失焦时校验：清空/非法输入回退到默认容差（0.0001），合法值则钳位后同步显示 */
 function onToleranceBlur(e: Event) {
   const el = e.target as HTMLInputElement
   const raw = Number(el.value)

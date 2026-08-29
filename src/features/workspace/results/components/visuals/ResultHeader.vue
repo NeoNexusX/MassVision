@@ -19,7 +19,7 @@
     </h1>
     <span
       v-if="status"
-      class="shrink-0 rounded-full px-3 py-1 text-sm font-semibold"
+      class="shrink-0 rounded-full px-3 py-1 text-base font-semibold"
       :class="statusClass"
       >{{ status }}</span
     >

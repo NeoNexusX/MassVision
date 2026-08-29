@@ -14,6 +14,7 @@
       @update:mz-tolerance="$emit('update:mzTolerance', $event)"
       @update:colormap="$emit('update:colormap', $event)"
       @update:intensity-scale="$emit('update:intensityScale', $event)"
+      @search-mz="$emit('searchMz', $event)"
       @reset="$emit('reset')"
       @download="exportPng"
     />
@@ -129,6 +130,7 @@ const emit = defineEmits<{
   (e: 'update:mzTolerance', v: number): void
   (e: 'update:colormap', v: string): void
   (e: 'update:intensityScale', v: string): void
+  (e: 'searchMz', v: string): void
   (e: 'reset'): void
   /** processed 模式：点击像素 */
   (e: 'select-pixel', col: number, row: number): void

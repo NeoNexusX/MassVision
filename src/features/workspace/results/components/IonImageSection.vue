@@ -46,6 +46,7 @@ const emit = defineEmits<{
   (e: 'update:mzTolerance', value: number): void
   (e: 'update:colormap', value: string): void
   (e: 'update:intensityScale', value: string): void
+  (e: 'searchMz', value: string): void
   (e: 'reset-controls'): void
   (e: 'reset-range'): void
   (e: 'strip-ref', element: HTMLElement | null): void
@@ -125,7 +126,7 @@ onBeforeUnmount(() => {
         class="flex-1 flex flex-col items-center justify-center gap-2 px-6 text-center"
       >
         <p class="text-lg font-semibold text-error">Failed to load ion image</p>
-        <p class="text-sm text-base-content/60 break-words">{{ ionError }}</p>
+        <p class="text-base text-base-content/60 break-words">{{ ionError }}</p>
       </div>
       <div
         v-else-if="!ionMatrix"
@@ -159,6 +160,7 @@ onBeforeUnmount(() => {
           @update:mz-tolerance="emit('update:mzTolerance', $event)"
           @update:colormap="emit('update:colormap', $event)"
           @update:intensity-scale="emit('update:intensityScale', $event)"
+          @search-mz="emit('searchMz', $event)"
           @reset="emit('reset-controls')"
           @select-pixel="(col, row) => emit('select-pixel', col, row)"
         />
@@ -183,7 +185,7 @@ onBeforeUnmount(() => {
         />
         <div
           v-if="ionError"
-          class="absolute left-3 right-3 top-3 z-30 rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-sm text-error shadow-sm backdrop-blur-sm"
+          class="absolute left-3 right-3 top-3 z-30 rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-base text-error shadow-sm backdrop-blur-sm"
         >
           Failed to update ion image: {{ ionError }}
         </div>
