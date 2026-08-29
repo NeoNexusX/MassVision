@@ -1,7 +1,7 @@
 /**
  * On-demand reader for the UMAP clustering data embedded in a run's zarr.
  *
- * Since the backend clustering update (see docs/zh/dev/聚类分析对接.md),
+ * Since the backend clustering update,
  * clustering results are written back into the run's own zarr — there is no
  * separate clustering zarr anymore. The UMAP group lives at `analysis/umap`:
  *

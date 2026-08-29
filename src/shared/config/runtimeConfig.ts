@@ -242,6 +242,22 @@ export interface ZarrConfig {
   spectraConcurrency?: number
 }
 
+/**
+ * OSS 直连配置（config.json 的 `oss` 块）。
+ *
+ * 预览图等公共读资源不走后端换签名 URL，而是前端直连 OSS；bucket/region 因
+ * 部署环境而异（测试/正式服务器不同），故域名放运行时配置：各服务器直接改
+ * 服务器上的 config.json 即可切换，无需重新构建。
+ */
+export interface OssConfig {
+  /**
+   * 预览图直连 base（形如 https://{bucket}.oss-{region}.aliyuncs.com，末尾不带斜杠）。
+   * 完整 URL = {previewImageBase}/images/file_{id}/preview.jpg；
+   * 缺省时在 loadConfig 里回退测试环境域名。
+   */
+  previewImageBase?: string
+}
+
 /** config.json 的结构 */
 export interface AppConfig {
   /** 应用名称 */
@@ -250,6 +266,8 @@ export interface AppConfig {
   version?: string
   /** 云端 zarr 读取调优参数；缺省时用内置默认（100MB 缓存 / 16 并发） */
   zarr?: ZarrConfig
+  /** OSS 直连域名等；缺省时回退内置默认（测试环境 bucket） */
+  oss?: OssConfig
   /** 分页 */
   pagination: {
     /** 列表默认每页条数 */
@@ -304,6 +322,9 @@ export async function loadConfig(): Promise<AppConfig> {
   if (!Number.isInteger(_config.zarr.spectraConcurrency) || _config.zarr.spectraConcurrency! < 1) {
     _config.zarr.spectraConcurrency = 16
   }
+  _config.oss ??= {}
+  // 缺省回退测试环境域名，保证未配置 oss 块的旧配置行为不变
+  _config.oss.previewImageBase ??= 'https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com'
   _config.nav ??= { items: [], userMenu: [], guestLinks: [] }
   _config.fab ??= { main: { iconClosed: 'home', iconOpen: 'close' }, items: [] }
   return _config

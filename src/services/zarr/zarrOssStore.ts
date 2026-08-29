@@ -1032,9 +1032,40 @@ export class ZarrOssStore {
     const chunkKey = this.compute1DChunkKey(meta, chunkIndex)
     const relKey = `${arrayPath}/${chunkKey}`
     const key = this.key(relKey)
-    const raw = await this.oss.getObjectArrayBuffer(key)
+    let raw: ArrayBuffer
+    try {
+      raw = await this.oss.getObjectArrayBuffer(key)
+    } catch (e) {
+      // zarr v3 允许「整块等于 fill_value 的 chunk 不落盘」（稀疏导出）。
+      // 导出器普遍这么写：背景/无信号区域所在的 chunk 从未存储，读取时
+      // 404 是数据形态而非存储错误。按元数据的 fill_value 重建该 chunk，
+      // 而不是让整次读取失败。
+      if (e instanceof OssError && e.code === 'not_found') {
+        return this.fillValueChunk(meta, chunkIndex)
+      }
+      throw e
+    }
 
     return this.decode1DChunk(meta, chunkIndex, raw)
+  }
+
+  /**
+   * Reconstruct an unstored chunk whose contents are all fill_value (zarr v3
+   * sparse export). Length mirrors decode1DChunk's valid-length handling
+   * (edge chunks are truncated to the array's real end).
+   */
+  private fillValueChunk(
+    meta: ZarrV3ArrayMetadata,
+    chunkIndex: number,
+  ): Float32Array | Float64Array {
+    const cs = meta.chunk_grid.configuration.chunk_shape[0]!
+    const chunkStart = chunkIndex * cs
+    const len = Math.min(cs, meta.shape[0]! - chunkStart)
+    const isFloat64 = bytesPerElement(meta.data_type) === 8
+    const chunk = isFloat64 ? new Float64Array(len) : new Float32Array(len)
+    const fill = meta.fill_value
+    if (fill != null && fill !== 0) chunk.fill(fill)
+    return chunk
   }
 
   /**

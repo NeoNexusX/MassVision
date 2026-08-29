@@ -74,9 +74,10 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/workspace/results',
-    name: 'WorkspaceResultDetail',
-    component: () => import('../views/workspace/ResultDetail.vue'),
+    // 可视化工作台：分析结果的离子图/光谱/标注可视化页。
+    path: '/vizworkbench',
+    name: 'VizWorkbench',
+    component: () => import('../views/VizWorkbench.vue'),
     meta: { requiresAuth: true },
   },
   // 裸 /docs 转发后由 nginx 的 `location = /docs` 301 补斜杠，这里无需特殊处理。

@@ -1,5 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { buildPreviewImageUrl, buildPreviewImageUrls } from '../imageUtils'
+
+// 预览图 base 运行时经 getConfig() 读 config.json 的 oss 块（loadConfig 里有
+// 缺省兜底）；单测不走启动链，这里 mock 掉并返回测试环境域名，保持下方断言。
+vi.mock('@/shared/config/runtimeConfig', () => ({
+  getConfig: () => ({
+    oss: { previewImageBase: 'https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com' },
+  }),
+}))
 
 const PREFIX = 'https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com/images'
 

@@ -1,6 +1,6 @@
 # Tech Stack
 
-This page records the technologies, layout, and scripts used by the current frontend. See [Frontend Architecture](./frontend-architecture) for module boundaries and [Clustering Integration](./clustering-integration) for the clustering data contract.
+This page records the technologies, layout, and scripts used by the current frontend. See [Frontend Architecture](./frontend-architecture) for module boundaries.
 
 ## Requirements
 
@@ -48,7 +48,7 @@ src/
 └── workers/              # Upload ZIP/MD5 worker
 ```
 
-The result feature also owns annotation CSV and KMeans workers under `src/features/workspace/results/utils/`. Feature-specific workers stay close to their owner rather than all living under root `workers/`.
+The result feature also owns annotation CSV and KMeans workers under `src/features/vizworkbench/utils/`. Feature-specific workers stay close to their owner rather than all living under root `workers/`.
 
 ## Common Scripts
 

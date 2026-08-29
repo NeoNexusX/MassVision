@@ -1,14 +1,25 @@
-const OSS_BASE = 'https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com'
+import { getConfig } from '@/shared/config/runtimeConfig'
+
+/** OSS 图片样式后缀（缩略在 OSS 侧按样式名处理） */
 const OSS_STYLE = '_preview'
 
 /**
+ * 直连 base：bucket/region 因部署环境而异（测试/正式服务器不同），取自
+ * config.json 的 `oss.previewImageBase`；loadConfig 已保证缺省时兜底为
+ * 测试环境域名，因此运行到这里必定有值。
+ */
+function previewBase(): string {
+  return getConfig().oss!.previewImageBase!
+}
+
+/**
  * 直连 OSS 预览图 URL。该路径已放开公共读权限，无需再调后端接口换下载 URL。
- * 拼接规则见 public/oss-direct-url.md：
- *   https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com/images/file_{id}/preview.jpg
+ * 完整 URL 形如：
+ *   https://{bucket}.oss-{region}.aliyuncs.com/images/file_{id}/preview.jpg_preview
  * 预览图尚未生成时返回 404，由调用方 <img @error> 兜底占位图。
  */
 export function buildPreviewImageUrl(fileId: string | number): string {
-  return `${OSS_BASE}/images/file_${fileId}/preview.jpg${OSS_STYLE}`
+  return `${previewBase()}/images/file_${fileId}/preview.jpg${OSS_STYLE}`
 }
 
 /**
@@ -17,8 +28,8 @@ export function buildPreviewImageUrl(fileId: string | number): string {
  */
 export function buildPreviewImageUrls(fileId: string | number): [string, string, string] {
   return [
-    `${OSS_BASE}/images/file_${fileId}/preview.jpg${OSS_STYLE}`,
-    `${OSS_BASE}/images/file_${fileId}/preview_2.jpg${OSS_STYLE}`,
-    `${OSS_BASE}/images/file_${fileId}/preview_3.jpg${OSS_STYLE}`,
+    `${previewBase()}/images/file_${fileId}/preview.jpg${OSS_STYLE}`,
+    `${previewBase()}/images/file_${fileId}/preview_2.jpg${OSS_STYLE}`,
+    `${previewBase()}/images/file_${fileId}/preview_3.jpg${OSS_STYLE}`,
   ]
 }

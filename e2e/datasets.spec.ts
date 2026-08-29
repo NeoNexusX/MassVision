@@ -279,7 +279,7 @@ test.describe('My Datasets', () => {
     // 查看结果（后端按最新在前返回，刚完成的任务在第一行）
     const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
     await completedRow.getByRole('button', { name: 'View' }).click()
-    await expect(page).toHaveURL(/\/workspace\/results/)
+    await expect(page).toHaveURL(/\/vizworkbench/)
 
     // TIC 图（processed 模式绘图区）。实际标题是 "Image View"（见 IonImageSection.vue imageTitle），
     // 不是 "TIC Image"。引导文案在图像加载完成前就在 DOM 里，所以先等占位文案消失再断言标题。
@@ -291,7 +291,7 @@ test.describe('My Datasets', () => {
 
     const imageContainer = page.getByTestId('ion-image-viewer')
 
-    // 读取真实网格尺寸（ColorBar Statistic 区块的 "Dimensions" 行，格式 "cols × rows"），
+    // 读取真实网格尺寸（信息栏 Statistic 区块的 "Dimensions" 行，格式 "cols × rows"），
     // 按 IonImageViewer.vue onContainerClick 里同样的居中缩放公式换算像素中心的屏幕坐标——
     // 图像按比例居中绘制在容器里，任意百分比点击都可能落在留白区域而不触发选中
     const dimensionsLabel = page.getByText('Dimensions', { exact: true })

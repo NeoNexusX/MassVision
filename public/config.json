@@ -5,6 +5,9 @@
     "spectraChunkCacheSize": 100,
     "spectraConcurrency": 16
   },
+  "oss": {
+    "previewImageBase": "https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com"
+  },
   "pagination": {
     "defaultPageSize": 10,
     "pageSizeOptions": [
@@ -27,7 +30,7 @@
       "/": "none",
       "/login": "drawer",
       "/register": "drawer",
-      "/workspace/results": "drawer"
+      "/vizworkbench": "drawer"
     },
     "themeToggle": true,
     "guestHint": "Sign in",
