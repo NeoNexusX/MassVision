@@ -39,6 +39,26 @@ function peakAlignmentRow(page: Page) {
   return page.locator('table tbody tr').filter({ hasText: 'Peak Alignment' }).first()
 }
 
+/**
+ * 等待本次 submit 创建的 Peak Alignment 任务从 Running 变为可查看。
+ * 任务创建后要排队+计算，不会立刻 Completed，10s 内的 toBeVisible 断言会误报。
+ * 轮询刷新（与 Cleanup 的等待逻辑一致），直到该行出现 View 按钮（status !== 'processing'）。
+ * 找不到时抛错，跳过静默地把定位失败吞掉——这能让「submit 被 skip / 后端无此数据集」这类真实原因暴露出来。
+ */
+async function waitForPeakAlignmentReady(page: Page) {
+  const deadline = Date.now() + 120_000
+  while (Date.now() < deadline) {
+    const row = peakAlignmentRow(page)
+    if ((await row.getByRole('button', { name: 'View' }).count()) > 0) return row
+    await page.reload()
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+    await expect(page.locator('table tbody tr').first().locator('td').first())
+      .not.toHaveText('Loading...', { timeout: 15_000 })
+    await page.waitForTimeout(5_000)
+  }
+  throw new Error('Peak Alignment task did not become viewable within 120s')
+}
+
 test.describe('Result Detail', () => {
   test('shows stale state when accessed directly', async ({ page }) => {
     await page.goto('/vizworkbench')
@@ -49,6 +69,9 @@ test.describe('Result Detail', () => {
     // 依赖 new-analysis.spec.ts 在 chromium 提交的 Peak Alignment 任务；
     // firefox/webkit 不提交，故无此行，跳过（与 Cleanup 的 skip 理由一致）。
     test.skip(browserName !== 'chromium', '分析任务只在 chromium 创建，依赖它的断言不跨浏览器')
+    // 任务提交后要排队+计算，不一定在 30s 默认超时内变成 Complete（后端可能并发排队），
+    // 需放宽到跟 submit 测试一致的预算，让 waitForPeakAlignmentReady 能等到它可查看。
+    test.setTimeout(180_000)
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
@@ -56,8 +79,9 @@ test.describe('Result Detail', () => {
       { timeout: 10_000 },
     )
 
-    // 定位本次 submit 创建的 Peak Alignment 任务（continuous 模式，有 selected-mz）
-    const completedRow = peakAlignmentRow(page)
+    // 定位本次 submit 创建的 Peak Alignment 任务（continuous 模式，有 selected-mz）。
+    // 任务创建后要排队+计算，不会立刻 Completed，用轮询等它可查看（见 waitForPeakAlignmentReady）。
+    const completedRow = await waitForPeakAlignmentReady(page)
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
 
     await completedRow.getByRole('button', { name: 'View' }).click()
@@ -104,6 +128,7 @@ test.describe('Result Detail', () => {
   test('switches colormap and keeps ion image stable', async ({ page, browserName }) => {
     // 同上：依赖 chromium 提交的 Peak Alignment 任务
     test.skip(browserName !== 'chromium', '分析任务只在 chromium 创建，依赖它的断言不跨浏览器')
+    test.setTimeout(180_000)
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
@@ -111,8 +136,8 @@ test.describe('Result Detail', () => {
       { timeout: 10_000 },
     )
 
-    // 同上一个测试：锁定 Peak Alignment（continuous）任务
-    const completedRow = peakAlignmentRow(page)
+    // 同上一个测试：锁定 Peak Alignment（continuous）任务，等它可查看
+    const completedRow = await waitForPeakAlignmentReady(page)
     await expect(completedRow).toBeVisible({ timeout: 10_000 })
     await completedRow.getByRole('button', { name: 'View' }).click()
     await expect(page).toHaveURL(/\/vizworkbench/)
