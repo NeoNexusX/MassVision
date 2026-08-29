@@ -9,10 +9,12 @@ import { ALGO_DATASET_NAMES } from './utils.js'
  * 依赖：用户已登录且有至少一个 dataset
  *
  * 跨文件依赖：本文件最后一个测试（"submit, wait for completion, then delete"）会创建一个
- * 分析任务并等它跑完，但不会删除——清理工作留给了 result-detail.spec.ts 末尾的
- * "Cleanup > delete completed result"。两个文件必须一起跑（按文件名字母序，
- * new-analysis 在 result-detail 之前）才能形成完整的创建 → 查看 → 删除链路。
- * 如果单独只跑 result-detail.spec.ts，它的 Cleanup 测试会删除 Workspace 里
+ * Peak Alignment 分析任务并等它跑完，但不会删除——清理工作留给了 viz-workbench.spec.ts
+ * 末尾的 "Cleanup > delete completed result"。两个文件必须一起跑（按文件名字母序，
+ * new-analysis 在 viz-workbench 之前）才能形成完整的 创建 → 查看 → 删除 链路。
+ * 每个浏览器都要自建自己的 Peak Alignment 任务（不做跨浏览器 skip），
+ * 这样 viz-workbench 在 firefox/webkit 下也能读到任务、验证 UI。
+ * 如果单独只跑 viz-workbench.spec.ts，它的 Cleanup 测试会删除 Workspace 里
  * "当前最新的 Completed 结果"——如果没有本文件留下的任务，可能会误删真实数据。
  */
 
@@ -135,11 +137,10 @@ test.describe('New Analysis', () => {
     await expect(page.getByText('Select dataset and configure pipeline first')).not.toBeVisible()
   })
 
-  // 注意：测试名里的 "delete" 指的是 result-detail.spec.ts 末尾的 Cleanup 测试，
-  // 本测试自己只创建任务、等待完成，不做删除（见文件头的跨文件依赖说明）
-  test('submit, wait for completion, then delete', async ({ page, browserName }) => {
-    // 建任务的重后端操作只在 chromium 跑，避免 firefox/webkit 重复建 Peak Alignment 任务
-    test.skip(browserName !== 'chromium', '分析任务只在 chromium 创建一次')
+  // 注意：测试名里的 "delete" 指的是 viz-workbench.spec.ts 末尾的 Cleanup 测试，
+  // 本测试自己只创建任务、等待完成，不做删除（见文件头的跨文件依赖说明）。
+  // 不再按浏览器 skip：每个浏览器都要自建自己的 Peak Alignment 任务，供 viz-workbench 查看。
+  test('submit, wait for completion, then delete', async ({ page }) => {
     test.setTimeout(180_000)
     await page.goto('/workspace/new')
     await page.locator('.tab:has-text("My Datasets")').click()
@@ -160,8 +161,22 @@ test.describe('New Analysis', () => {
     }
     await radio.locator('..').click()
 
-    const methodLabels = page.locator('details[open] label')
-    await methodLabels.nth(await methodLabels.count() - 1).click()
+    // 明确选中 Peak Alignment，而不是"点最后一个方法"——随机数据集下最后一个方法未必是 align。
+    // profile 数据要先选中 Peak Picking 才会暴露 Peak Alignment；centroid+continuous 则根本不支持 align。
+    // 定位方式：align 组的唯一方法 label 是 "Python Backend"（见 usePreprocessingMethods.ts align 组）。
+    const alignMethod = page.locator('details[open] label').filter({ hasText: 'Python Backend' })
+    if ((await alignMethod.count()) === 0) {
+      const pickMethod = page.locator('details[open] label').filter({ hasText: 'Standard Peak Detection' })
+      if ((await pickMethod.count()) > 0) {
+        await pickMethod.click()
+        await expect(alignMethod).toBeVisible({ timeout: 5_000 })
+      }
+    }
+    if ((await alignMethod.count()) === 0) {
+      test.skip(true, `Dataset "${name}" 不支持 Peak Alignment，无法构建对齐任务`)
+      return
+    }
+    await alignMethod.click()
 
     await page.getByRole('button', { name: 'Start Analysis' }).click()
 

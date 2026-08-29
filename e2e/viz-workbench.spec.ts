@@ -11,6 +11,8 @@ import { test, expect, type Page } from '@playwright/test'
  * （"submit, wait for completion, then delete"）创建并等待完成，但那个测试本身
  * 不删除它——本文件的测试直接查看/操作"当前最新的 Completed 结果"，
  * 最后由本文件末尾的 "Cleanup > delete completed result" 统一删除。
+ * 每个浏览器在 new-analysis 里都会自建自己的 Peak Alignment 任务，
+ * 故本文件三个依赖真实任务的用例不在浏览器间 skip（old chromium-only skip 已移除）。
  * 必须两个文件一起跑（按文件名字母序，new-analysis 在本文件之前）才是完整链路。
  * 如果单独只跑本文件，Cleanup 会删除 Workspace 里"当前最新的 Completed 结果"——
  * 若没有 new-analysis 留下的任务，可能会误删真实数据，请勿单独运行本文件。
@@ -40,23 +42,25 @@ function peakAlignmentRow(page: Page) {
 }
 
 /**
- * 等待本次 submit 创建的 Peak Alignment 任务从 Running 变为可查看。
+ * 等待本次 submit 创建的 Peak Alignment 任务从 Running 变为 Completed 可查看。
  * 任务创建后要排队+计算，不会立刻 Completed，10s 内的 toBeVisible 断言会误报。
- * 轮询刷新（与 Cleanup 的等待逻辑一致），直到该行出现 View 按钮（status !== 'processing'）。
+ * 轮询刷新（与 Cleanup 的等待逻辑一致），直到该行 Status 列变成 Completed。
+ * 只等"可查看"（status !== 'processing'）是不够的——Failed 任务也有 View 按钮，
+ * 这里要求真正 Completed，进入 viz-workbench 后离子图/谱图断言才成立。
  * 找不到时抛错，跳过静默地把定位失败吞掉——这能让「submit 被 skip / 后端无此数据集」这类真实原因暴露出来。
  */
 async function waitForPeakAlignmentReady(page: Page) {
-  const deadline = Date.now() + 120_000
+  const deadline = Date.now() + 180_000
   while (Date.now() < deadline) {
     const row = peakAlignmentRow(page)
-    if ((await row.getByRole('button', { name: 'View' }).count()) > 0) return row
+    if ((await row.getByText('Completed').count()) > 0) return row
     await page.reload()
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first())
       .not.toHaveText('Loading...', { timeout: 15_000 })
     await page.waitForTimeout(5_000)
   }
-  throw new Error('Peak Alignment task did not become viewable within 120s')
+  throw new Error('Peak Alignment task did not become Completed within 180s')
 }
 
 test.describe('Result Detail', () => {
@@ -65,10 +69,9 @@ test.describe('Result Detail', () => {
     await expect(page.getByText('No result selected')).toBeVisible()
   })
 
-  test('loads ion image, spectrum, metadata, and responds to click', async ({ page, browserName }) => {
-    // 依赖 new-analysis.spec.ts 在 chromium 提交的 Peak Alignment 任务；
-    // firefox/webkit 不提交，故无此行，跳过（与 Cleanup 的 skip 理由一致）。
-    test.skip(browserName !== 'chromium', '分析任务只在 chromium 创建，依赖它的断言不跨浏览器')
+  test('loads ion image, spectrum, metadata, and responds to click', async ({ page }) => {
+    // 依赖 new-analysis.spec.ts 在【当前】浏览器提交的 Peak Alignment 任务；
+    // 每个浏览器都自建任务，故不再按浏览器 skip。
     // 任务提交后要排队+计算，不一定在 30s 默认超时内变成 Complete（后端可能并发排队），
     // 需放宽到跟 submit 测试一致的预算，让 waitForPeakAlignmentReady 能等到它可查看。
     test.setTimeout(180_000)
@@ -125,9 +128,8 @@ test.describe('Result Detail', () => {
     await expect(page.getByRole('heading', { name: 'Spectrum View' })).toBeVisible()
   })
 
-  test('switches colormap and keeps ion image stable', async ({ page, browserName }) => {
-    // 同上：依赖 chromium 提交的 Peak Alignment 任务
-    test.skip(browserName !== 'chromium', '分析任务只在 chromium 创建，依赖它的断言不跨浏览器')
+  test('switches colormap and keeps ion image stable', async ({ page }) => {
+    // 同上：依赖当前浏览器提交的 Peak Alignment 任务，不再按浏览器 skip
     test.setTimeout(180_000)
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
@@ -163,9 +165,8 @@ test.describe('Result Detail', () => {
 // 工作区里可能残留 raw-convert（processed，无 selected-mz）等其它任务。
 
 test.describe('Cleanup', () => {
-  test('delete completed result', async ({ page, browserName }) => {
-    // 与 new-analysis submit 对应：任务只在 chromium 建，这里也只在 chromium 删
-    test.skip(browserName !== 'chromium', '任务只在 chromium 创建，清理也只在 chromium')
+  test('delete completed result', async ({ page }) => {
+    // 与 new-analysis submit 对应：每个浏览器自建任务，故清理不再按浏览器 skip
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
 
