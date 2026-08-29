@@ -15,7 +15,7 @@
 
 分析任务完成后，在 Workspace 的结果表点击 **View**。`processing` 状态不提供 View；`failed` 结果可以查看错误并删除。
 
-结果页路由是 `/workspace/results`，但任务 ID、数据集名称和方法通过浏览器 history state 传入。直接打开或刷新裸地址可能显示 **No result selected**，应从 Workspace 或数据集卡片重新进入。
+结果页路由是 `/vizworkbench`，但任务 ID、数据集名称和方法通过浏览器 history state 传入。直接打开或刷新裸地址可能显示 **No result selected**，应从 Workspace 或数据集卡片重新进入。
 
 ## 页面布局
 

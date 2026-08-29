@@ -25,9 +25,9 @@ import { ref, computed, shallowRef, watch, onScopeDispose, type Ref } from 'vue'
 import {
   getSharedZarrContext,
   meanSpectrumRef,
-} from '@/features/workspace/results/composables/useZarrIonImage'
-import type { KmeansCluster } from '@/features/workspace/results/composables/useOverlayData'
-import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
+} from '@/features/vizworkbench/composables/useZarrIonImage'
+import type { KmeansCluster } from '@/features/vizworkbench/composables/useOverlayData'
+import type { ConfirmedROI } from '@/features/vizworkbench/composables/useROI'
 import {
   COMPARISON_A_OVERLAY_ALPHA,
   COMPARISON_A_RGB,
@@ -35,7 +35,7 @@ import {
   COMPARISON_B_RGB,
   rgbCss,
   type RGB,
-} from '@/features/workspace/results/utils/regionPalette'
+} from '@/features/vizworkbench/utils/regionPalette'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
 // ---------- types ----------

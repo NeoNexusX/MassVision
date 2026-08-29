@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import AverageSpectrum from '@/features/workspace/results/components/visuals/AverageSpectrum.vue'
+import AverageSpectrum from '@/features/vizworkbench/components/visuals/AverageSpectrum.vue'
 import {
   mzAxisRef,
   meanChartData,
@@ -12,7 +12,7 @@ import {
   pixelSpectrumLoading,
   pixelSpectrumError,
   loadPixelSpectrum,
-} from '@/features/workspace/results/composables/useZarrIonImage'
+} from '@/features/vizworkbench/composables/useZarrIonImage'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
 const props = defineProps<{

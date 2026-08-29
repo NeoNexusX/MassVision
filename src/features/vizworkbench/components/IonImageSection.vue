@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
-import IonImageViewer from '@/features/workspace/results/components/visuals/IonImageViewer.vue'
-import ROIOverlay from '@/features/workspace/results/components/visuals/ROIOverlay.vue'
-import type { ROIType } from '@/features/workspace/results/composables/useROI'
+import IonImageViewer from '@/features/vizworkbench/components/visuals/IonImageViewer.vue'
+import ROIOverlay from '@/features/vizworkbench/components/visuals/ROIOverlay.vue'
+import type { ROIType } from '@/features/vizworkbench/composables/useROI'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
 const props = defineProps<{

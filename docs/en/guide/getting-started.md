@@ -18,7 +18,7 @@ SpatialXomics is a web platform for uploading, managing, analyzing, and visualiz
 4. **Choose a processing path**:
    - Click **Explore** on a dataset card and confirm to create a Direct conversion task.
    - Or open **New Analysis** and configure a preprocessing pipeline for the dataset mode.
-5. **View the result**: wait for the task to finish in the Workspace and click **View**. The result page relies on task context passed from the Workspace or a dataset card; do not treat the bare `/workspace/results` URL as a bookmarkable result link.
+5. **View the result**: wait for the task to finish in the Workspace and click **View**. The result page relies on task context passed from the Workspace or a dataset card; do not treat the bare `/vizworkbench` URL as a bookmarkable result link.
 
 ## Data Modes
 

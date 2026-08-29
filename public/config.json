@@ -30,7 +30,7 @@
       "/": "none",
       "/login": "drawer",
       "/register": "drawer",
-      "/workspace/results": "drawer"
+      "/vizworkbench": "drawer"
     },
     "themeToggle": true,
     "guestHint": "Sign in",

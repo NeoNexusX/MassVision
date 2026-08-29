@@ -1,10 +1,10 @@
 import { computed, ref, type Ref } from 'vue'
-import ROIOverlay from '@/features/workspace/results/components/visuals/ROIOverlay.vue'
+import ROIOverlay from '@/features/vizworkbench/components/visuals/ROIOverlay.vue'
 import {
   useROI,
   type DraftROI,
   type ROIType,
-} from '@/features/workspace/results/composables/useROI'
+} from '@/features/vizworkbench/composables/useROI'
 
 export function useResultROI(
   // Arguments

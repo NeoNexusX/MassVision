@@ -10,8 +10,8 @@
  * selectedMz is derived from selectedMzIndex + mzAxis (continuous only).
  *
  * ⚠️ 模块级单例：store / mzAxisRef / dataModeRef 等约 20 个状态挂在模块作用域，
- * 由 ResultDetail 独占使用（useRegionComparison / useAnnotationMatch 等横向消费）。
- * 路由是单实例（/workspace/results 组件复用 + onUnmounted dispose），因此成立；
+ * 由可视化工作台（VizWorkbench）独占使用（useRegionComparison / useAnnotationMatch 等横向消费）。
+ * 路由是单实例（/viz 组件复用 + onUnmounted dispose），因此成立；
  * 但切勿同时挂载两个消费者（KeepAlive 多实例、第二页签组件），否则后 init 的
  * 实例会 dispose 前者仍在用的 store。如需多实例，须重构为 provide/inject 工厂。
  * 生命周期竞态由 initGeneration 代次守卫：init() 进行中发生 disposeZarrState()
@@ -140,7 +140,7 @@ function resetModuleState(): void {
 }
 
 /**
- * Release all module-level state. Call on ResultDetail unmount so that large
+ * Release all module-level state. Call on VizWorkbench unmount so that large
  * TypedArrays (mzAxis, meanChartData, ticMatrix, pixelSpectrum) and the
  * ZarrOssStore (chunk caches, in-flight requests) become GC-eligible instead
  * of persisting for the entire SPA lifetime.

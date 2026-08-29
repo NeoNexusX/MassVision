@@ -1,5 +1,5 @@
 /**
- * Unified label map: backend key → display name.
+ * Unified label map: backend key -> display name.
  * Keys come from /processes/mine params_json.
  */
 const METHOD_LABELS: Record<string, string> = {

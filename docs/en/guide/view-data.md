@@ -15,7 +15,7 @@ Results can be reached through one-click **Explore / Visualize** on a dataset ca
 
 Click **View** on a completed Workspace result. Processing rows do not offer View; failed results expose their error and can be deleted.
 
-The route is `/workspace/results`, but the run ID, dataset name, and methods arrive through browser history state. Opening or refreshing the bare URL may show **No result selected**; enter again from the Workspace or dataset card.
+The route is `/vizworkbench`, but the run ID, dataset name, and methods arrive through browser history state. Opening or refreshing the bare URL may show **No result selected**; enter again from the Workspace or dataset card.
 
 ## Layout
 

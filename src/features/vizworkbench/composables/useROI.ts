@@ -1,5 +1,5 @@
 import { ref, shallowRef, markRaw, type Ref } from 'vue'
-import { roiColorAt, rgbCss } from '@/features/workspace/results/utils/regionPalette'
+import { roiColorAt, rgbCss } from '@/features/vizworkbench/utils/regionPalette'
 
 export type ROIType = 'rectangle' | 'freehand'
 

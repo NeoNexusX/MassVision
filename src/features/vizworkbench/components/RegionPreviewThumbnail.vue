@@ -16,14 +16,14 @@
  * inside it, so datasets of any aspect ratio render into the same footprint.
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
+import type { ConfirmedROI } from '@/features/vizworkbench/composables/useROI'
 import {
   COMPARISON_A_ALPHA,
   COMPARISON_B_ALPHA,
   hexToRgb,
   rgbCss,
   type RGB,
-} from '@/features/workspace/results/utils/regionPalette'
+} from '@/features/vizworkbench/utils/regionPalette'
 
 export interface ThumbnailRegion {
   value: string

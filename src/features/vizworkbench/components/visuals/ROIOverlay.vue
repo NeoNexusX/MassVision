@@ -34,8 +34,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import type { ROIType, DraftROI, ROIPoint } from '@/features/workspace/results/composables/useROI'
-import { computeFitTransform } from '@/features/workspace/results/utils/fitTransform'
+import type { ROIType, DraftROI, ROIPoint } from '@/features/vizworkbench/composables/useROI'
+import { computeFitTransform } from '@/features/vizworkbench/utils/fitTransform'
 
 const props = defineProps<{
   tool: ROIType | null

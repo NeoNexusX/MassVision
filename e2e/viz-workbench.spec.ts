@@ -3,7 +3,7 @@ import { test, expect, type Page } from '@playwright/test'
 /**
  * Result Detail E2E 测试 — 真实后端
  * ================================
- * 结果详情页 /workspace/results
+ * 可视化工作台 /vizworkbench
  *
  * 依赖：workspace 中有至少一个已完成的进程
  *
@@ -41,7 +41,7 @@ function peakAlignmentRow(page: Page) {
 
 test.describe('Result Detail', () => {
   test('shows stale state when accessed directly', async ({ page }) => {
-    await page.goto('/workspace/results')
+    await page.goto('/vizworkbench')
     await expect(page.getByText('No result selected')).toBeVisible()
   })
 

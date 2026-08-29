@@ -1,10 +1,10 @@
 import { ref, watch, onUnmounted, type Ref } from 'vue'
-import { metadataAttrsRef, dataModeRef, polarityRef } from '@/features/workspace/results/composables/useZarrIonImage'
+import { metadataAttrsRef, dataModeRef, polarityRef } from '@/features/vizworkbench/composables/useZarrIonImage'
 import { listMyProcesses, listUserFiles } from '@/features/datasets/api/datasetApi'
-import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
+import { parseAlgorithms } from '@/shared/utils/methodsNormalize'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
-interface ResultDetailState {
+interface VizWorkbenchState {
   runId?: string
   processName?: string
   datasetName?: string
@@ -37,7 +37,7 @@ export function useResultMeta(runId: Ref<string>) {
   })
   /** true when a response fetched for `id` must be discarded: the component
    *  unmounted, or runId already moved on to another result (same-instance
-   *  reuse on /workspace/results). */
+   *  reuse on /viz). */
   const isStale = (id: string) => disposed || runId.value !== id
 
   function formatPixelSize(x?: number, y?: number): string {
@@ -144,7 +144,7 @@ export function useResultMeta(runId: Ref<string>) {
     const currentRequest = ++requestId
     loading.value = true
     try {
-      const state = history.state as ResultDetailState | null
+      const state = history.state as VizWorkbenchState | null
 
       // 从 router state 读取 process 层面的信息
       datasetName.value = state?.datasetName || ''

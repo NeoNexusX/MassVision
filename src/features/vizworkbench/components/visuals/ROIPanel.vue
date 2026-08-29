@@ -112,8 +112,8 @@
 
 <script setup lang="ts">
 import SvgIcon from '@/shared/components/SvgIcon.vue'
-import { cssWithAlpha } from '@/features/workspace/results/utils/regionPalette'
-import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
+import { cssWithAlpha } from '@/features/vizworkbench/utils/regionPalette'
+import type { ConfirmedROI } from '@/features/vizworkbench/composables/useROI'
 
 defineProps<{
   selectedTool: string | null

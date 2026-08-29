@@ -20,7 +20,7 @@ SpatialXomics 是一个用于上传、管理、分析和可视化质谱成像（
 4. **选择处理方式**：
    - 点击数据集卡片上的 **Explore**，确认后创建 Direct conversion 任务。
    - 或进入 **New Analysis**，按数据模式配置预处理管线。
-5. **查看结果**：在 Workspace 等任务完成后点击 **View**。结果页依赖从 Workspace 或数据集卡片带入的任务上下文，不应把裸 `/workspace/results` 地址当作可独立收藏的结果链接。
+5. **查看结果**：在 Workspace 等任务完成后点击 **View**。结果页依赖从 Workspace 或数据集卡片带入的任务上下文，不应把裸 `/vizworkbench` 地址当作可独立收藏的结果链接。
 
 ## 数据模式
 

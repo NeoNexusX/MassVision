@@ -21,14 +21,14 @@ import SvgIcon from '@/shared/components/SvgIcon.vue'
 import {
   useAnnotationMatch,
   type AnnotationSortKey,
-} from '@/features/workspace/results/composables/useAnnotationMatch'
+} from '@/features/vizworkbench/composables/useAnnotationMatch'
 import {
   formatMassError,
   formatIntensity,
   type MatchedAnnotationRow,
-} from '@/features/workspace/results/utils/csvAnnotation'
-import PubChemDialog from '@/features/workspace/results/components/PubChemDialog.vue'
-import { scrollIntoContainer } from '@/features/workspace/results/utils/scrollIntoContainer'
+} from '@/features/vizworkbench/utils/csvAnnotation'
+import PubChemDialog from '@/features/vizworkbench/components/PubChemDialog.vue'
+import { scrollIntoContainer } from '@/features/vizworkbench/utils/scrollIntoContainer'
 import { useToast } from '@/shared/composables/useToast'
 
 const props = defineProps<{
@@ -573,14 +573,14 @@ watch(
       <!-- Adduct + formula dropdown filters (one row); coarse-filter note below -->
       <div v-if="hasData" class="shrink-0 space-y-1">
         <div class="grid grid-cols-2 gap-2">
-          <label class="flex flex-col gap-0.5 text-xs min-w-0">
+          <label class="flex flex-col gap-0.5 text-[0.875em] min-w-0">
             <span class="text-base-content/60">Adduct</span>
             <select v-model="filterAdduct" class="select select-bordered select-xs w-full">
               <option value="">All</option>
               <option v-for="opt in adductOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>
           </label>
-          <label class="flex flex-col gap-0.5 text-xs min-w-0">
+          <label class="flex flex-col gap-0.5 text-[0.875em] min-w-0">
             <span class="text-base-content/60">Formula</span>
             <select v-model="filterFormula" class="select select-bordered select-xs w-full">
               <option value="">All</option>
@@ -591,7 +591,7 @@ watch(
         <!-- 匹配后粗筛掉的（极性 / m/z 范围），放到下拉筛选下方 -->
         <span
           v-if="coarseFiltered > 0"
-          class="text-[0.75em] text-base-content/50"
+          class="text-[0.875em] text-base-content/50"
           title="Rows dropped before matching because their adduct/formula implies the opposite polarity, or their m/z lies outside the spectrum's range"
         >
           {{ coarseFiltered }} filtered by polarity / m/z range
@@ -655,12 +655,12 @@ watch(
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
-                <div class="font-medium text-[0.875em] text-base-content truncate">{{ row.name }}</div>
+                <div class="font-medium text-[1.125em] text-base-content truncate">{{ row.name }}</div>
                 <!-- min-h-4 keeps one line box even when all three spans are
                      v-if'd out: the virtual scroll assumes a uniform row
                      height, and an empty subtitle would make this row ~20px
                      shorter than the measured rowH. -->
-                <div class="min-h-4 text-[0.75em] text-base-content/50 truncate">
+                <div class="min-h-4 text-[1em] text-base-content/50 truncate">
                   <span v-if="row.formulaIon" class="font-mono">{{ row.formulaIon }}</span>
                   <span v-if="row.ionType" class="text-base-content/40">&nbsp;{{ row.ionType }}</span>
                   <span v-if="row.candidates.length > 1" class="text-primary/50">
@@ -669,7 +669,7 @@ watch(
                 </div>
               </td>
               <td
-                class="text-right font-mono whitespace-nowrap"
+                class="text-right font-mono whitespace-nowrap text-[1.125em]"
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >

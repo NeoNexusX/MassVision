@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch, onUnmounted, nextTick } from 'vue'
-import ColorBar from '@/features/workspace/results/components/visuals/ColorBar.vue'
-import ResultVisualizationLayout from '@/features/workspace/results/components/ResultVisualizationLayout.vue'
-import ResultHeader from '@/features/workspace/results/components/visuals/ResultHeader.vue'
-import IonImageSection from '@/features/workspace/results/components/IonImageSection.vue'
-import SpectrumSection from '@/features/workspace/results/components/SpectrumSection.vue'
-import OverlayControls from '@/features/workspace/results/components/OverlayControls.vue'
-import AnnotationPanel from '@/features/workspace/results/components/AnnotationPanel.vue'
-import CompareRegionsPanel from '@/features/workspace/results/components/CompareRegionsPanel.vue'
-import ComparisonResultsTable from '@/features/workspace/results/components/ComparisonResultsTable.vue'
-import RegionPreviewThumbnail from '@/features/workspace/results/components/RegionPreviewThumbnail.vue'
+import ColorBar from '@/features/vizworkbench/components/visuals/ColorBar.vue'
+import ResultVisualizationLayout from '@/features/vizworkbench/components/ResultVisualizationLayout.vue'
+import ResultHeader from '@/features/vizworkbench/components/visuals/ResultHeader.vue'
+import IonImageSection from '@/features/vizworkbench/components/IonImageSection.vue'
+import SpectrumSection from '@/features/vizworkbench/components/SpectrumSection.vue'
+import OverlayControls from '@/features/vizworkbench/components/OverlayControls.vue'
+import AnnotationPanel from '@/features/vizworkbench/components/AnnotationPanel.vue'
+import CompareRegionsPanel from '@/features/vizworkbench/components/CompareRegionsPanel.vue'
+import ComparisonResultsTable from '@/features/vizworkbench/components/ComparisonResultsTable.vue'
+import RegionPreviewThumbnail from '@/features/vizworkbench/components/RegionPreviewThumbnail.vue'
 import {
   useZarrIonImage,
   ticMatrix,
@@ -19,19 +19,19 @@ import {
   mzAxisRef,
   getSharedZarrContext,
   disposeZarrState,
-} from '@/features/workspace/results/composables/useZarrIonImage'
-import { useDisplayRange } from '@/features/workspace/results/composables/useDisplayRange'
-import { useOverlayData } from '@/features/workspace/results/composables/useOverlayData'
-import { useResultROI } from '@/features/workspace/results/composables/useResultROI'
-import { useResultMeta } from '@/features/workspace/results/composables/useResultMeta'
-import { useRegionComparison } from '@/features/workspace/results/composables/useRegionComparison'
+} from '@/features/vizworkbench/composables/useZarrIonImage'
+import { useDisplayRange } from '@/features/vizworkbench/composables/useDisplayRange'
+import { useOverlayData } from '@/features/vizworkbench/composables/useOverlayData'
+import { useResultROI } from '@/features/vizworkbench/composables/useResultROI'
+import { useResultMeta } from '@/features/vizworkbench/composables/useResultMeta'
+import { useRegionComparison } from '@/features/vizworkbench/composables/useRegionComparison'
 import { ZARR_STORE } from '@/shared/config/defaults'
-import { rgbCss } from '@/features/workspace/results/utils/regionPalette'
-import { findClosestIndex } from '@/features/workspace/results/utils/csvAnnotation'
+import { rgbCss } from '@/features/vizworkbench/utils/regionPalette'
+import { findClosestIndex } from '@/features/vizworkbench/utils/csvAnnotation'
 import { useToast } from '@/shared/composables/useToast'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
-interface ResultDetailState {
+interface VizWorkbenchState {
   runId?: string
   processName?: string
   datasetName?: string
@@ -41,7 +41,7 @@ interface ResultDetailState {
   status?: string
 }
 
-const state = history.state as ResultDetailState | null
+const state = history.state as VizWorkbenchState | null
 const runId = computed(() => (state?.runId != null ? String(state.runId) : ''))
 const isStale = computed(() => state?.runId == null)
 

@@ -18,7 +18,7 @@ import {
   meanSpectrumRef,
   dataModeRef,
   polarityRef,
-} from '@/features/workspace/results/composables/useZarrIonImage'
+} from '@/features/vizworkbench/composables/useZarrIonImage'
 import {
   parseAnnotationCsv,
   buildAnnotationExportCsv,
@@ -33,7 +33,7 @@ import {
   type AnnotationSortDir,
   type MatchStatusCounts,
   type MatchInputs,
-} from '@/features/workspace/results/utils/csvAnnotation'
+} from '@/features/vizworkbench/utils/csvAnnotation'
 import { useToast } from '@/shared/composables/useToast'
 
 export type AnnotationFilter = 'all' | 'matched' | 'unmatched'

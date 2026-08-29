@@ -4,9 +4,9 @@ import { createClustering } from '@/services/clustering/api/clusteringApi'
 import type { ClusteringTaskResponse } from '@/services/clustering/types/clustering'
 import { ClusteringZarrStore } from '@/services/clustering/clusteringZarrStore'
 import type { UmapEmbedding } from '@/services/clustering/types/clustering'
-import { computeKmeansFromUmap, preloadKmeans } from '@/features/workspace/results/utils/kmeans'
-import { kmeansColor } from '@/features/workspace/results/utils/regionPalette'
-import { dataModeRef } from '@/features/workspace/results/composables/useZarrIonImage'
+import { computeKmeansFromUmap, preloadKmeans } from '@/features/vizworkbench/utils/kmeans'
+import { kmeansColor } from '@/features/vizworkbench/utils/regionPalette'
+import { dataModeRef } from '@/features/vizworkbench/composables/useZarrIonImage'
 import { useToast } from '@/shared/composables/useToast'
 import { extractBackendError } from '@/shared/api/httpClient'
 
@@ -174,7 +174,7 @@ export function useOverlayData(
   const { showToast } = useToast()
 
   // ---- clustering-status polling: reuse POST while the task is in flight ----
-  // Poll interval documented in docs/zh/dev/聚类分析对接.md.
+  // Poll interval fixed at 5s; completed / failed status ends the chain.
   const POLL_INTERVAL_MS = 5000
   let pollTimer: ReturnType<typeof setTimeout> | null = null
   /** The run the current poll chain belongs to; a mismatch stops the chain. */

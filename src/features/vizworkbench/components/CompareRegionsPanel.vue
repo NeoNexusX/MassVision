@@ -9,8 +9,8 @@
  */
 import { computed } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
-import type { RegionOption } from '@/features/workspace/results/composables/useRegionComparison'
-import { rgbCss, type RGB } from '@/features/workspace/results/utils/regionPalette'
+import type { RegionOption } from '@/features/vizworkbench/composables/useRegionComparison'
+import { rgbCss, type RGB } from '@/features/vizworkbench/utils/regionPalette'
 
 const props = defineProps<{
   regions: RegionOption[]

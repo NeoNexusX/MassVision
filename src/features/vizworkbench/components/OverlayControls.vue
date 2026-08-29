@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import ROIPanel from '@/features/workspace/results/components/visuals/ROIPanel.vue'
+import ROIPanel from '@/features/vizworkbench/components/visuals/ROIPanel.vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import type {
   OverlayKind,
   KmeansCluster,
-} from '@/features/workspace/results/composables/useOverlayData'
-import type { ConfirmedROI } from '@/features/workspace/results/composables/useROI'
+} from '@/features/vizworkbench/composables/useOverlayData'
+import type { ConfirmedROI } from '@/features/vizworkbench/composables/useROI'
 
 const props = defineProps<{
   umapVisible: boolean

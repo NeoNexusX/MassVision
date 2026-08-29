@@ -9,8 +9,8 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import type { IconType } from '@/shared/components/svgIcons'
-import type { IonComparison, ComparisonCategory } from '@/features/workspace/results/composables/useRegionComparison'
-import { scrollIntoContainer } from '@/features/workspace/results/utils/scrollIntoContainer'
+import type { IonComparison, ComparisonCategory } from '@/features/vizworkbench/composables/useRegionComparison'
+import { scrollIntoContainer } from '@/features/vizworkbench/utils/scrollIntoContainer'
 
 const props = defineProps<{
   results: IonComparison[]

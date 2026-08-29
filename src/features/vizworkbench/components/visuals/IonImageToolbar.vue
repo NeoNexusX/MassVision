@@ -48,7 +48,7 @@
           inputmode="decimal"
           autocomplete="off"
           spellcheck="false"
-          class="input input-sm input-bordered w-20 font-mono text-[1em]"
+          class="input input-sm input-bordered w-28 font-mono text-[1em]"
           :value="mzTolerance"
           @input="onToleranceInput"
           @blur="onToleranceBlur"
