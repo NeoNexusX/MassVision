@@ -38,14 +38,16 @@ export function useLoginForm() {
       if (!access_token) throw new Error('Invalid token received')
 
       // Await login(): authStore.login internally awaits fetchUser(), so the
-      // route guard on /mydatasets sees auth.user already populated instead
-      // of racing it with a second GET /user.
+      // navbar renders with auth.user already populated instead of racing it
+      // with a second GET /user.
       await authStore.login(access_token)
       // login() resolved -> token survived the profile fetch (a 401 would have
       // cleared it and bounced to /login via the http interceptor).
       sessionStorage.setItem('just_logged_in', '1')
       showToast('Login successful! Redirecting...', 'success')
-      router.push('/mydatasets').catch((err) => console.error('Router Push Error:', err))
+      // 登录后的默认落地页是公开数据集列表（与 router.beforeEach 里
+      // 「已登录用户访问 /login 时的去向」保持一致）。
+      router.push('/datasets').catch((err) => console.error('Router Push Error:', err))
     } catch (error: any) {
       console.error('Login Error:', error)
       showToast(extractBackendError(error), 'error')

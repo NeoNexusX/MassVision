@@ -10,6 +10,11 @@
 #   4. SSH 到 main 服务器 → 直接从 docker.io 拉取最新镜像 → 重启容器
 #      → 健康检查通过后，清理悬空（<none>）镜像
 #
+# 正式环境配置替换：构建镜像前自动执行 scripts/apply-prod-config.mjs，把
+# env/config.prod.overrides.json 深合并进 public/config.json。正式服务器与
+# 测试服务器有差异的配置（目前是 OSS 预览图域名）只写进覆盖文件即可，
+# 其余配置两边共用仓库主文件，无需维护两份完整 config。
+#
 # 需要的 GitHub Secrets（Settings → Secrets and variables → Actions → Secrets 标签页）：
 #   MAIN_SERVER_HOST     — 生产服务器 IP
 #   MAIN_SERVER_USER     — SSH 用户名
@@ -59,6 +64,10 @@ jobs:
       # 登录 Docker Registry
       - name: Login to Docker Registry
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin docker.io
+
+      # 正式环境配置替换（只影响本次构建的镜像，不回写仓库）
+      - name: Apply prod config overrides
+        run: node scripts/apply-prod-config.mjs
 
       # 构建 Docker 镜像（内置 npm ci + vite build）
       - name: Build Docker image

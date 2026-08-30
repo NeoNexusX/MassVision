@@ -16,8 +16,22 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # gzip 压缩静态资源
+    # ---- 压缩 ----
+    # gzip_static / brotli_static：优先返回构建期预生成的 .gz / .br（见 vite.config.ts 的
+    # precompressAssets 插件）。命中时 nginx 直接发文件，不做任何运行时压缩。
+    # 未预压缩的响应（如 /api 代理回来的 JSON）才走下面的运行时 gzip 兜底。
+    #
+    # 实测本项目最大的 index CSS（190KB 原始）：
+    #   运行时 gzip level 1（改前的默认值） 40.3KB
+    #   运行时 gzip level 6                32.0KB
+    #   预压缩 gzip -9                     31.7KB
+    #   预压缩 brotli q11                  25.7KB  ← 比改前省 36%
+    gzip_static on;
+    brotli_static on;
+
     gzip on;
+    gzip_comp_level 6;
+    gzip_vary on;
     gzip_types text/css application/javascript application/json image/svg+xml;
     gzip_min_length 256;
 

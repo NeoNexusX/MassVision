@@ -2,148 +2,121 @@
 
 [English](README.en.md) | 简体中文
 
-SpatialXomics 是一个基于 Vue 3 + TypeScript + Vite 构建的质谱成像（MSI）数据管理与分析平台，支持 imzML 数据集上传、浏览、可视化分析以及用户权限管理。
+SpatialXomics 是一个面向质谱成像（MSI）的 Web 数据管理与分析平台。前端使用 Vue 3、TypeScript 和 Vite，支持 imzML 数据上传、公开/私有数据集管理、可配置预处理、Zarr 结果可视化、注释匹配、ROI 与区域比较。
+
+## 主要功能
+
+- **认证与权限**：登录、注册、找回密码、个人资料、管理员用户管理，以及受保护路由。
+- **数据集管理**：浏览公开数据集，管理自己的数据集，查看元数据、分享公开详情页，以及下载原始 `.imzML` / `.ibd` 文件对。
+- **上传管线**：浏览器 Worker 计算 MD5、服务端查重、ZIP64 压缩到 OPFS、阿里云 OSS 分片上传，以及同浏览器内的断点续传。
+- **分析工作区**：按数据的 spectrum/storage mode 展示兼容的降噪、基线校正、归一化、峰提取和峰对齐方法。
+- **结果可视化**：Continuous 离子图和平均谱、Processed TIC 图和逐像素谱、显示范围/Gamma/配色/TIC 归一化、透明背景 PNG 导出。
+- **聚类与区域分析**：后端生成 UMAP，浏览器本地执行 KMeans；支持聚类筛选、矩形/自由形状 ROI、多区域组合比较。
+- **注释**：Continuous + Centroid 结果可导入 CSV，以 ppm 或 Da 容差匹配 m/z，并支持筛选、导出和 PubChem 查询。
 
 ## 技术栈
 
-- **核心框架**: [Vue 3](https://vuejs.org/) + [TypeScript](https://www.typescriptlang.org/)
-- **构建工具**: [Vite](https://vitejs.dev/) + [Tailwind CSS v4](https://tailwindcss.com/)
-- **状态管理**: [Pinia](https://pinia.vuejs.org/)
-- **路由管理**: [Vue Router](https://router.vuejs.org/)
-- **UI 组件**: [DaisyUI v5](https://daisyui.com/) + [Heroicons](https://heroicons.com/) + [Iconify](https://iconify.design/)
-- **图表可视化**: [ECharts](https://echarts.apache.org/) + [vue3-calendar-heatmap](https://github.com/IhsenBouallegue/vue3-calendar-heatmap)（GitHub 提交热力图）
-- **MSI 数据解析**: [zarrita](https://github.com/manzt/zarrita)（Zarr 格式读取）、@zip.js/zip.js（上传打包压缩）、zstddec（zstd 解压）、hash-wasm（WebAssembly 哈希）
-- **对象存储**: [ali-oss](https://github.com/ali-sdk/ali-oss)（阿里云 OSS）
-- **HTTP 请求**: [Axios](https://axios-http.com/) + [qs](https://github.com/ljharb/qs)
-- **加密**: [Crypto-JS](https://github.com/brix/crypto-js)
-- **地区数据**: [i18n-iso-countries](https://github.com/michaelwittig/node-i18n-iso-countries)（国家/地区列表）
-- **测试**: [Vitest](https://vitest.dev/)（单元测试） + [Playwright](https://playwright.dev/)（E2E 测试）
-- **代码规范**: ESLint + Prettier
+| 分类 | 技术 |
+|---|---|
+| 核心 | Vue 3、TypeScript、Vite 7、Pinia、Vue Router |
+| UI | Tailwind CSS v4、DaisyUI v5、Iconify 离线图标子集 |
+| 可视化 | ECharts、Canvas、vue3-calendar-heatmap |
+| MSI/Zarr | 自研 Zarr v3 分块读取器、zstddec、`@zip.js/zip.js`、hash-wasm、ml-kmeans |
+| 网络与存储 | Axios、qs、ali-oss（STS 临时凭证） |
+| 测试 | Vitest、Playwright |
+| 文档 | VitePress（中英文） |
 
-## 项目结构
+准确版本以 [package.json](package.json) 为准。
 
-```
-SpatialXomics/
-├── public/                          # 静态资源 (config.json 运行时配置)
-├── src/
-│   ├── app/components/              # 应用级组件 (Navbar, NavDrawer)
-│   ├── assets/                      # CSS 资源 (Tailwind/DaisyUI 主题)
-│   ├── features/                    # 业务功能模块 (Feature-based 架构)
-│   │   ├── assistant/               # 浮动 AI 助手
-│   │   ├── auth/                    # 用户认证 (登录/注册/store/API)
-│   │   ├── datasets/                # 数据集浏览与管理 (列表/详情/过滤/下载)
-│   │   ├── home/                    # 首页 (Hero/Features/统计/提交热力图)
-│   │   ├── upload/                  # imzML 上传 (文件选择/压缩/断点续传/OSS)
-│   │   ├── users/                   # 用户管理 (管理员面板/用户列表/角色)
-│   │   └── workspace/               # 工作区与分析
-│   │       ├── analysis/            # 分析构建器 (数据源/预处理管线)
-│   │       ├── dashboard/           # 工作区仪表盘 (任务/结果/活动)
-│   │       └── results/             # 结果可视化 (离子图/光谱/ROI/UMAP)
-│   ├── router/                      # Vue Router 路由配置 (含路由守卫)
-│   ├── services/                    # 跨功能服务 (OSS 客户端、Zarr 远程访问)
-│   ├── shared/                      # 共享模块
-│   │   ├── api/                     # HTTP 客户端 (Axios 封装)
-│   │   ├── components/              # 通用组件 (IconInput, PaginationBar, Toast, etc.)
-│   │   ├── composables/             # 通用 composables
-│   │   ├── config/                  # 应用配置
-│   │   ├── constants/                # 常量
-│   │   ├── directives/              # 自定义指令 (滚动显现等)
-│   │   ├── types/                   # 类型声明
-│   │   └── utils/                   # 工具函数
-│   ├── views/                       # 页面视图
-│   │   └── workspace/               # 工作区页面 (WorkspacePage, NewAnalysis, ResultDetail, TaskDetail)
-│   ├── workers/                     # Web Workers (ZIP 压缩)
-│   ├── App.vue                      # 根组件
-│   ├── main.ts                      # 入口文件
-│   └── style.css                    # 全局样式
-├── env/                              # 多环境 .env 文件目录
-├── docker/                           # Docker 部署配置 (Dockerfile/nginx/entrypoint)
-├── docs/                             # 项目文档
-├── e2e/                              # E2E 测试文件
-├── index.html                       # 入口 HTML
-├── package.json                     # 项目依赖与脚本
-├── vite.config.ts                   # Vite 配置 (含 API 代理)
-├── vitest.config.ts                 # Vitest 配置
-└── playwright.config.ts             # Playwright 配置
+## 目录结构
+
+```text
+src/
+├── app/                         # 应用外壳、导航与全局入口组件
+├── assets/                      # 样式和主题资源
+├── features/                    # 按业务领域组织的功能
+│   ├── assistant/               # 可选 AI 助手 UI（当前运行时配置默认关闭）
+│   ├── auth/                    # 登录、注册、找回密码表单逻辑
+│   ├── datasets/                # 数据集列表、详情、分享、下载
+│   ├── home/                    # 首页场景、统计和提交热力图
+│   ├── upload/                  # imzML 解析、压缩、查重和续传
+│   ├── users/                   # 管理员用户管理
+│   └── workspace/               # 分析构建器、任务看板和结果页
+├── router/                      # 路由与认证/管理员守卫
+├── services/                    # Zarr、OSS、聚类和 PubChem 服务
+├── shared/                      # 跨业务共享的 API、认证、组件、配置和工具
+├── views/                       # 路由页面
+└── workers/                     # 跨功能 Worker（上传 ZIP）；功能专用 Worker 与功能同目录
+
+docs/                            # VitePress 中英文文档
+e2e/                             # Playwright 测试
+env/                             # Vite 环境变量
+public/config.json               # 无需重新构建即可调整的全站运行时配置
+public/content.json              # 首页展示内容（团队、时间线、Hero 文案）
+docker/                          # Docker/nginx 部署
 ```
 
-## 快速开始
+## 本地开发
 
 ### 环境要求
 
-- Node.js ^20.19.0 或 >=22.12.0
+- Node.js `^20.19.0` 或 `>=22.12.0`
+- npm（使用仓库中的 `package-lock.json`）
 
-### 安装依赖
+### 安装
 
 ```bash
-npm install
+npm ci
 ```
 
-### 配置环境变量
+### 环境配置
 
-在 `env/` 目录下创建对应模式的 `.env` 文件（如 `.env.development`），配置后端地址：
+仓库已提供以下文件：
+
+- `env/.env`：`VITE_API_BASE`、`VITE_OSS_ENDPOINT` 等公共值。
+- `env/.env.development`：开发服务器的 `VITE_BACKEND_URL`。
+- `env/.env.production`：生产构建/预览使用的值。
+
+本机覆盖请创建不会提交的 `env/.env.development.local`，例如：
 
 ```bash
 VITE_BACKEND_URL=http://localhost:8000
 ```
 
-### 开发模式运行
+开发环境的 `/api` 请求由 Vite 代理到 `VITE_BACKEND_URL`。生产容器由 nginx 把 `/api/` 代理到运行时传入的 `BACKEND_HOST:BACKEND_PORT`。
+
+### 启动
 
 ```bash
-npm run dev
+npm run dev       # 同时启动 SPA（5173）和文档站（5174）
+npm run dev:app   # 只启动 SPA
 ```
 
-开发服务器默认运行在 `http://localhost:5173`，`/api` 请求会自动代理至 `VITE_BACKEND_URL` 指向的后端。
-
-### 构建生产版本
+### 构建与检查
 
 ```bash
-npm run build
+npm run build             # 类型检查 + SPA 构建，输出 dist/
+npm run check             # 类型检查 + ESLint + 单元测试
+npm run test:unit:run     # 单次运行单元测试
+npm run test:e2e          # Playwright E2E
+npm run docs:build        # 文档构建，输出 dist-docs/
+npm run icons:bundle      # 更新离线图标子集
 ```
 
-## 测试
+`npm run format` 仅格式化 `src/`；Markdown 文档需按原格式手动维护。
 
-```bash
-# 运行单元测试
-npm run test:unit
+## 运行时配置
 
-# 运行 E2E 测试
-npm run test:e2e
-```
+应用启动时先加载 `public/config.json`，再挂载 Vue。该文件控制应用名称、导航、分页、验证码和 Zarr 读取参数；缺失或格式错误时应用会显示启动失败页。
 
-## 代码检查与格式化
+首页展示内容（Hero 文案、功能展示、时间线、团队、联系方式、提交热力图）拆在 `public/content.json`，只在进入首页时加载，取不到时首页降级为不显示这些区块。两份文件都可在部署后直接修改、刷新即生效。
 
-```bash
-# ESLint 检查并修复
-npm run lint
+表单下拉选项与离子源必填规则不再走 JSON，已编译进代码（`src/features/datasets/constants/datasetMetadata.ts`、`src/features/upload/utils/ionSourceRules.ts`），修改后需重新构建。
 
-# Prettier 格式化
-npm run format
-```
+## 文档与部署
 
-## 文档站
+- 用户与开发文档位于 `docs/`，本地地址为 `http://localhost:5174/docs/`。
+- Docker 镜像同时包含 `dist/` 和 `dist-docs/`，nginx 分别服务 SPA 与 `/docs/`。
+- `test` 分支运行检查、文档构建和三浏览器 Playwright；`dev` 与 `main` 分支分别触发对应环境部署。
 
-项目内置基于 [VitePress](https://vitepress.dev/) 的中英文文档站，源文件位于 `docs/`，与本仓库共用同一套部署流程：
-
-```bash
-npm run docs:dev      # 单独启动文档站，默认 http://localhost:5174/docs/
-npm run docs:build    # 构建到根目录 dist-docs/
-```
-
-详见 [docs/zh/dev/文档维护.md](docs/zh/dev/文档维护.md)。
-
-## 部署
-
-项目内置 Docker 部署配置（`docker/Dockerfile`、`nginx.conf.template`、`entrypoint.sh`），并通过 GitHub Actions（`.github/workflows/`）实现测试与开发/生产环境的自动化部署。
-
-## 功能特性
-
-- **用户认证**: JWT 登录/注册，个人资料管理，路由守卫与权限控制
-- **数据集管理**: 公开数据集浏览、个人数据集管理、数据集详情查看与下载
-- **imzML 上传**: 支持 imzML 文件解析、前端压缩、断点续传、阿里云 OSS 分片上传
-- **分析工作区**: 创建分析任务，配置数据源与预处理管线，查看任务执行状态
-- **结果可视化**: 离子图像渲染、质谱图展示、ROI 区域分析、UMAP/k-means 聚类叠加
-- **用户管理**: 管理员面板，用户列表、角色管理与状态统计
-- **AI 助手**: 可拖拽悬浮窗，提供智能问答辅助
-- **主题切换**: 支持亮色/暗色主题，跟随系统偏好
-- **响应式布局**: 基于 Tailwind CSS + DaisyUI 的现代化 UI，适配移动端与桌面端
+文档维护流程见 [docs/zh/dev/文档维护.md](docs/zh/dev/文档维护.md)。

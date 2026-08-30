@@ -1,11 +1,12 @@
 <template>
   <div class="min-h-screen bg-base-200 p-4 md:p-8 page-type">
     <div class="max-w-[1680px] mx-auto">
-      <h1 class="page-title font-bold text-base-content mb-6 px-3">
-        My Datasets
-      </h1>
+      <h1 class="page-title font-bold text-base-content mb-6 px-3">My Datasets</h1>
 
-      <div v-if="quota" class="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-3 md:gap-6 mb-4 text-[1em] text-base-content/80">
+      <div
+        v-if="quota"
+        class="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-3 md:gap-6 mb-4 text-[1em] text-base-content/80"
+      >
         <span class="px-3 whitespace-nowrap"
           >Storage
           <strong class="text-base-content"
@@ -54,6 +55,7 @@
       />
 
       <UploadModal
+        v-if="uploadModalMounted"
         :is-open="isUploadOpen"
         @close="isUploadOpen = false"
         @upload-success="handleUploadSuccess"
@@ -79,39 +81,34 @@
         @cancel="explore.cancelExplore"
       />
 
-      <div>
-        <DatasetList
-          :datasets="datasets"
-          :loading="loading"
-          :error="error"
-          :meta="meta"
-          :size="size"
-          :pagination="pagination"
-          :is-my-dataset="true"
-          :deletingId="deletingId"
-          :packingIds="packingIds"
-          @view-overview="viewOverview"
-          @download="handleDownloadRaw"
-          @delete="handleDelete"
-          @explore="handleExplore"
-          @change-size="changeSize"
-          @go-to-page="goToPage"
-        >
-          <template #empty> You have no datasets yet matching your filters. </template>
-        </DatasetList>
-      </div>
-
+      <DatasetList
+        :datasets="datasets"
+        :loading="loading"
+        :error="error"
+        :meta="meta"
+        :size="size"
+        :pagination="pagination"
+        :is-my-dataset="true"
+        :deletingId="deletingId"
+        :packingIds="packingIds"
+        @view-overview="viewOverview"
+        @download="handleDownloadRaw"
+        @delete="handleDelete"
+        @explore="handleExplore"
+        @change-size="changeSize"
+        @go-to-page="goToPage"
+      >
+        <template #empty> You have no datasets yet matching your filters. </template>
+      </DatasetList>
     </div>
   </div>
 </template>
 
-
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { defineAsyncComponent, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import DatasetList from '@/features/datasets/components/DatasetList.vue'
 import DatasetFilterBar from '@/features/datasets/components/DatasetFilterBar.vue'
-import UploadModal from '@/features/upload/components/UploadModal.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import ExploreConfirmDialog from '@/features/datasets/components/ExploreConfirmDialog.vue'
 import { listUserFiles, deleteFile } from '@/features/datasets/api/datasetApi'
@@ -122,6 +119,12 @@ import { useExploreDataset } from '@/features/datasets/composables/useExploreDat
 import { useAuthStore } from '@/shared/auth/authStore'
 import { useUserQuota } from '@/shared/composables/useUserQuota'
 import { createDefaultDatasetFilters } from '@/features/datasets/constants/datasetMetadata'
+
+// 上传流程（表单/解析/OSS 分片上传）约 60KB，列表页首屏用不到。
+// 懒加载 + 下面的 uploadModalMounted 守卫，推迟到用户真的要上传时才下载。
+const UploadModal = defineAsyncComponent(
+  () => import('@/features/upload/components/UploadModal.vue'),
+)
 
 // Use composable for datasets (fetch/map/pagination/sort)
 const initialFilters = createDefaultDatasetFilters()
@@ -167,14 +170,20 @@ const route = useRoute()
 
 // UI handlers used by the filter bar and cards
 const isUploadOpen = ref(false)
-const handleUpload = () => {
+// 只翻一次的挂载标志：UploadModal 内部 onBeforeUnmount 会中止进行中的上传，
+// 且 useUploadFlow 持有断点续传/表单状态，所以关闭时不能卸载。
+// 首次打开挂上之后就常驻，此后开关行为与改动前完全一致（含 modal 动画）。
+const uploadModalMounted = ref(false)
+const openUploadModal = () => {
+  uploadModalMounted.value = true
   isUploadOpen.value = true
 }
+const handleUpload = openUploadModal
 
 // Auto-open the upload modal when arriving from the New Analysis page (?upload=1)
 onMounted(() => {
   if (route.query.upload === '1') {
-    isUploadOpen.value = true
+    openUploadModal()
     // Strip the query param so a refresh doesn't reopen the modal
     router.replace({ name: 'MyDatasets' })
   }
@@ -234,6 +243,3 @@ const handleDelete = (id?: string) => {
 <style scoped>
 /* Layout handled by Tailwind classes */
 </style>
-
-
-

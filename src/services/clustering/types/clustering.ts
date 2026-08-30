@@ -1,5 +1,5 @@
 /**
- * UMAP / KMeans clustering backend API types.
+ * Backend UMAP task and locally consumed clustering data types.
  *
  * Backend endpoint:
  *   POST /processes/{run_id}/clustering
@@ -11,7 +11,7 @@ export interface ClusteringTaskResponse {
   params_json: string
   /** Backend task status. */
   status: string
-  /** Clustering status - 'completed' once the clustering zarr is finished. */
+  /** UMAP task status - 'completed' once the embedded UMAP result is ready. */
   clustering_status: string
   error_message: string | null
   /** ISO 8601 timestamp. */

@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { rawConvertProcess } from '@/features/datasets/api/datasetApi'
-import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
+import { parseAlgorithms } from '@/shared/utils/methodsNormalize'
 import { useToast } from '@/shared/composables/useToast'
 import { useAuthStore } from '@/shared/auth/authStore'
 import { extractBackendError } from '@/shared/api/httpClient'
@@ -63,7 +63,7 @@ export function useExploreDataset() {
 
   /**
    * 根据 Dataset 的状态决定 Explore 的行为：
-   * - 有 defaultRunId → 直接跳转 ResultDetail
+   * - 有 defaultRunId → 直接跳转可视化工作台
    * - 无 defaultRunId → 弹出确认对话框创建新任务
    */
   const handleExplore = (fileId: string, datasets: File[]) => {
@@ -73,7 +73,7 @@ export function useExploreDataset() {
     if (ds.defaultRunId) {
       // 已有可视化任务 → 直接查看结果
       router.push({
-        name: 'WorkspaceResultDetail',
+        name: 'VizWorkbench',
         state: {
           runId: String(ds.defaultRunId),
           datasetName: ds.filename || ds.name,
@@ -91,9 +91,7 @@ export function useExploreDataset() {
 
   return {
     showExploreConfirm,
-    exploringDataset,
     isConverting,
-    openExploreConfirm,
     cancelExplore,
     confirmExplore,
     handleExplore,

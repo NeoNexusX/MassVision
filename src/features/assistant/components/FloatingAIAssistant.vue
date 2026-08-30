@@ -237,9 +237,6 @@ function send() {
   }, 1200)
 }
 
-function open() {
-  isOpen.value = true
-}
 function close() {
   isOpen.value = false
   isMinimized.value = false

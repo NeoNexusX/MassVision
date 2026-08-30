@@ -8,25 +8,23 @@ import {
   isValidPixelSize,
   type UploadMetadataFormState,
 } from '@/features/upload/composables/useUploadMetadataForm'
-import { getDatasetMetadata } from '@/features/datasets/constants/datasetMetadata'
-import { getIonSourceFieldRules } from '@/features/upload/utils/ionSourceRules'
-
-const {
-  ORGANISMS,
-  ORGANISM_PARTS,
+import {
+  ANALYZERS,
   CONDITIONS,
-  SAMPLE_GROWTH_CONDITIONS,
-  SAMPLE_STABILIZATIONS,
-  TISSUE_MODIFICATIONS,
+  ION_SOURCES,
   MALDI_MATRICES,
   MALDI_MATRIX_APPLICATIONS,
-  SOLVENTS,
+  ORGANISMS,
+  ORGANISM_PARTS,
   POLARITIES,
-  ION_SOURCES,
-  ANALYZERS,
+  SAMPLE_GROWTH_CONDITIONS,
+  SAMPLE_STABILIZATIONS,
+  SOLVENTS,
   SPECTRUM_MODES,
   STORAGE_MODES,
-} = getDatasetMetadata()
+  TISSUE_MODIFICATIONS,
+} from '@/features/datasets/constants/datasetMetadata'
+import { getIonSourceFieldRules } from '@/features/upload/utils/ionSourceRules'
 
 const props = defineProps<{
   form: UploadMetadataFormState

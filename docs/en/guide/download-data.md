@@ -1,54 +1,33 @@
 # Downloading Data
 
-This page explains how to download raw MSI data (`.imzML` / `.ibd` file pairs) from the SpatialXomics platform.
+A dataset download returns the two original uploaded files, `.imzML` and `.ibd`. It is separate from result-page PNG export and does not download the analysis Zarr.
 
-## 1. Before You Download
+## Requirements
 
-- **Login required**: You must be logged in to download. Clicking the download button while not authenticated will redirect you to the login page with a prompt.
-- **Original file pairs**: Each download delivers both the `.imzML` and `.ibd` files for the dataset.
-- **Rate limit**: A cooldown period (1 minute) is enforced between consecutive downloads to prevent excessive requests.
-- **Download quota**: Each account has a download limit managed by the administrator. Contact your admin if you exceed it.
+- You must be signed in. Public datasets remain browsable while signed out, but clicking download shows a prompt and redirects to `/login`.
+- Public datasets use the public download client; personal datasets use the authenticated client. The UI selects this automatically.
+- Only one download request can be active in the same frontend session.
 
-## 2. Steps
+## Download Entry Points
 
-#### 1. Download from the dataset list
+- **Public Datasets** or **My Datasets**: click **Download** on a dataset card.
+- **Dataset Overview**: click **Download** in the primary overview card.
 
-Each dataset card on the **Public Datasets** or **My Datasets** page includes a download button. Click it to start downloading.
+The frontend calls `/files/{file_id}/download_raw`, receives pre-signed OSS URLs for imzML and ibd, and starts each file in a separate hidden iframe. Separate browsing contexts prevent the second file from cancelling the first.
 
-![download-1](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-1.png)
+## Cooldown
 
-#### 2. Login redirect for unauthenticated users
+After a download starts successfully, the frontend applies a **60-second** cooldown:
 
-If you are not logged in, clicking download shows a warning toast and redirects you to the login page. After logging in, return to the list and try again.
+- Another click during cooldown shows `Download is limited. Please wait Xs.`.
+- A click while a request is still active shows `A download is already in progress.`.
+- A failed request does not start the cooldown, so it can be retried immediately.
 
-![download-2](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-2.png)
+The current frontend does not implement a separate per-account download-count quota. If the backend rejects a download, its error message is shown directly.
 
-#### 3. Download from the dataset detail page
+## Troubleshooting
 
-Click a dataset card to open its **Overview** page. A download button is also available there — login is still required.
-
-![download-3](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-3.png)
-
-#### 4. Download status feedback
-
-Once clicked, a toast notification appears at the top (Downloading… / Download started). Your browser will then download the `.imzML` and `.ibd` files in sequence.
-
-![download-4](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-4.png)
-
-![download-5](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-5.png)
-
-## 3. Download Limits
-
-- **Cooldown**: A 60-second cooldown is enforced between downloads. During the cooldown you will see "Download is limited. Please wait Xs."
-
-![download-6](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-6.png)
-
-- **Quota**: Each account has a maximum download count. Contact your administrator if you need an increase.
-
-![download-7](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/download-7.jpg)
-
-## 4. Tips
-
-- If nothing happens after clicking download, check whether your browser is blocking multiple-file downloads. Allow downloads for this site in your browser settings.
-- If a download fails, check your network connection first, then retry.
-- If downloads consistently fail, your account quota may be exhausted — contact your administrator.
+- Your browser may ask for permission to download multiple files from the site. Allow it in site permissions if either file is blocked.
+- The two files may appear in the browser's download list at slightly different times.
+- Pre-signed URLs expire. If a transfer stalls for a long time, click download again to obtain fresh URLs.
+- A **Packing** label means another download-preparation flow is active; wait for it to finish.

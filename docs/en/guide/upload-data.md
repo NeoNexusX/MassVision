@@ -1,105 +1,70 @@
 # Uploading Data
 
-This page describes how to upload mass spectrometry imaging (MSI) data to the SpatialXomics platform.
+This page describes the current imzML upload flow. After signing in, open **My Datasets → Upload New Dataset**.
 
-## 1. Supported Formats
+## File Requirements
 
-The platform supports **imzML data pairs**: a `.imzML` file (metadata / spectrum index) together with its matching `.ibd` file (binary spectrum data). The two files must share the **same base filename** (only the extension differs).
+- Select one `.imzML` file and one `.ibd` file at the same time.
+- The two files must have exactly the same base filename; extension case is ignored.
+- The frontend checks the imzML file for basic structural tags. If parsing fails, select the pair again after fixing the file.
+- For a public dataset, the `.ibd` file must be at least **10 MB**. The frontend does not apply this minimum to private datasets.
 
-## 2. Steps
+## Metadata
 
-### 2.1 Enter the Upload Page
+After selection, the frontend attempts to read polarity, ion source, analyzer, pixel dimensions, Spectrum Mode, and Storage Mode from imzML. Complete anything that could not be detected. Changing a detected Spectrum/Storage Mode triggers a confirmation dialog.
 
-After signing in, navigate to the **My Datasets** page via the navigation bar and click the **Upload New Dataset** button to open the upload dialog.
+The following fields are always required:
 
-![Enter upload](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/1.png)
+| Group | Fields |
+|---|---|
+| Acquisition | Polarity, Ionisation Source, Analyzer, Pixel Size X/Y, Spectrum Mode, Storage Mode |
+| Sample | Organism, Organism Part, Condition, Sample Stabilization |
 
-### 2.2 Select Files
+Additional rules:
 
-Click the **Choose Files** button and select both the `.imzML` and `.ibd` files from your local machine. The system will automatically verify that the two files are a matching pair (same base filename) and display the filenames and total size below.
+- Pixel Size X/Y must be integers from `1` to `200`.
+- Sample Growth Conditions and Tissue Modification are optional.
+- The m/z and Resolving Power fields under Detector resolving power are optional; valid values are submitted as numbers.
+- Whether Solvent, MALDI Matrix, and MALDI Matrix Application are required is driven by the ion-source rules in `src/features/upload/utils/ionSourceRules.ts`. The form starts with `100% Water`; MALDI-family sources generally also require matrix details.
+- Selecting **Other** requires a concrete custom value; the literal value `Other` cannot be submitted for required select-with-other fields.
 
-![Select files](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/2.png)
+## Public or Private
 
-### 2.3 Fill in Metadata
+**Make dataset public (visible to others)** is currently checked by default:
 
-After file selection, the system automatically parses metadata from the imzML file and pre-fills the following fields (e.g., Polarity, Ionisation Source, Analyzer, Pixel Size). For metadata not present in the file, please complete the fields manually.
+- Keep it checked: confirm the public upload and ensure the `.ibd` file is at least 10 MB.
+- Uncheck it: the dataset remains visible only under your **My Datasets** page.
 
-![Fill in metadata](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/3.png)
+An existing private dataset can also be made public from its overview page. The current UI treats this action as irreversible.
 
-![Fill in metadata](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/4.png)
+## Actual Upload Pipeline
 
-Metadata is organized into two groups:
+After **Confirm & Upload**, the frontend performs these steps:
 
-**Acquisition Information**
+1. Compute a combined MD5 for the two original files in a Web Worker.
+2. Send the original size and MD5 to the preflight endpoint to check for existing data.
+3. If the backend can reuse the data, finish immediately without compression or upload.
+4. Otherwise, check storage quota and create a ZIP64 archive in browser OPFS.
+5. Obtain temporary OSS STS credentials from the backend and upload the archive with `ali-oss` multipart upload.
+6. Remove the local resume session and temporary OPFS ZIP after success.
 
-| Field | Description |
-|------|------|
-| Polarity | Positive / Negative ion mode |
-| Ionisation Source | Ion source type |
-| Analyzer | Analyzer type |
-| Pixel Size X / Y | Pixel size in μm (range: 1–200) |
-| Spectrum Mode | Profile / Centroid |
-| Storage Mode | Continuous / Processed |
-| Solvent | Solvent composition (see "Adding Solvents" below) |
-| MALDI Matrix | MALDI matrix (required when ion source is MALDI) |
-| MALDI Matrix Application | Matrix application method (required when ion source is MALDI) |
-| Detector Resolving Power | m/z and Resolving Power (optional) |
+The progress panel reports the stage, percentage, speed, and ETA. **Abort Upload** aborts the active OSS multipart upload but keeps the local archive so a later attempt can reuse it.
 
-**Sample Metadata**
+## Resume
 
-| Field | Description |
-|------|------|
-| Organism | Organism species |
-| Organism Part | Tissue / organ part |
-| Condition | Sample condition |
-| Sample Stabilization | Stabilization method |
-| Sample Growth Conditions | Growth conditions (optional) |
-| Tissue Modification | Tissue modification (optional) |
+Session metadata is stored in this site's `localStorage`, while the compressed ZIP is stored in this browser's OPFS:
 
-> Fields marked with \* are required.
+- **Resume / Discard** appears only after both an upload session and local ZIP have been established.
+- Resume requires the same browser, site origin, and browser profile. Clearing site data removes the resumable archive.
+- An expired STS session cannot resume; the frontend removes it and asks you to start again.
+- **Resume** restores the saved multipart checkpoint. After an explicit abort, the next attempt starts a new multipart upload while reusing the local ZIP.
+- **Discard** deletes both session metadata and the OPFS file.
 
-#### Adding Solvents
+An OSS failure is retried once automatically (two attempts total). If the second attempt fails, the recoverable state is kept and an error is shown.
 
-Solvents are added via the **Solvent Picker**: enter a percentage value (1–100) in the input field, select a solvent type from the dropdown, and click the **+** button to add it to the list. Multiple solvent combinations are supported. If you are unsure of the exact solvent composition, keep the default `100% Water`.
+## Troubleshooting
 
-![Add solvent](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703120422329.png)
-
-### 2.4 Set Public / Private
-
-Check the **Make dataset public (visible to others)** checkbox to publish the dataset as public, visible to all users. Leave it unchecked to keep it private.
-
-![Public option](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115054607.png)
-
-> If you choose to make the dataset public, a confirmation dialog will appear after clicking submit. Once confirmed, the dataset will be visible to all users.
-
-### 2.5 Submit the Upload
-
-Once all information is confirmed, click the **Confirm & Upload** button to submit.
-
-![Confirm submit](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115249346.png)
-
-The system will then display the upload progress panel, showing the current percentage, upload speed, and estimated time remaining. To cancel, click the **Abort Upload** button.
-
-![Upload progress](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115800703.png)
-
-During the upload, the system automatically checks whether the data already exists on the server. If another user has already uploaded identical data, the backend will reuse the existing copy, eliminating the need to upload again and saving significant time.
-
-## 3. Resume & Retries
-
-### Resume Upload
-
-If the page is closed or the network is interrupted during upload, a **resume prompt** will appear when the upload dialog is reopened. Click **Resume** to continue from the last breakpoint without re-selecting files or re-entering metadata.
-
-![Resume prompt](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260703115821860.png)
-
-Click **Discard** to clear the resume state and start a new upload.
-
-### Automatic Retries
-
-If a single part upload fails, the system will automatically retry. The user is only prompted for manual intervention after multiple retry attempts have been exhausted.
-
-## 4. Tips
-
-- Before uploading, ensure that the base filenames (excluding extensions) of the `.imzML` and `.ibd` files are exactly identical.
-- Hashing and compression for large files run asynchronously in the background — you may continue browsing other pages while they complete.
-- If an upload fails, first verify that the filenames match and the network is stable, then use the resume feature to restart the upload.
+- **Files cannot be selected**: select both files together and verify their base filenames match.
+- **Metadata cannot be submitted**: check starred fields, pixel dimensions, and dynamic ion-source fields. Replace `Other` with a concrete value.
+- **Public upload rejected**: verify that the `.ibd` file is at least 10 MB.
+- **No Resume prompt**: preparation may not have reached the persisted upload stage, or site data, the OPFS file, or the STS session has expired.

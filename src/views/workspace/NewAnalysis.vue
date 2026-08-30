@@ -22,7 +22,6 @@ const {
   datasets,
   meta,
   page,
-  size,
   pagination,
   goToPage,
   selectDataset,
@@ -30,9 +29,7 @@ const {
 
 const {
   availableMethods,
-  isFiltered,
   modeNotice,
-  selectedMethods,
   methodParams,
   submitting,
   canSubmit,
@@ -79,8 +76,6 @@ const {
           :datasets="datasets"
           :selected-dataset="selectedDataset"
           :meta="meta"
-          :page="page"
-          :size="size"
           :pagination="pagination"
           @select-dataset="selectDataset"
           @go-to-page="goToPage"
@@ -90,9 +85,7 @@ const {
 
         <PreprocessingPipelineStep
           :available-methods="availableMethods"
-          :is-filtered="isFiltered"
           :mode-notice="modeNotice"
-          :selected-methods="selectedMethods"
           :method-params="methodParams"
           :build-param-key="buildParamKey"
           :get-param="getParam"
