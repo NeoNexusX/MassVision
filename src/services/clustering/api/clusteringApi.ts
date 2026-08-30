@@ -4,21 +4,18 @@
  * Backend endpoint:
  *   POST /processes/{run_id}/clustering
  *
- * Idempotent get-or-create: the first call starts the UMAP/KMeans clustering
- * task for a run, repeated calls return the existing task record (no
- * duplicates). The response's `clustering_status` reflects the task state
- * ('completed' once finished), so the POST doubles as a status check for the
- * Refresh flow. The UI still treats a successful clustering-zarr load as the
- * final readiness gate.
+ * The frontend treats POST as create-or-fetch for the backend UMAP task and
+ * reuses it as a status check while processing. KMeans itself runs locally in
+ * the browser. The UI treats a successful UMAP Zarr load as the final
+ * readiness gate and stops POST polling on completed/failed.
  */
 
 import { auth_api } from '@/shared/api/httpClient'
 import type { ClusteringTaskResponse } from '../types/clustering'
 
 /**
- * Create-or-fetch the UMAP/KMeans clustering task for a run. Idempotent:
- * repeated calls return the existing task record, whose `clustering_status`
- * tells the caller whether the task has finished.
+ * Create-or-fetch the backend UMAP task for a run. While it is processing the
+ * caller may invoke this again and inspect `clustering_status`.
  */
 export async function createClustering(runId: string): Promise<ClusteringTaskResponse> {
   if (!runId) throw new Error('[clusteringApi] runId is required')

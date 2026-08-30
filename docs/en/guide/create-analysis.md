@@ -1,152 +1,92 @@
-# Creating a New Analysis
+# Creating an Analysis
 
-This page explains how to create a new analysis task in the **SpatialXomics** workspace, including selecting a data source and configuring the preprocessing pipeline.
+After signing in, open **Workspace → New Analysis**. Select data and preprocessing methods on the left; review and submit the current configuration on the right.
 
-## 1. Accessing the Page
+## Select a Data Source
 
-After signing in, navigate to the **Workspace** via the navigation bar and click the **New Analysis** button to enter the creation page.
+Two tabs are available:
 
-![New Analysis entry](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/Analysis_1.png)
+- **My Datasets**: datasets uploaded by the current account.
+- **Public Datasets**: datasets published on the platform.
 
-The creation page is divided into two main areas: the configuration steps on the left, and the analysis summary panel on the right.
+The search field filters by the backend `filename` field. Switching tabs preserves the query and reloads the appropriate list. Each row shows the dataset name, filename/submission time, and size; click a row or its radio button to select it.
 
-![Create New Analysis page](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/Analysis_2.png)
+**Upload New Dataset** in the page header navigates to My Datasets and opens the upload dialog automatically.
 
----
+After selection, the frontend reads Spectrum Mode, Storage Mode, Polarity, Ionisation Source, Analyzer, and Pixel Size from metadata. Polarity is required for submission; the other fields primarily populate the summary.
 
-## 2. Step 1: Data Source
+## Method Compatibility
 
-In this step, you need to select a dataset to analyze.
+Only method groups compatible with the selected data mode are shown:
 
-![Data source selection](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/Analysis_3.png)
+| Spectrum + Storage | Available groups |
+|---|---|
+| Profile + Continuous | Noise Reduction, Baseline Correction, Normalization, Peak Picking; Peak Alignment appears after Peak Picking is selected |
+| Profile + Processed | Same as Profile + Continuous |
+| Centroid + Continuous | Normalization |
+| Centroid + Processed | Normalization and Peak Alignment |
 
-### Switching Data Sources
+Centroid + Continuous already uses a shared m/z axis, so Peak Alignment is not offered. Profile data must be converted to peaks before alignment becomes meaningful.
 
-There are two tabs at the top:
+## Methods and Parameters
 
-- **My Datasets**: shows the private datasets you have uploaded.
-- **Public Datasets**: shows all publicly shared datasets on the platform.
-
-### Searching & Browsing
-
-- Type keywords into the search box to filter datasets by name.
-- The list displays each dataset's **name** and **file size**.
-- Use the pagination bar at the bottom to browse through more datasets.
-
-### Selecting a Dataset
-
-![Selecting a dataset](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/Analysis_7.png)
-
-Click any row in the list, or click the radio button on the right, to select a dataset. Once selected, the system will automatically:
-
-- Detect the dataset's **spectrum mode** (Profile / Centroid) and **storage mode** (Continuous / Processed).
-- Auto-fill instrument parameters from the dataset metadata (e.g., ionization source, analyzer, pixel size) for use in later steps.
-
-> **Note**: The dataset's spectrum mode and storage mode together determine which preprocessing methods are available. For example, Profile mode datasets must go through Peak Picking before Peak Alignment becomes available; Centroid + Continuous datasets already share one m/z axis across all pixels (equivalent to already being aligned), so Peak Alignment is not supported.
-
----
-
-## 3. Step 2: Preprocessing Pipeline
-
-Once a dataset is selected, you configure the preprocessing pipeline. Within each method group, **only one method** may be selected (single choice). Some methods support custom parameters.
-
-![Preprocessing pipeline configuration](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/Analysis_4.png)
+Each method group is single-choice, but the group itself is optional. Click a selected method again to clear it.
 
 ### Noise Reduction
 
-Reduces signal noise while preserving mass spectral peaks as much as possible.
-
-| Method | Description | Parameters |
-|--------|-------------|------------|
-| **Savitzky–Golay** | Savitzky–Golay smoothing filter | Window, Polyorder, Derivative, Delta (sample spacing) |
-| **Gaussian** | Gaussian smoothing filter | Window, Sigma (standard deviation) |
-| **Moving Average** | Moving average smoothing | Window |
+| Method | Parameters and defaults |
+|---|---|
+| Savitzky–Golay | Window `5`, Polyorder `3`, Derivative `0`, Delta `1.0` |
+| Gaussian | Window `5`, Sigma `2.0` |
+| Moving Average | Window `5` |
 
 ### Baseline Correction
 
-Removes baseline drift and corrects background signal.
+- **SNIP** (`snip_numba`)
+- **Local Minimum** (`locmin_numba`)
 
-| Method | Description |
-|--------|-------------|
-| **SNIP** | Statistics-sensitive Nonlinear Iterative Peak-clipping |
-| **Local Minimum** | Local minimum baseline estimation |
-
-Both methods require no additional parameters.
+Neither exposes frontend parameters.
 
 ### Normalization
 
-Scales spectra to comparable intensity ranges.
-
-| Method | Description | Parameters |
-|--------|-------------|------------|
-| **TIC** | Total Ion Current normalization | Scale (output scaling factor) |
-| **RMS** | Root Mean Square normalization | Scale (output scaling factor) |
-| **REF** | Reference peak normalization | Scale (output scaling factor), Ref m/z (reference m/z; auto if empty), Ref Tolerance |
+| Method | Parameters and defaults |
+|---|---|
+| TIC | Scale `1.0` |
+| RMS | Scale `1.0` |
+| REF | Scale `1.0`, Ref m/z blank for automatic selection, Ref Tolerance `0.1` |
 
 ### Peak Picking
 
-Detects and extracts peaks from spectra.
+**Standard Peak Detection** supports:
 
-| Method | Description | Parameters |
-|--------|-------------|------------|
-| **Standard Peak Detection** | Standard peak detection | Method (Differential / Std Dev / MAD / Quantile), SNR (signal-to-noise threshold), Return (Height / Area), Width (peak width in data points) |
+- Method: `diff`, `sd`, `mad`, or `quantile`; default `diff`.
+- SNR: default `2.0`.
+- Return: `height` or `area`; default `height`.
+- Width: default `5` data points.
+
+The submitted payload fixes the backend to Python.
 
 ### Peak Alignment
 
-Aligns peaks across spectra to a common m/z axis.
+**Python Backend** supports:
 
-| Method | Description | Parameters |
-|--------|-------------|------------|
-| **Python Backend** | Python-based peak alignment | Bin Function (Median / Mean / Min / Max), Min Frequency (minimum frequency threshold for peak retention) |
+- Bin Function: `median`, `mean`, `min`, or `max`; default `min`.
+- Min Frequency: default `0.01`, with a defined range of `0–1`.
 
-> **Tip**: For datasets in **Profile** mode, the Peak Alignment option only appears after a Peak Picking method is selected. **Centroid + Processed** datasets store each pixel's peaks on its own m/z axis, so alignment to a common axis is needed. **Centroid + Continuous** datasets already share one m/z axis across all pixels, so their peaks are effectively already aligned, and Peak Alignment is not available.
+The payload also fixes `units: ppm` and `binratio: 2`.
 
-### Mode Notice
+## Submission Requirements
 
-After a dataset is selected, a blue info banner appears at the top of the preprocessing pipeline area, indicating the dataset's spectrum/storage mode and which methods are available or restricted.
+**Start Analysis** becomes available when:
 
----
+1. A dataset is selected.
+2. At least one currently available preprocessing method is selected.
+3. The dataset metadata supplies a recognizable Polarity.
 
-## 4. Analysis Summary Panel
+You do not need to select every visible group. The `Ready / Incomplete` badge currently uses a stricter summary rule and shows `Ready` only when every visible group has a selection; that visual status does not override the three actual submission conditions above.
 
-The right side of the page has a fixed **Analysis Summary** panel that provides a real-time overview of the current configuration.
+## After Submission
 
-![Analysis Summary panel](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/Analysis_5.png)
+The frontend converts the selected methods into the backend `algorithms` payload and calls `POST /processes`. On success it shows **Analysis started** and returns to the Workspace. Click **View** after completion; failed tasks expose the backend error message.
 
-### Panel Contents
-
-- **Status Badge**: displays `Ready` (green) or `Incomplete` (yellow), indicating whether the current configuration meets the submission requirements.
-- **Pipeline Summary**: lists each method group with the selected method and a ✓ mark.
-- **Dataset Metadata**: shows metadata automatically parsed from the dataset (e.g., Polarity, Ionisation Source, Analyzer, Pixel, Organism, etc.).
-- **Selected Dataset**: displays the dataset name and file size.
-- **Start Analysis Button**: click **Start Analysis** to submit the analysis task.
-
-### Submission Requirements
-
-The submit button is only enabled when **all** of the following conditions are met:
-
-1. A dataset has been selected.
-2. Every method group has a method selected.
-3. Polarity (positive / negative ion mode) has been specified.
-
-When requirements are not met, the button is grayed out with the hint *"Select dataset and configure pipeline first"*.
-
----
-
-## 5. Submitting the Analysis
-
-After clicking **Start Analysis**, the system submits the configuration to the backend and creates an analysis task. Upon successful submission:
-
-1. A success toast appears at the top of the page.
-2. You are automatically redirected to the **Workspace** page, where you can view the newly created analysis task and its execution status in the task list.
-
-![Analysis submitted successfully](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/Analysis_6.png)
-
----
-
-## 6. Tips
-
-- Before selecting a dataset, consider uploading the required data on the [**My Datasets**](https://spatialxomics.bionet.pro/mydatasets) page or verifying that the target data is available in [**Public Datasets**](https://spatialxomics.bionet.pro/datasets).
-- Each method group in the preprocessing pipeline is **single-choice** — you can only pick one method per group, but you may switch your selection at any time.
-- If you are unsure about a parameter's meaning, hover over its label to see a tooltip; the default values usually produce good results.
-- Analysis execution time depends on the data size and the complexity of the selected methods — please be patient while it runs.
+If you only need a quick visualization and no custom preprocessing, use **Explore** on a dataset card to create a Direct conversion task.

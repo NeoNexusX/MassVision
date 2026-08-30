@@ -1,7 +1,7 @@
 /**
  * 内部代码常量（实现层调优参数，**非**「人来配置」的内容）。
  *
- * 面向用户/运维的偏好（名称、分页、验证码、选项表）放运行时 config.json（见 runtimeConfig.ts）；
+ * 面向用户/运维的偏好（名称、导航、分页、验证码）放运行时 config.json（见 runtimeConfig.ts）；
  * 地址类放 env/ 目录的 .env 文件（见 env.ts）。此处只保留改了会影响实现细节、不应暴露给配置文件的常量。
  */
 
@@ -26,9 +26,9 @@ export const ZARR_STORE = {
   /** data/mz chunk 缓存数量（LRU），仅 processed 模式使用 */
   mzChunkCacheSize: 5,
   /** 默认 m/z 容差 */
-  defaultMzTolerance: 0.05,
-  /** m/z 容差取值范围：最小 0.001，最大 1 */
-  minMzTolerance: 0.001,
+  defaultMzTolerance: 0.0001,
+  /** m/z 容差取值范围：最小 1e-8，最大 1 */
+  minMzTolerance: 1e-8,
   maxMzTolerance: 1,
 } as const
 

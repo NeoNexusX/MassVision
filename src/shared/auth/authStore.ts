@@ -66,8 +66,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     try {
       if (token.value) await logoutApi()
-    } catch (error) {
-      console.error('Logout API failed:', error)
+    } catch (error: any) {
+      // 只打状态码/消息：打整个 AxiosError 会把含 Authorization 头的
+      // error.config 一并带进控制台
+      console.error('Logout API failed:', error?.response?.status ?? error?.message ?? error)
     } finally {
       token.value = null
       user.value = null

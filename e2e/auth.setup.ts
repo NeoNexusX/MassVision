@@ -30,8 +30,8 @@ setup('authenticate', async ({ page }) => {
 
   await page.click('button:has-text("Sign In")')
 
-  // 等待登录完成，跳转到 /mydatasets 或 /profile
-  await page.waitForURL(/\/(mydatasets|profile)/)
+  // 等待登录完成，跳转到默认落地页 /datasets（或 /profile）
+  await page.waitForURL(/\/(datasets|profile)/)
   await page.waitForLoadState('networkidle')
 
   // 保存浏览器状态（token、localStorage、cookie）供后续测试复用

@@ -2,148 +2,121 @@
 
 English | [简体中文](README.md)
 
-SpatialXomics is a mass spectrometry imaging (MSI) data management and analysis platform built with Vue 3, TypeScript, and Vite. It supports imzML dataset upload, browsing, visualization, and user permission management.
+SpatialXomics is a web platform for mass spectrometry imaging (MSI) data management and analysis. The Vue 3, TypeScript, and Vite frontend supports imzML upload, public/private dataset management, configurable preprocessing, Zarr result visualization, annotation matching, ROIs, and region comparison.
 
-## Tech Stack
+## Main Features
 
-- **Core Framework**: [Vue 3](https://vuejs.org/) + [TypeScript](https://www.typescriptlang.org/)
-- **Build Tool**: [Vite](https://vitejs.dev/) + [Tailwind CSS v4](https://tailwindcss.com/)
-- **State Management**: [Pinia](https://pinia.vuejs.org/)
-- **Routing**: [Vue Router](https://router.vuejs.org/)
-- **UI Components**: [DaisyUI v5](https://daisyui.com/) + [Heroicons](https://heroicons.com/) + [Iconify](https://iconify.design/)
-- **Charts & Visualization**: [ECharts](https://echarts.apache.org/) + [vue3-calendar-heatmap](https://github.com/IhsenBouallegue/vue3-calendar-heatmap) (GitHub commit heatmap)
-- **MSI Data Parsing**: [zarrita](https://github.com/manzt/zarrita) (Zarr format reader), @zip.js/zip.js (upload zip packaging), zstddec (zstd decompression), hash-wasm (WebAssembly hashing)
-- **Object Storage**: [ali-oss](https://github.com/ali-sdk/ali-oss) (Alibaba Cloud OSS)
-- **HTTP Client**: [Axios](https://axios-http.com/) + [qs](https://github.com/ljharb/qs)
-- **Encryption**: [Crypto-JS](https://github.com/brix/crypto-js)
-- **Region Data**: [i18n-iso-countries](https://github.com/michaelwittig/node-i18n-iso-countries) (country/region lists)
-- **Testing**: [Vitest](https://vitest.dev/) (unit tests) + [Playwright](https://playwright.dev/) (E2E tests)
-- **Code Quality**: ESLint + Prettier
+- **Authentication and authorization**: sign-in, registration, password recovery, profiles, administrator user management, and protected routes.
+- **Dataset management**: browse public datasets, manage personal datasets, inspect metadata, share public overview pages, and download raw `.imzML` / `.ibd` pairs.
+- **Upload pipeline**: MD5 in a Web Worker, server-side reuse checks, ZIP64 compression into OPFS, Alibaba Cloud OSS multipart upload, and same-browser resume.
+- **Analysis workspace**: compatible noise reduction, baseline correction, normalization, peak picking, and peak alignment choices based on spectrum/storage mode.
+- **Result visualization**: Continuous ion images and mean spectra; Processed TIC images and per-pixel spectra; display range, gamma, colormap, TIC normalization, and transparent PNG export.
+- **Clustering and regions**: backend-generated UMAP plus browser-local KMeans, cluster filtering, rectangular/freehand ROIs, and multi-region comparison.
+- **Annotations**: CSV import for Continuous + Centroid results, m/z matching in ppm or Da, filtering, export, and PubChem lookup.
 
-## Project Structure
+## Technology
 
-```
-SpatialXomics/
-├── public/                          # Static assets (runtime config.json)
-├── src/
-│   ├── app/components/              # App-level components (Navbar, NavDrawer)
-│   ├── assets/                      # CSS assets (Tailwind/DaisyUI theme)
-│   ├── features/                    # Feature-based modules
-│   │   ├── assistant/               # Floating AI assistant
-│   │   ├── auth/                    # Authentication (login/register/store/API)
-│   │   ├── datasets/                # Dataset browsing & management (list/detail/filter/download)
-│   │   ├── home/                    # Homepage (Hero/Features/Stats/commit heatmap)
-│   │   ├── upload/                  # imzML upload (file selection/compression/resumable upload/OSS)
-│   │   ├── users/                   # User management (admin panel/user list/roles)
-│   │   └── workspace/               # Workspace & analysis
-│   │       ├── analysis/            # Analysis builder (data sources/preprocessing pipelines)
-│   │       ├── dashboard/           # Workspace dashboard (tasks/results/activity)
-│   │       └── results/             # Result visualization (ion images/spectra/ROI/UMAP)
-│   ├── router/                      # Vue Router configuration (incl. route guards)
-│   ├── services/                    # Cross-feature services (OSS client, remote Zarr access)
-│   ├── shared/                      # Shared modules
-│   │   ├── api/                     # HTTP client (Axios wrapper)
-│   │   ├── components/              # Common components (IconInput, PaginationBar, Toast, etc.)
-│   │   ├── composables/             # Shared composables
-│   │   ├── config/                  # App configuration
-│   │   ├── constants/                # Constants
-│   │   ├── directives/              # Custom directives (scroll reveal, etc.)
-│   │   ├── types/                   # Type declarations
-│   │   └── utils/                   # Utility functions
-│   ├── views/                       # Page views
-│   │   └── workspace/               # Workspace pages (WorkspacePage, NewAnalysis, ResultDetail, TaskDetail)
-│   ├── workers/                     # Web Workers (ZIP compression)
-│   ├── App.vue                      # Root component
-│   ├── main.ts                      # Entry point
-│   └── style.css                    # Global styles
-├── env/                              # Per-environment .env files
-├── docker/                           # Docker deployment config (Dockerfile/nginx/entrypoint)
-├── docs/                             # Project documentation
-├── e2e/                              # E2E test files
-├── index.html                       # Entry HTML
-├── package.json                     # Project dependencies & scripts
-├── vite.config.ts                   # Vite config (incl. API proxy)
-├── vitest.config.ts                 # Vitest config
-└── playwright.config.ts             # Playwright config
+| Area | Technology |
+|---|---|
+| Core | Vue 3, TypeScript, Vite 7, Pinia, Vue Router |
+| UI | Tailwind CSS v4, DaisyUI v5, offline Iconify subsets |
+| Visualization | ECharts, Canvas, vue3-calendar-heatmap |
+| MSI/Zarr | Custom chunked Zarr v3 reader, zstddec, `@zip.js/zip.js`, hash-wasm, ml-kmeans |
+| Network/storage | Axios, qs, ali-oss with temporary STS credentials |
+| Testing | Vitest, Playwright |
+| Documentation | Bilingual VitePress site |
+
+See [package.json](package.json) for exact versions.
+
+## Layout
+
+```text
+src/
+├── app/                         # App shell, navigation, global entry components
+├── assets/                      # Styles and theme assets
+├── features/                    # Business-domain modules
+│   ├── assistant/               # Optional AI assistant UI (disabled by current runtime config)
+│   ├── auth/                    # Sign-in, registration, and recovery flows
+│   ├── datasets/                # Lists, details, sharing, and downloads
+│   ├── home/                    # Home scenes, stats, and commit heatmap
+│   ├── upload/                  # imzML parsing, compression, reuse, and resume
+│   ├── users/                   # Administrator user management
+│   └── workspace/               # Analysis builder, dashboard, and result page
+├── router/                      # Routes and auth/admin guards
+├── services/                    # Zarr, OSS, clustering, and PubChem services
+├── shared/                      # Shared API, auth, components, config, and utilities
+├── views/                       # Route pages
+└── workers/                     # Cross-feature workers; feature workers stay with their feature
+
+docs/                            # Bilingual VitePress sources
+e2e/                             # Playwright tests
+env/                             # Vite environment files
+public/config.json               # App-wide runtime configuration loaded before mount
+public/content.json              # Home page content (team, timeline, hero copy)
+docker/                          # Docker/nginx deployment
 ```
 
-## Getting Started
+## Local Development
 
 ### Requirements
 
-- Node.js ^20.19.0 or >=22.12.0
+- Node.js `^20.19.0` or `>=22.12.0`
+- npm (the repository commits `package-lock.json`)
 
-### Install Dependencies
+### Install
 
 ```bash
-npm install
+npm ci
 ```
 
-### Configure Environment Variables
+### Environment
 
-Create an `.env` file for the relevant mode (e.g. `.env.development`) inside the `env/` directory and set the backend address:
+The repository already contains:
+
+- `env/.env` for shared values such as `VITE_API_BASE` and `VITE_OSS_ENDPOINT`.
+- `env/.env.development` for the development proxy target `VITE_BACKEND_URL`.
+- `env/.env.production` for production build/preview values.
+
+Put machine-specific overrides in the ignored `env/.env.development.local`:
 
 ```bash
 VITE_BACKEND_URL=http://localhost:8000
 ```
 
-### Run in Development Mode
+In development, Vite proxies `/api` to `VITE_BACKEND_URL`. In the production container, nginx proxies `/api/` to the runtime `BACKEND_HOST:BACKEND_PORT` values.
+
+### Run
 
 ```bash
-npm run dev
+npm run dev       # SPA (5173) and docs (5174)
+npm run dev:app   # SPA only
 ```
 
-The dev server runs on `http://localhost:5173` by default; `/api` requests are automatically proxied to the backend specified by `VITE_BACKEND_URL`.
-
-### Build for Production
+### Build and Verify
 
 ```bash
-npm run build
+npm run build             # type-check + SPA build to dist/
+npm run check             # type-check + ESLint + unit tests
+npm run test:unit:run     # one-shot unit tests
+npm run test:e2e          # Playwright E2E
+npm run docs:build        # docs build to dist-docs/
+npm run icons:bundle      # regenerate the offline icon subset
 ```
 
-## Testing
+`npm run format` formats `src/` only; Markdown files are maintained separately.
 
-```bash
-# Run unit tests
-npm run test:unit
+## Runtime Configuration
 
-# Run E2E tests
-npm run test:e2e
-```
+The application loads `public/config.json` before mounting Vue. It controls the app name, navigation, pagination, verification, and Zarr read tuning. A missing or invalid file produces a startup error page.
 
-## Linting & Formatting
+Home page content (hero copy, feature showcase, timeline, team, contact details, commit heatmap) lives in `public/content.json` and is fetched only when the home route is entered; if it cannot be loaded the home page simply omits those sections. Both files can be edited on a deployed server and take effect on reload.
 
-```bash
-# Lint and auto-fix with ESLint
-npm run lint
+Form dropdown vocabularies and ion-source requirement rules are no longer JSON — they are compiled into the bundle (`src/features/datasets/constants/datasetMetadata.ts`, `src/features/upload/utils/ionSourceRules.ts`) and require a rebuild to change.
 
-# Format with Prettier
-npm run format
-```
+## Documentation and Deployment
 
-## Documentation Site
+- User and contributor docs live under `docs/` and are served locally at `http://localhost:5174/docs/`.
+- The Docker image contains both `dist/` and `dist-docs/`; nginx serves the SPA and `/docs/` separately.
+- The `test` branch runs checks, the docs build, and three-browser Playwright tests. `dev` and `main` trigger their respective deployments.
 
-The project ships a bilingual [VitePress](https://vitepress.dev/) docs site, with sources under `docs/`, sharing the same repo and deployment pipeline:
-
-```bash
-npm run docs:dev      # docs site only, defaults to http://localhost:5174/docs/
-npm run docs:build    # builds to dist-docs/ at the repo root
-```
-
-See [docs/en/dev/doc-maintenance.md](docs/en/dev/doc-maintenance.md) for details.
-
-## Deployment
-
-The project ships with Docker deployment configuration (`docker/Dockerfile`, `nginx.conf.template`, `entrypoint.sh`) and GitHub Actions workflows (`.github/workflows/`) for automated testing and dev/production deployment.
-
-## Features
-
-- **Authentication**: JWT login/registration, profile management, route guards and permission control
-- **Dataset Management**: Public dataset browsing, personal dataset management, detail view and download
-- **imzML Upload**: imzML file parsing, client-side compression, resumable uploads, multipart upload to Alibaba Cloud OSS
-- **Analysis Workspace**: Create analysis tasks, configure data sources and preprocessing pipelines, track task status
-- **Result Visualization**: Ion image rendering, mass spectrum display, ROI analysis, UMAP/k-means cluster overlays
-- **User Management**: Admin panel, user list, role management and status statistics
-- **AI Assistant**: Draggable floating chat window for AI-assisted Q&A
-- **Theme Switching**: Light/dark theme support, following system preference
-- **Responsive Layout**: Modern UI built with Tailwind CSS + DaisyUI, adapted for mobile and desktop
+See [docs/en/dev/doc-maintenance.md](docs/en/dev/doc-maintenance.md) for the documentation workflow.

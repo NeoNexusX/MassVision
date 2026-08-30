@@ -232,7 +232,7 @@ const openRow = (r: any) => {
     return
   }
   router.push({
-    name: 'WorkspaceResultDetail',
+    name: 'VizWorkbench',
     state: {
       runId: r.id,
       processName: r.name,

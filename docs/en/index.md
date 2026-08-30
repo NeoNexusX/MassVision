@@ -14,19 +14,19 @@ hero:
 
 features:
   - title: Uploading Data
-    details: Learn how to import your spatial multi-omics datasets — supported formats, drag-and-drop upload, and getting ready for analysis.
+    details: Upload a paired imzML/ibd dataset, complete acquisition and sample metadata, and follow reuse, compression, and OSS multipart upload.
     link: /guide/upload-data
     linkText: Read the guide
   - title: Viewing Data
-    details: Explore your datasets interactively — spatial view, coloring by expression or metadata, embeddings, and synced selections.
+    details: Explore ion/TIC images and spectra with UMAP, KMeans, ROIs, region comparison, and annotation CSV matching.
     link: /guide/view-data
     linkText: Read the guide
   - title: Downloading Data
-    details: Learn how to download datasets — multi-format export, download link generation, and the complete steps to obtain your data.
+    details: Download the original imzML/ibd pair from a list or overview page and understand login and cooldown requirements.
     link: /guide/download-data
     linkText: Read the guide
   - title: Creating an Analysis
-    details: Create analysis tasks in the workspace — select a data source, configure the preprocessing pipeline (noise reduction, baseline correction, normalization, peak picking, peak alignment), submit and track progress.
+    details: Select a data source and configure preprocessing methods compatible with its spectrum/storage mode before submitting a workspace task.
     link: /guide/create-analysis
     linkText: Read the guide
 ---

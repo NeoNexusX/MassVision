@@ -1,6 +1,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { listMyProcesses, deleteProcess, getProcessingStats } from '@/features/datasets/api/datasetApi'
-import { parseAlgorithms } from '@/features/workspace/utils/methodsNormalize'
+import { parseAlgorithms } from '@/shared/utils/methodsNormalize'
 import { buildPageList } from '@/shared/utils/pagination'
 import { parseUtcDate } from '@/shared/utils/date'
 import { getConfig } from '@/shared/config/runtimeConfig'
@@ -175,7 +175,6 @@ export function useWorkspaceDashboard() {
     meta,
     pagination,
     onCreated,
-    fetchProcesses,
     goToPage,
     changeSize,
     deleteResult,

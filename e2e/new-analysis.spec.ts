@@ -9,24 +9,28 @@ import { ALGO_DATASET_NAMES } from './utils.js'
  * 依赖：用户已登录且有至少一个 dataset
  *
  * 跨文件依赖：本文件最后一个测试（"submit, wait for completion, then delete"）会创建一个
- * 分析任务并等它跑完，但不会删除——清理工作留给了 result-detail.spec.ts 末尾的
- * "Cleanup > delete completed result"。两个文件必须一起跑（按文件名字母序，
- * new-analysis 在 result-detail 之前）才能形成完整的创建 → 查看 → 删除链路。
- * 如果单独只跑 result-detail.spec.ts，它的 Cleanup 测试会删除 Workspace 里
+ * Peak Alignment 分析任务并等它跑完，但不会删除——清理工作留给了 viz-workbench.spec.ts
+ * 末尾的 "Cleanup > delete completed result"。两个文件必须一起跑（按文件名字母序，
+ * new-analysis 在 viz-workbench 之前）才能形成完整的 创建 → 查看 → 删除 链路。
+ * 注意：真实 Peak Alignment 后端任务在非 chromium 浏览器上经常 180s 都未完成，
+ * 且会显著拖长 CI，故该任务只在 chromium 创建一次；viz-workbench 依赖它的用例
+ * 也在 chromium 跑（两端 skip 一致）。firefox/webkit 只覆盖不依赖真实任务的无 UI 用例。
+ * 如果单独只跑 viz-workbench.spec.ts，它的 Cleanup 测试会删除 Workspace 里
  * "当前最新的 Completed 结果"——如果没有本文件留下的任务，可能会误删真实数据。
  */
 
 test.describe('New Analysis', () => {
 
-  test('page loads with Step 1, Step 2 visible and Step 3 hidden', async ({ page }) => {
+  test('page loads with exactly the two pipeline steps', async ({ page }) => {
     await page.goto('/workspace/new')
 
     await expect(page.locator('h1:has-text("Create New Analysis")')).toBeVisible()
     await expect(page.getByText('Step 1: Data Source')).toBeVisible()
     await expect(page.getByText('Step 2: Preprocessing Pipeline')).toBeVisible()
 
-    // Step 3 已隐藏
-    await expect(page.getByText('Step 3: Annotation Settings')).not.toBeVisible()
+    // 向导只有两步。原来这里断言 "Step 3: Annotation Settings" 不可见，
+    // 但该文案早已从代码里删除，断言恒真、测不到任何回归。
+    await expect(page.getByText(/^Step \d+:/)).toHaveCount(2)
   })
 
   test('summary panel shows disabled state when no dataset selected', async ({ page }) => {
@@ -134,11 +138,12 @@ test.describe('New Analysis', () => {
     await expect(page.getByText('Select dataset and configure pipeline first')).not.toBeVisible()
   })
 
-  // 注意：测试名里的 "delete" 指的是 result-detail.spec.ts 末尾的 Cleanup 测试，
-  // 本测试自己只创建任务、等待完成，不做删除（见文件头的跨文件依赖说明）
+  // 注意：测试名里的 "delete" 指的是 viz-workbench.spec.ts 末尾的 Cleanup 测试，
+  // 本测试自己只创建任务、等待完成，不做删除（见文件头的跨文件依赖说明）。
+  // 重后端 Peak Alignment 任务只在 chromium 创建（firefox/webkit 后端完成时间不可控，180s 等不到位，
+  // 还拖长 CI）。viz-workbench 依赖该任务、以及 Cleanup 删除它的用例，都做了同样的 chromium-only skip。
   test('submit, wait for completion, then delete', async ({ page, browserName }) => {
-    // 建任务的重后端操作只在 chromium 跑，避免 firefox/webkit 重复建 Peak Alignment 任务
-    test.skip(browserName !== 'chromium', '分析任务只在 chromium 创建一次')
+    test.skip(browserName !== 'chromium', 'Peak Alignment 任务只在 chromium 创建一次（后端完成时间不可控）')
     test.setTimeout(180_000)
     await page.goto('/workspace/new')
     await page.locator('.tab:has-text("My Datasets")').click()
@@ -159,8 +164,22 @@ test.describe('New Analysis', () => {
     }
     await radio.locator('..').click()
 
-    const methodLabels = page.locator('details[open] label')
-    await methodLabels.nth(await methodLabels.count() - 1).click()
+    // 明确选中 Peak Alignment，而不是"点最后一个方法"——随机数据集下最后一个方法未必是 align。
+    // profile 数据要先选中 Peak Picking 才会暴露 Peak Alignment；centroid+continuous 则根本不支持 align。
+    // 定位方式：align 组的唯一方法 label 是 "Python Backend"（见 usePreprocessingMethods.ts align 组）。
+    const alignMethod = page.locator('details[open] label').filter({ hasText: 'Python Backend' })
+    if ((await alignMethod.count()) === 0) {
+      const pickMethod = page.locator('details[open] label').filter({ hasText: 'Standard Peak Detection' })
+      if ((await pickMethod.count()) > 0) {
+        await pickMethod.click()
+        await expect(alignMethod).toBeVisible({ timeout: 5_000 })
+      }
+    }
+    if ((await alignMethod.count()) === 0) {
+      test.skip(true, `Dataset "${name}" 不支持 Peak Alignment，无法构建对齐任务`)
+      return
+    }
+    await alignMethod.click()
 
     await page.getByRole('button', { name: 'Start Analysis' }).click()
 

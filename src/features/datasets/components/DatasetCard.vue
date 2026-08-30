@@ -12,17 +12,9 @@
       @click.stop
     ></div>
 
-    <!-- Left: Image -->
-    <div class="relative z-10 w-full max-w-[250px] min-w-[120px] aspect-square rounded-lg overflow-hidden bg-base-200 flex items-center justify-center border border-base-300">
-      <img
-        v-if="ticImageUrl && !ticImageError"
-        :src="ticImageUrl"
-        :alt="dataset.name"
-        class="w-full h-full object-contain"
-        loading="lazy"
-        @error="ticImageError = true"
-      />
-      <div v-if="!ticImageUrl || ticImageError" class="w-full h-full text-base-content" v-html="placeholderSvg"></div>
+    <!-- Left: Image Gallery -->
+    <div class="relative z-10 w-full max-w-[250px] min-w-[120px] aspect-square rounded-lg overflow-hidden border border-base-300">
+      <DatasetPreviewGallery :file-id="dataset.id" />
     </div>
 
     <!-- Middle: Info -->
@@ -88,12 +80,11 @@
 </style>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import type { File } from '@/features/datasets/types/dataset'
 import type { IconType } from '@/shared/components/svgIcons'
-import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
 import { formatBytes } from '@/shared/utils/format'
-import { buildPreviewImageUrl } from '@/features/datasets/utils/imageUtils'
+import DatasetPreviewGallery from '@/features/datasets/components/DatasetPreviewGallery.vue'
 
 const props = defineProps<{
   dataset: File
@@ -107,9 +98,6 @@ const emit = defineEmits<{
   (e: 'delete', id: string): void
   (e: 'explore', id: string): void
 }>()
-
-const ticImageUrl = ref<string>(buildPreviewImageUrl(props.dataset.id))
-const ticImageError = ref(false)
 
 const submitDate = computed(() =>
   props.dataset.submitTime
@@ -217,12 +205,5 @@ const actionItems = computed<ActionItem[]>(() => {
     })
 
   return items
-})
-
-const placeholderSvg = computed(() => {
-  return getDatasetPlaceholderSvg({
-    // Color is chosen randomly inside the generator on each call
-    showGuides: true,
-  })
 })
 </script>

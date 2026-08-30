@@ -1,45 +1,38 @@
 # Getting Started
 
-Welcome to **SpatialXomics** — an open, shared, and intelligent platform for spatial omics data analysis.
+SpatialXomics is a web platform for uploading, managing, analyzing, and visualizing mass spectrometry imaging (MSI) data. Its current data entry point is a paired `.imzML` and `.ibd` dataset.
 
-<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260629124419655.png" alt="image-20260629124419655" style="zoom:50%;" />
+## What You Can Do
 
-## 1. What is SpatialXomics?
+- Browse public datasets and public overview links without signing in.
+- Sign in to download raw data, upload datasets, and manage public/private datasets.
+- Use **Explore** to create a visualization without configuring preprocessing parameters.
+- Choose compatible preprocessing methods under **Workspace → New Analysis**.
+- Inspect ion/TIC images and spectra, then use UMAP, browser-local KMeans, ROIs, region comparison, and annotation CSV matching.
 
-SpatialXomics lets you bring mass spectrometry imaging datasets online and explore them interactively. Instead of repeatedly copying large files locally and running scattered analysis scripts, you upload once and then browse, analyze, and visualize your data anytime, anywhere.
+## First-Use Flow
 
-It is built for:
+1. **Browse public data**: open **Public Datasets**, search or filter, then click a card or **Overview** to inspect its metadata.
+2. **Sign in or register**: downloads, uploads, the workspace, and result pages require authentication. Route guards return you to the protected destination after a successful sign-in.
+3. **Prepare a dataset**: upload a paired imzML/ibd dataset under **My Datasets**, or select an existing public or personal dataset.
+4. **Choose a processing path**:
+   - Click **Explore** on a dataset card and confirm to create a Direct conversion task.
+   - Or open **New Analysis** and configure a preprocessing pipeline for the dataset mode.
+5. **View the result**: wait for the task to finish in the Workspace and click **View**. The result page relies on task context passed from the Workspace or a dataset card; do not treat the bare `/vizworkbench` URL as a bookmarkable result link.
 
-- Researchers who want to explore, analyze, and share MSI data online without installing complex desktop software.
-- Users who want to access public datasets, view analysis results, and reproduce research workflows directly in the browser.
+## Data Modes
 
-## 2. What you can do
+The result page detects one of two layouts:
 
-- **Browse datasets** — explore public datasets or manage your own private ones, with filtering, detail views, and downloads.
-- **Share imzML data** — large files are compressed in your browser and uploaded via resumable, multipart transfer, so a dropped connection won't force you to start over.
-- **Visualize MSI data** — view ion images, mass spectra, ROI-based analysis, and the corresponding UMAP / K-Means clustering results.
-- **Run analyses** — create analysis tasks in the workspace, choose a data source, and configure the preprocessing pipeline.
+| Mode | Image | Spectrum |
+|---|---|---|
+| Continuous | Ion-intensity image for the selected m/z | Dataset mean spectrum; click to change m/z |
+| Processed | TIC image | Spectrum for the pixel clicked in the image |
 
-## 3. Up and running in 5 minutes
+UMAP/KMeans is available only for Continuous results. Annotation matching and region comparison also check spectrum mode; see [Viewing Data](./view-data).
 
-![image-20260629124936121](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260629124936121.png)
+## Interface Notes
 
-Open the navigation bar:
-
-![image-20260629130244497](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260629130244497.png)
-
-1. **Sign in or register.** Create an account or log in. Your datasets and analyses are tied to your account and protected by permissions.
-
-<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260629124604424.png" alt="image-20260629124604424" style="zoom: 50%;" />
-
-<img src="https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260629124647768.png" alt="image-20260629124647768" style="zoom:50%;" />
-
-2.**Browse public datasets.** Open the datasets page to see what's already shared, and click any dataset to view its details.
-
-![image-20260629124756459](https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/image-20260629124756459.png)
-
-## 4. Tips
-
-- Switch between **light and dark themes** from the navigation bar; the UI follows your system preference by default.
-- The interface is **responsive** and works on both desktop and mobile.
-- Prefer reading in Chinese? Use the language switcher in the top-right corner.
+- Light and dark themes are supported. The home page hides navigation, login and result pages use the drawer, and most other pages use the top navigation bar.
+- Layouts are responsive on desktop and mobile, although complex result analysis works best on a wider screen.
+- The application UI is currently English-first; the documentation language can be switched from the docs site header.

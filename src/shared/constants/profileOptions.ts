@@ -1,18 +1,35 @@
 /**
- * 用户资料表单的下拉选项。
+ * 用户资料表单的下拉选项（注册页与个人资料页共用）。
  *
- * 数据来源：运行时 `public/config.json` 的 `options`（人来编辑），见 runtimeConfig.ts。
- *
- * 改为函数（调用时读取）而非模块顶层常量：模块顶层 `getConfig()` 会在文件加载时立即执行，
- * 若本模块被并入 shared chunk 并在 main.ts 顶层静态加载，则会在 `loadConfig()` 完成前求值、
- * `_config` 仍为 null 时抛错。改为函数后，调用时机跟随组件 setup，必在 bootstrap 之后。
+ * 与 `datasetMetadata.ts` 同样的理由从 `public/config.json` 迁入代码：这两张表描述的是
+ * 通用的学术身份与学科分类，不随部署变化，没必要占用启动时那次阻塞请求的体积。
  */
-import { getConfig } from '@/shared/config/runtimeConfig'
 
-export function getPositionOptions(): string[] {
-  return getConfig().options.position
-}
+/** 职位 / 学术身份 */
+export const POSITION_OPTIONS = [
+  'Researcher',
+  'Postdoctoral Researcher',
+  'Research Assistant',
+  'Research Engineer',
+  'Senior Researcher',
+  'Professor',
+  'Associate Professor',
+  'Lecture',
+  'PhD Student',
+  "Master's Student",
+] as const
 
-export function getResearchFieldOptions(): string[] {
-  return getConfig().options.researchField
-}
+/** 研究领域 */
+export const RESEARCH_FIELD_OPTIONS = [
+  'Chemistry',
+  'Biology',
+  'Medicine',
+  'Pharmaceutical Science',
+  'Biomedical Engineering',
+  'Materials Science',
+  'Analytical Chemistry',
+  'Biotechnology',
+  'Environmental Science',
+  'Food Science',
+  'Other',
+] as const
