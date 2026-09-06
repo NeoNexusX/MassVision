@@ -25,6 +25,13 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    // 数据集合：把相关 dataset 组织成策展集合。设计阶段数据为前端 mock。
+    path: '/collections',
+    name: 'Collections',
+    component: () => import('../views/CollectionsView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/overview',
     name: 'DatasetOverview',
     component: () => import('../views/DatasetOverviewView.vue'),

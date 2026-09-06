@@ -60,6 +60,13 @@
             "label": "My Datasets",
             "active": true,
             "requireAuth": true
+          },
+          {
+            "to": "/collections",
+            "icon": "circle_stack",
+            "label": "Collections",
+            "active": true,
+            "requireAuth": true
           }
         ]
       },
