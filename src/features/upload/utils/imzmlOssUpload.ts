@@ -130,7 +130,7 @@ export async function uploadImzmlZipFileOSS({
     })
     fileHash = prep.fileHash
 
-    // Generate filename: {organism}_{part}_{source}_{pixelX}_{polarity}_{hash6}
+    // Generate filename: {hash6}_{organism}_{part}_{source}_{pixelX}_{polarity}
     normalizedFilename = generateDatasetFilename(metadata, fileHash)
 
     // -----------------------------------------------------------
