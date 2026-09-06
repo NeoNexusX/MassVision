@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-base-200 p-4 md:p-8 page-type">
-    <div class="max-w-[1680px] mx-auto">
+  <div class="min-h-screen bg-base-200">
+    <div class="max-w-[1680px] mx-auto p-4 md:p-8 page-type">
       <h1 class="page-title font-bold text-base-content mb-6 px-3">My Datasets</h1>
 
       <div

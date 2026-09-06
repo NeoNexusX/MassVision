@@ -1,53 +1,57 @@
 <template>
+  <!-- 六个容器：卡片 → 左（文件名/图片/信息）+ 右（状态/操作）。
+       右侧容器固定 160px 宽（lg），public 与 my datasets 卡片几何完全一致；
+       中间信息以左容器为基准居中，右侧操作列靠左、纵向均匀分布。 -->
   <div
-    class="flex flex-col items-center lg:flex-row lg:items-center p-4 gap-4
+    class="flex flex-col lg:flex-row p-4 gap-x-4 gap-y-2
       bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md
       transition-shadow duration-200 border border-base-300
       cursor-pointer relative overflow-hidden"
     @click="$emit('view-overview', dataset.id)"
   >
-    <!-- Unclickable background mask to intercept clicks on the entire right side and bottom right edges -->
-    <div
-      class="absolute right-0 top-0 bottom-0 lg:w-[140px] w-full max-lg:h-[140px] max-lg:top-auto z-0 cursor-default"
-      @click.stop
-    ></div>
-
-    <!-- Left: Image Gallery -->
-    <div class="relative z-10 w-full max-w-[250px] min-w-[120px] aspect-square rounded-lg overflow-hidden border border-base-300">
-      <DatasetPreviewGallery :file-id="dataset.id" />
-    </div>
-
-    <!-- Middle: Info -->
-    <div class="relative z-10 flex flex-1 flex-col justify-center gap-2 min-w-0 max-w-full text-base-content">
-        <h3
-          class="block truncate cursor-pointer min-w-0 mb-1
-            font-bold text-base-content text-[1.1em]
-            hover:text-primary dark:hover:text-indigo-400 transition-colors"
-          @click.stop="$emit('view-overview', dataset.id)"
-          :title="dataset.filename || dataset.name"
-          :aria-label="`Dataset name: ${dataset.filename || dataset.name}`"
-        >
-          {{ dataset.name }}
-        </h3>
-
-      <p
-        v-for="field in metaFields"
-        :key="field.label"
-        class="truncate text-[0.95em] "
-        :title="field.value ?? ''"
+    <!-- 左侧容器：文件名 + 图片 + 中间信息 -->
+    <div class="flex flex-1 min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+      <!-- 文件名：占满左侧容器宽度 -->
+      <h3
+        class="w-full truncate cursor-pointer min-w-0
+          font-bold text-base-content text-[1.1em] leading-snug
+          hover:text-primary dark:hover:text-indigo-400 transition-colors"
+        @click.stop="$emit('view-overview', dataset.id)"
+        :title="dataset.filename || dataset.name"
+        :aria-label="`Dataset name: ${dataset.filename || dataset.name}`"
       >
-        <span>{{ field.label }}</span>
-        <span class="ml-2 font-semibold">{{ field.value || '—' }}</span>
-      </p>
+        {{ dataset.name }}
+      </h3>
 
+      <!-- 图片 -->
+      <div class="w-full max-w-[250px] min-w-[120px] aspect-square rounded-lg overflow-hidden border border-base-300">
+        <DatasetPreviewGallery :file-id="dataset.id" />
+      </div>
+
+      <!-- 中间信息：以左容器为基准，在图片与右侧容器之间居中 -->
+      <div class="flex flex-1 flex-col justify-center gap-2 min-w-0 max-w-full text-base-content">
+        <p
+          v-for="field in metaFields"
+          :key="field.label"
+          class="truncate text-[0.95em] "
+          :title="field.value ?? ''"
+        >
+          <span>{{ field.label }}</span>
+          <span class="ml-2 font-semibold">{{ field.value || '—' }}</span>
+        </p>
+
+      </div>
     </div>
 
-    <!-- Right: Actions -->
-    <div class="relative z-10 cursor-default
-        flex flex-row flex-wrap gap-2 items-center self-stretch
-        w-full justify-evenly
-        lg:w-auto lg:flex-col
-        border-t border-base-300 pt-3
+    <!-- 右侧容器：上传状态 + 操作。整列点击不触发卡片跳转。
+         lg：靠左对齐，160px 减去 pl-3 后的内容盒能装下最宽的
+         "Visualize" 项（约 133px）并给右侧留出空隙；justify-evenly
+         随条目数自适应拉开间距（public 4 项也能均匀排满整列） -->
+    <div
+      class="cursor-default
+        flex flex-row flex-wrap gap-2 items-center justify-evenly
+        w-full border-t border-base-300 pt-3
+        lg:w-[160px] lg:flex-col lg:items-start lg:self-stretch
         lg:border-l lg:border-t-0 lg:pt-0 lg:pl-3"
       @click.stop
     >
