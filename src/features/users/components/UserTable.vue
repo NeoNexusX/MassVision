@@ -31,7 +31,7 @@ defineEmits<{
     class="bg-base-100 rounded-2xl shadow-sm border border-base-200/60 flex flex-col overflow-hidden"
   >
     <div class="p-4 border-b border-base-200 flex flex-wrap items-center gap-3 bg-base-100">
-      <div class="relative w-full max-w-xs">
+      <div class="relative w-full sm:w-64">
         <input
           v-model="filters.username"
           @keyup.enter="$emit('search')"
@@ -47,7 +47,7 @@ defineEmits<{
 
       <select
         v-model="filters.status"
-        class="select select-bordered rounded-lg bg-base-100 font-normal text-base w-36"
+        class="select select-bordered rounded-lg bg-base-100 font-normal text-base w-full sm:w-36"
       >
         <option value="">All Status</option>
         <option value="Active">Active</option>
@@ -59,7 +59,7 @@ defineEmits<{
         @keyup.enter="$emit('search')"
         type="text"
         placeholder="Institution..."
-        class="input input-bordered rounded-lg bg-base-100 font-normal text-base w-44 focus:outline-none focus:border-primary/50"
+        class="input input-bordered rounded-lg bg-base-100 font-normal text-base w-full sm:w-44 focus:outline-none focus:border-primary/50"
       />
 
       <input
@@ -67,28 +67,29 @@ defineEmits<{
         @keyup.enter="$emit('search')"
         type="text"
         placeholder="Region..."
-        class="input input-bordered rounded-lg bg-base-100 font-normal text-base w-36 focus:outline-none focus:border-primary/50"
+        class="input input-bordered rounded-lg bg-base-100 font-normal text-base w-full sm:w-36 focus:outline-none focus:border-primary/50"
       />
 
       <div class="flex-1"></div>
 
       <button
         @click="$emit('search')"
-        class="btn btn-primary rounded-lg font-medium shadow-sm"
+        class="btn btn-primary rounded-lg font-medium shadow-sm flex-1 sm:flex-none"
       >
         Search
       </button>
 
       <button
         @click="$emit('reset-filters')"
-        class="btn btn-outline border border-base-300 text-base-content/70 hover:bg-base-200 font-medium"
+        class="btn btn-outline border border-base-300 text-base-content/70 hover:bg-base-200 font-medium flex-1 sm:flex-none"
       >
         Reset Filters
       </button>
     </div>
 
+    <!-- 手机端允许横向滚动：min-w 让表格保持可读列宽，而不是被压成几条竖线 -->
     <div class="overflow-x-auto w-full">
-      <table class="table table-fixed w-full">
+      <table class="table table-fixed w-full min-w-[640px]">
         <colgroup>
           <col style="width: 22%" />
           <col style="width: 12%" />
@@ -157,7 +158,8 @@ defineEmits<{
               <td class="px-4 text-center">
                 <button
                   @click="$emit('open-drawer', user)"
-                  class="btn btn-ghost border border-base-200/60 rounded-lg hover:bg-base-100 hover:border-base-300 bg-transparent opacity-0 group-hover:opacity-100 transition-opacity text-base font-medium h-8 min-h-8"
+                  class="btn btn-ghost border border-base-200/60 rounded-lg hover:bg-base-100 hover:border-base-300 bg-transparent text-base font-medium h-8 min-h-8
+                    max-sm:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                 >
                   View
                 </button>
