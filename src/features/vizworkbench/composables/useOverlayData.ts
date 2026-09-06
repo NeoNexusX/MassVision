@@ -322,7 +322,7 @@ export function useOverlayData(
     if (s.includes('fail') || task.error_message) {
       stopPolling()
       clusteringComputing.value = false
-      overlayError.value = task.error_message || `Clustering task ${s || 'failed'}.`
+      overlayError.value = task.error_message || `UMAP task ${s || 'failed'}.`
       return
     }
     clusteringComputing.value = true
@@ -345,7 +345,7 @@ export function useOverlayData(
       const task = await createClustering(runId.value)
       await applyTaskStatus(task)
       if (clusteringComputing.value) {
-        showToast('Clustering task started - status is checked automatically every 5s.', 'info')
+        showToast('UMAP task started - status is checked automatically every 5s.', 'info')
       }
     } catch (e) {
       showToast(extractBackendError(e, 'Failed to create clustering task'), 'error')
@@ -366,7 +366,7 @@ export function useOverlayData(
       const task = await createClustering(runId.value)
       await applyTaskStatus(task)
       if (clusteringComputing.value) {
-        showToast('Clustering is still computing…', 'info')
+        showToast('UMAP is still computing…', 'info')
       }
     } catch (e) {
       showToast(extractBackendError(e, 'Failed to refresh clustering status'), 'error')

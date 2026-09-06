@@ -221,7 +221,7 @@ function cancelEnable() {
         class="text-base-content/60 mt-1.5 flex items-center gap-2"
       >
         <span class="loading loading-spinner loading-xs"></span>
-        <span class="flex-1">Clustering is computing…</span>
+        <span class="flex-1">UMAP is computing…</span>
         <button
           class="btn btn-ghost btn-xs text-[0.875em]"
           :disabled="clusteringRefreshing"
