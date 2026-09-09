@@ -3,13 +3,14 @@ import { useAuthStore } from '@/shared/auth/authStore'
 import { useToast } from '@/shared/composables/useToast'
 import { getConfig } from '@/shared/config/runtimeConfig'
 import { buildPageList } from '@/shared/utils/pagination'
-import { addCollection, fetchCollections, updateCollection } from '../data/collectionsMock'
+import { fetchCollections, updateCollection } from '../data/collectionsMock'
 import type { Collection, CollectionDraft, CollectionListMeta, CollectionSortKey } from '../types/collection'
 
 // 每页条数与数据集列表一致，走全局 config（默认 10，选项 [6,10,20]）
 
 /**
- * Collections 列表页装配：取数（mock）/ 搜索 / 排序 / 分页 / 新建与编辑。
+ * Collections 列表页装配：取数（mock）/ 搜索 / 排序 / 分页 / 编辑。
+ * Create 已迁往独立页面 /collections/new（useCreateCollection）。
  * 后端就绪后只需替换 fetchCollections 为真实 API，页面组件无需改动。
  */
 export function useCollectionsPage() {
@@ -67,13 +68,6 @@ export function useCollectionsPage() {
     fetchPage(1)
   }
 
-  function createCollection(draft: CollectionDraft) {
-    addCollection(draft, auth.user?.username || 'me')
-    showToast('Collection created successfully', 'success')
-    // 按更新时间倒序，新集合会出现在第一页最前
-    fetchPage(1)
-  }
-
   function saveEdit(collection: Collection, draft: CollectionDraft) {
     updateCollection(collection.id, draft)
     showToast('Collection updated', 'success')
@@ -98,7 +92,6 @@ export function useCollectionsPage() {
     handleSort,
     goToPage,
     changeSize,
-    createCollection,
     saveEdit,
   }
 }

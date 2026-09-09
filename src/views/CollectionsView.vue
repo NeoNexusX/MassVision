@@ -2,10 +2,9 @@
   <!-- 页面外壳与 MyDatasets / PublicDatasets 完全一致：bg-base-200 + max-w-[1680px] + page-type -->
   <div class="min-h-screen bg-base-200">
     <div class="max-w-[1680px] mx-auto p-4 md:p-8 page-type">
-      <!-- 页头：面包屑 + 标题/说明 + Create Collection -->
+      <!-- 页头：标题/说明 + Create Collection。与 Public Datasets 等顶级页面同级，不带面包屑 -->
       <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6 px-3">
         <div class="min-w-0">
-          <Breadcrumb :items="breadcrumbItems" class="mb-2" />
           <h1 class="page-title font-bold text-base-content">Collections</h1>
           <p class="page-subtitle text-base-content/70 mt-1">
             Organize related datasets into curated collections.
@@ -54,7 +53,7 @@
 
 <script setup lang="ts">
 import { reactive } from 'vue'
-import Breadcrumb from '@/shared/components/Breadcrumb.vue'
+import { useRouter } from 'vue-router'
 import CollectionDialog from '@/features/collections/components/CollectionDialog.vue'
 import CollectionList from '@/features/collections/components/CollectionList.vue'
 import CollectionsToolbar from '@/features/collections/components/CollectionsToolbar.vue'
@@ -62,14 +61,11 @@ import { useCollectionsPage } from '@/features/collections/composables/useCollec
 import { useToast } from '@/shared/composables/useToast'
 import type { Collection, CollectionDraft } from '@/features/collections/types/collection'
 
-const breadcrumbItems = [
-  { label: 'Home', to: '/' },
-  { label: 'Collections' },
-]
+const router = useRouter()
 
 const { showToast } = useToast()
 
-// 列表装配（取数/搜索/排序/分页/新建/编辑），数据源为前端 mock
+// 列表装配（取数/搜索/排序/分页/编辑），数据源为前端 mock
 const {
   collections,
   loading,
@@ -84,16 +80,14 @@ const {
   handleSort,
   goToPage,
   changeSize,
-  createCollection,
   saveEdit,
 } = useCollectionsPage()
 
-// Create / Edit 弹窗状态
+// Edit 弹窗状态（Create 已迁往 /collections/new 独立页面）
 const dialog = reactive({ open: false, editing: null as Collection | null })
 
 const openCreate = () => {
-  dialog.editing = null
-  dialog.open = true
+  router.push({ name: 'CreateCollection' })
 }
 
 const openEdit = (collection: Collection) => {
@@ -103,7 +97,6 @@ const openEdit = (collection: Collection) => {
 
 const handleSave = (draft: CollectionDraft) => {
   if (dialog.editing) saveEdit(dialog.editing, draft)
-  else createCollection(draft)
   dialog.open = false
 }
 

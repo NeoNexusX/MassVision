@@ -130,6 +130,8 @@ const submit = () => {
     name: form.name,
     description: form.description,
     isPublic: form.isPublic,
+    // 弹窗只改元信息，成员列表透传原集合的 datasetIds 以保留
+    datasetIds: props.editing?.datasetIds ? [...props.editing.datasetIds] : [],
   })
 }
 </script>

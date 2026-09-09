@@ -340,7 +340,8 @@ export async function fetchCollections(
   }
 }
 
-/** 新建集合（会话内生效），返回带 id 的完整对象。 */
+/** 新建集合（会话内生效），返回带 id 的完整对象。datasetCount/organisms
+ *  由成员 id 列表派生（真实后端会按 dataset_ids 自行汇总）。 */
 export function addCollection(draft: CollectionDraft, owner: string): Collection {
   const collection: Collection = {
     id: `col-${Date.now()}`,
@@ -349,14 +350,16 @@ export function addCollection(draft: CollectionDraft, owner: string): Collection
     isPublic: draft.isPublic,
     owner,
     updatedAt: new Date().toISOString(),
-    datasetCount: 0,
-    organisms: [],
+    datasetCount: draft.datasetIds.length,
+    organisms: draft.organisms ?? [],
+    datasetIds: [...draft.datasetIds],
   }
   collectionsStore.unshift(collection)
   return collection
 }
 
-/** 编辑集合（会话内生效），同时刷新更新时间。 */
+/** 编辑集合（会话内生效），同时刷新更新时间。成员列表不在编辑弹窗的
+ *  可改范围内，此处只动元信息字段，datasetIds/datasetCount/organisms 原样保留。 */
 export function updateCollection(id: string, draft: CollectionDraft): void {
   const target = collectionsStore.find((c) => c.id === id)
   if (!target) return

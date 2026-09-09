@@ -32,6 +32,13 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    // 新建集合页：从公共数据集中挑选成员、排序并填写元信息（Edit 仍走列表页弹窗）
+    path: '/collections/new',
+    name: 'CreateCollection',
+    component: () => import('../views/CreateCollectionView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/overview',
     name: 'DatasetOverview',
     component: () => import('../views/DatasetOverviewView.vue'),
