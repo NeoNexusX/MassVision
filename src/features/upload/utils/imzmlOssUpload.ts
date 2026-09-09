@@ -227,6 +227,9 @@ export async function uploadImzmlZipFileOSS({
     authorizationV4: true,
     bucket: ossData.oss_bucket,
     timeout: OSS_UPLOAD.timeout,
+    // endpoint is a bare domain (VITE_OSS_ENDPOINT); force https so ali-oss
+    // does not fall back to http:// when assembling the request URL
+    secure: true,
   }
   if (ENV.ossEndpoint) {
     clientOptions.endpoint = ENV.ossEndpoint
