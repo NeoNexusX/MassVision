@@ -8,12 +8,15 @@ import { tmpdir } from 'os'
  * ======================================
  * 下载真实数据集（imzML + ibd）-> 从服务器删除 -> 用下载的文件重新上传 -> 验证恢复
  *
- * 文件名按字母序在 result-detail.spec.ts 之后、vue.spec.ts 之前执行，
- * 确保所有依赖数据集的测试（datasets / new-analysis / result-detail）已跑完。
+ * 与其它 spec 无执行顺序约束：被删的是 Arabidopsis 数据集，
+ * datasets/new-analysis（Peak Alignment 链路）依赖的都是 Ecoli/Human（ALGO_DATASET_NAMES）。
+ * 目标数据集不存在时自动 skip。
  *
  * 覆盖两个数据集：
  * - Arabidopsis_Spleen_MALDI_10_Negative_f9d339（小，Organism=Arabidopsis / Part=Spleen）
  * - Rat_Liver_MALDI_40_Positive_9ce4d1（大，压缩后约 360MB，Organism=Rat / Part=Liver）
+ *   破坏性测试跑大文件成本高（下载+重传 360MB），保留覆盖是值得的：
+ *   大文件路径才会暴露分块上传/超时/进度的问题。
  *
  * 相同内容 + 相同 metadata = 相同文件名，重传后数据集自动恢复，不需要额外清理。
  *
@@ -204,6 +207,20 @@ const CASES: DatasetCase[] = [
       polarity: 'Negative',
       downloadTimeout: 60_000,   // 1 min for downloads to start
       uploadTimeout: 120_000,    // 2 min for upload pipeline
+      pollInterval: 5000,        // 5s between polls
+      pollDuration: 50_000,      // 50s total (≈10 polls)
+    },
+  },
+  {
+    name: 'large: Rat_Liver_MALDI_40_Positive',
+    testTimeout: 480_000, // 8 min：360MB 下载 + 上传
+    params: {
+      filename: 'Rat_Liver_MALDI_40_Positive_9ce4d1',
+      organism: 'Rat (Rattus norvegicus)',
+      organismPart: 'Liver',
+      polarity: 'Positive',
+      downloadTimeout: 120_000,  // 2 min for 360MB downloads to start
+      uploadTimeout: 300_000,    // 5 min for 360MB upload pipeline (hash + compress + upload)
       pollInterval: 5000,        // 5s between polls
       pollDuration: 50_000,      // 50s total (≈10 polls)
     },

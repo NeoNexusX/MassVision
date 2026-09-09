@@ -98,9 +98,12 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * 随机下载一张卡
+   * 随机选一张 <300MB 的卡：第一次点击真实下载（download 事件 + 文件名校验），
+   * 限流窗口内的第二次点击被拦截。合并前是两个独立测试各真实下载一次——
+   * 合并后每浏览器少一次下载，且限流路径也带上了大小过滤（原先裸随机选卡，
+   * 可能选中 1GB 的测试数据真下载）。
    */
-  test('download — triggers download on a random card', async ({ page }) => {
+  test('download — downloads a random <300MB card, then rate limit blocks the next', async ({ page }) => {
     test.setTimeout(60_000)  // WebKit 下载偶发较慢
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
@@ -116,47 +119,34 @@ test.describe('My Datasets', () => {
       const sizeText = await card.locator('p:has-text("File Size:")').innerText()
       if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
     }
-    const pick = eligible.length > 0
-      ? eligible[Math.floor(Math.random() * eligible.length)]
-      : 0
+    test.skip(eligible.length === 0, `No card under ${MAX_DOWNLOAD_MB}MB on this backend`)
 
+    const pick = eligible[Math.floor(Math.random() * eligible.length)]!
     const card = downloadBtns.nth(pick).locator('..').locator('..')
     const cardName = await card.locator('h3').innerText()
     await expect(card.locator('h3')).not.toBeEmpty()
+    console.log(`[download/mydatasets] random pick: ${cardName}`) // 随机选卡留痕，flake 时可复现
 
+    // 第一次点击：真实 download 事件 + toast
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       downloadBtns.nth(pick).click(),
     ])
-
     const filename = download.suggestedFilename()
     expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
+    await expect(page.locator('.toast')).toContainText('Download started')
 
     // 清理下载文件（WebKit 偶发超时，忽略）
     try { await download.delete() } catch { /* ok */ }
-  })
 
-  test('download rate limit — second download is blocked', async ({ page }) => {
-    await page.goto('/mydatasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    const btns = page.locator('button').filter({ hasText: /Download/ })
-    const count = await btns.count()
-    const idx1 = Math.floor(Math.random() * count)
-    let idx2: number
-    if (count > 1) {
-      do { idx2 = Math.floor(Math.random() * count) } while (idx2 === idx1)
-    } else {
-      idx2 = idx1
-    }
-
-    await btns.nth(idx1).click()
-    await expect(page.locator('.toast')).toContainText('Download started')
+    // 等第一次下载登记进限流窗口，再点第二张（另一张符合条件的卡；没有就重复同一张）
     await page.waitForTimeout(2000)
-
-    await btns.nth(idx2).click()
+    const others = eligible.filter((i) => i !== pick)
+    const second = others.length > 0
+      ? others[Math.floor(Math.random() * others.length)]!
+      : pick
+    await downloadBtns.nth(second).click()
     await expect(page.locator('.toast')).toContainText(/Download is limited/)
-    await page.waitForTimeout(1000)
   })
 
   /**
@@ -191,18 +181,27 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * 排序切换
+   * 排序：选 File Size 后，第一页卡片的 File Size 应降序。
+   * 排序是纯前端行为（useDatasetList.handleSort 在已加载数据上原地排序，不发请求、
+   * 无 loading 态），selectOption 返回后 DOM 即重排，直接断言即可。
+   * 显示值是四舍五入的，round 单调 ⇒ 实际值降序必然蕴含显示值非递增。
    */
-  test('sort — toggles between submission time and file size', async ({ page }) => {
+  test('sort — selecting file size orders cards by size (desc)', async ({ page }) => {
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
     const sortSelect = page.locator('select:has(option[value="size_bytes"])')
     await sortSelect.selectOption('size_bytes')
-    await page.waitForTimeout(300)
 
-    await expect(page.getByText('Organism:').first()).toBeVisible()
-    await expect(page.getByText('File Size:').first()).toBeVisible()
+    const sizeTexts = await page.locator('p:has-text("File Size:")').allInnerTexts()
+    const sizes = sizeTexts.map(sizeToMB).filter(Number.isFinite)
+    expect(sizes.length, 'expected at least one parsable card size').toBeGreaterThan(0)
+    for (let i = 1; i < sizes.length; i++) {
+      expect(
+        sizes[i]!,
+        `card ${i}: ${sizes[i]}MB should be <= card ${i - 1}: ${sizes[i - 1]}MB`,
+      ).toBeLessThanOrEqual(sizes[i - 1]!)
+    }
   })
 
   /**
@@ -456,19 +455,80 @@ test.describe('Public Datasets', () => {
     }
   })
 
-  test('sort — toggles between submission time and file size', async ({ page }) => {
+  test('sort — selecting file size orders cards by size (desc)', async ({ page }) => {
     await page.goto('/datasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
     const sortSelect = page.locator('select:has(option[value="size_bytes"])')
     await sortSelect.selectOption('size_bytes')
-    await page.waitForTimeout(300)
 
-    await expect(page.getByText('Organism:').first()).toBeVisible()
-    await expect(page.getByText('File Size:').first()).toBeVisible()
+    // 排序是纯前端行为（无请求、无 loading 态），直接断言第一页卡片的 File Size 降序
+    const sizeTexts = await page.locator('p:has-text("File Size:")').allInnerTexts()
+    const sizes = sizeTexts.map(sizeToMB).filter(Number.isFinite)
+    expect(sizes.length, 'expected at least one parsable card size').toBeGreaterThan(0)
+    for (let i = 1; i < sizes.length; i++) {
+      expect(
+        sizes[i]!,
+        `card ${i}: ${sizes[i]}MB should be <= card ${i - 1}: ${sizes[i - 1]}MB`,
+      ).toBeLessThanOrEqual(sizes[i - 1]!)
+    }
   })
 
-  test('clicking a card navigates to dataset overview', async ({ page }) => {
+  /**
+   * 随机选一张 <300MB 的卡：第一次点击真实下载，限流窗口内的第二次点击被拦截
+   * （与 My Datasets 侧的合并逻辑一致，详见那边的注释）。
+   */
+  test('download — downloads a random <300MB card, then rate limit blocks the next', async ({ page }) => {
+    test.setTimeout(60_000)  // WebKit 下载偶发较慢
+    await page.goto('/datasets')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    const downloadBtns = page.locator('button').filter({ hasText: /Download/ })
+    await downloadBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
+    const count = await downloadBtns.count()
+
+    const eligible: number[] = []
+    for (let i = 0; i < count; i++) {
+      const card = downloadBtns.nth(i).locator('..').locator('..')
+      const sizeText = await card.locator('p:has-text("File Size:")').innerText()
+      if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
+    }
+    test.skip(eligible.length === 0, `No card under ${MAX_DOWNLOAD_MB}MB on this backend`)
+
+    const pick = eligible[Math.floor(Math.random() * eligible.length)]!
+    const card = downloadBtns.nth(pick).locator('..').locator('..')
+    const cardName = await card.locator('h3').innerText()
+    await expect(card.locator('h3')).not.toBeEmpty()
+    console.log(`[download/datasets] random pick: ${cardName}`) // 随机选卡留痕，flake 时可复现
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      downloadBtns.nth(pick).click(),
+    ])
+    const filename = download.suggestedFilename()
+    expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
+    await expect(page.locator('.toast')).toContainText('Download started')
+
+    // 清理下载文件（WebKit 偶发超时，忽略）
+    try { await download.delete() } catch { /* ok */ }
+
+    // 等第一次下载登记进限流窗口，再点第二张（另一张符合条件的卡；没有就重复同一张）
+    await page.waitForTimeout(2000)
+    const others = eligible.filter((i) => i !== pick)
+    const second = others.length > 0
+      ? others[Math.floor(Math.random() * others.length)]!
+      : pick
+    await downloadBtns.nth(second).click()
+    await expect(page.locator('.toast')).toContainText(/Download is limited/)
+  })
+
+  /**
+   * 随机进一张卡的 Overview：验证内容，再 Back 返回。
+   * （原为两个独立测试——"navigates" 和 "back button"——各完整走一遍
+   * /datasets 加载 + Overview 加载，合并后省一个页面周期 × 3 浏览器。
+   * My Datasets 侧的同名测试早已是这种合并形态。）
+   */
+  test('overview — navigates to a random card, shows content, then back', async ({ page }) => {
     await page.goto('/datasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
@@ -488,19 +548,6 @@ test.describe('Public Datasets', () => {
       await expect(page.getByText(/Sample Info/)).toBeVisible()
       await expect(page.getByText('File Information')).toBeVisible()
     }
-  })
-
-  test('overview back button — returns to Public Datasets', async ({ page }) => {
-    await page.goto('/datasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    const overviewBtns = page.getByRole('button', { name: 'Overview' })
-    await overviewBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
-    const count = await overviewBtns.count()
-    const pick = count > 1 ? Math.floor(Math.random() * count) : 0
-    await overviewBtns.nth(pick).click()
-    await expect(page).toHaveURL(/\/overview/)
-    await expect(page.locator('.skeleton')).toHaveCount(0, { timeout: 15_000 })
 
     const backBtn = page.getByRole('button', { name: 'Back to Public Datasets' })
     await expect(backBtn).toBeVisible()
@@ -517,63 +564,5 @@ test.describe('Public Datasets', () => {
 
     await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Reset' })).toBeVisible()
-  })
-
-  test('download — triggers download on a random card', async ({ page }) => {
-    test.setTimeout(60_000)  // WebKit 下载偶发较慢
-    await page.goto('/datasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    const downloadBtns = page.locator('button').filter({ hasText: /Download/ })
-    await downloadBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
-    const count = await downloadBtns.count()
-
-    const eligible: number[] = []
-    for (let i = 0; i < count; i++) {
-      const card = downloadBtns.nth(i).locator('..').locator('..')
-      const sizeText = await card.locator('p:has-text("File Size:")').innerText()
-      if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
-    }
-    const pick = eligible.length > 0
-      ? eligible[Math.floor(Math.random() * eligible.length)]
-      : 0
-
-    const cardName = await downloadBtns.nth(pick).locator('..').locator('..')
-      .locator('h3').innerText()
-    await expect(downloadBtns.nth(pick).locator('..').locator('..').locator('h3')).not.toBeEmpty()
-
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      downloadBtns.nth(pick).click(),
-    ])
-
-    const filename = download.suggestedFilename()
-    expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
-
-    // 清理下载文件（WebKit 偶发超时，忽略）
-    try { await download.delete() } catch { /* ok */ }
-  })
-
-  test('download rate limit — second download is blocked', async ({ page }) => {
-    await page.goto('/datasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    const btns = page.locator('button').filter({ hasText: /Download/ })
-    const count = await btns.count()
-    const idx1 = Math.floor(Math.random() * count)
-    let idx2: number
-    if (count > 1) {
-      do { idx2 = Math.floor(Math.random() * count) } while (idx2 === idx1)
-    } else {
-      idx2 = idx1
-    }
-
-    await btns.nth(idx1).click()
-    await expect(page.locator('.toast')).toContainText('Download started')
-    await page.waitForTimeout(2000)
-
-    await btns.nth(idx2).click()
-    await expect(page.locator('.toast')).toContainText(/Download is limited/)
-    await page.waitForTimeout(1000)
   })
 })
