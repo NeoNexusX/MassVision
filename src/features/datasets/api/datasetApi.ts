@@ -69,10 +69,18 @@ export async function rawConvertProcess(fileId: string | number) {
   return res.data
 }
 
-// GET /processes/mine?page=&size= - List my processes (paginated)
+// POST /processes/mine?page=&size= - List my processes (paginated, fuzzy filter)
+// RunFilter body 必填（后端 breaking change：不发 body 会 422），不筛选时也要发 {}
+export interface ProcessRunFilter {
+  /** 对源文件名模糊匹配（LIKE %xxx%） */
+  filename?: string
+  /** 对算法参数 params_json 模糊匹配（直转 run 的 __RAW_CONVERT__ 标记也参与匹配） */
+  params?: string
+}
+
 // 后端返回 { data: [...], meta: { current_page, total_pages, total_records } }
-export async function listMyProcesses(page = 1, size = 10) {
-  const res = await auth_api.get('/processes/mine', { params: { page, size } })
+export async function listMyProcesses(page = 1, size = 10, filter: ProcessRunFilter = {}) {
+  const res = await auth_api.post('/processes/mine', filter, { params: { page, size } })
   const body = res.data
   // 兼容纯数组返回（无分页信息时）
   if (Array.isArray(body)) return { data: body, meta: { current_page: 1, total_pages: 1, total_records: body.length } }

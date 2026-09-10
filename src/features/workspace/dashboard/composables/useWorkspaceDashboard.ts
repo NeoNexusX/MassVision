@@ -1,5 +1,5 @@
 import { computed, onMounted, reactive, ref } from 'vue'
-import { listMyProcesses, deleteProcess, getProcessingStats } from '@/features/datasets/api/datasetApi'
+import { listMyProcesses, deleteProcess, getProcessingStats, type ProcessRunFilter } from '@/features/datasets/api/datasetApi'
 import { parseAlgorithms } from '@/shared/utils/methodsNormalize'
 import { buildPageList } from '@/shared/utils/pagination'
 import { parseUtcDate } from '@/shared/utils/date'
@@ -95,12 +95,16 @@ export function useWorkspaceDashboard() {
     }
   }
 
+  // 最近一次拉取使用的模糊筛选（filename/params），当前 UI 未接搜索框，恒为空；
+  // 留口子：二期搜索框直接改 filter ref 后调 fetchProcesses
+  const filter = ref<ProcessRunFilter>({})
+
   async function fetchProcesses(opts?: { page?: number; size?: number }) {
     loading.value = true
     const p = opts?.page ?? page.value
     const s = opts?.size ?? size.value
     try {
-      const result = await listMyProcesses(p, s)
+      const result = await listMyProcesses(p, s, filter.value)
       processes.value = Array.isArray(result?.data) ? result.data : []
 
       if (result?.meta) {
