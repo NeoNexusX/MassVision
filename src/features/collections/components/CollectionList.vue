@@ -2,10 +2,10 @@
 import type { PropType } from 'vue'
 import CollectionCard from '@/features/collections/components/CollectionCard.vue'
 import PaginationFooter from '@/shared/components/PaginationFooter.vue'
-import type { Collection, CollectionListMeta } from '@/features/collections/types/collection'
+import type { CollectionListMeta, CollectionSummary } from '@/features/collections/types/collection'
 
 defineProps({
-  collections: { type: Array as PropType<Collection[]>, required: true },
+  collections: { type: Array as PropType<CollectionSummary[]>, required: true },
   loading: { type: Boolean, required: true },
   error: { type: String, required: true },
   meta: { type: Object as PropType<CollectionListMeta>, required: true },
@@ -13,16 +13,11 @@ defineProps({
   pagination: { type: Array as PropType<(number | string)[]>, required: true },
   /** 当前已应用的搜索词（区分「还没有集合」与「搜索无结果」两种空态） */
   searchApplied: { type: String, required: true },
-  /** 逐卡片判定 Edit 显隐（所有者或管理员） */
-  canEdit: {
-    type: Function as PropType<(collection: Collection) => boolean>,
-    required: true,
-  },
 })
 
 const emit = defineEmits<{
-  (e: 'view', id: string): void
-  (e: 'edit', collection: Collection): void
+  (e: 'view', id: number): void
+  (e: 'delete', id: number): void
   (e: 'create'): void
   (e: 'clear-search'): void
   (e: 'change-size', size: number): void
@@ -93,9 +88,8 @@ const emit = defineEmits<{
       >
         <CollectionCard
           :collection="collection"
-          :can-edit="canEdit(collection)"
           @view="$emit('view', $event)"
-          @edit="$emit('edit', $event)"
+          @delete="$emit('delete', $event)"
         />
       </div>
     </div>

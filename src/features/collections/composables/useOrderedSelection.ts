@@ -8,15 +8,16 @@ import { computed, shallowRef } from 'vue'
  * 数据集列表的分页/搜索（那边的 datasets 每次 fetch 整页替换），因此跨页/跨
  * 搜索的选择天然持久。
  *
- * 泛型约束只需 { id }，与 datasets 的 File、测试里的桩对象都兼容；可在组件
- * 外直接调用（无生命周期钩子），便于单测。内部用 shallowRef 整体替换（而非
- * 原地 splice）：既绕开泛型 ref 的 UnwrapRef 摊平问题，也让每次变更语义清晰。
+ * 泛型约束只需 { id }（string 或 number——datasets 的 File 是 string id，
+ * 后端集合成员是 number id），与组件外的桩对象都兼容；可在组件外直接调用
+ * （无生命周期钩子），便于单测。内部用 shallowRef 整体替换（而非原地
+ * splice）：既绕开泛型 ref 的 UnwrapRef 摊平问题，也让每次变更语义清晰。
  */
-export function useOrderedSelection<T extends { id: string }>(initial: T[] = []) {
+export function useOrderedSelection<T extends { id: number | string }>(initial: T[] = []) {
   const selected = shallowRef<T[]>([...initial])
   const selectedIds = computed(() => new Set(selected.value.map((d) => d.id)))
 
-  function isSelected(id: string): boolean {
+  function isSelected(id: number | string): boolean {
     return selectedIds.value.has(id)
   }
 
@@ -47,7 +48,7 @@ export function useOrderedSelection<T extends { id: string }>(initial: T[] = [])
     move(index, index + 1)
   }
 
-  function removeById(id: string): void {
+  function removeById(id: number | string): void {
     selected.value = selected.value.filter((d) => d.id !== id)
   }
 

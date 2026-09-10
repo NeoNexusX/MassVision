@@ -2,34 +2,33 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { listFiles } from '@/features/datasets/api/datasetApi'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
-import { createDefaultDatasetFilters } from '@/features/datasets/constants/datasetMetadata'
 import type { File } from '@/features/datasets/types/dataset'
-import { useAuthStore } from '@/shared/auth/authStore'
+import { extractBackendError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
-import { addCollection } from '../data/collectionsMock'
+import { createCollection } from '../api/collectionApi'
 import { useOrderedSelection } from './useOrderedSelection'
 
 /**
  * Create Collection 页装配（/collections/new）。
  *
  * 三个来源的状态：
- * 1. 选择器 —— useDatasetList 直连 public 列表（与 useAnalysisDatasets 同模式，
- *    listFiles(..., true) 走免登录 client），300ms 防抖搜索（filename 键）；
+ * 1. 选择器 —— useDatasetList 直连公开列表（listFiles(..., true) 免登录 client），
+ *    固定过滤 experiment_type=imzML + status=completed（集合成员资格的服务端前置校验，
+ *    规避保存时 409 invalid collection members），300ms 防抖搜索（filename 键）；
  * 2. 已选列表 —— useOrderedSelection，独立于分页/搜索的 datasets ref，
  *    跨页选择天然持久；reorder 就是移动这个数组；
- * 3. 表单 —— name/description/isPublic（字段约束与 CollectionDialog 一致）。
+ * 3. 表单 —— name/description（集合均为公开，无可见性开关）。
  *
- * 保存写入 mock store 后回列表页（列表页 onMounted 重拉，updatedAt 倒序使新
- * 集合出现在第一页最前）。脏态离开时弹 ConfirmDialog——本页是仓库中第一个
- * onBeforeRouteLeave 用例，promise 式守卫：确认 resolve(true) 放行，取消
- * resolve(false) 留在页面。
+ * 保存调 POST /collections（file_ids 顺序 = position 1..n），成功后跳转新集合的
+ * overview 页。脏态离开时弹 ConfirmDialog——promise 式 onBeforeRouteLeave 守卫：
+ * 确认 resolve(true) 放行，取消 resolve(false) 留在页面。
  */
 export function useCreateCollection() {
   const router = useRouter()
-  const auth = useAuthStore()
   const { showToast } = useToast()
 
-  // ---- 1) 选择器：public datasets（与 PublicDatasets 页同一套默认过滤器）----
+  // ---- 1) 选择器：可加入集合的公开 imzML 数据集（已完成上传）----
+  // applyFilters 是 Object.assign 合并语义，搜索只改 filename，固定键不会被冲掉
   const {
     datasets,
     loading,
@@ -42,7 +41,11 @@ export function useCreateCollection() {
     goToPage,
     changeSize,
   } = useDatasetList((filters, page, size) => listFiles(filters, page, size, true), {
-    defaultFilters: createDefaultDatasetFilters(),
+    defaultFilters: {
+      filename: '',
+      experiment_type: 'imzML',
+      status: ['completed'],
+    },
   })
 
   const datasetQuery = ref('')
@@ -76,38 +79,36 @@ export function useCreateCollection() {
   )
 
   // ---- 3) 表单 ----
-  const form = reactive({ name: '', description: '', isPublic: true })
+  const form = reactive({ name: '', description: '' })
 
   const isDirty = computed(
-    () =>
-      selectedCount.value > 0 ||
-      form.name !== '' ||
-      form.description !== '' ||
-      !form.isPublic,
+    () => selectedCount.value > 0 || form.name !== '' || form.description !== '',
   )
   const canCreate = computed(() => form.name.trim() !== '' && selectedCount.value > 0)
 
-  // ---- 4) 保存 ----
+  // ---- 4) 保存：file_ids 数组顺序 = position 1..n，成功跳转 overview ----
   const saving = ref(false)
   // 提交后的返回跳转不再触发离开确认（isDirty 此刻仍为 true）
   const saved = ref(false)
 
-  function submit() {
+  async function submit() {
     if (!canCreate.value || saving.value) return
     saving.value = true
-    addCollection(
-      {
+    try {
+      const detail = await createCollection({
         name: form.name.trim(),
-        description: form.description,
-        isPublic: form.isPublic,
-        datasetIds: selected.value.map((d) => d.id),
-        organisms: selectedOrganisms.value as string[],
-      },
-      auth.user?.username || 'me',
-    )
-    showToast('Collection created successfully', 'success')
-    saved.value = true
-    router.push('/collections')
+        description: form.description || undefined,
+        file_ids: selected.value.map((d) => Number(d.id)),
+      })
+      showToast('Collection created successfully', 'success')
+      saved.value = true
+      router.replace(`/collections/${detail.id}`)
+    } catch (err: any) {
+      // 409 invalid collection members 等：detail 原文已归一进 message
+      showToast(extractBackendError(err, 'Failed to create collection'), 'error')
+    } finally {
+      saving.value = false
+    }
   }
 
   // ---- 5) 脏态离开守卫：ConfirmDialog + promise 式 onBeforeRouteLeave ----

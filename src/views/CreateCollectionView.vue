@@ -43,7 +43,6 @@
         class="mt-6"
         v-model:name="form.name"
         v-model:description="form.description"
-        v-model:is-public="form.isPublic"
       />
     </div>
 

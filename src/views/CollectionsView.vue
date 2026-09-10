@@ -31,41 +31,39 @@
         :size="size"
         :pagination="pagination"
         :search-applied="search"
-        :can-edit="canEdit"
         @view="handleView"
-        @edit="openEdit"
+        @delete="(id: number) => deleteConfirm.open(String(id))"
         @create="openCreate"
         @clear-search="clearSearch"
         @change-size="changeSize"
         @go-to-page="goToPage"
       />
-
-      <!-- Create / Edit 弹窗 -->
-      <CollectionDialog
-        :open="dialog.open"
-        :editing="dialog.editing"
-        @save="handleSave"
-        @cancel="dialog.open = false"
-      />
     </div>
+
+    <!-- 删除确认（useConfirmDelete 标准流） -->
+    <ConfirmDialog
+      :open="deleteConfirm.isOpen"
+      title="Delete collection?"
+      message="The collection will be removed. Member datasets are not affected."
+      confirm-label="Delete"
+      danger
+      @confirm="deleteConfirm.confirm"
+      @cancel="deleteConfirm.cancel"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import CollectionDialog from '@/features/collections/components/CollectionDialog.vue'
 import CollectionList from '@/features/collections/components/CollectionList.vue'
 import CollectionsToolbar from '@/features/collections/components/CollectionsToolbar.vue'
 import { useCollectionsPage } from '@/features/collections/composables/useCollectionsPage'
-import { useToast } from '@/shared/composables/useToast'
-import type { Collection, CollectionDraft } from '@/features/collections/types/collection'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 
 const router = useRouter()
 
-const { showToast } = useToast()
-
-// 列表装配（取数/搜索/排序/分页/编辑），数据源为前端 mock
+// 列表装配（取数/本地搜索排序分页/删除），数据源为真实 API（GET /collections）
 const {
   collections,
   loading,
@@ -74,35 +72,26 @@ const {
   size,
   search,
   pagination,
-  canEdit,
   handleSearch,
   clearSearch,
   handleSort,
   goToPage,
   changeSize,
-  saveEdit,
+  removeCollection,
 } = useCollectionsPage()
 
-// Edit 弹窗状态（Create 已迁往 /collections/new 独立页面）
-const dialog = reactive({ open: false, editing: null as Collection | null })
+// 删除确认流：id 用 String 过桥（useConfirmDelete 以 string id 通用化）
+const deleteConfirm = useConfirmDelete({
+  onDelete: async (id) => removeCollection(Number(id)),
+  successMessage: 'Collection deleted',
+})
 
 const openCreate = () => {
   router.push({ name: 'CreateCollection' })
 }
 
-const openEdit = (collection: Collection) => {
-  dialog.editing = collection
-  dialog.open = true
-}
-
-const handleSave = (draft: CollectionDraft) => {
-  if (dialog.editing) saveEdit(dialog.editing, draft)
-  dialog.open = false
-}
-
-// 详情页属于下一设计阶段，先用 toast 占位反馈
-const handleView = (_id: string) => {
-  showToast('Collection detail page is coming in the next design phase', 'info')
+const handleView = (id: number) => {
+  router.push(`/collections/${id}`)
 }
 </script>
 
