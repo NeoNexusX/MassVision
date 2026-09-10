@@ -1,5 +1,18 @@
 import { BlobReader, ZipWriter, configure } from '@zip.js/zip.js'
 import { createMD5 } from 'hash-wasm'
+import { ZipPartEmitter } from '@/features/upload/utils/zipPartEmitter'
+
+/**
+ * ZIP 打包 Worker（流式）。
+ *
+ * 不在本地落任何完整产物：zip 输出流被切成固定大小的分片交给主线程直传 OSS，
+ * 主线程确认一片才允许再产出一片。内存占用上界 = partSize × maxInFlightParts，
+ * 与数据集大小无关。
+ *
+ * 两阶段：
+ *   start    → 读两个源文件算 MD5，回 `hash-ready`（供主线程 preflight 秒传判断）
+ *   compress → 用最终 entry 名压缩并逐片外发
+ */
 
 type StartMessage = {
   type: 'start'
@@ -8,13 +21,32 @@ type StartMessage = {
   chunkSize: number
 }
 
-type RenameMessage = {
-  type: 'rename'
+type CompressMessage = {
+  type: 'compress'
   imzmlName: string
   ibdName: string
+  partSize: number
+  maxInFlightParts: number
+  maxPartCount: number
+  /** 续传：这些分片号已经在 OSS 上，重新生成但不再外发 */
+  donePartNumbers: number[]
+  /** 续传：重新生成到这个分片号时回传其 MD5，供主线程校验 zip 字节可复现 */
+  verifyPartNo: number | null
 }
 
-type WorkerMessage = StartMessage | RenameMessage
+type PartAckMessage = { type: 'part-ack' }
+type PartFailMessage = { type: 'part-fail'; message: string }
+
+type WorkerMessage = StartMessage | CompressMessage | PartAckMessage | PartFailMessage
+
+/**
+ * 固定的 entry 时间戳。
+ *
+ * 这不是随手写的常量：断点续传依赖「同样的输入 → 同样的 zip 字节」，
+ * 只要 lastModDate 变成 new Date()，产物就不可复现，续传时已上传的分片
+ * 全部作废。改动此值会使旧会话的续传校验失败（会被安全地识别并要求重传）。
+ */
+const ZIP_EPOCH = new Date('2026-01-01')
 
 function readChunk(file: File, offset: number, size: number): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
@@ -29,8 +61,19 @@ function postProgress(loaded: number, total: number, phase: 'hashing' | 'compres
   self.postMessage({ type: 'progress', loaded, total, phase })
 }
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+async function md5Of(chunks: Uint8Array[]): Promise<string> {
+  const hasher = await createMD5()
+  for (const chunk of chunks) hasher.update(chunk)
+  return hasher.digest()
+}
+
 /**
- * Phase 1: read both files and compute the combined MD5 hash.
+ * 阶段一：读两个源文件算出合并后的 MD5。
+ * 注意哈希算的是**源文件**而不是 zip，所以秒传判断不需要先压缩。
  */
 async function hashFiles(
   imzml: File,
@@ -54,139 +97,112 @@ async function hashFiles(
     }
   }
 
-  const hash = hasher.digest()
-  return { hash, fileBytes }
+  return { hash: hasher.digest(), fileBytes }
 }
 
-/**
- * Max bytes buffered between the compressor and OPFS disk writes.
- * Large enough that compression never stalls on disk latency spikes,
- * small enough to bound worker memory.
- */
-const WRITE_BUFFER_HIGH_WATER = 256 * 1024 * 1024
-
-/**
- * Wrap an OPFS writable in a WritableStream with backpressure: writes are
- * queued so compression and disk I/O overlap, but once the queued amount
- * reaches WRITE_BUFFER_HIGH_WATER the producer pauses until the queue drains.
- */
-function createOpfsSink(writable: FileSystemWritableFileStream): {
-  stream: WritableStream<Uint8Array<ArrayBuffer>>
-  bytesWritten: () => number
-} {
-  let buffered = 0
-  let written = 0
-  let chain: Promise<void> = Promise.resolve()
-
-  const stream = new WritableStream<Uint8Array<ArrayBuffer>>({
-    write(chunk) {
-      buffered += chunk.byteLength
-      chain = chain
-        .then(() => writable.write(chunk))
-        .then(() => {
-          buffered -= chunk.byteLength
-          written += chunk.byteLength
-        })
-      if (buffered >= WRITE_BUFFER_HIGH_WATER) return chain
-    },
-    async close() {
-      await chain
-      await writable.close()
-    },
-    async abort(reason) {
-      await writable.abort(reason)
-    },
-  })
-
-  return { stream, bytesWritten: () => written }
-}
-
-/**
- * Phase 2: compress imzml + ibd into a ZIP in OPFS with the given entry names.
- */
-async function compressWithNames(
+/** 阶段二：按最终 entry 名压缩，产物逐片外发 */
+async function compressToParts(
   imzml: File,
   ibd: File,
   chunkSize: number,
-  imzmlName: string,
-  ibdName: string,
+  msg: CompressMessage,
   fileBytes: number,
-): Promise<number> {
-  // Codecs run inline in this worker (no nested workers). Native
-  // CompressionStream is used when available; `level` applies to the JS fallback.
+  emitter: ZipPartEmitter,
+): Promise<{ partCount: number; zipBytes: number }> {
+  // 编解码在本 worker 内联跑（不再套一层 worker）。有原生 CompressionStream 时
+  // 走原生，`level` 只对 JS 回退实现生效。
   configure({ useWebWorkers: false, chunkSize })
 
-  const root = await navigator.storage.getDirectory()
-  const fileHandle = await root.getFileHandle('pending_upload.zip', { create: true })
-  const writable = await fileHandle.createWritable()
-  const { stream, bytesWritten } = createOpfsSink(writable)
-
-  // zip64 is forced so size/offset fields stay valid past 4 GiB.
-  const zip = new ZipWriter(stream, {
-    zip64: true,
-    level: 2,
-    lastModDate: new Date('2026-01-01'),
+  let zipBytes = 0
+  const sink = new WritableStream<Uint8Array>({
+    async write(chunk) {
+      zipBytes += chunk.byteLength
+      await emitter.write(chunk)
+    },
   })
 
-  const entries: Array<{ file: File; zipName: string }> = [
-    { file: imzml, zipName: imzmlName },
-    { file: ibd, zipName: ibdName },
+  // zip64 强制开启，保证 size/offset 字段在 4GiB 以上仍然有效
+  const zip = new ZipWriter(sink, { zip64: true, level: 2, lastModDate: ZIP_EPOCH })
+
+  const entries = [
+    { file: imzml, zipName: msg.imzmlName },
+    { file: ibd, zipName: msg.ibdName },
   ]
 
-  try {
-    let doneBytes = 0
-    for (const { file, zipName } of entries) {
-      await zip.add(zipName, new BlobReader(file), {
-        onprogress: (progress) => {
-          postProgress(doneBytes + progress, fileBytes, 'compressing')
-        },
-      })
-      doneBytes += file.size
-    }
-    await zip.close()
-  } catch (err) {
-    try {
-      await writable.abort()
-    } catch {
-      /* already closed or aborted */
-    }
-    throw err
+  let doneBytes = 0
+  for (const { file, zipName } of entries) {
+    await zip.add(zipName, new BlobReader(file), {
+      onprogress: (progress) => {
+        postProgress(doneBytes + progress, fileBytes, 'compressing')
+      },
+    })
+    doneBytes += file.size
   }
+  await zip.close()
 
-  return bytesWritten()
+  return { partCount: await emitter.finish(), zipBytes }
 }
+
+// ────────────────────────────────────────────────────────────
+
+let hashed: { imzml: File; ibd: File; chunkSize: number; fileBytes: number } | null = null
+let emitter: ZipPartEmitter | null = null
 
 self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
   const msg = e.data
 
-  if (msg.type === 'start') {
-    const { imzml, ibd, chunkSize } = msg
-
-    try {
-      // ── Phase 1: Hash (fast, no progress) ──
-      const { hash, fileBytes } = await hashFiles(imzml, ibd, chunkSize)
-      self.postMessage({ type: 'hash-ready', hash })
-
-      // ── Wait for rename message with final entry names ──
-      self.onmessage = async (ev: MessageEvent<RenameMessage>) => {
-        const renameMsg = ev.data
-        if (renameMsg.type !== 'rename') return
-        const { imzmlName, ibdName } = renameMsg
-
-        try {
-          // ── Phase 2: Compress with renamed entries ──
-          const totalCompressed = await compressWithNames(
-            imzml, ibd, chunkSize,
-            imzmlName, ibdName,
-            fileBytes,
-          )
-          self.postMessage({ type: 'done', hash, totalBytes: totalCompressed })
-        } catch (err: any) {
-          self.postMessage({ type: 'error', message: err?.message || String(err) })
-        }
+  switch (msg.type) {
+    case 'start':
+      try {
+        const { hash, fileBytes } = await hashFiles(msg.imzml, msg.ibd, msg.chunkSize)
+        hashed = { imzml: msg.imzml, ibd: msg.ibd, chunkSize: msg.chunkSize, fileBytes }
+        self.postMessage({ type: 'hash-ready', hash })
+      } catch (err) {
+        self.postMessage({ type: 'error', message: errorMessage(err) })
       }
-    } catch (err: any) {
-      self.postMessage({ type: 'error', message: err?.message || String(err) })
+      return
+
+    case 'part-ack':
+      emitter?.ack()
+      return
+
+    case 'part-fail':
+      emitter?.fail(msg.message)
+      return
+
+    case 'compress': {
+      if (!hashed) {
+        self.postMessage({ type: 'error', message: 'compress requested before start' })
+        return
+      }
+      emitter = new ZipPartEmitter({
+        partSize: msg.partSize,
+        maxInFlight: msg.maxInFlightParts,
+        maxPartCount: msg.maxPartCount,
+        donePartNumbers: msg.donePartNumbers,
+        verifyPartNo: msg.verifyPartNo,
+        emitPart: (partNo, chunks) => {
+          self.postMessage({ type: 'part', partNo, blob: new Blob(chunks as BlobPart[]) })
+        },
+        // 主线程拿这个 MD5 跟存下来的 ETag 比对，确认本次压缩产出的字节和上次一致
+        emitVerify: async (partNo, chunks) => {
+          self.postMessage({ type: 'part-verify', partNo, md5: await md5Of(chunks) })
+        },
+      })
+      try {
+        const { partCount, zipBytes } = await compressToParts(
+          hashed.imzml,
+          hashed.ibd,
+          hashed.chunkSize,
+          msg,
+          hashed.fileBytes,
+          emitter,
+        )
+        self.postMessage({ type: 'done', partCount, zipBytes })
+      } catch (err) {
+        self.postMessage({ type: 'error', message: errorMessage(err) })
+      }
+      return
     }
   }
 }

@@ -44,10 +44,27 @@ export interface ImzmlFilePair {
   baseName: string
 }
 
+/** 单个分片正在重试。非致命 —— 重试成功后会以 `retry: null` 清除 */
+export interface PartRetryInfo {
+  partNo: number
+  /** 第几次重试，1-based */
+  attempt: number
+  maxAttempts: number
+  /** OSS 返回的原始错误，直接展示给用户 */
+  reason: string
+  nextRetryInMs: number
+}
+
 export interface UnifiedUploadProgress {
   stage: 'packing' | 'hashing' | 'preflight' | 'syncing' | 'uploading' | 'completed'
   percent: number
   message?: string
   speedStr?: string
   etaStr?: string
+  /**
+   * 分片重试告警。非致命，与 `message` 分开传 ——
+   * 旧实现把重试状态塞进 message 再用 `message.includes('Retrying')` 嗅探，
+   * 而实际文案里根本没有那个词，那段分支从来没执行过。
+   */
+  retry?: PartRetryInfo | null
 }

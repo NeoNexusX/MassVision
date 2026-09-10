@@ -1,6 +1,12 @@
 <script setup lang="ts">
 defineProps<{
   datasetName: string
+  /** 上次上传用的源文件，提示用户该选哪两个 */
+  expectedFiles: { imzmlName: string; ibdName: string } | null
+  /** 已选到匹配的文件对，可以续传了 */
+  canResume: boolean
+  /** 尚不能续传时的说明 */
+  hint: string
 }>()
 
 defineEmits<{
@@ -9,24 +15,62 @@ defineEmits<{
 }>()
 </script>
 
+<!--
+  注意：这里刻意不用 daisyUI 的 .alert。
+  .alert 是 `display:grid; grid-auto-flow:column`，布局契约是「图标 + 一块内容」两列；
+  超过两个直接子元素时多出来的会落进隐式列被压成一个字符宽。本组件是多段落卡片，
+  所以自己用 flex 布局，只借用配色。
+-->
 <template>
-  <div class="alert bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-    <div class="flex items-center gap-1.5 mb-1.5">
-      <SvgIcon type="info" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-      <span class="text-sm font-semibold text-blue-800 dark:text-blue-300">Incomplete upload detected</span>
-    </div>
-    <p class="text-base text-blue-700 dark:text-blue-300 mb-2 break-all">
-      You have a pending upload of <strong>{{ datasetName }}</strong
-      >. Resume from where it left off?
-    </p>
-    <div class="flex gap-2">
-      <button
-        class="btn btn-sm bg-blue-600 hover:bg-blue-700 border-none text-white"
-        @click="$emit('resume')"
-      >
-        Resume
-      </button>
-      <button class="btn btn-sm btn-ghost text-blue-600 dark:text-blue-400" @click="$emit('discard')">Discard</button>
+  <div
+    class="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950"
+  >
+    <div class="flex items-start gap-2.5">
+      <SvgIcon type="info" class="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+
+      <!-- min-w-0 让长文件名在这里换行，而不是把整个卡片撑开 -->
+      <div class="flex min-w-0 flex-1 flex-col gap-2">
+        <p class="text-base font-semibold text-blue-800 dark:text-blue-300">
+          Incomplete upload detected
+        </p>
+
+        <p class="text-base leading-relaxed text-blue-700 dark:text-blue-300">
+          <span class="font-semibold break-all">{{ datasetName }}</span> was only partially
+          uploaded. Re-select the same file pair below — the archive is rebuilt locally and the
+          parts already uploaded are not sent again.
+        </p>
+
+        <div
+          v-if="expectedFiles"
+          class="rounded border border-blue-200/70 bg-blue-100/50 px-2.5 py-1.5 dark:border-blue-800/70 dark:bg-blue-900/40"
+        >
+          <p class="mb-1 text-sm font-medium text-blue-700/70 dark:text-blue-300/70">
+            Required files
+          </p>
+          <ul class="flex flex-col gap-0.5 font-mono text-sm text-blue-800 dark:text-blue-200">
+            <li class="break-all">{{ expectedFiles.imzmlName }}</li>
+            <li class="break-all">{{ expectedFiles.ibdName }}</li>
+          </ul>
+        </div>
+
+        <p v-if="hint" class="text-sm text-amber-700 dark:text-amber-400">{{ hint }}</p>
+
+        <div class="mt-1 flex flex-wrap gap-2">
+          <button
+            class="btn btn-sm border-none bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300 disabled:text-white/70 dark:disabled:bg-blue-900"
+            :disabled="!canResume"
+            @click="$emit('resume')"
+          >
+            Resume
+          </button>
+          <button
+            class="btn btn-sm btn-ghost text-blue-600 dark:text-blue-400"
+            @click="$emit('discard')"
+          >
+            Discard
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
