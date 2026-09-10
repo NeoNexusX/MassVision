@@ -95,9 +95,17 @@ export function useWorkspaceDashboard() {
     }
   }
 
-  // 最近一次拉取使用的模糊筛选（filename/params），当前 UI 未接搜索框，恒为空；
-  // 留口子：二期搜索框直接改 filter ref 后调 fetchProcesses
+  // 已提交的模糊筛选。只按源文件名（filename）匹配，与 PublicDatasets 搜索一致；
+  // params 字段暂空置——RunFilter 是 AND 语义，同时发 filename+params 会互相收窄
+  // 导致几乎搜不到，所以一次只发一个字段。
   const filter = ref<ProcessRunFilter>({})
+
+  /** 提交搜索：非空则按文件名模糊匹配并回到第 1 页，空串清空筛选 */
+  function applySearch(query: string) {
+    const q = query.trim()
+    filter.value = q ? { filename: q } : {}
+    fetchProcesses({ page: 1, size: size.value })
+  }
 
   async function fetchProcesses(opts?: { page?: number; size?: number }) {
     loading.value = true
@@ -182,5 +190,6 @@ export function useWorkspaceDashboard() {
     goToPage,
     changeSize,
     deleteResult,
+    applySearch,
   }
 }
