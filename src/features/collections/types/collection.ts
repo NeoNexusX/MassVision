@@ -120,33 +120,3 @@ export interface CollectionListMeta {
 
 /** FilePublic 原始响应的别名：API 层返回前由 mapper 转成 CollectionMember */
 export type FilePublic = FilePublicResponse
-
-/* ── 以下为 mock 过渡期遗留，M2 全部页面接真实 API 后删除 ── */
-
-/** @deprecated mock 阶段列表行，见 CollectionSummary */
-export interface Collection {
-  id: string
-  name: string
-  description: string
-  isPublic: boolean
-  owner: string
-  updatedAt: string
-  datasetCount: number
-  organisms: string[]
-  datasetIds?: string[]
-}
-
-/** @deprecated mock 阶段表单提交体 */
-export interface CollectionDraft {
-  name: string
-  description: string
-  isPublic: boolean
-  datasetIds: string[]
-  organisms?: string[]
-}
-
-/** @deprecated mock 阶段列表返回信封 */
-export interface CollectionListResult {
-  data: Collection[]
-  meta: CollectionListMeta
-}

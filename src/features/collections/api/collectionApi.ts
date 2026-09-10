@@ -1,5 +1,6 @@
 import { api, auth_api, extractBackendError } from '@/shared/api/httpClient'
 import { mapCollectionDetail, mapCollectionSummary } from '../mappers/collectionMapper'
+import { isCollectionApiError } from '../types/collection'
 import type {
   CollectionApiError,
   CollectionCreatePayload,
@@ -32,6 +33,16 @@ async function unwrap<T>(fn: () => Promise<{ data: T }>): Promise<T> {
   } catch (err) {
     throw toCollectionApiError(err)
   }
+}
+
+/**
+ * 取用户可读错误文案。CollectionApiError 的 message 已是后端 detail 原文
+ * （extractBackendError 在包装时已归一化），不能再走 extractBackendError——
+ * 它把非 axios 错误直接替换成 fallback，会吞掉 409 的细分原因。
+ */
+export function collectionErrorMessage(err: any, fallback: string): string {
+  if (isCollectionApiError(err)) return err.message || err.backendMessage || fallback
+  return extractBackendError(err, fallback)
 }
 
 /** 响应信封防御归一：GET /collections 可能是纯数组或 { data } / { items } 信封 */

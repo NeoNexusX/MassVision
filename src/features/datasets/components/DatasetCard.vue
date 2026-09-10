@@ -178,7 +178,7 @@ const actionItems = computed<ActionItem[]>(() => {
   items.push(
     {
       id: 'overview',
-      icon: 'link',
+      icon: 'document-text',
       label: 'Overview',
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
       onClick: () => emit('view-overview', props.dataset.id),

@@ -27,6 +27,13 @@ export async function getDownloadRaw(fileId: string, isPublic = false): Promise<
   return res.data
 }
 
+// GET /files/{file_id}/download_raw_noauth — 公开集合页专用（免登录）。
+// 后端仅对 is_public 文件放行，私有文件 404。
+export async function getDownloadRawNoauth(fileId: string | number): Promise<DownloadRawResponse> {
+  const res = await api.get(`/files/${fileId}/download_raw_noauth`)
+  return res.data
+}
+
 // DELETE /files/{file_id}
 export async function deleteFile(fileId: string | number) {
   const res = await auth_api.delete(`/files/${fileId}`)

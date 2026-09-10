@@ -2,7 +2,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useToast } from '@/shared/composables/useToast'
 import { getConfig } from '@/shared/config/runtimeConfig'
 import { buildPageList } from '@/shared/utils/pagination'
-import { deleteCollection, listMyCollections } from '../api/collectionApi'
+import { collectionErrorMessage, deleteCollection, listMyCollections } from '../api/collectionApi'
 import type { CollectionListMeta, CollectionSortKey, CollectionSummary } from '../types/collection'
 
 // 每页条数与数据集列表一致，走全局 config（默认 10，选项 [6,10,20]）
@@ -33,7 +33,7 @@ export function useCollectionsPage() {
       all.value = await listMyCollections()
       page.value = Math.min(targetPage, meta.value.total_pages)
     } catch (err: any) {
-      error.value = err?.message || 'Failed to load collections. Please try again.'
+      error.value = collectionErrorMessage(err, 'Failed to load collections. Please try again.')
     } finally {
       loading.value = false
     }

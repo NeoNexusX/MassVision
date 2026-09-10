@@ -115,9 +115,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import type { PropType } from 'vue'
 import DatasetThumb from '@/features/collections/components/DatasetThumb.vue'
+import { useDragReorder } from '@/features/collections/composables/useDragReorder'
 import type { File } from '@/features/datasets/types/dataset'
 
 defineProps({
@@ -132,31 +132,8 @@ const emit = defineEmits<{
   (e: 'clear-all'): void
 }>()
 
-// ---- 拖拽状态（全部组件内部，不外泄）----
-const armed = ref(false)
-const dragFrom = ref(-1)
-const dragOver = ref(-1)
-
-function onDragStart(e: DragEvent, index: number) {
-  dragFrom.value = index
-  if (e.dataTransfer) {
-    e.dataTransfer.effectAllowed = 'move'
-    // Firefox 必须显式 setData 才会启动拖拽
-    e.dataTransfer.setData('text/plain', String(index))
-  }
-}
-
-function onDrop() {
-  if (dragFrom.value >= 0 && dragOver.value >= 0 && dragFrom.value !== dragOver.value) {
-    emit('reorder', dragFrom.value, dragOver.value)
-  }
-  resetDrag()
-}
-
-function resetDrag() {
-  // dragend 对取消拖拽/拖到列表外也会触发，统一在此复位
-  armed.value = false
-  dragFrom.value = -1
-  dragOver.value = -1
-}
+// ---- 拖拽状态：手柄武装模式的 DnD 调序（useDragReorder 共用逻辑）----
+const { armed, dragFrom, dragOver, onDragStart, onDrop, resetDrag } = useDragReorder(
+  (from, to) => emit('reorder', from, to),
+)
 </script>

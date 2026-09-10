@@ -6,7 +6,7 @@
     class="bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6"
   >
     <div class="flex items-center justify-between gap-3 mb-4">
-      <h2 class="text-[1.25em] font-bold text-base-content">Step 1: Choose Datasets</h2>
+      <h2 class="text-[1.25em] font-bold text-base-content">{{ title }}</h2>
       <span class="badge badge-primary badge-sm gap-1 font-medium whitespace-nowrap">
         <SvgIcon type="check" class="w-[0.9em] h-[0.9em]" />
         {{ selectedCount }} selected
@@ -35,21 +35,24 @@
             v-for="dataset in datasets"
             :key="dataset.id"
             :class="[
-              'px-3 py-2 rounded-lg cursor-pointer flex items-center gap-3 transition-colors',
-              isSelected(dataset.id)
-                ? 'bg-primary/10 dark:bg-primary/20'
-                : 'hover:bg-base-200 dark:hover:bg-slate-700',
+              'px-3 py-2 rounded-lg flex items-center gap-3 transition-colors',
+              isExcluded(dataset.id)
+                ? 'opacity-50 cursor-not-allowed'
+                : isSelected(dataset.id)
+                  ? 'bg-primary/10 dark:bg-primary/20 cursor-pointer'
+                  : 'hover:bg-base-200 dark:hover:bg-slate-700 cursor-pointer',
             ]"
-            @click="emit('toggle', dataset)"
+            @click="!isExcluded(dataset.id) && emit('toggle', dataset)"
           >
             <input
               type="checkbox"
               class="checkbox checkbox-sm checkbox-primary shrink-0"
               :checked="isSelected(dataset.id)"
+              :disabled="isExcluded(dataset.id)"
               :aria-label="`Select ${dataset.name}`"
               tabindex="-1"
               @click.stop
-              @change="emit('toggle', dataset)"
+              @change="!isExcluded(dataset.id) && emit('toggle', dataset)"
             />
             <div class="w-10 h-10 shrink-0">
               <DatasetThumb :file-id="dataset.id" :alt="`Preview of ${dataset.name}`" />
@@ -62,7 +65,14 @@
                 {{ [dataset.organism, dataset.submitter].filter(Boolean).join(' · ') || '–' }}
               </div>
             </div>
-            <div class="text-[0.85em] text-base-content/60 whitespace-nowrap tabular-nums shrink-0">
+            <!-- 已是集合成员：禁选并标注 -->
+            <span
+              v-if="isExcluded(dataset.id)"
+              class="badge badge-sm border border-base-300 bg-base-200 text-base-content/60 whitespace-nowrap shrink-0"
+            >
+              Already in collection
+            </span>
+            <div v-else class="text-[0.85em] text-base-content/60 whitespace-nowrap tabular-nums shrink-0">
               {{ formatBytes(dataset.sizeBytes) }}
             </div>
           </li>
@@ -90,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { PropType } from 'vue'
 import DatasetThumb from '@/features/collections/components/DatasetThumb.vue'
 import IconInput from '@/shared/components/IconInput.vue'
@@ -98,7 +109,7 @@ import { formatBytes } from '@/shared/utils/format'
 import type { File } from '@/features/datasets/types/dataset'
 import type { CollectionListMeta } from '@/features/collections/types/collection'
 
-defineProps({
+const props = defineProps({
   datasets: { type: Array as PropType<File[]>, required: true },
   loading: { type: Boolean, required: true },
   error: { type: String, required: true },
@@ -109,7 +120,18 @@ defineProps({
   /** 逐行判定已选（跨页已选项在回到当前页时回显勾选态） */
   isSelected: { type: Function as PropType<(id: string) => boolean>, required: true },
   selectedCount: { type: Number, required: true },
+  /** 卡片标题（Create 流程为 Step 1，overview 加成员弹窗为 Add Members） */
+  title: { type: String, default: 'Step 1: Choose Datasets' },
+  /** 已在集合中的文件 id（File.id 是 string，成员 number id 统一转 string 比较）。
+   *  命中的行禁选并标注 "Already in collection"。 */
+  excludeIds: { type: Array as PropType<(number | string)[]>, default: () => [] },
 })
+
+const excludeKeySet = computed(() => new Set(props.excludeIds.map(String)))
+
+function isExcluded(id: string): boolean {
+  return excludeKeySet.value.has(String(id))
+}
 
 const emit = defineEmits<{
   (e: 'update:query', value: string): void

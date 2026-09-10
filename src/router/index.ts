@@ -32,11 +32,26 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    // 新建集合页：从公共数据集中挑选成员、排序并填写元信息（Edit 仍走列表页弹窗）
+    // 新建集合页：从公共数据集中挑选成员、排序并填写元信息（Edit 在 overview 内嵌）
     path: '/collections/new',
     name: 'CreateCollection',
     component: () => import('../views/CreateCollectionView.vue'),
     meta: { requiresAuth: true },
+  },
+  {
+    // 集合详情页（Overview）：元数据展示 + 内嵌编辑 + 成员管理。
+    // (\d+) 与段数差异保证不会吞掉 /collections/new 与 /collections/public/:publicId
+    path: '/collections/:id(\\d+)',
+    name: 'CollectionOverview',
+    component: () => import('../views/CollectionOverviewView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    // 集合公开分享页（免登录）：用 public_id 访问，只读展示。
+    // 无 meta = 免登录（同 /datasets、/s/:encodedId 模式）
+    path: '/collections/public/:publicId',
+    name: 'PublicCollection',
+    component: () => import('../views/PublicCollectionView.vue'),
   },
   {
     path: '/overview',

@@ -3,9 +3,8 @@ import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { listFiles } from '@/features/datasets/api/datasetApi'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
 import type { File } from '@/features/datasets/types/dataset'
-import { extractBackendError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
-import { createCollection } from '../api/collectionApi'
+import { collectionErrorMessage, createCollection } from '../api/collectionApi'
 import { useOrderedSelection } from './useOrderedSelection'
 
 /**
@@ -104,8 +103,8 @@ export function useCreateCollection() {
       saved.value = true
       router.replace(`/collections/${detail.id}`)
     } catch (err: any) {
-      // 409 invalid collection members 等：detail 原文已归一进 message
-      showToast(extractBackendError(err, 'Failed to create collection'), 'error')
+      // 409 invalid collection members 等：CollectionApiError.message 是后端 detail 原文
+      showToast(collectionErrorMessage(err, 'Failed to create collection'), 'error')
     } finally {
       saving.value = false
     }
