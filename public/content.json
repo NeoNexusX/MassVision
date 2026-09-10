@@ -36,6 +36,16 @@
   },
   "timeline": [
     {
+      "date": "September 10",
+      "version": "0.7.0",
+      "features": [
+        "Collections hub: curate public imzML datasets into shareable collections",
+        "Collection overview with academic metadata, member management and drag-to-reorder",
+        "Public collection share links accessible without sign-in",
+        "Process list fuzzy filtering by filename and parameters"
+      ]
+    },
+    {
       "date": "August 16",
       "version": "0.6.1",
       "features": [
