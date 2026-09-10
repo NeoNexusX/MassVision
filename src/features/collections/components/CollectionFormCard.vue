@@ -19,7 +19,7 @@
           maxlength="80"
           class="input input-bordered w-full text-[0.95em]"
           placeholder="e.g. Human Kidney MALDI Atlas"
-          @update="$emit('update:name', ($event.target as HTMLInputElement).value)"
+          @input="$emit('update:name', ($event.target as HTMLInputElement).value)"
         />
       </label>
 
@@ -34,7 +34,7 @@
           maxlength="300"
           class="textarea textarea-bordered w-full text-[0.95em] resize-none"
           placeholder="What datasets does this collection bring together?"
-          @update="$emit('update:description', ($event.target as HTMLTextAreaElement).value)"
+          @input="$emit('update:description', ($event.target as HTMLTextAreaElement).value)"
         ></textarea>
         <span class="text-right text-xs text-base-content/50">
           {{ description.length }}/300

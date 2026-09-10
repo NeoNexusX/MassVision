@@ -114,8 +114,9 @@
         <span>View Collection</span>
       </button>
 
-      <!-- 列表 = 我的集合，owner 必是当前用户 -->
+      <!-- 列表含他人集合：仅 owner/admin 可删除 -->
       <button
+        v-if="canEdit"
         class="flex items-center gap-2 text-[1.0em] font-medium p-1 rounded
           text-base-content/80 hover:text-error transition-colors"
         title="Delete collection"
@@ -135,6 +136,8 @@ import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlace
 
 const props = defineProps<{
   collection: CollectionSummary
+  /** 当前用户是 owner 或 admin（控制 Delete 显隐） */
+  canEdit?: boolean
 }>()
 
 defineEmits<{

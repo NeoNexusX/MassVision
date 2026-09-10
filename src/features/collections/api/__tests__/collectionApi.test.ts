@@ -14,7 +14,7 @@ import {
   deleteCollection,
   getCollection,
   getPublicCollection,
-  listMyCollections,
+  listCollections,
   removeMembers,
   reorderMembers,
   updateCollection,
@@ -41,20 +41,20 @@ beforeEach(() => {
 })
 
 describe('collectionApi', () => {
-  it('listMyCollections normalizes plain-array / {data} / {items} envelopes', async () => {
+  it('listCollections normalizes plain-array / {data} / {items} envelopes', async () => {
     const row = { id: 1, name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
 
     authGet.mockResolvedValueOnce({ data: [row] })
-    expect(await listMyCollections()).toHaveLength(1)
+    expect(await listCollections()).toHaveLength(1)
 
     authGet.mockResolvedValueOnce({ data: { data: [row, row] } })
-    expect(await listMyCollections()).toHaveLength(2)
+    expect(await listCollections()).toHaveLength(2)
 
     authGet.mockResolvedValueOnce({ data: { items: [row] } })
-    expect(await listMyCollections()).toHaveLength(1)
+    expect(await listCollections()).toHaveLength(1)
 
     authGet.mockResolvedValueOnce({ data: {} })
-    expect(await listMyCollections()).toEqual([])
+    expect(await listCollections()).toEqual([])
   })
 
   it('getCollection maps the detail response', async () => {

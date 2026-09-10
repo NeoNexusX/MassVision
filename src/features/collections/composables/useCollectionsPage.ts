@@ -1,8 +1,9 @@
 import { computed, onMounted, ref, watch } from 'vue'
+import { useAuthStore } from '@/shared/auth/authStore'
 import { useToast } from '@/shared/composables/useToast'
 import { getConfig } from '@/shared/config/runtimeConfig'
 import { buildPageList } from '@/shared/utils/pagination'
-import { collectionErrorMessage, deleteCollection, listMyCollections } from '../api/collectionApi'
+import { collectionErrorMessage, deleteCollection, listCollections } from '../api/collectionApi'
 import type { CollectionListMeta, CollectionSortKey, CollectionSummary } from '../types/collection'
 
 // 每页条数与数据集列表一致，走全局 config（默认 10，选项 [6,10,20]）
@@ -10,12 +11,14 @@ import type { CollectionListMeta, CollectionSortKey, CollectionSummary } from '.
 /**
  * Collections 列表页装配：取数（真实 API）/ 搜索 / 排序 / 分页 / 删除。
  *
- * 后端 GET /collections 返回「我的集合」全量列表（按 updated_at 倒序，无
- * 分页/搜索/排序参数），因此这里一次拉全量后用 computed 链在本地做
+ * 后端 GET /collections 返回**全部用户的公开集合**（需登录；按 updated_at 倒序，
+ * 无分页/搜索/排序参数），因此这里一次拉全量后用 computed 链在本地做
  * 过滤 → 排序 → 分页；后端补上这些参数后可平滑切回服务端查询。
+ * 列表含他人集合，写操作（删除）仅对 owner/admin 开放（canEdit）。
  * Create 走独立页面 /collections/new；Edit 内嵌在 overview 页。
  */
 export function useCollectionsPage() {
+  const auth = useAuthStore()
   const { showToast } = useToast()
 
   const all = ref<CollectionSummary[]>([])
@@ -26,11 +29,15 @@ export function useCollectionsPage() {
   const search = ref('')
   const sort = ref<CollectionSortKey>('updated_desc')
 
+  // 所有者或管理员才能删除/编辑（列表含他人集合，与后端写权限一致）
+  const canEdit = (c: CollectionSummary) =>
+    c.ownerUsername === auth.user?.username || auth.isAdmin
+
   async function fetchPage(targetPage = page.value) {
     loading.value = true
     error.value = ''
     try {
-      all.value = await listMyCollections()
+      all.value = await listCollections()
       page.value = Math.min(targetPage, meta.value.total_pages)
     } catch (err: any) {
       error.value = collectionErrorMessage(err, 'Failed to load collections. Please try again.')
@@ -122,6 +129,7 @@ export function useCollectionsPage() {
     size,
     search,
     pagination,
+    canEdit,
     fetchPage,
     handleSearch,
     clearSearch,

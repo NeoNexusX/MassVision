@@ -13,6 +13,11 @@ defineProps({
   pagination: { type: Array as PropType<(number | string)[]>, required: true },
   /** 当前已应用的搜索词（区分「还没有集合」与「搜索无结果」两种空态） */
   searchApplied: { type: String, required: true },
+  /** 逐卡片判定 Delete 显隐（所有者或管理员；列表含他人集合） */
+  canEdit: {
+    type: Function as PropType<(collection: CollectionSummary) => boolean>,
+    required: true,
+  },
 })
 
 const emit = defineEmits<{
@@ -88,6 +93,7 @@ const emit = defineEmits<{
       >
         <CollectionCard
           :collection="collection"
+          :can-edit="canEdit(collection)"
           @view="$emit('view', $event)"
           @delete="$emit('delete', $event)"
         />

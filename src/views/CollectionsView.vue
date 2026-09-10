@@ -31,6 +31,7 @@
         :size="size"
         :pagination="pagination"
         :search-applied="search"
+        :can-edit="canEdit"
         @view="handleView"
         @delete="(id: number) => deleteConfirm.open(String(id))"
         @create="openCreate"
@@ -72,6 +73,7 @@ const {
   size,
   search,
   pagination,
+  canEdit,
   handleSearch,
   clearSearch,
   handleSort,

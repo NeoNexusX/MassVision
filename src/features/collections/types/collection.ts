@@ -10,7 +10,7 @@ import type { FilePublicResponse } from '@/features/datasets/types/dataset'
  *   避免与二期编辑表单做双向映射）；与分页 meta 的 snake 先例一致。
  */
 
-/** GET /collections 列表行（我的集合，后端按 updated_at 倒序） */
+/** GET /collections 列表行（全部用户的公开集合，需登录；后端按 updated_at 倒序） */
 export interface CollectionSummary {
   id: number
   name: string

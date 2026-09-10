@@ -53,8 +53,8 @@ function normalizeList(body: any): any[] {
   return []
 }
 
-// GET /collections — 我的集合列表（按 updated_at 倒序，后端无分页/搜索参数）
-export async function listMyCollections(): Promise<CollectionSummary[]> {
+// GET /collections — 全部用户的公开集合（需登录；按 updated_at 倒序，后端无分页/搜索参数）
+export async function listCollections(): Promise<CollectionSummary[]> {
   const body = await unwrap(() => auth_api.get('/collections'))
   return normalizeList(body).map(mapCollectionSummary)
 }
