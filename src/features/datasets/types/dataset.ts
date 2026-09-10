@@ -73,6 +73,19 @@ export interface DownloadRawResponse {
   files: DownloadRawEntry[]
 }
 
+// Collection 响应中的成员行（后端模型 FilePublic，snake_case 原样）。
+// 字段清单以接口实测为准；消费方（collectionMapper）对缺字段做默认值兜底。
+export interface FilePublicResponse {
+  file_id: number
+  filename?: string | null
+  size?: number | null
+  status?: string | null
+  is_public?: boolean
+  experiment_type?: string | null
+  organism?: string | null
+  [key: string]: unknown
+}
+
 // GET /stats/processing - Processing statistics for current user
 export interface ProcessingStats {
   processing: number

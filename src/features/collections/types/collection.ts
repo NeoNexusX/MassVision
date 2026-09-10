@@ -1,46 +1,151 @@
-/** 集合（Collection）：把相关 dataset 组织在一起的策展容器。设计阶段仅前端使用。 */
-export interface Collection {
-  id: string
+import type { FilePublicResponse } from '@/features/datasets/types/dataset'
+
+/**
+ * Collection（文件集合）：把公开 imzML 文件组织成带学术元数据的策展容器。
+ * 集合不复制文件，只是"文件指针 + 顺序"；member_count / total_size 实时聚合。
+ *
+ * 类型策略（混合）：
+ * - 顶层业务字段 camelCase，由 collectionMapper 从 snake_case 响应转换；
+ * - 学术元数据块 CollectionMetadata 保持 snake_case 透传（本期只读展示，
+ *   避免与二期编辑表单做双向映射）；与分页 meta 的 snake 先例一致。
+ */
+
+/** GET /collections 列表行（我的集合，后端按 updated_at 倒序） */
+export interface CollectionSummary {
+  id: number
   name: string
-  /** 1–3 行简介，列表卡片上 line-clamp-3 截断 */
-  description: string
-  /** Public / Private 可见性 */
-  isPublic: boolean
-  /** 创建者用户名 */
-  owner: string
-  /** 最近更新时间（ISO 字符串），列表默认按此倒序 */
-  updatedAt: string
-  /** 成员 dataset 数量 */
-  datasetCount: number
-  /** 覆盖的物种（去重），卡片上最多展示 3 个 chip，其余折叠为 “+N more” */
-  organisms: string[]
-  /** 有序成员 dataset id。后端就绪后列表接口只返回 datasetCount，
-   *  成员列表应由集合详情接口提供；mock 阶段存在 store 里供 Edit 预选复用。 */
-  datasetIds?: string[]
+  title: string | null
+  /** 列表行是否携带 description 未确认；缺省 null，卡片隐藏简介 */
+  description: string | null
+  memberCount: number
+  /** 字节，展示层格式化 */
+  totalSize: number
+  ownerUsername: string
+  /** 卡片物种 chips；列表响应未确认携带，缺省为空数组 */
+  organism: string[]
+  createdAt: string | null
+  updatedAt: string | null
+  /** 免登录分享 id（32 位 hex）。后端是否在响应中返回未确认，无则分享入口隐藏 */
+  publicId: string | null
 }
 
+/** 集合详情：元数据 + 有序成员。members 已按 position 排序，前端不重排 */
+export interface CollectionDetail extends CollectionSummary {
+  metadata: CollectionMetadata
+  members: CollectionMember[]
+}
+
+/** 集合成员（由 FilePublic 映射；id 保持后端的 number） */
+export interface CollectionMember {
+  id: number
+  filename: string
+  size: number
+  status: string
+  isPublic: boolean
+  experimentType: string | null
+}
+
+/**
+ * 学术元数据块：snake_case = 后端原样透传，不做 camel 转换。
+ * 二期编辑表单以 constants/metadataFields.ts 的字段定义表为单一事实来源。
+ */
+export interface CollectionMetadata {
+  name: string
+  description?: string | null
+  member_type?: string | null
+  collection_type?: string | null
+  title?: string | null
+  doi?: string[]
+  access?: string[]
+  journal_name?: string | null
+  abstract?: string | null
+  cite_information?: string | null
+  organism?: string[]
+  organism_part?: string[]
+  sample_stabilization?: string[]
+  sample_growth_conditions?: string[]
+  tissue_modification?: string[]
+  polarity?: string[]
+  ionisation_source?: string[]
+  analyzer?: string[]
+  pixel_size_horizontal?: string[]
+  pixel_size_vertical?: string[]
+  resolving_power?: string[]
+  mz?: string[]
+}
+
+/** POST /collections 请求体；file_ids 数组顺序 = position 1..n */
+export interface CollectionCreatePayload {
+  name: string
+  description?: string
+  file_ids?: number[]
+}
+
+/** PATCH /collections/{id} 请求体；exclude_unset 语义：只放要改的字段 */
+export interface CollectionPatchPayload {
+  name?: string
+  description?: string
+}
+
+/** DELETE /collections/{id}/members 响应：removed/skipped 供对账 */
+export interface MemberRemovalResult {
+  collectionId: number
+  removed: number[]
+  skipped: number[]
+}
+
+/**
+ * collections 模块的领域错误通道：携带 HTTP 状态码与后端 detail 原文，
+ * 供 composable 判定 409（三种成员冲突）/403/404 的细分文案。
+ * 不改全局 httpClient。
+ */
+export interface CollectionApiError extends Error {
+  status?: number
+  backendMessage: string
+}
+
+export function isCollectionApiError(e: unknown): e is CollectionApiError {
+  return e instanceof Error && 'backendMessage' in e
+}
+
+/** 列表页本地排序键（后端无排序参数，前端全量拉取后本地排） */
 export type CollectionSortKey = 'updated_desc' | 'name_asc' | 'count_desc'
 
-/** Create / Edit 提交的表单内容 */
-export interface CollectionDraft {
-  name: string
-  description: string
-  isPublic: boolean
-  /** 有序成员 dataset id 列表，对应未来 POST /collections 的 dataset_ids 字段。
-   *  Edit 弹窗透传原集合的 datasetIds 以保留成员。 */
-  datasetIds: string[]
-  /** 从成员 dataset.organism 汇总（去重、按首次出现排序）。
-   *  真实后端会按 dataset_ids 自行汇总，无需前端传；mock 用它组装列表卡片。 */
-  organisms?: string[]
-}
-
-/** 与后端列表接口对齐的分页元信息（形状同 listFiles 返回的 meta） */
+/** 与 PaginationFooter / buildPageList 对齐的分页元信息（列表页本地拼装） */
 export interface CollectionListMeta {
   current_page: number
   total_pages: number
   total_records: number
 }
 
+/** FilePublic 原始响应的别名：API 层返回前由 mapper 转成 CollectionMember */
+export type FilePublic = FilePublicResponse
+
+/* ── 以下为 mock 过渡期遗留，M2 全部页面接真实 API 后删除 ── */
+
+/** @deprecated mock 阶段列表行，见 CollectionSummary */
+export interface Collection {
+  id: string
+  name: string
+  description: string
+  isPublic: boolean
+  owner: string
+  updatedAt: string
+  datasetCount: number
+  organisms: string[]
+  datasetIds?: string[]
+}
+
+/** @deprecated mock 阶段表单提交体 */
+export interface CollectionDraft {
+  name: string
+  description: string
+  isPublic: boolean
+  datasetIds: string[]
+  organisms?: string[]
+}
+
+/** @deprecated mock 阶段列表返回信封 */
 export interface CollectionListResult {
   data: Collection[]
   meta: CollectionListMeta
