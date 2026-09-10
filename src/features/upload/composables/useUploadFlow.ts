@@ -2,15 +2,20 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useToast } from '@/shared/composables/useToast'
 import { formatBytes } from '@/shared/utils/format'
 import {
-  abortImzmlUpload,
   MIN_PUBLIC_IBD_SIZE,
+  MAX_UPLOAD_BYTES,
+  tooLargeMessage,
   parseImzmlUploadMetadata,
   uploadImzmlDataset,
+  sourceIdentityOf,
+  sourceMatches,
   type ImzmlFilePair,
   type UnifiedUploadProgress,
 } from '@/features/upload/services/imzmlUploadService'
+import type { PartRetryInfo } from '@/features/upload/utils/imzmlHelper'
 import { useUploadMetadataForm } from '@/features/upload/composables/useUploadMetadataForm'
 import { useUploadResume } from '@/features/upload/composables/useUploadResume'
+import { isAbortLike, makeAbortReason } from '@/features/upload/utils/uploadAbort'
 
 type UploadStage = 'select' | 'uploading' | 'success'
 
@@ -30,12 +35,23 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   const uploading = ref(false)
   const progress = ref(0)
   const uploadMessage = ref('')
-  const error = ref('')
+  /**
+   * 三种「出错」语义分开，不再共用一个 ref。
+   *
+   * 旧实现让选文件的报错和上传的致命错误挤在同一个 `error` 里，
+   * 于是一次失败的上传结束后，红框会挂在文件选择器上，读起来像是
+   * 「你选的文件有问题」。
+   */
+  const pickerError = ref('') // 选文件不合法 / 超限
+  const uploadError = ref('') // 上传致命失败
+  const retryInfo = ref<PartRetryInfo | null>(null) // 分片重试中，非致命
   const stage = ref<UploadStage>('select')
   const parsingMetadata = ref(false)
   const speed = ref('')
   const eta = ref('')
   const pickerResetKey = ref(0)
+  /** 已发出中止、正在等在途分片收尾。见 abortUpload 的注释 */
+  const aborting = ref(false)
   let abortController: AbortController | null = null
   const showPublicConfirm = ref(false)
 
@@ -45,15 +61,39 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     return formatBytes(selectedPair.value.ibd.size + selectedPair.value.imzml.size)
   })
 
+  /**
+   * 续传就绪判断。压缩产物不再缓存到本地，续传要重新压一遍，
+   * 所以必须先拿到**同一对**源文件；名称+大小在这里先挡一道，
+   * 最终判据是上传流水线里的哈希比对。
+   */
+  const resumeReady = computed(() => {
+    if (!resumeState.pendingResume.value || !selectedPair.value) return false
+    const expected = resumeState.pendingSource.value
+    return !!expected && sourceMatches(expected, sourceIdentityOf(selectedPair.value))
+  })
+
+  const resumeHint = computed(() => {
+    if (!resumeState.pendingResume.value) return ''
+    if (!selectedPair.value) {
+      return 'Select the same .imzML and .ibd pair below to continue this upload.'
+    }
+    return resumeReady.value ? '' : 'The selected files do not match this pending upload.'
+  })
+
+  const expectedResumeFiles = computed(() => {
+    const source = resumeState.pendingSource.value
+    return source ? { imzmlName: source.imzmlName, ibdName: source.ibdName } : null
+  })
+
   // Methods
   const handleProgress = (progressInfo: UnifiedUploadProgress) => {
     progress.value = progressInfo.percent
     uploadMessage.value = progressInfo.message || `Stage: ${progressInfo.stage}`
     speed.value = progressInfo.speedStr || ''
     eta.value = progressInfo.etaStr || ''
-    if (progressInfo.message?.includes('Fail') || progressInfo.message?.includes('Retrying')) {
-      error.value = progressInfo.message
-    }
+    // undefined 表示这条消息不携带重试状态，保持现状；只有显式的 null 才清除告警。
+    // 重试期间压缩进度照常流动，若无差别覆盖会把刚亮起的告警立刻抹掉。
+    if (progressInfo.retry !== undefined) retryInfo.value = progressInfo.retry
   }
 
   const resetAll = () => {
@@ -63,7 +103,10 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     speed.value = ''
     eta.value = ''
     uploadMessage.value = ''
-    error.value = ''
+    pickerError.value = ''
+    uploadError.value = ''
+    retryInfo.value = null
+    aborting.value = false
     stage.value = 'select'
     abortController = null
     metadataForm.resetForm()
@@ -78,12 +121,21 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
 
   const handlePairError = (message: string) => {
     showToast(message, 'error')
+    pickerError.value = message
     selectedPair.value = null
     pickerResetKey.value += 1
   }
 
   const handlePairSelected = async (pair: ImzmlFilePair) => {
-    error.value = ''
+    // File.size 选完就有，没必要等到点上传才告诉用户超限
+    const sourceBytes = pair.imzml.size + pair.ibd.size
+    if (sourceBytes > MAX_UPLOAD_BYTES) {
+      handlePairError(tooLargeMessage(sourceBytes))
+      return
+    }
+
+    pickerError.value = ''
+    uploadError.value = ''
     selectedPair.value = pair
     metadataForm.resetParsedFields()
     parsingMetadata.value = true
@@ -103,7 +155,9 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     stage.value = 'uploading'
     progress.value = 0
     uploadMessage.value = message
-    error.value = ''
+    uploadError.value = ''
+    retryInfo.value = null
+    aborting.value = false
     abortController = new AbortController()
   }
 
@@ -121,23 +175,31 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
 
   const handleUploadError = (err: any, fallbackMessage: string) => {
     console.error(fallbackMessage, err)
-    if (err.name === 'AbortError' || err.name === 'cancel') {
+    if (isAbortLike(err)) {
       showToast('Upload safely aborted', 'info')
-      error.value = 'User aborted upload'
+      uploadError.value =
+        'Upload aborted and the uploaded parts were discarded. A part that was already in ' +
+        'flight cannot be cancelled by the browser and may keep uploading in the background ' +
+        'for a minute or two.'
     } else {
-      error.value = err.message || fallbackMessage
-      showToast(error.value, 'error')
+      uploadError.value = err.message || fallbackMessage
+      showToast(uploadError.value, 'error')
     }
+    retryInfo.value = null
+    aborting.value = false
     stage.value = 'select'
     resumeState.checkResume()
   }
 
   const resumeUpload = async () => {
+    if (!selectedPair.value || !resumeReady.value) return
+    const pair = selectedPair.value
     resumeState.pendingResume.value = false
     startUploading('Resuming upload...')
 
     try {
       const result = await uploadImzmlDataset({
+        files: pair,
         datasetName: resumeState.pendingDatasetName.value,
         signal: abortController!.signal,
         resume: true,
@@ -152,12 +214,19 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     }
   }
 
+  /**
+   * 用户主动放弃。带上 'user-cancel' 意图，pipeline 的 catch 据此
+   * 作废 OSS 分片并清空分片轮次（组件卸载走的是另一条分支，会保留它们）。
+   *
+   * 不在这里清 abortController —— doUpload/resumeUpload 的 finally 负责。
+   */
   const abortUpload = () => {
-    abortImzmlUpload()
-    if (abortController) {
-      abortController.abort()
-      abortController = null
-    }
+    if (aborting.value) return
+    // 中止是同步的：压缩流水线当场 reject，作废分片的 DELETE 丢到后台，
+    // 一个 tick 内就回到 select 阶段。所以 aborting 只剩防连点这一个作用，
+    // 用户看得见的说明放在中止后的 uploadError 里（后台残留流量那句）。
+    aborting.value = true
+    abortController?.abort(makeAbortReason('user-cancel'))
   }
 
   const confirmAndUpload = async () => {
@@ -219,12 +288,15 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   // Lifecycle
   onMounted(resumeState.checkResume)
 
-  // 组件卸载时中止上传，避免后台继续浪费带宽 + 回调已销毁组件
+  /**
+   * 组件卸载时中止上传，避免后台继续浪费带宽 + 回调已销毁的组件。
+   *
+   * 意图是 'component-unmount' 而非 'user-cancel'：这不是用户放弃，
+   * 已传到 OSS 的分片和续传会话都要原样保留，下次进来可以接着传。
+   */
   onBeforeUnmount(() => {
-    if (abortController) {
-      abortController.abort()
-      abortController = null
-    }
+    abortController?.abort(makeAbortReason('component-unmount'))
+    abortController = null
   })
 
   return {
@@ -234,13 +306,19 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     uploading,
     progress,
     uploadMessage,
-    error,
+    pickerError,
+    uploadError,
+    retryInfo,
+    aborting,
     stage,
     parsingMetadata,
     speed,
     eta,
     pickerResetKey,
     formattedSize,
+    resumeReady,
+    resumeHint,
+    expectedResumeFiles,
     handlePairSelected,
     handlePairError,
     confirmAndUpload,
