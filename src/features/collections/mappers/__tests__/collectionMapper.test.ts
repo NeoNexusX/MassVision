@@ -1,23 +1,42 @@
 import { describe, expect, it } from 'vitest'
 import { mapCollectionDetail, mapCollectionSummary } from '../collectionMapper'
 
-const detailRaw = {
+// 真实后端（GET /collections）把元数据平铺在顶层，没有嵌套 metadata 对象
+const flatRaw = {
   id: 7,
+  public_id: 'a'.repeat(32),
+  owner_id: 3,
+  owner_username: 'lyk',
   name: 'Mouse kidney MSI',
   description: 'A curated set',
+  member_type: '',
+  collection_type: '',
+  title: 'A title',
+  doi: ['10.1000/xyz'],
+  access: [],
+  journal_name: 'Nature',
+  abstract: 'An abstract',
+  cite_information: '',
+  organism: ['mouse'],
+  organism_part: ['kidney'],
+  sample_stabilization: [],
+  sample_growth_conditions: [],
+  tissue_modification: [],
+  polarity: ['negative'],
+  ionisation_source: [],
+  analyzer: ['FTICR'],
+  pixel_size_horizontal: [],
+  pixel_size_vertical: [],
+  resolving_power: [],
+  mz: [],
   member_count: 3,
   total_size: 1024,
-  owner_username: 'lyk',
-  created_at: '2026-09-01T00:00:00Z',
-  updated_at: '2026-09-09T00:00:00Z',
-  public_id: 'a'.repeat(32),
-  metadata: {
-    name: 'Mouse kidney MSI',
-    description: 'A curated set',
-    doi: ['10.1000/xyz'],
-    organism: ['mouse'],
-    analyzer: ['FTICR'],
-  },
+  created_at: '2026-09-01T00:00:00',
+  updated_at: '2026-09-09T00:00:00',
+}
+
+const detailRaw = {
+  ...flatRaw,
   members: [
     { file_id: 42, filename: 'kidney1.imzML', size: 100, status: 'completed', is_public: true, experiment_type: 'imzML' },
     { file_id: 7 },
@@ -25,7 +44,7 @@ const detailRaw = {
 }
 
 describe('mapCollectionDetail', () => {
-  it('maps top-level snake_case into camelCase and keeps metadata as-is', () => {
+  it('maps top-level snake_case into camelCase', () => {
     const d = mapCollectionDetail(detailRaw)
 
     expect(d.id).toBe(7)
@@ -33,10 +52,31 @@ describe('mapCollectionDetail', () => {
     expect(d.totalSize).toBe(1024)
     expect(d.ownerUsername).toBe('lyk')
     expect(d.publicId).toBe('a'.repeat(32))
-    expect(d.updatedAt).toBe('2026-09-09T00:00:00Z')
-    // metadata 块透传不转 camel
-    expect(d.metadata).toEqual(detailRaw.metadata)
+    expect(d.updatedAt).toBe('2026-09-09T00:00:00')
+    expect(d.title).toBe('A title')
+  })
+
+  it('extracts the flat metadata fields from the top level', () => {
+    const d = mapCollectionDetail(detailRaw)
+
+    // 后端平铺返回，元数据不能被丢掉（此前误以为嵌套在 raw.metadata 下）
     expect(d.metadata.doi).toEqual(['10.1000/xyz'])
+    expect(d.metadata.organism).toEqual(['mouse'])
+    expect(d.metadata.analyzer).toEqual(['FTICR'])
+    expect(d.metadata.journal_name).toBe('Nature')
+    expect(d.metadata.name).toBe('Mouse kidney MSI')
+  })
+
+  it('still supports a nested metadata object if the backend switches to one', () => {
+    const nested = mapCollectionDetail({
+      id: 7,
+      name: 'X',
+      metadata: { name: 'X', doi: ['10.1/x'], organism: ['rat'] },
+      members: [],
+    })
+
+    expect(nested.metadata.doi).toEqual(['10.1/x'])
+    expect(nested.metadata.organism).toEqual(['rat'])
   })
 
   it('maps members defensively: missing fields get defaults', () => {
@@ -61,46 +101,28 @@ describe('mapCollectionDetail', () => {
     })
   })
 
-  it('falls back to top-level organism when the list row lacks it', () => {
-    const d = mapCollectionDetail({ ...detailRaw, organism: ['rat', 'mouse'] })
-    expect(d.organism).toEqual(['rat', 'mouse'])
-  })
-
-  it('falls back to metadata.organism when neither top-level organism nor members exist', () => {
-    const d = mapCollectionDetail({ ...detailRaw, organism: undefined })
-    expect(d.organism).toEqual(['mouse'])
-  })
-
   it('tolerates empty payload', () => {
     const d = mapCollectionDetail({})
     expect(d.id).toBeUndefined()
     expect(d.memberCount).toBe(0)
     expect(d.members).toEqual([])
-    expect(d.metadata).toEqual({ name: '' })
+    expect(d.metadata.name).toBe('')
   })
 })
 
 describe('mapCollectionSummary', () => {
-  it('maps list rows without touching members', () => {
-    const s = mapCollectionSummary({
-      id: 1,
-      name: 'X',
-      member_count: 2,
-      total_size: 5,
-      owner_username: 'u',
-      organism: ['mouse'],
-      updated_at: '2026-09-10T00:00:00Z',
-    })
+  it('maps flat list rows (real GET /collections shape)', () => {
+    const s = mapCollectionSummary(flatRaw)
 
     expect(s).toMatchObject({
-      id: 1,
-      name: 'X',
-      memberCount: 2,
-      totalSize: 5,
-      ownerUsername: 'u',
+      id: 7,
+      name: 'Mouse kidney MSI',
+      title: 'A title',
+      memberCount: 3,
+      totalSize: 1024,
+      ownerUsername: 'lyk',
       organism: ['mouse'],
-      publicId: null,
-      title: null,
+      publicId: 'a'.repeat(32),
     })
   })
 })

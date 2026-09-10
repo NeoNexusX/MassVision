@@ -1,4 +1,5 @@
 import type { FilePublicResponse } from '@/features/datasets/types/dataset'
+import { METADATA_FIELDS } from '../constants/metadataFields'
 import type {
   CollectionDetail,
   CollectionMember,
@@ -7,7 +8,7 @@ import type {
 } from '../types/collection'
 
 /**
- * Collection 响应映射：顶层 snake→camel；metadata 块原样透传（snake_case），
+ * Collection 响应映射：顶层 snake→camel；元数据字段原样透传（snake_case），
  * 与 types/collection.ts 的混合策略一致。
  */
 
@@ -22,12 +23,29 @@ function mapFilePublicToMember(raw: FilePublicResponse): CollectionMember {
   }
 }
 
+/**
+ * 提取学术元数据块。后端把元数据字段**平铺在响应顶层**（实测 GET /collections：
+ * name/doi/organism/analyzer… 与 id/member_count 同级，没有嵌套的 metadata 对象），
+ * 因此以 metadataFields 表为字段清单从顶层挑选；若将来改为嵌套 metadata 对象也兼容。
+ */
+function toMetadata(raw: any): CollectionMetadata {
+  const nested = raw?.metadata
+  const source =
+    nested && typeof nested === 'object' && Object.keys(nested).length > 0 ? nested : raw
+  const out: Record<string, unknown> = {}
+  for (const field of METADATA_FIELDS) {
+    if (source?.[field.key] !== undefined) out[field.key] = source[field.key]
+  }
+  if (!out.name) out.name = raw?.name || ''
+  return out as unknown as CollectionMetadata
+}
+
 function toSummary(raw: any): CollectionSummary {
-  const metadata = (raw?.metadata ?? {}) as CollectionMetadata
+  const metadata = toMetadata(raw)
   return {
     id: raw.id,
     name: raw.name || '',
-    title: raw.title ?? null,
+    title: raw.title || null,
     description: raw?.description ?? metadata.description ?? null,
     memberCount: raw.member_count ?? 0,
     totalSize: raw.total_size ?? 0,
@@ -48,8 +66,7 @@ export function mapCollectionDetail(raw: any): CollectionDetail {
   const members = Array.isArray(raw?.members) ? raw.members : []
   return {
     ...toSummary(raw),
-    // metadata 块透传：后端返回什么就存什么，展示由 metadataFields 表驱动
-    metadata: (raw?.metadata ?? { name: raw?.name || '' }) as CollectionMetadata,
+    metadata: toMetadata(raw),
     members: members.map(mapFilePublicToMember),
   }
 }
