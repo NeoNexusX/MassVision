@@ -198,6 +198,5 @@ export function createDefaultDatasetFilters() {
     maldi_matrix: '',
     maldi_matrix_application: '',
     solvent: '',
-    status: [] as string[],
   }
 }

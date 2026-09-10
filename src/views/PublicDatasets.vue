@@ -32,7 +32,6 @@ const {
   pagination,
   handleSort,
   handleSearch,
-  handleStatusFilter,
   handleApplyFilters,
   goToPage,
   changeSize,
@@ -96,7 +95,6 @@ const handleUploadSuccess = (_datasetName: string) => {
         search-placeholder="Search Datasets"
         @upload="handleUpload"
         @search="handleSearch"
-        @filter-status="handleStatusFilter"
         @apply-filters="handleApplyFilters"
         @sort="handleSort"
       />

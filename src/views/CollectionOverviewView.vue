@@ -247,7 +247,7 @@ async function copyShareLink() {
 const addOpen = ref(false)
 
 const {
-  datasets: pickerDatasets,
+  datasets: rawPickerDatasets,
   loading: pickerLoading,
   error: pickerError,
   meta: pickerMeta,
@@ -258,8 +258,12 @@ const {
   goToPage: pickerGoToPage,
   changeSize: pickerChangeSize,
 } = useDatasetList((filters, page, size) => listFiles(filters, page, size, true), {
-  defaultFilters: { filename: '', experiment_type: 'imzML', status: ['completed'] },
+  defaultFilters: { filename: '', experiment_type: 'imzML' },
 })
+// 后端筛选参数不含 status，completed 前端兜底过滤（与创建页一致）
+const pickerDatasets = computed(() =>
+  rawPickerDatasets.value.filter((d) => d.status === 'completed'),
+)
 const pickerSelection = useOrderedSelection<File>()
 const pickerQuery = ref('')
 

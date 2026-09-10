@@ -42,7 +42,7 @@ export function useDatasetListPage(
     initialDesc: true,
   })
 
-  const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSize } =
+  const { handleSearch, handleApplyFilters, goToPage, changeSize } =
     useDatasetListRouteState({
       page,
       size,
@@ -73,7 +73,6 @@ export function useDatasetListPage(
     fetchFiles,
     handleSort,
     handleSearch,
-    handleStatusFilter,
     handleApplyFilters,
     goToPage,
     changeSize,

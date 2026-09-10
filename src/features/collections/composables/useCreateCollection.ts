@@ -29,7 +29,7 @@ export function useCreateCollection() {
   // ---- 1) 选择器：可加入集合的公开 imzML 数据集（已完成上传）----
   // applyFilters 是 Object.assign 合并语义，搜索只改 filename，固定键不会被冲掉
   const {
-    datasets,
+    datasets: rawDatasets,
     loading,
     error,
     meta,
@@ -43,9 +43,15 @@ export function useCreateCollection() {
     defaultFilters: {
       filename: '',
       experiment_type: 'imzML',
-      status: ['completed'],
     },
   })
+
+  // 后端 list_files 的筛选参数不含 status（已确认），completed 只能前端兜底过滤，
+  // 避免把 uploading/failed 的文件选进集合后在保存时撞 409。
+  // 注意 meta 仍是后端未过滤的总数，极端情况下分页条与实际行数会略有出入。
+  const datasets = computed(() =>
+    rawDatasets.value.filter((d) => d.status === 'completed'),
+  )
 
   const datasetQuery = ref('')
 

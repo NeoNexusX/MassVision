@@ -4,11 +4,11 @@
   >
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full md:w-auto">
       <div class="flex flex-1 items-center gap-2 min-w-0">
-        <IconInput
+        <SearchInput
           v-model="searchQuery"
-          icon-type="search"
           :placeholder="searchPlaceholder"
-          @keydown.enter.prevent="onSearchClick"
+          class="flex-1 min-w-0"
+          @search="onSearchClick"
         />
         <button @click="onSearchClick" class="btn btn-primary shrink-0 text-[1em]">Search</button>
       </div>
@@ -69,7 +69,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import DatasetFilterPanel from '@/features/datasets/components/DatasetFilterPanel.vue'
-import IconInput from '@/shared/components/IconInput.vue'
+import SearchInput from '@/shared/components/SearchInput.vue'
 import { useClickOutside } from '@/shared/composables/useClickOutside'
 
 interface SortOption {
@@ -86,20 +86,18 @@ withDefaults(
   {
     showUpload: false,
     showAddFilter: false,
-    searchPlaceholder: 'Search by name/sample/institution',
+    searchPlaceholder: 'Search datasets',
   },
 )
 
 const emit = defineEmits<{
   (e: 'search', query: string): void
-  (e: 'filter-status', status: string[]): void
   (e: 'apply-filters', payload: Record<string, any>): void
   (e: 'sort', value: string): void
   (e: 'upload'): void
 }>()
 
 const searchQuery = ref('')
-const selectedStatuses = ref<string[]>([])
 const sortValue = ref('submission_time')
 
 const sortOptions: SortOption[] = [
@@ -151,6 +149,5 @@ onUnmounted(() => {
   window.removeEventListener('resize', computePanelPosition)
 })
 
-watch(selectedStatuses, (value) => emit('filter-status', value))
 watch(sortValue, (value) => emit('sort', value))
 </script>

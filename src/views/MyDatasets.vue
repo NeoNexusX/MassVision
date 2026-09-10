@@ -49,7 +49,6 @@
         search-placeholder="Search my datasets"
         @upload="handleUpload"
         @search="handleSearch"
-        @filter-status="handleStatusFilter"
         @apply-filters="handleApplyFilters"
         @sort="handleSort"
       />
@@ -153,7 +152,6 @@ const {
   fetchFiles,
   handleSort,
   handleSearch,
-  handleStatusFilter,
   handleApplyFilters,
   goToPage,
   changeSize,
