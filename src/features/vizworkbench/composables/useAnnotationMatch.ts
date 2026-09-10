@@ -399,22 +399,63 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
    *  hundreds of thousands of objects on first read for no benefit. */
   const matchedRows = shallowRef<MatchedAnnotationRow[]>([])
 
-  /** Distinct adduct values in the current (collapsed) matched set, for the
-   *  dropdown. Sorted so the list is stable across re-renders. */
+  /** Rows after the status filter and search box — the shared base for the
+   *  dropdown option sets (each dropdown then additionally applies the OTHER
+   *  dropdown's filter, see below). */
+  const rowsAfterStatusSearch = computed<MatchedAnnotationRow[]>(() => {
+    let rows = matchedRows.value
+    if (filter.value !== 'all') {
+      rows = rows.filter((r) => r.matchStatus === filter.value)
+    }
+    const q = searchQuery.value
+    if (q) {
+      rows = rows.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          r.candidates.some((c) => c.toLowerCase().includes(q)) ||
+          (r.formulaIon ?? '').toLowerCase().includes(q) ||
+          (r.ionType ?? '').toLowerCase().includes(q) ||
+          (r.altFormulas ?? []).some((f) => f.toLowerCase().includes(q)) ||
+          (r.altAdducts ?? []).some((a) => a.toLowerCase().includes(q)) ||
+          (Number.isFinite(r.expMz) ? r.expMz.toString() : '').includes(q),
+      )
+    }
+    return rows
+  })
+
+  /** Distinct adduct values for the dropdown. Faceted: options come from rows
+   *  passing status + search + the OTHER dropdown's formula filter — so any
+   *  offered value guarantees at least one visible row, and combinations that
+   *  would dead-end the table (e.g. an adduct/formula pairing that only exists
+   *  on unmatched rows while "matched" is selected) are never offered.
+   *  Sorted so the list is stable across re-renders. */
   const adductOptions = computed<string[]>(() => {
+    let rows = rowsAfterStatusSearch.value
+    if (filterFormula.value) {
+      rows = rows.filter(
+        (r) => r.formulaIon === filterFormula.value || r.altFormulas.includes(filterFormula.value),
+      )
+    }
     const set = new Set<string>()
-    for (const r of matchedRows.value) {
+    for (const r of rows) {
       if (r.ionType) set.add(r.ionType)
       for (const a of r.altAdducts) set.add(a)
     }
     return [...set].sort((a, b) => a.localeCompare(b))
   })
 
-  /** Distinct molecular-formula values in the current matched set (see
-   *  {@link adductOptions}). */
+  /** Distinct molecular-formula values for the dropdown. Faceted the same way
+   *  as {@link adductOptions}: options reflect status + search + the current
+   *  adduct selection. */
   const formulaOptions = computed<string[]>(() => {
+    let rows = rowsAfterStatusSearch.value
+    if (filterAdduct.value) {
+      rows = rows.filter(
+        (r) => r.ionType === filterAdduct.value || r.altAdducts.includes(filterAdduct.value),
+      )
+    }
     const set = new Set<string>()
-    for (const r of matchedRows.value) {
+    for (const r of rows) {
       if (r.formulaIon) set.add(r.formulaIon)
       for (const f of r.altFormulas) set.add(f)
     }
