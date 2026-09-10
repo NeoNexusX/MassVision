@@ -46,9 +46,10 @@
       />
     </div>
 
-    <!-- 底部 sticky 操作条：汇总 + Cancel/Create，选择/排序时始终可见 -->
+    <!-- 底部 sticky 操作条：汇总 + Cancel/Create，选择/排序时始终可见。
+         它不在上方 page-type 容器内，需自行挂 page-type 才能继承全站流体字号基准 -->
     <div
-      class="sticky bottom-0 z-30 bg-base-100/95 dark:bg-slate-800/95 backdrop-blur
+      class="page-type sticky bottom-0 z-30 bg-base-100/95 dark:bg-slate-800/95 backdrop-blur
         border-t border-base-300 py-3 px-4 md:px-8"
     >
       <div class="max-w-[1680px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -59,13 +60,13 @@
           {{ selectedOrganisms.length === 1 ? 'organism' : 'organisms' }}
         </div>
         <div class="flex items-center gap-2">
-          <button class="btn" @click="cancelCreate">Cancel</button>
+          <button class="btn text-[1em]" @click="cancelCreate">Cancel</button>
           <button
-            class="btn btn-primary"
+            class="btn btn-primary text-[1em]"
             :disabled="!canCreate || saving"
             @click="submit"
           >
-            <SvgIcon v-if="!saving" type="plus" class="w-4 h-4" />
+            <SvgIcon v-if="!saving" type="plus" class="w-[1em] h-[1em]" />
             <span v-else class="loading loading-spinner loading-sm"></span>
             Create Collection
           </button>

@@ -56,7 +56,7 @@ const emit = defineEmits<{
         Organize related datasets into curated collections to share and revisit them.
       </p>
       <button class="btn btn-primary mt-6 text-[0.95em]" @click="$emit('create')">
-        <SvgIcon type="plus" class="w-4 h-4" />
+        <SvgIcon type="plus" class="w-[1em] h-[1em]" />
         Create Collection
       </button>
     </div>

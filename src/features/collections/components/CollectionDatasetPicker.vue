@@ -13,14 +13,12 @@
       </span>
     </div>
 
-    <!-- 搜索：实时防抖（300ms），由 composable 侧 watch 处理。
-         IconInput 的 update:modelValue 参数是 string | number，这里收敛为 string -->
-    <IconInput
+    <!-- 搜索：实时防抖（300ms），由 composable 侧 watch 处理。 -->
+    <SearchInput
       :model-value="query"
-      icon-type="search"
       placeholder="Search public datasets"
       class="mb-3"
-      @update:model-value="emit('update:query', String($event))"
+      @update:model-value="emit('update:query', $event)"
     />
 
     <!-- 行列表 -->
@@ -103,7 +101,7 @@
 import { computed } from 'vue'
 import type { PropType } from 'vue'
 import DatasetThumb from '@/features/collections/components/DatasetThumb.vue'
-import IconInput from '@/shared/components/IconInput.vue'
+import SearchInput from '@/shared/components/SearchInput.vue'
 import PaginationFooter from '@/shared/components/PaginationFooter.vue'
 import { formatBytes } from '@/shared/utils/format'
 import type { File } from '@/features/datasets/types/dataset'

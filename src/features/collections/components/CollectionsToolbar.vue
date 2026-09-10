@@ -5,11 +5,11 @@
   >
     <!-- 搜索（占位，后续接入集合检索） -->
     <div class="flex flex-1 items-center gap-2 min-w-0 w-full md:w-auto">
-      <IconInput
+      <SearchInput
         v-model="searchQuery"
-        icon-type="search"
         placeholder="Search collections"
-        @keydown.enter.prevent="onSearchClick"
+        class="flex-1 min-w-0"
+        @search="onSearchClick"
       />
       <button @click="onSearchClick" class="btn btn-primary shrink-0 text-[1em]">Search</button>
     </div>
@@ -27,7 +27,7 @@
       <div
         class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-base-content/60"
       >
-        <SvgIcon type="chevron_down" class="fill-current h-4 w-4" />
+        <SvgIcon type="chevron_down" class="fill-current h-[1em] w-[1em]" />
       </div>
     </div>
   </div>
@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import IconInput from '@/shared/components/IconInput.vue'
+import SearchInput from '@/shared/components/SearchInput.vue'
 import type { CollectionSortKey } from '@/features/collections/types/collection'
 
 const emit = defineEmits<{

@@ -3,17 +3,17 @@
        （name≤80 / description≤300 校验现成）。提交只发送出现且变化的字段
        （exclude_unset 语义），成功后由父级用返回的 CollectionDetail 更新页面。 -->
   <dialog class="modal" :class="{ 'modal-open': open }">
-    <div class="modal-box max-w-lg">
-      <h3 class="text-lg font-bold text-base-content mb-4">Edit Collection</h3>
+    <div class="modal-box max-w-lg page-type">
+      <h3 class="text-[1.15em] font-bold text-base-content mb-4">Edit Collection</h3>
 
       <CollectionFormCard v-model:name="name" v-model:description="description" />
 
-      <p v-if="validationError" class="text-error text-sm mt-2">{{ validationError }}</p>
+      <p v-if="validationError" class="text-error text-[0.85em] mt-2">{{ validationError }}</p>
 
       <div class="modal-action">
-        <button class="btn" :disabled="saving" @click="close">Cancel</button>
+        <button class="btn text-[1em]" :disabled="saving" @click="close">Cancel</button>
         <button
-          class="btn btn-primary"
+          class="btn btn-primary text-[1em]"
           :disabled="saving || !name.trim() || !dirty"
           @click="save"
         >

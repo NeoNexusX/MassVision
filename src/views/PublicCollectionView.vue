@@ -18,7 +18,7 @@
         <p class="mt-2 text-base-content/60">
           This collection does not exist or is no longer public.
         </p>
-        <router-link to="/" class="btn btn-primary mt-6">Back to Home</router-link>
+        <router-link to="/" class="btn btn-primary mt-6 text-[1em]">Back to Home</router-link>
       </div>
 
       <template v-else-if="detail">

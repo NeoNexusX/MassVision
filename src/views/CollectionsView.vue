@@ -14,7 +14,7 @@
           class="btn btn-primary shrink-0 text-[1em] h-[2.6em] min-h-[2.6em] px-[1.2em]"
           @click="openCreate"
         >
-          <SvgIcon type="plus" class="w-4 h-4" />
+          <SvgIcon type="plus" class="w-[1em] h-[1em]" />
           Create Collection
         </button>
       </div>

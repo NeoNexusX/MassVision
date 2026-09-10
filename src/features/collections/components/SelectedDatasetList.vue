@@ -20,7 +20,7 @@
         class="btn btn-ghost btn-sm text-[0.95em] text-error"
         @click="emit('clear-all')"
       >
-        <SvgIcon type="trash" class="w-4 h-4" />
+        <SvgIcon type="trash" class="w-[1em] h-[1em]" />
         Clear all
       </button>
     </div>
@@ -55,7 +55,7 @@
           aria-hidden="true"
           @pointerdown="armed = true"
         >
-          <SvgIcon type="bars3" class="w-4 h-4" />
+          <SvgIcon type="bars3" class="w-[1em] h-[1em]" />
         </div>
 
         <div class="w-10 h-10 shrink-0">
@@ -74,30 +74,30 @@
         <!-- 上移/下移：触屏与键盘可用的排序通道，边界禁用 -->
         <div class="flex items-center gap-1 shrink-0">
           <button
-            class="btn btn-ghost btn-sm btn-square"
+            class="btn btn-ghost btn-sm btn-square text-[1em]"
             title="Move up"
             :disabled="i === 0"
             :aria-label="`Move ${dataset.name} up`"
             @click="emit('move-up', i)"
           >
-            <SvgIcon type="chevron_up" class="w-4 h-4" />
+            <SvgIcon type="chevron_up" class="w-[1em] h-[1em]" />
           </button>
           <button
-            class="btn btn-ghost btn-sm btn-square"
+            class="btn btn-ghost btn-sm btn-square text-[1em]"
             title="Move down"
             :disabled="i === selected.length - 1"
             :aria-label="`Move ${dataset.name} down`"
             @click="emit('move-down', i)"
           >
-            <SvgIcon type="chevron_down" class="w-4 h-4" />
+            <SvgIcon type="chevron_down" class="w-[1em] h-[1em]" />
           </button>
           <button
-            class="btn btn-ghost btn-sm btn-square text-error"
+            class="btn btn-ghost btn-sm btn-square text-[1em] text-error"
             title="Remove from collection"
             :aria-label="`Remove ${dataset.name}`"
             @click="emit('remove', dataset.id)"
           >
-            <SvgIcon type="close" class="w-4 h-4" />
+            <SvgIcon type="close" class="w-[1em] h-[1em]" />
           </button>
         </div>
       </div>

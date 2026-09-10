@@ -19,8 +19,10 @@
         </h3>
         <p class="mt-2 text-base-content/60">{{ error }}</p>
         <div class="mt-6 flex justify-center gap-2">
-          <button v-if="!notFound" class="btn btn-outline" @click="fetch">Retry</button>
-          <router-link to="/collections" class="btn btn-primary">Back to Collections</router-link>
+          <button v-if="!notFound" class="btn btn-outline text-[1em]" @click="fetch">Retry</button>
+          <router-link to="/collections" class="btn btn-primary text-[1em]">
+            Back to Collections
+          </router-link>
         </div>
       </div>
 
@@ -32,7 +34,7 @@
               to="/collections"
               class="inline-flex items-center gap-1 text-[0.85em] text-base-content/60 hover:text-primary transition-colors"
             >
-              <SvgIcon type="back" class="w-3.5 h-3.5" />
+              <SvgIcon type="back" class="w-[0.9em] h-[0.9em]" />
               Collections
             </router-link>
             <h1 class="page-title font-bold text-base-content mt-1 truncate" :title="detail.name">
@@ -48,18 +50,18 @@
               class="btn btn-outline border-base-300 text-[0.95em]"
               @click="copyShareLink"
             >
-              <SvgIcon type="share" class="w-4 h-4" />
+              <SvgIcon type="share" class="w-[1em] h-[1em]" />
               Share
             </button>
             <button class="btn btn-outline border-base-300 text-[0.95em]" @click="editOpen = true">
-              <SvgIcon type="pencil" class="w-4 h-4" />
+              <SvgIcon type="pencil" class="w-[1em] h-[1em]" />
               Edit
             </button>
             <button
               class="btn btn-outline border-base-300 text-error text-[0.95em]"
               @click="deleteConfirm.open(String(detail.id))"
             >
-              <SvgIcon type="trash" class="w-4 h-4" />
+              <SvgIcon type="trash" class="w-[1em] h-[1em]" />
               Delete
             </button>
           </div>
@@ -116,9 +118,10 @@
       @saved="applyDetail"
     />
 
-    <!-- 添加成员弹窗：选择器复用 Picker（排除已在集合中的成员） -->
+    <!-- 添加成员弹窗：选择器复用 Picker（排除已在集合中的成员）。
+         弹窗在 page-type 容器之外，需自行挂 page-type 继承流体字号基准 -->
     <dialog class="modal" :class="{ 'modal-open': addOpen }">
-      <div class="modal-box max-w-2xl">
+      <div class="modal-box max-w-2xl page-type">
         <CollectionDatasetPicker
           :datasets="pickerDatasets"
           :loading="pickerLoading"
@@ -137,9 +140,9 @@
           @change-size="pickerChangeSize"
         />
         <div class="modal-action">
-          <button class="btn" :disabled="adding" @click="closeAddMembers">Cancel</button>
+          <button class="btn text-[1em]" :disabled="adding" @click="closeAddMembers">Cancel</button>
           <button
-            class="btn btn-primary"
+            class="btn btn-primary text-[1em]"
             :disabled="!pickerSelection.selected.value.length || adding"
             @click="confirmAddMembers"
           >

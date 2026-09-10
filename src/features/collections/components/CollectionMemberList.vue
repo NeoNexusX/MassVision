@@ -24,7 +24,7 @@
           :disabled="adding"
           @click="emit('add')"
         >
-          <SvgIcon v-if="!adding" type="plus" class="w-4 h-4" />
+          <SvgIcon v-if="!adding" type="plus" class="w-[1em] h-[1em]" />
           <span v-else class="loading loading-spinner loading-xs"></span>
           Add Members
         </button>
@@ -33,7 +33,7 @@
           :disabled="!selectedIds.size || removing"
           @click="confirmRemove"
         >
-          <SvgIcon type="trash" class="w-4 h-4" />
+          <SvgIcon type="trash" class="w-[1em] h-[1em]" />
           Remove Selected{{ selectedIds.size ? ` (${selectedIds.size})` : '' }}
         </button>
       </div>
@@ -76,7 +76,7 @@
           aria-hidden="true"
           @pointerdown="armed = true"
         >
-          <SvgIcon type="bars3" class="w-4 h-4" />
+          <SvgIcon type="bars3" class="w-[1em] h-[1em]" />
         </div>
 
         <div class="w-10 h-10 shrink-0">
@@ -100,22 +100,22 @@
           <!-- 上移/下移：触屏与键盘可用的排序通道，边界禁用（e2e 也走这里） -->
           <template v-if="manageMode">
             <button
-              class="btn btn-ghost btn-sm btn-square"
+              class="btn btn-ghost btn-sm btn-square text-[1em]"
               title="Move up"
               :disabled="i === 0 || reordering"
               :aria-label="`Move ${member.filename} up`"
               @click="emit('reorder', i, i - 1)"
             >
-              <SvgIcon type="chevron_up" class="w-4 h-4" />
+              <SvgIcon type="chevron_up" class="w-[1em] h-[1em]" />
             </button>
             <button
-              class="btn btn-ghost btn-sm btn-square"
+              class="btn btn-ghost btn-sm btn-square text-[1em]"
               title="Move down"
               :disabled="i === members.length - 1 || reordering"
               :aria-label="`Move ${member.filename} down`"
               @click="emit('reorder', i, i + 1)"
             >
-              <SvgIcon type="chevron_down" class="w-4 h-4" />
+              <SvgIcon type="chevron_down" class="w-[1em] h-[1em]" />
             </button>
           </template>
 
@@ -125,7 +125,7 @@
             :aria-label="`Download ${member.filename}`"
             @click="emit('download', member)"
           >
-            <SvgIcon type="download" class="w-4 h-4" />
+            <SvgIcon type="download" class="w-[1em] h-[1em]" />
           </button>
         </div>
       </div>
