@@ -18,6 +18,7 @@
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
+import SearchInput from '@/shared/components/SearchInput.vue'
 import {
   useAnnotationMatch,
   type AnnotationSortKey,
@@ -528,18 +529,14 @@ watch(
         </div>
 
         <!-- Search -->
-        <div class="relative">
-          <SvgIcon
-            type="search"
-            class="text-base-content/40 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-          />
-          <input
-            v-model="search"
-            type="text"
-            placeholder="Search name / formula / m/z"
-            class="input input-bordered input-sm w-full pl-8 text-[1em]"
-          />
-        </div>
+        <!-- fluid=false: this panel has its own compact type scale, so don't
+             apply the global fluid search font-size here. -->
+        <SearchInput
+          v-model="search"
+          size="sm"
+          :fluid="false"
+          placeholder="Search name / formula / m/z"
+        />
       </div>
 
       <!-- Counts + filter chips -->

@@ -2,6 +2,7 @@
 import type { AdminUser, UserListFilters } from '@/features/users/types/user'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
 import PaginationFooter from '@/shared/components/PaginationFooter.vue'
+import SearchInput from '@/shared/components/SearchInput.vue'
 import { getRegionName } from '@/shared/utils/regionOptions'
 
 defineProps<{
@@ -31,19 +32,12 @@ defineEmits<{
     class="bg-base-100 rounded-2xl shadow-sm border border-base-200/60 flex flex-col overflow-hidden"
   >
     <div class="p-4 border-b border-base-200 flex flex-wrap items-center gap-3 bg-base-100">
-      <div class="relative w-full sm:w-64">
-        <input
-          v-model="filters.username"
-          @keyup.enter="$emit('search')"
-          type="text"
-          placeholder="Search username..."
-          class="input input-bordered rounded-lg bg-base-100 w-full pl-9 focus:outline-none focus:border-primary/50 text-base"
-        />
-        <SvgIcon
-          type="search"
-          class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40"
-        />
-      </div>
+      <SearchInput
+        v-model="filters.username"
+        placeholder="Search username..."
+        class="w-full sm:w-64"
+        @search="$emit('search')"
+      />
 
       <select
         v-model="filters.status"
