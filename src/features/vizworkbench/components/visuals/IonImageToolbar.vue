@@ -54,10 +54,13 @@
           @blur="onToleranceBlur"
         />
       </div>
-      <!-- Colormap（两种模式都可用） -->
+      <!-- Colormap（两种模式都可用；多离子叠加时置灰，颜色由通道决定） -->
       <select
         data-testid="colormap-select"
         class="select select-fluid select-bordered w-28"
+        :class="{ 'opacity-50': channelsMode }"
+        :disabled="channelsMode"
+        :title="channelsMode ? 'Not used in multi-ion overlay mode' : undefined"
         :value="colormap"
         @change="$emit('update:colormap', ($event.target as HTMLSelectElement).value)"
       >
@@ -69,8 +72,15 @@
         <select
           data-testid="intensity-scale-select"
           class="select select-fluid select-bordered w-28"
-          :class="normalizationError ? 'select-error' : ''"
-          :title="normalizationError ? `Normalization failed: ${normalizationError}` : undefined"
+          :class="[normalizationError ? 'select-error' : '', channelsMode ? 'opacity-50' : '']"
+          :disabled="channelsMode"
+          :title="
+            channelsMode
+              ? 'Not used in multi-ion overlay mode'
+              : normalizationError
+                ? `Normalization failed: ${normalizationError}`
+                : undefined
+          "
           :value="intensityScale"
           @change="$emit('update:intensityScale', ($event.target as HTMLSelectElement).value)"
         >
@@ -79,7 +89,15 @@
           <option v-if="dataMode === 'continuous' && hasTic" value="tic" title="Divide each pixel by its total ion current (pre-computed stats/tic)">TIC norm</option>
         </select>
       </div>
-      <button class="btn btn-fluid btn-ghost" @click="$emit('reset')">Reset</button>
+      <button
+        class="btn btn-fluid btn-ghost"
+        :class="{ 'opacity-50': channelsMode }"
+        :disabled="channelsMode"
+        :title="channelsMode ? 'Not used in multi-ion overlay mode' : undefined"
+        @click="$emit('reset')"
+      >
+        Reset
+      </button>
       <button class="btn btn-fluid btn-ghost" title="Export current view as PNG" @click="$emit('download')">
         <SvgIcon type="download" />
         PNG
@@ -117,6 +135,8 @@ const props = defineProps<{
   normalizationError?: string | null
   /** zarr 是否预存 stats/tic（TIC 归一化的唯一数据源） */
   hasTic?: boolean
+  /** 多离子叠加模式：colormap / 强度标度 / Reset 不适用，置灰但保留 */
+  channelsMode?: boolean
   /** 工具栏标题 */
   title?: string
 }>()

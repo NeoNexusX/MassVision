@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import ROIPanel from '@/features/vizworkbench/components/visuals/ROIPanel.vue'
+import MaskExportPanel from '@/features/vizworkbench/components/visuals/MaskExportPanel.vue'
+import IonChannelPanel from '@/features/vizworkbench/components/visuals/IonChannelPanel.vue'
+import CollapsibleSection from '@/shared/components/CollapsibleSection.vue'
+import type { MaskExportPayload } from '@/features/vizworkbench/utils/maskExport'
+import type { IonChannel } from '@/features/vizworkbench/composables/useIonChannels'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import type {
@@ -42,6 +47,13 @@ const props = defineProps<{
   viewingRoi: boolean
   confirmedRois: ConfirmedROI[]
   gamma: number
+  /** Multi-ion overlay state (owned by the parent). */
+  channelsEnabled: boolean
+  ionChannels: IonChannel[]
+  canAddChannel: boolean
+  channelsLoading: boolean
+  selectedMz: number
+  maxIonChannels: number
 }>()
 
 const emit = defineEmits<{
@@ -67,8 +79,16 @@ const emit = defineEmits<{
   (e: 'roi-confirm'): void
   (e: 'roi-cancel'): void
   (e: 'roi-delete', id: string): void
+  (e: 'export-masks', payload: MaskExportPayload): void
   (e: 'roi-clear-all'): void
   (e: 'update:gamma', value: number): void
+  /** Multi-ion overlay events (state lives in the parent). */
+  (e: 'update:channelsEnabled', value: boolean): void
+  (e: 'add-current-channel'): void
+  (e: 'remove-channel', id: number): void
+  (e: 'toggle-channel-visible', id: number): void
+  (e: 'retry-channel', id: number): void
+  (e: 'clear-channels'): void
 }>()
 
 // UMAP/KMeans overlays are opt-in: buttons stay grayed out until the user
@@ -171,8 +191,26 @@ function cancelEnable() {
 </script>
 
 <template>
-  <div class="mt-5 pt-4 border-t border-base-content/25">
-    <div class="text-[1.125em] font-semibold text-base-content mb-2">Visualization</div>
+  <!-- Multi-ion overlay：仅 continuous 数据可用 -->
+  <CollapsibleSection v-if="isContinuous" title="Multi-ion overlay" class="mt-5">
+    <IonChannelPanel
+      :enabled="channelsEnabled"
+      :channels="ionChannels"
+      :current-mz="selectedMz"
+      :can-add="canAddChannel"
+      :any-loading="channelsLoading"
+      :disabled="!isContinuous"
+      :max-channels="maxIonChannels"
+      @update:enabled="emit('update:channelsEnabled', $event)"
+      @add-current="emit('add-current-channel')"
+      @remove="emit('remove-channel', $event)"
+      @toggle-visible="emit('toggle-channel-visible', $event)"
+      @retry="emit('retry-channel', $event)"
+      @clear="emit('clear-channels')"
+    />
+  </CollapsibleSection>
+
+  <CollapsibleSection title="Visualization" class="mt-5">
 
     <div class="mb-3">
       <div class="flex items-center justify-between mb-1">
@@ -393,10 +431,9 @@ function cancelEnable() {
         Run KMeans to compute clusters locally.
       </div>
     </div>
-  </div>
+  </CollapsibleSection>
 
-  <div class="mt-5 pt-4 border-t border-base-content/25">
-    <div class="text-[1.125em] font-semibold text-base-content mb-2">Region of interest</div>
+  <CollapsibleSection title="Region of interest" class="mt-5">
     <ROIPanel
       :selected-tool="roiTool"
       :draft-ready="draftReady"
@@ -409,7 +446,21 @@ function cancelEnable() {
       @delete="emit('roi-delete', $event)"
       @clear-all="emit('roi-clear-all')"
     />
-  </div>
+  </CollapsibleSection>
+
+  <CollapsibleSection title="Export" class="mt-5">
+    <MaskExportPanel
+      :rois="confirmedRois"
+      :kmeans-clusters="kmeansClusters"
+      :kmeans-labels-available="kmeansLabelsAvailable"
+      :kmeans-k="kmeansK"
+      :selected-kmeans-ids="selectedKmeansIds"
+      @export-masks="(payload) => emit('export-masks', payload)"
+      @toggle-kmeans-cluster="emit('toggle-kmeans-cluster', $event)"
+      @kmeans-select-all="emit('kmeans-select-all')"
+      @kmeans-clear-all="emit('kmeans-clear-all')"
+    />
+  </CollapsibleSection>
 
   <!-- Opt-in confirmation: first-time enable starts a backend clustering task -->
   <ConfirmDialog
