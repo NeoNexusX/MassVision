@@ -77,6 +77,7 @@ const resetFilters = () => {
         @update:model-value="filters[field.key] = $event"
         :options="field.options ?? []"
         placeholder="Any"
+        placeholder-selectable
         :other-placeholder="field.otherPlaceholder"
       />
     </div>

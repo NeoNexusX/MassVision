@@ -3,6 +3,7 @@
     :model-value="modelValue"
     :options="options"
     :placeholder="placeholder"
+    :placeholder-selectable="placeholderSelectable"
     :icon-type="iconType"
     :label="label"
     :hide-label="hideLabel"
@@ -37,6 +38,7 @@ const props = defineProps<{
   modelValue: string
   options: readonly string[]
   placeholder?: string
+  placeholderSelectable?: boolean
   otherPlaceholder?: string
   iconType?: string
   label?: string

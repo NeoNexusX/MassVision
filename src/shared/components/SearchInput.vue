@@ -24,7 +24,7 @@
       type="button"
       class="absolute z-10 right-1.5 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle text-base-content/40 hover:text-base-content"
       title="Clear"
-      aria-label="Clear search"
+      aria-label="Clear"
       @click="emit('update:modelValue', '')"
     >
       <SvgIcon type="close" />
