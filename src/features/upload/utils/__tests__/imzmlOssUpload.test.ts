@@ -12,16 +12,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
  *
  * 本测试 mock ali-oss 并捕获 new OSS(options)，断言上传客户端带上
  * secure: true 且裸域名 endpoint 原样透传——这就是上传走 https 的充分条件。
+ * 上传本体已迁移为流式分片（ossMultipart.openMultipartSession），此处一并
+ * mock 掉，只验证会话建立在后端下发的 oss_path 与刚构造的客户端上。
  */
 
 // vi.mock 工厂会被提升到 import 之前执行，捕获容器必须用 vi.hoisted 创建。
 const capture = vi.hoisted(() => ({
   /** 每次 new OSS() 的构造参数快照 */
   clientOptions: [] as Array<Record<string, unknown>>,
-  /** multipartUpload 的 mock（resolve 即上传成功） */
-  multipartUpload: vi.fn().mockResolvedValue({ name: 'done' }),
-  /** ENV.ossEndpoint 的当前值（getter 让两个测试分别验证有/无 endpoint 两个分支） */
+  /** 每次 new OSS() 的实例（断言传给 openMultipartSession 的就是它） */
+  instances: [] as unknown[],
+  /** ENV.ossEndpoint 的当前值（getter 让测试分别验证有/无 endpoint 两个分支） */
   envEndpoint: 'oss-accelerate.aliyuncs.com',
+  /** openMultipartSession 的 mock（resolve 即视为分片会话建立） */
+  openMultipartSession: vi.fn(),
   /** /files/upload 返回的 OSS 凭据 */
   ossData: {
     oss_sts_token: {
@@ -40,10 +44,14 @@ vi.mock('ali-oss', () => ({
   default: class OSS {
     constructor(options: Record<string, unknown>) {
       capture.clientOptions.push(options)
+      capture.instances.push(this)
     }
-    multipartUpload = capture.multipartUpload
-    abortMultipartUpload = vi.fn().mockResolvedValue({})
   },
+}))
+
+vi.mock('../ossMultipart', () => ({
+  openMultipartSession: capture.openMultipartSession,
+  normalizeEtag: (etag: string) => etag,
 }))
 
 vi.mock('@/shared/config', () => ({
@@ -54,9 +62,10 @@ vi.mock('@/shared/config', () => ({
   },
   OSS_UPLOAD: {
     timeout: 30000,
-    singlePartThreshold: 1e9,
-    smallFilePartSize: 1 << 20,
-    largeFilePartCount: 1000,
+    partSize: 16 * 1024 * 1024,
+    maxPartCount: 9999,
+    maxInFlightParts: 4,
+    maxUploadBytes: 100 * 1024 * 1024 * 1024,
     checkpointSaveIntervalMs: 5000,
   },
 }))
@@ -82,13 +91,8 @@ vi.mock('../imzmlCompress', () => ({
 vi.mock('../uploadResume', () => ({
   saveUploadSession: vi.fn(),
   loadUploadSession: vi.fn(() => null),
-  loadZipFromOPFS: vi.fn(async () => null),
   cleanupResumable: vi.fn(async () => {}),
   resetSessionForReupload: vi.fn(),
-}))
-
-vi.mock('../quotaCheck', () => ({
-  checkStorageQuota: vi.fn(async () => {}),
 }))
 
 vi.mock('../filenameGenerator', () => ({
@@ -109,7 +113,14 @@ async function runUpload() {
 
 beforeEach(() => {
   capture.clientOptions.length = 0
-  capture.multipartUpload.mockClear()
+  capture.instances.length = 0
+  capture.openMultipartSession.mockReset().mockResolvedValue({
+    uploadId: 'upload-id-1',
+    doneParts: [],
+    uploadPart: vi.fn(async () => {}),
+    complete: vi.fn(async () => {}),
+    abort: vi.fn(async () => {}),
+  })
   capture.envEndpoint = 'oss-accelerate.aliyuncs.com'
 })
 
@@ -129,15 +140,16 @@ describe('uploadImzmlZipFileOSS → ali-oss client construction', () => {
     expect(opts.authorizationV4).toBe(true)
   })
 
-  it('uploads the zip to the backend-provided oss_path', async () => {
+  it('opens the multipart session on the backend-provided oss_path', async () => {
     await runUpload()
 
-    expect(capture.multipartUpload).toHaveBeenCalledTimes(1)
-    expect(capture.multipartUpload).toHaveBeenCalledWith(
-      'data/479/24b0e2258fe95b7723f6587d92e38c26.zip',
-      expect.any(File),
-      expect.objectContaining({ partSize: 1 << 20 }),
-    )
+    expect(capture.openMultipartSession).toHaveBeenCalledTimes(1)
+    const [client, ossPath, resumeInfo] = capture.openMultipartSession.mock.calls[0]!
+    // 上传目标就是后端下发的 oss_path；全新上传不携带续传信息
+    expect(ossPath).toBe('data/479/24b0e2258fe95b7723f6587d92e38c26.zip')
+    expect(resumeInfo).toBeUndefined()
+    // 分片会话用的正是刚构造出来的 ali-oss 客户端
+    expect(client).toBe(capture.instances[0])
   })
 
   it('omits endpoint when VITE_OSS_ENDPOINT is empty (region-based URL)', async () => {

@@ -88,6 +88,15 @@ function collapse() {
 }
 
 const hasData = computed(() => fileName.value !== null)
+
+// 上游筛选（状态 badge / 搜索框）可能把已选中的加合物/分子式从下拉选项里
+// 挤掉——此时回退到 All，避免表格被一个不可见的值滤成空表。
+watch(adductOptions, (opts) => {
+  if (filterAdduct.value && !opts.includes(filterAdduct.value)) filterAdduct.value = ''
+})
+watch(formulaOptions, (opts) => {
+  if (filterFormula.value && !opts.includes(filterFormula.value)) filterFormula.value = ''
+})
 const isAnnotationAvailable = computed(
   () => props.spectrumMode === 'centroid' && spectrumAvailable.value,
 )
@@ -591,7 +600,7 @@ watch(
           class="text-[0.875em] text-base-content/50"
           title="Rows dropped before matching because their adduct/formula implies the opposite polarity, or their m/z lies outside the spectrum's range"
         >
-          {{ coarseFiltered }} filtered by polarity / m/z range
+          {{ coarseFiltered }} filtered by polarity / <i>m/z</i> range
         </span>
       </div>
 
@@ -686,7 +695,7 @@ watch(
                pre-filter discarded the whole file at import, not the user's
                filter/search - say so instead of blaming the wrong control. -->
           <template v-if="counts.total === 0">
-            No usable rows: every row was filtered out by the result's polarity / m/z range.
+            No usable rows: every row was filtered out by the result's polarity / <i>m/z</i> range.
           </template>
           <template v-else>No rows match the current filter / search.</template>
         </div>
@@ -735,13 +744,20 @@ watch(
     @mouseenter="onTooltipEnter"
     @mouseleave="onTooltipLeave"
   >
-    <!-- Header: name (left) + copy/PubChem buttons (right) -->
+    <!-- Header: name on one line (truncate) + tiny copy icon at line end;
+         PubChem is the tooltip's single primary action below. -->
     <div class="mb-1">
-      <div
-        class="font-semibold text-base-content truncate"
-        :title="tooltipRow.name"
-      >
-        {{ tooltipRow.name }}
+      <div class="flex items-center gap-0.5 min-w-0">
+        <div class="min-w-0 flex-1 truncate font-semibold text-base-content" :title="tooltipRow.name">
+          {{ tooltipRow.name }}
+        </div>
+        <button
+          class="shrink-0 p-0.5 text-base-content/40 hover:text-primary transition-colors"
+          title="Copy name"
+          @click.stop="copyName(tooltipRow.name)"
+        >
+          <SvgIcon type="duplicate" />
+        </button>
       </div>
       <!-- 加合离子在上、分子式在下 -->
       <div v-if="tooltipRow.ionType" class="font-mono text-base-content/60">
@@ -750,25 +766,14 @@ watch(
       <div v-if="tooltipRow.formulaIon" class="font-mono text-base-content/60">
         {{ tooltipRow.formulaIon }}
       </div>
-      <!-- 复制 + PubChem 放在名字/内容下方（统一按钮尺寸/样式） -->
-      <div class="mt-1.5 flex items-center gap-1.5">
-        <button
-          class="btn btn-sm btn-outline gap-1"
-          title="Copy name"
-          @click.stop="copyName(tooltipRow.name)"
-        >
-          <SvgIcon type="duplicate" class="" />
-          Copy
-        </button>
-        <button
-          class="btn btn-sm btn-outline btn-primary gap-1 text-[1em]"
-          title="Search PubChem"
-          @click.stop="searchPubChem(tooltipRow.name)"
-        >
-          <SvgIcon type="search" class="" />
-          PubChem
-        </button>
-      </div>
+      <button
+        class="btn btn-sm btn-outline btn-primary gap-1 w-full justify-center mt-1.5 text-[1em]"
+        title="Search PubChem"
+        @click.stop="searchPubChem(tooltipRow.name)"
+      >
+        <SvgIcon type="search" />
+        PubChem
+      </button>
     </div>
 
     <!-- Detail fields moved from the table -->
