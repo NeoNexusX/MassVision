@@ -27,6 +27,18 @@ export interface CollectionSummary {
   updatedAt: string | null
   /** 免登录分享 id（16 位 base62）。后端是否在响应中返回未确认，无则分享入口隐藏 */
   publicId: string | null
+  // ---- 卡片直接展示的元数据（后端列表响应平铺在顶层，已有实测）----
+  doi: string[]
+  journalName: string | null
+  /** 卡片右侧的 Access 链接；后端原样透传，可能是 URL 或标签文本 */
+  access: string[]
+  organismPart: string[]
+  ionisationSource: string[]
+  /**
+   * 列表响应目前**不返回** members（拿封面的 file_id 需要它）。
+   * 若后端将来带上，cards 可直接用；否则由 useCollectionCovers 逐卡调详情补齐。
+   */
+  members?: CollectionMember[]
 }
 
 /** 集合详情：元数据 + 有序成员。members 已按 position 排序，前端不重排 */

@@ -18,6 +18,11 @@ defineProps({
     type: Function as PropType<(collection: CollectionSummary) => boolean>,
     required: true,
   },
+  /** 集合 id → 成员 file_id（列表接口不带 members，由 useCollectionCovers 补） */
+  memberIds: {
+    type: Object as PropType<Record<number, number[]>>,
+    default: () => ({}),
+  },
 })
 
 const emit = defineEmits<{
@@ -34,11 +39,11 @@ const emit = defineEmits<{
   <!-- 与 DatasetList 相同的流式字号基准 -->
   <div class="text-[clamp(1.0rem,2.5vw,1.3rem)]">
     <!-- Loading：与数据集列表同构的脉冲骨架（每行两个） -->
-    <div v-if="loading" class="animate-pulse flex flex-wrap gap-6 justify-start">
+    <div v-if="loading" class="animate-pulse flex flex-col gap-6">
       <div
-        v-for="i in 4"
+        v-for="i in 3"
         :key="i"
-        class="w-full md:w-[calc(50%-12px)] h-56 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"
+        class="w-full h-56 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"
       ></div>
     </div>
 
@@ -84,20 +89,18 @@ const emit = defineEmits<{
       </button>
     </div>
 
-    <!-- 集合列表：与 DatasetList 相同的每行两个排布（md 起两列） -->
-    <div v-else class="flex flex-wrap gap-6 justify-start">
-      <div
+    <!-- 集合列表：整行一张卡（单列）——卡片内容多（封面轮播 + 元数据 + Access），
+         两列会把每栏挤窄，反而看不清 -->
+    <div v-else class="flex flex-col gap-5">
+      <CollectionCard
         v-for="collection in collections"
         :key="collection.id"
-        class="w-full md:w-[calc(50%-12px)] flex-shrink-0"
-      >
-        <CollectionCard
-          :collection="collection"
-          :can-edit="canEdit(collection)"
-          @view="$emit('view', $event)"
-          @delete="$emit('delete', $event)"
-        />
-      </div>
+        :collection="collection"
+        :can-edit="canEdit(collection)"
+        :member-ids="memberIds[collection.id]"
+        @view="$emit('view', $event)"
+        @delete="$emit('delete', $event)"
+      />
     </div>
 
     <!-- 分页：复用全站 PaginationFooter（Page x of y — z records + Per page + 页码条），

@@ -22,7 +22,7 @@
       <!-- 搜索 / 范围切换（全部 ↔ 我的）/ 排序（仅 updated_at 倒序）工具栏 -->
       <CollectionsToolbar v-model:mine-only="mineOnly" @search="handleSearch" />
 
-      <!-- 列表（骨架屏 / 空态 / 网格 / 分页） -->
+      <!-- 列表（骨架屏 / 空态 / 单列卡片 / 分页） -->
       <CollectionList
         :collections="collections"
         :loading="loading"
@@ -32,6 +32,7 @@
         :pagination="pagination"
         :search-applied="search"
         :can-edit="canEdit"
+        :member-ids="memberIds"
         @view="handleView"
         @delete="(id: number) => deleteConfirm.open(String(id))"
         @create="openCreate"
@@ -59,6 +60,7 @@ import { useRouter } from 'vue-router'
 import CollectionList from '@/features/collections/components/CollectionList.vue'
 import CollectionsToolbar from '@/features/collections/components/CollectionsToolbar.vue'
 import { useCollectionsPage } from '@/features/collections/composables/useCollectionsPage'
+import { useCollectionCovers } from '@/features/collections/composables/useCollectionCovers'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 
@@ -82,6 +84,9 @@ const {
   changeSize,
   removeCollection,
 } = useCollectionsPage()
+
+// 卡片封面：列表接口不带 members，逐卡按 id 拉一次详情拿成员 file_id（按 id 缓存）
+const { memberIds } = useCollectionCovers(collections)
 
 // 删除确认流：id 用 String 过桥（useConfirmDelete 以 string id 通用化）
 const deleteConfirm = useConfirmDelete({

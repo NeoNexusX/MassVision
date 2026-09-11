@@ -35,6 +35,11 @@ function makeDetail(ids: number[]): CollectionDetail {
     createdAt: null,
     updatedAt: null,
     publicId: null,
+    doi: [],
+    journalName: null,
+    access: [],
+    organismPart: [],
+    ionisationSource: [],
     metadata: { name: 'X' },
     members: ids.map((id) => ({
       id,

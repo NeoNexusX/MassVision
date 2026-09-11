@@ -40,6 +40,17 @@ function toMetadata(raw: any): CollectionMetadata {
   return out as unknown as CollectionMetadata
 }
 
+/** 顶层优先、其次元数据块；统一成 string[] 便于卡片直接渲染 */
+function toStringList(raw: any, metadata: CollectionMetadata, key: string): string[] {
+  const top = raw?.[key]
+  if (Array.isArray(top)) return top.filter((v) => v != null && String(v).trim() !== '')
+  const fromMeta = (metadata as unknown as Record<string, unknown>)[key]
+  if (Array.isArray(fromMeta)) {
+    return fromMeta.filter((v) => v != null && String(v).trim() !== '')
+  }
+  return []
+}
+
 function toSummary(raw: any): CollectionSummary {
   const metadata = toMetadata(raw)
   return {
@@ -50,14 +61,18 @@ function toSummary(raw: any): CollectionSummary {
     memberCount: raw.member_count ?? 0,
     totalSize: raw.total_size ?? 0,
     ownerUsername: raw.owner_username || '',
-    organism: Array.isArray(raw.organism)
-      ? raw.organism
-      : Array.isArray(metadata.organism)
-        ? metadata.organism
-        : [],
+    organism: toStringList(raw, metadata, 'organism'),
     createdAt: raw.created_at ?? null,
     updatedAt: raw.updated_at ?? null,
     publicId: raw.public_id ?? null,
+    doi: toStringList(raw, metadata, 'doi'),
+    journalName: raw.journal_name ?? metadata.journal_name ?? null,
+    access: toStringList(raw, metadata, 'access'),
+    organismPart: toStringList(raw, metadata, 'organism_part'),
+    ionisationSource: toStringList(raw, metadata, 'ionisation_source'),
+    members: Array.isArray(raw?.members)
+      ? raw.members.map(mapFilePublicToMember)
+      : undefined,
   }
 }
 

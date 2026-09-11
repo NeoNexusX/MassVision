@@ -137,4 +137,35 @@ describe('mapCollectionSummary', () => {
       publicId: 'aB3xK9mQ2rT7wY1z',
     })
   })
+
+  // 卡片直接渲染这些字段，必须从平铺的列表响应里挑出来
+  it('exposes the card fields (doi / journal / access / organism part / ionisation source)', () => {
+    const s = mapCollectionSummary(flatRaw)
+
+    expect(s.doi).toEqual(['10.1000/xyz'])
+    expect(s.journalName).toBe('Nature')
+    expect(s.access).toEqual([])
+    expect(s.organismPart).toEqual(['kidney'])
+    expect(s.ionisationSource).toEqual([])
+  })
+
+  it('drops blank entries so the card does not render empty chips', () => {
+    const s = mapCollectionSummary({ id: 1, organism: ['rat', '', '  '], access: [] })
+
+    expect(s.organism).toEqual(['rat'])
+  })
+
+  // 列表响应目前不带 members；若带上则直接映射，省掉逐卡详情请求
+  it('maps members when the list row happens to carry them', () => {
+    const s = mapCollectionSummary({
+      ...flatRaw,
+      members: [{ file_id: 42, filename: 'a.imzML', status: 'completed', is_public: true }],
+    })
+
+    expect(s.members?.map((m) => m.id)).toEqual([42])
+  })
+
+  it('leaves members undefined when the list row has none', () => {
+    expect(mapCollectionSummary(flatRaw).members).toBeUndefined()
+  })
 })
