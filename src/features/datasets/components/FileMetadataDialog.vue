@@ -4,7 +4,7 @@
        + spectrum_mode / storage_mode（枚举下拉）。差量提交只发变化的键；
        枚举字段空值（“—”）不发送。保存成功后把返回的 FilePublic 交回父级。 -->
   <dialog class="modal" :class="{ 'modal-open': open }">
-    <div class="modal-box max-w-xl page-type">
+    <div class="modal-box w-11/12 max-w-2xl page-type">
       <h3 class="text-[1.15em] font-bold text-base-content mb-1">Edit Metadata</h3>
       <p class="text-[0.8em] text-base-content/50 mb-4 truncate" :title="dataset?.filename">
         {{ dataset?.filename }}
@@ -12,7 +12,7 @@
 
       <!-- v-if 守卫：dialog 常驻 DOM（modal-open 只切显隐），draft 在打开时才
            初始化；无守卫会在关闭状态下渲染 null 的字段绑定，整个页面崩掉 -->
-      <div v-if="draft" class="max-h-[60vh] overflow-y-auto pr-1">
+      <div v-if="draft" class="max-h-[60vh] overflow-y-auto pr-2">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           <!-- 8 个样本属性：与上传表单同款 SelectWithOther（词表 + Other 自定义输入）。
                当前值不在词表内时组件自动落到 Other 输入框回显。 -->
