@@ -191,7 +191,7 @@ function cancelEnable() {
 </script>
 
 <template>
-  <!-- Multi-ion overlay：仅 continuous 数据可用 -->
+  <!-- Multi-ion overlay：仅 continuous 数据可用（processed 整块不渲染） -->
   <CollapsibleSection v-if="isContinuous" title="Multi-ion overlay" class="mt-5">
     <IonChannelPanel
       :enabled="channelsEnabled"
@@ -199,7 +199,6 @@ function cancelEnable() {
       :current-mz="selectedMz"
       :can-add="canAddChannel"
       :any-loading="channelsLoading"
-      :disabled="!isContinuous"
       :max-channels="maxIonChannels"
       @update:enabled="emit('update:channelsEnabled', $event)"
       @add-current="emit('add-current-channel')"

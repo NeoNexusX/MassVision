@@ -6,7 +6,7 @@
        excludeKeys：创建页把 name/description 交给专门的卡片，这里不重复渲染；
        autoKeys/lockedKeys：可从选中数据集推导的字段及其被用户接管的状态。 -->
   <div class="flex flex-col gap-5">
-    <section v-for="group in visibleGroups" :key="group.id">
+    <section v-for="group in METADATA_GROUPS" :key="group.id">
       <h4
         v-if="fieldsOf(group.id).length"
         class="text-[0.85em] font-semibold uppercase tracking-wide text-base-content/50
@@ -35,10 +35,13 @@
               :maxlength="field.key === 'name' ? 80 : undefined"
               :placeholder="placeholderOf(field)"
             />
+            <!-- 长文本统一 300 上限（与创建页 description 的 maxlength 一致；
+                 后端逐字段上限确认后可再按字段细化） -->
             <textarea
               v-else-if="field.type === 'long'"
               v-model="d[field.key]"
               rows="2"
+              maxlength="300"
               class="textarea textarea-bordered w-full text-[0.95em] resize-none"
               :placeholder="placeholderOf(field)"
             ></textarea>
@@ -105,8 +108,6 @@ function fieldsOf(group: MetadataGroupId) {
     (f) => f.group === group && !props.excludeKeys.includes(f.key as string),
   )
 }
-
-const visibleGroups = computed(() => METADATA_GROUPS)
 
 function placeholderOf(field: MetadataFieldDef): string {
   if (field.key === 'doi') return '10.1000/xyz123'

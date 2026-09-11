@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { buildPreviewImageUrl } from '@/features/datasets/utils/imageUtils'
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
 
@@ -29,8 +29,17 @@ const props = withDefaults(
   { alt: 'Dataset preview' },
 )
 
-const previewUrl = buildPreviewImageUrl(props.fileId)
+// 随 fileId 跟随：调用方目前都用 :key 绑定 id 不会变更，但组件契约上不应缓存旧值
+const previewUrl = computed(() => buildPreviewImageUrl(props.fileId))
 // 占位图只生成一次（随机配色，与 DatasetPreviewGallery 的回退同策略）
 const placeholder = getDatasetPlaceholderSvg({ showGuides: true })
 const failed = ref(false)
+
+// fileId 变化（同组件复用）时清掉上一张的失败态，让新 URL 重新尝试加载
+watch(
+  () => props.fileId,
+  () => {
+    failed.value = false
+  },
+)
 </script>

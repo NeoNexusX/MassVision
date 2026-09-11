@@ -27,7 +27,6 @@ function mountPanel(over: Record<string, unknown> = {}) {
       currentMz: 445.0494,
       canAdd: true,
       anyLoading: false,
-      disabled: false,
       maxChannels: 6,
       ...over,
     },
@@ -99,12 +98,6 @@ describe('IonChannelPanel', () => {
     )
     const w = mountPanel({ channels: many, canAdd: false })
     expect(w.text()).toContain('Maximum of 6 channels reached.')
-  })
-
-  it('hides everything but the notice for processed data', () => {
-    const w = mountPanel({ disabled: true })
-    expect(w.text()).toContain('only available for continuous data')
-    expect(w.find('button.btn-primary').exists()).toBe(false)
   })
 
   it('emits clear', async () => {

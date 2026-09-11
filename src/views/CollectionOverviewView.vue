@@ -341,8 +341,8 @@ function closeAddMembers() {
 async function confirmAddMembers() {
   const ids = pickerSelection.selected.value.map((f) => Number(f.id))
   if (!ids.length) return
-  await add(ids)
-  addOpen.value = false
+  // 失败（409 等）时保持弹窗打开：选择仍留在 pickerSelection 里，可直接重试
+  if (await add(ids)) addOpen.value = false
 }
 </script>
 

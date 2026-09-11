@@ -185,12 +185,54 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * 排序用例暂时移除。
-   *
-   * 当前「File Size 降序」是 useDatasetList.handleSort 在**前端**对已加载的那一页
-   * 原地排序，属于过渡实现；等后端支持排序参数后再补回对应用例（届时断言的是
-   * 服务端返回的顺序，而不是前端重排的结果）。
+   * 排序（服务端）：选 File size 升/降序后，断言后端确实按该顺序返回。
+   * 通过 waitForResponse 确认请求带上了 sort_by/order（防「下拉只改 UI 不发请求」
+   * 的假阳性），再按卡片上的 File Size 文本验证第一页的真实顺序。
    */
+  test('sort — file size ordering is applied by the server', async ({ page }) => {
+    await page.goto('/mydatasets')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    const sortSelect = page
+      .locator('select')
+      .filter({ has: page.locator('option[value="size_bytes:desc"]') })
+    await expect(sortSelect).toBeVisible()
+
+    /** 当前第一页所有卡片的体积（MB），按卡片出现顺序 */
+    const cardSizes = async () =>
+      (await page.locator('p:has-text("File Size:")').allInnerTexts()).map(sizeToMB)
+
+    // 降序：请求带 sort_by=size&order=desc，卡片体积应非升序排列
+    const [descResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('list_user_files') && r.url().includes('sort_by=size') && r.url().includes('order=desc'),
+      ),
+      sortSelect.selectOption('size_bytes:desc'),
+    ])
+    expect(descResp.ok()).toBeTruthy()
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    let sizes = await cardSizes()
+    test.skip(sizes.length < 2, '后端数据不足 2 条，无法验证排序顺序')
+    for (let i = 1; i < sizes.length; i++) {
+      expect(sizes[i]!, `row ${i} should be <= row ${i - 1} (desc)`).toBeLessThanOrEqual(sizes[i - 1]!)
+    }
+
+    // 反向切升序：方向必须真的翻转（防止排序参数被后端忽略）
+    const [ascResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('list_user_files') && r.url().includes('sort_by=size') && r.url().includes('order=asc'),
+      ),
+      sortSelect.selectOption('size_bytes:asc'),
+    ])
+    expect(ascResp.ok()).toBeTruthy()
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    sizes = await cardSizes()
+    for (let i = 1; i < sizes.length; i++) {
+      expect(sizes[i]!, `row ${i} should be >= row ${i - 1} (asc)`).toBeGreaterThanOrEqual(sizes[i - 1]!)
+    }
+  })
 
   /**
    * Filter 面板
@@ -449,10 +491,50 @@ test.describe('Public Datasets', () => {
     }
   })
 
-  /*
-   * 排序用例暂时移除（与 My Datasets 侧同样的原因）：当前排序是前端对已加载的
-   * 一页做原地重排，属于过渡实现，等后端支持排序参数后再补回。
+  /**
+   * 排序（服务端）：与 My Datasets 侧同一套断言，走 /files/list_files 公开端点。
    */
+  test('sort — file size ordering is applied by the server', async ({ page }) => {
+    await page.goto('/datasets')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    const sortSelect = page
+      .locator('select')
+      .filter({ has: page.locator('option[value="size_bytes:desc"]') })
+    await expect(sortSelect).toBeVisible()
+
+    const cardSizes = async () =>
+      (await page.locator('p:has-text("File Size:")').allInnerTexts()).map(sizeToMB)
+
+    const [descResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/files/list_files') && r.url().includes('sort_by=size') && r.url().includes('order=desc'),
+      ),
+      sortSelect.selectOption('size_bytes:desc'),
+    ])
+    expect(descResp.ok()).toBeTruthy()
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    let sizes = await cardSizes()
+    test.skip(sizes.length < 2, '后端数据不足 2 条，无法验证排序顺序')
+    for (let i = 1; i < sizes.length; i++) {
+      expect(sizes[i]!, `row ${i} should be <= row ${i - 1} (desc)`).toBeLessThanOrEqual(sizes[i - 1]!)
+    }
+
+    const [ascResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/files/list_files') && r.url().includes('sort_by=size') && r.url().includes('order=asc'),
+      ),
+      sortSelect.selectOption('size_bytes:asc'),
+    ])
+    expect(ascResp.ok()).toBeTruthy()
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    sizes = await cardSizes()
+    for (let i = 1; i < sizes.length; i++) {
+      expect(sizes[i]!, `row ${i} should be >= row ${i - 1} (asc)`).toBeGreaterThanOrEqual(sizes[i - 1]!)
+    }
+  })
 
   /**
    * 随机选一张 <300MB 的卡：第一次点击真实下载，限流窗口内的第二次点击被拦截

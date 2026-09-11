@@ -13,6 +13,18 @@ export function useDragReorder(onReorder: (from: number, to: number) => void) {
   const dragFrom = ref(-1)
   const dragOver = ref(-1)
 
+  /** 手柄 pointerdown：武装 draggable，并登记一次性的松开复位。
+   *  真正的拖拽不会派发 pointerup（由 dragend 复位），所以这里只覆盖
+   *  「按住手柄又松开、没拖」的情况——否则行会一直保持可拖拽。 */
+  function arm() {
+    armed.value = true
+    window.addEventListener('pointerup', disarm, { once: true })
+  }
+
+  function disarm() {
+    armed.value = false
+  }
+
   function onDragStart(e: DragEvent, index: number) {
     dragFrom.value = index
     if (e.dataTransfer) {
@@ -35,5 +47,5 @@ export function useDragReorder(onReorder: (from: number, to: number) => void) {
     dragOver.value = -1
   }
 
-  return { armed, dragFrom, dragOver, onDragStart, onDrop, resetDrag }
+  return { armed, arm, dragFrom, dragOver, onDragStart, onDrop, resetDrag }
 }

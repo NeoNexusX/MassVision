@@ -38,7 +38,7 @@ export interface IonChannelDeps {
   currentMzIndex: Ref<number>
   /** Currently selected m/z value. */
   currentMz: Ref<number>
-  /** Current m/z tolerance, snapshotted per channel at add time. */
+  /** Current m/z tolerance, read live at add/retry time. */
   tolerance: Ref<number>
   isContinuous: Ref<boolean>
   ready: Ref<boolean>
@@ -93,6 +93,28 @@ export function useIonChannels(deps: IonChannelDeps) {
     replace(channels.value.map((c) => (c.id === id ? { ...c, ...fields } : c)))
   }
 
+  /**
+   * Load a channel's matrix in the background and patch it in. Stale results
+   * are discarded when the whole list was reset (generation) or this channel
+   * was removed while the read was in flight.
+   */
+  function loadInto(channelId: number, mzIndex: number, tolerance: number) {
+    const gen = generation
+    deps
+      .loadMatrix(mzIndex, tolerance)
+      .then((matrix) => {
+        if (gen !== generation) return
+        if (!channels.value.some((c) => c.id === channelId)) return
+        patch(channelId, { matrix, loading: false, error: null })
+      })
+      .catch((e: unknown) => {
+        if (gen !== generation) return
+        if (!channels.value.some((c) => c.id === channelId)) return
+        const message = e instanceof Error ? e.message : String(e)
+        patch(channelId, { matrix: null, loading: false, error: message })
+      })
+  }
+
   /** Add the currently selected m/z as a new channel. */
   function addCurrentMz(): AddChannelResult {
     if (!deps.isContinuous.value) return { ok: false, reason: 'not-continuous' }
@@ -115,23 +137,7 @@ export function useIonChannels(deps: IonChannelDeps) {
       visible: true,
     }
     replace([...list, channel])
-
-    const gen = generation
-    const tol = deps.tolerance.value
-    deps
-      .loadMatrix(mzIndex, tol)
-      .then((matrix) => {
-        // Drop the result if the list was reset, or this channel was removed.
-        if (gen !== generation) return
-        if (!channels.value.some((c) => c.id === channel.id)) return
-        patch(channel.id, { matrix, loading: false, error: null })
-      })
-      .catch((e: unknown) => {
-        if (gen !== generation) return
-        if (!channels.value.some((c) => c.id === channel.id)) return
-        const message = e instanceof Error ? e.message : String(e)
-        patch(channel.id, { matrix: null, loading: false, error: message })
-      })
+    loadInto(channel.id, mzIndex, deps.tolerance.value)
 
     return { ok: true, channel }
   }
@@ -161,20 +167,7 @@ export function useIonChannels(deps: IonChannelDeps) {
     const channel = channels.value.find((c) => c.id === id)
     if (!channel || channel.loading) return
     patch(id, { loading: true, error: null })
-    const gen = generation
-    deps
-      .loadMatrix(channel.mzIndex, deps.tolerance.value)
-      .then((matrix) => {
-        if (gen !== generation) return
-        if (!channels.value.some((c) => c.id === id)) return
-        patch(id, { matrix, loading: false, error: null })
-      })
-      .catch((e: unknown) => {
-        if (gen !== generation) return
-        if (!channels.value.some((c) => c.id === id)) return
-        const message = e instanceof Error ? e.message : String(e)
-        patch(id, { matrix: null, loading: false, error: message })
-      })
+    loadInto(id, channel.mzIndex, deps.tolerance.value)
   }
 
   /** Visible, fully-loaded channels, in render order. Identity changes on any

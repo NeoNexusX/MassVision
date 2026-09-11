@@ -74,7 +74,7 @@
           class="shrink-0 cursor-grab active:cursor-grabbing text-base-content/40 hover:text-base-content/70 p-1"
           title="Drag to reorder"
           aria-hidden="true"
-          @pointerdown="armed = true"
+          @pointerdown="arm"
         >
           <SvgIcon type="bars3" class="w-[1em] h-[1em]" />
         </div>
@@ -195,7 +195,7 @@ watch(
 )
 
 // ---- 拖拽调序（手柄武装 DnD，与 SelectedDatasetList 同模式）----
-const { armed, dragFrom, dragOver, onDragStart, onDrop, resetDrag } = useDragReorder(
+const { armed, arm, dragFrom, dragOver, onDragStart, onDrop, resetDrag } = useDragReorder(
   (from, to) => emit('reorder', from, to),
 )
 </script>

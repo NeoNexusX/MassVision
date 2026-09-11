@@ -38,18 +38,21 @@ export function useCollectionMembers(options: UseCollectionMembersOptions) {
     return collectionErrorMessage(err, fallback)
   }
 
-  // ---- 添加成员：响应即完整 CollectionDetail，直接回写 ----
-  async function add(fileIds: number[]) {
-    if (!detail.value || !fileIds.length || adding.value) return
+  // ---- 添加成员：响应即完整 CollectionDetail，直接回写。
+  // 返回是否成功——调用方据此决定是否关闭选集弹窗（失败时保留用户的选择便于重试）----
+  async function add(fileIds: number[]): Promise<boolean> {
+    if (!detail.value || !fileIds.length || adding.value) return false
     adding.value = true
     try {
       detail.value = await addMembers(detail.value.id, fileIds)
       syncFromServer()
       showToast('Members added', 'success')
+      return true
     } catch (err: any) {
       showToast(errorText(err, 'Failed to add members'), 'error')
       // 409（资格/上限）后服务端状态可能已变，拉一次最新保持一致
       if (isCollectionApiError(err) && err.status === 409) await refresh()
+      return false
     } finally {
       adding.value = false
     }

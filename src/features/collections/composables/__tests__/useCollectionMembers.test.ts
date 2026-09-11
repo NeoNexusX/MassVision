@@ -76,18 +76,19 @@ describe('useCollectionMembers', () => {
     addMembersMock.mockResolvedValue(makeDetail([1, 2, 3, 4]))
     const ops = useCollectionMembers({ detail, refresh })
 
-    await ops.add([4])
+    await expect(ops.add([4])).resolves.toBe(true)
 
     expect(addMembersMock).toHaveBeenCalledWith(7, [4])
     expect(ops.members.value.map((m) => m.id)).toEqual([1, 2, 3, 4])
     expect(showToastMock).toHaveBeenCalledWith('Members added', 'success')
   })
 
-  it('add on 409 shows the backend message and refreshes', async () => {
+  it('add on 409 shows the backend message, refreshes, and reports failure', async () => {
     addMembersMock.mockRejectedValue(apiError(409, 'collection member limit exceeded'))
     const ops = useCollectionMembers({ detail, refresh })
 
-    await ops.add([4])
+    // 返回 false：调用方据此保持选集弹窗打开（选择仍在，便于重试）
+    await expect(ops.add([4])).resolves.toBe(false)
 
     expect(showToastMock).toHaveBeenCalledWith('collection member limit exceeded', 'error')
     expect(refresh).toHaveBeenCalled()

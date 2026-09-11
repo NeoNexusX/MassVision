@@ -598,11 +598,6 @@ export function useOverlayData(
     return kmeansLabels
   }
 
-  /** Dimensions of the cached KMeans/UMAP raster grid, or null if not loaded. */
-  function getKmeansDims(): { width: number; height: number } | null {
-    return dims ? { width: dims.width, height: dims.height } : null
-  }
-
   /**
    * Export an RGB raster (H×W×3 uint8) as a scaled-up PNG download.
    * Background pixels (0,0,0) become transparent. Used by the UMAP/KMeans
@@ -693,8 +688,6 @@ export function useOverlayData(
     clearKmeansClusters,
     /** Current KMeans labels (Int32Array, -1 = background) or null. */
     getKmeansLabels,
-    /** Dimensions of the cached KMeans/UMAP raster grid, or null. */
-    getKmeansDims,
     /** Set/clear a comparison overlay (region A/B highlight) that overrides UMAP/KMeans. */
     setComparisonOverlay,
     /** Export the UMAP RGB image as a standalone PNG. */
