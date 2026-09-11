@@ -144,15 +144,12 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { reactive, watch } from 'vue'
 import type { PropType } from 'vue'
 import DatasetThumb from '@/features/collections/components/DatasetThumb.vue'
 import { useDragReorder } from '@/features/collections/composables/useDragReorder'
 import { formatBytes } from '@/shared/utils/format'
 import type { CollectionMember } from '../types/collection'
-
-/** 后端成员上限（超出 409 collection member limit exceeded） */
-const LIMIT = 300
 
 const props = defineProps({
   members: { type: Array as PropType<CollectionMember[]>, required: true },
@@ -161,7 +158,9 @@ const props = defineProps({
   adding: { type: Boolean, default: false },
   removing: { type: Boolean, default: false },
   reordering: { type: Boolean, default: false },
-  limit: { type: Number, default: LIMIT },
+  /** 后端成员上限（超出 409 collection member limit exceeded）。
+   *  必须是字面量：defineProps 会被提升到模块作用域，不能引用本地变量。 */
+  limit: { type: Number, default: 300 },
 })
 
 const emit = defineEmits<{
