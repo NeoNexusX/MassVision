@@ -1,6 +1,5 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useAuthStore } from '@/shared/auth/authStore'
-import { useToast } from '@/shared/composables/useToast'
 import { getConfig } from '@/shared/config/runtimeConfig'
 import { buildPageList } from '@/shared/utils/pagination'
 import {
@@ -26,7 +25,6 @@ import type { CollectionListMeta, CollectionSummary } from '../types/collection'
  */
 export function useCollectionsPage() {
   const auth = useAuthStore()
-  const { showToast } = useToast()
 
   // 当前页服务端数据；搜索在 collections computed 里本地派生
   const rows = ref<CollectionSummary[]>([])
@@ -94,10 +92,10 @@ export function useCollectionsPage() {
     fetchPage(1)
   }
 
-  /** 删除集合（不动文件）。服务端分页下重拉当前页；尾页删尽则回落一页 */
+  /** 删除集合（不动文件）。成功/失败提示由调用方的 useConfirmDelete 统一负责；
+   *  服务端分页下重拉当前页，尾页删尽则回落一页 */
   async function removeCollection(id: number) {
     await deleteCollection(id)
-    showToast('Collection deleted', 'success')
     const target = rows.value.length <= 1 && page.value > 1 ? page.value - 1 : page.value
     await fetchPage(target)
   }

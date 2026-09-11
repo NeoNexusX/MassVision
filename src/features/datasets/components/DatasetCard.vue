@@ -11,16 +11,30 @@
   >
     <!-- 左侧容器：文件名 + 图片 + 中间信息 -->
     <div class="flex flex-1 min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
-      <!-- 文件名：占满左侧容器宽度 -->
+      <!-- 文件名 + 可见性标志：标志由右侧操作列移到这里（同一行）。
+           My Datasets 才有（public 列表不展示），且只保留 svg——文字信息
+           收进 title/aria-label，不占横向空间。 -->
       <h3
-        class="w-full truncate cursor-pointer min-w-0
-          font-bold text-base-content text-[1.1em] leading-snug
-          hover:text-primary dark:hover:text-indigo-400 transition-colors"
-        @click.stop="$emit('view-overview', dataset.id)"
-        :title="dataset.filename || dataset.name"
+        class="w-full flex items-center gap-2 min-w-0
+          font-bold text-base-content text-[1.1em] leading-snug"
         :aria-label="`Dataset name: ${dataset.filename || dataset.name}`"
       >
-        {{ dataset.name }}
+        <span
+          class="truncate cursor-pointer min-w-0
+            hover:text-primary dark:hover:text-indigo-400 transition-colors"
+          :title="dataset.filename || dataset.name"
+          @click.stop="$emit('view-overview', dataset.id)"
+        >
+          {{ dataset.name }}
+        </span>
+        <span
+          v-if="isMyDataset"
+          class="shrink-0 inline-flex items-center text-slate-400"
+          :title="dataset.isPublic ? 'Public' : 'Private'"
+          :aria-label="dataset.isPublic ? 'Public' : 'Private'"
+        >
+          <SvgIcon :type="dataset.isPublic ? 'region' : 'password'" class="w-[1.1em] h-[1.1em]" />
+        </span>
       </h3>
 
       <!-- 图片 -->
@@ -101,6 +115,7 @@ const emit = defineEmits<{
   (e: 'download', id: string): void
   (e: 'delete', id: string): void
   (e: 'explore', id: string): void
+  (e: 'edit', id: string): void
 }>()
 
 const submitDate = computed(() =>
@@ -142,13 +157,14 @@ const actionItems = computed<ActionItem[]>(() => {
   else if (status === 'failed')
     items.push({ id: 'status', icon: 'error', label: 'Failed', colorClass: 'text-error' })
 
-  // Visibility badge (display only, no action)
+  // 元信息编辑（原本在 Dataset Overview 页，现收到卡片右侧；可见性标志已挪到文件名旁）
   if (props.isMyDataset)
     items.push({
-      id: 'visibility',
-      icon: props.dataset.isPublic ? 'region' : 'password',
-      label: props.dataset.isPublic ? 'Public' : 'Private',
-      colorClass: 'text-slate-400',
+      id: 'edit',
+      icon: 'pencil',
+      label: 'Edit',
+      colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
+      onClick: () => emit('edit', props.dataset.id),
     })
 
   // Action buttons

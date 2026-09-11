@@ -45,7 +45,7 @@
         v-model:description="metadata.description"
       />
 
-      <!-- Step 4: 学术元数据。可从选中数据集推导的 12 个 list 字段已自动预填，
+      <!-- Step 4: 学术元数据。可从选中数据集推导的 8 个 list 字段已自动预填，
            手改某字段后该字段停止自动同步，旁边出现「Reset to detected」。 -->
       <section
         class="mt-6 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6"

@@ -40,16 +40,19 @@ const routes = [
   },
   {
     // 集合详情页（Overview）：元数据展示 + 内嵌编辑 + 成员管理。
-    // (\d+) 与段数差异保证不会吞掉 /collections/new 与 /collections/public/:publicId
-    path: '/collections/:id(\\d+)',
+    // 无路径参数：集合 id 由 router.push 的 state 携带（与数据集 /overview 同方案），
+    // 直刷/书签进入时 state 为空 → 页面显示 Session lost 引导回列表。
+    path: '/collections/overview',
     name: 'CollectionOverview',
     component: () => import('../views/CollectionOverviewView.vue'),
     meta: { requiresAuth: true },
   },
   {
     // 集合公开分享页（免登录）：用 public_id 访问，只读展示。
-    // 无 meta = 免登录（同 /datasets、/s/:encodedId 模式）
-    path: '/collections/public/:publicId',
+    // 路径不带 public 段——分享链接直接是 /collections/{public_id}。
+    // 静态段（/collections/overview、/collections/new）优先级本就高于参数段，
+    // 且 public_id 是 16 位 base62，不会与它们撞名。
+    path: '/collections/:publicId',
     name: 'PublicCollection',
     component: () => import('../views/PublicCollectionView.vue'),
   },

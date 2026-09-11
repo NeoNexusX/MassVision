@@ -8,6 +8,22 @@
         <div class="h-64 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
       </div>
 
+      <!-- 无 state 进入（直刷/书签 /collections/overview）：id 已丢失，
+           与数据集 overview 同策略，引导回列表而不是留白 -->
+      <div
+        v-else-if="isStale"
+        class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
+      >
+        <SvgIcon type="circle_stack" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
+        <h3 class="text-[1.15em] font-bold text-base-content">Session lost</h3>
+        <p class="mt-2 text-base-content/60">
+          Please navigate from Collections to view details.
+        </p>
+        <router-link to="/collections" class="btn btn-primary mt-6 text-[1em]">
+          Back to Collections
+        </router-link>
+      </div>
+
       <!-- 错误态：集合不存在（404）与其他加载失败 -->
       <div
         v-else-if="error"
@@ -37,35 +53,60 @@
               <SvgIcon type="back" class="w-[0.9em] h-[0.9em]" />
               Collections
             </router-link>
-            <h1 class="page-title font-bold text-base-content mt-1 truncate" :title="detail.name">
-              {{ detail.name }}
+            <h1 class="page-title font-bold text-base-content mt-1 truncate" :title="headerName">
+              {{ headerName }}
             </h1>
-            <p v-if="detail.title" class="text-base-content/70 mt-0.5 truncate">
-              {{ detail.title }}
+            <p v-if="headerTitle" class="text-base-content/70 mt-0.5 truncate">
+              {{ headerTitle }}
             </p>
           </div>
           <div v-if="canEdit" class="flex items-center gap-2 shrink-0">
-            <button
-              v-if="detail.publicId"
-              class="btn btn-outline border-base-300 text-[0.95em]"
-              @click="copyShareLink"
-            >
-              <SvgIcon type="share" class="w-[1em] h-[1em]" />
-              Share
-            </button>
-            <button class="btn btn-outline border-base-300 text-[0.95em]" @click="editOpen = true">
-              <SvgIcon type="pencil" class="w-[1em] h-[1em]" />
-              Edit
-            </button>
-            <button
-              class="btn btn-outline border-base-300 text-error text-[0.95em]"
-              @click="deleteConfirm.open(String(detail.id))"
-            >
-              <SvgIcon type="trash" class="w-[1em] h-[1em]" />
-              Delete
-            </button>
+            <!-- 编辑态：原地修改，头部换成保存/取消（Delete/Share 期间隐藏，避免误触） -->
+            <template v-if="editing">
+              <button
+                class="btn btn-outline border-base-300 text-[0.95em]"
+                :disabled="saving"
+                @click="cancel"
+              >
+                Cancel
+              </button>
+              <button
+                class="btn btn-primary text-[0.95em]"
+                :disabled="saving || !isDirty || !draft?.name?.trim()"
+                @click="save"
+              >
+                <span v-if="saving" class="loading loading-spinner loading-sm"></span>
+                Save Changes
+              </button>
+            </template>
+            <template v-else>
+              <button
+                v-if="detail.publicId"
+                class="btn btn-outline border-base-300 text-[0.95em]"
+                @click="copyShareLink"
+              >
+                <SvgIcon type="share" class="w-[1em] h-[1em]" />
+                Share
+              </button>
+              <button class="btn btn-outline border-base-300 text-[0.95em]" @click="start">
+                <SvgIcon type="pencil" class="w-[1em] h-[1em]" />
+                Edit
+              </button>
+              <button
+                class="btn btn-outline border-base-300 text-error text-[0.95em]"
+                @click="deleteConfirm.open(String(detail.id))"
+              >
+                <SvgIcon type="trash" class="w-[1em] h-[1em]" />
+                Delete
+              </button>
+            </template>
           </div>
         </div>
+
+        <!-- 表单校验失败（Name 必填/超长等）：留在原地编辑，不弹窗 -->
+        <p v-if="editing && validationError" class="text-error text-[0.9em] -mt-3 mb-4">
+          {{ validationError }}
+        </p>
 
         <!-- 统计条 -->
         <div
@@ -91,8 +132,8 @@
           </span>
         </div>
 
-        <!-- 学术元数据（表驱动只读展示） -->
-        <CollectionMetadataPanel :metadata="detail.metadata" />
+        <!-- 学术元数据：编辑态整卡换成表单（同一张字段表），卡片外壳不变 -->
+        <CollectionMetadataPanel :metadata="detail.metadata" :draft="editing ? draft : null" />
 
         <!-- 成员列表（管理态 = canEdit） -->
         <CollectionMemberList
@@ -109,14 +150,6 @@
         />
       </template>
     </div>
-
-    <!-- 编辑元信息弹窗 -->
-    <CollectionDialog
-      :open="editOpen"
-      :collection="detail"
-      @close="editOpen = false"
-      @saved="applyDetail"
-    />
 
     <!-- 添加成员弹窗：选择器复用 Picker（排除已在集合中的成员）。
          弹窗在 page-type 容器之外，需自行挂 page-type 继承流体字号基准 -->
@@ -174,7 +207,6 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import CollectionDatasetPicker from '@/features/collections/components/CollectionDatasetPicker.vue'
-import CollectionDialog from '@/features/collections/components/CollectionDialog.vue'
 import CollectionMemberList from '@/features/collections/components/CollectionMemberList.vue'
 import CollectionMetadataPanel from '@/features/collections/components/CollectionMetadataPanel.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
@@ -187,6 +219,7 @@ import type { File } from '@/features/datasets/types/dataset'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
 import { deleteCollection } from '@/features/collections/api/collectionApi'
 import { useCollectionDetail } from '@/features/collections/composables/useCollectionDetail'
+import { useCollectionEdit } from '@/features/collections/composables/useCollectionEdit'
 import { useCollectionMembers } from '@/features/collections/composables/useCollectionMembers'
 import { useOrderedSelection } from '@/features/collections/composables/useOrderedSelection'
 
@@ -199,6 +232,7 @@ const {
   loading,
   error,
   notFound,
+  isStale,
   canEdit,
   fetch,
   applyDetail,
@@ -222,8 +256,17 @@ function downloadMember(member: { id: number; filename: string }) {
   })
 }
 
-// ---- 编辑元信息 ----
-const editOpen = ref(false)
+// ---- 编辑元信息：页内原地编辑（Edit → 字段变输入框 → Save/Cancel）----
+const { editing, draft, saving, validationError, isDirty, start, cancel, save } =
+  useCollectionEdit({ detail, onSaved: applyDetail })
+
+/** 编辑态下头部跟着草稿实时变，用户能直接看到改后的样子（空 name 回落到原值） */
+const headerName = computed(() =>
+  editing.value ? draft.value?.name || detail.value?.name || '' : (detail.value?.name ?? ''),
+)
+const headerTitle = computed(() =>
+  editing.value ? (draft.value?.title ?? '') : (detail.value?.title ?? ''),
+)
 
 // ---- 删除集合：确认后调 API 并回列表 ----
 const deleteConfirm = useConfirmDelete({
@@ -237,7 +280,7 @@ const deleteConfirm = useConfirmDelete({
 // ---- 分享链接（publicId 后端未确认携带，无则按钮隐藏）----
 async function copyShareLink() {
   if (!detail.value?.publicId) return
-  const url = `${location.origin}/collections/public/${detail.value.publicId}`
+  const url = `${location.origin}/collections/${detail.value.publicId}`
   try {
     await navigator.clipboard.writeText(url)
     showToast('Share link copied to clipboard', 'success')

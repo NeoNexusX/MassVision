@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
 import { ref, type Ref } from 'vue'
 
-const { getCollectionMock } = vi.hoisted(() => ({ getCollectionMock: vi.fn() }))
+const { getPublicCollectionMock } = vi.hoisted(() => ({ getPublicCollectionMock: vi.fn() }))
 
-vi.mock('../../api/collectionApi', () => ({ getCollection: getCollectionMock }))
+vi.mock('../../api/collectionApi', () => ({ getPublicCollection: getPublicCollectionMock }))
 
 import { useCollectionCovers } from '../useCollectionCovers'
 import type { CollectionSummary } from '../../types/collection'
@@ -48,47 +48,56 @@ function setup(initial: CollectionSummary[]) {
 
 describe('useCollectionCovers', () => {
   beforeEach(() => {
-    getCollectionMock.mockReset()
+    getPublicCollectionMock.mockReset()
   })
 
-  it('fetches members per collection id and exposes ordered file ids', async () => {
-    getCollectionMock.mockResolvedValueOnce(detailWith([42, 7]))
+  it('fetches members via the row public id and exposes ordered file ids', async () => {
+    getPublicCollectionMock.mockResolvedValueOnce(detailWith([42, 7]))
 
-    const { memberIds } = setup([summary({ id: 1 })])
+    const { memberIds } = setup([summary({ id: 1, publicId: 'aB3xK9mQ2rT7wY1z' })])
     await flushPromises()
 
-    expect(getCollectionMock).toHaveBeenCalledWith(1)
+    expect(getPublicCollectionMock).toHaveBeenCalledWith('aB3xK9mQ2rT7wY1z')
     expect(memberIds[1]).toEqual([42, 7])
   })
 
-  // 同一 id 只请求一次：列表重渲染 / 重新赋值不应再打接口
+  // 同一集合只请求一次：列表重渲染 / 重新赋值不应再打接口
   it('requests each collection at most once', async () => {
-    getCollectionMock.mockResolvedValue(detailWith([1]))
-    const { collections, memberIds } = setup([summary({ id: 1 })])
+    getPublicCollectionMock.mockResolvedValue(detailWith([1]))
+    const { collections, memberIds } = setup([summary({ id: 1, publicId: 'pub-1' })])
     await flushPromises()
 
-    collections.value = [summary({ id: 1 })]
+    collections.value = [summary({ id: 1, publicId: 'pub-1' })]
     await flushPromises()
 
-    expect(getCollectionMock).toHaveBeenCalledTimes(1)
+    expect(getPublicCollectionMock).toHaveBeenCalledTimes(1)
     expect(memberIds[1]).toEqual([1])
   })
 
   // 后端将来若在列表里直接带上 members，就不该再发详情请求
   it('uses members already present on the list row without fetching', async () => {
     const { memberIds } = setup([
-      summary({ id: 9, members: detailWith([5, 6]).members }),
+      summary({ id: 9, publicId: 'pub-9', members: detailWith([5, 6]).members }),
     ])
     await flushPromises()
 
-    expect(getCollectionMock).not.toHaveBeenCalled()
+    expect(getPublicCollectionMock).not.toHaveBeenCalled()
     expect(memberIds[9]).toEqual([5, 6])
   })
 
-  it('falls back to an empty list when the detail request fails', async () => {
-    getCollectionMock.mockRejectedValueOnce(new Error('boom'))
+  it('skips fetching when the row carries no public id', async () => {
+    const { memberIds } = setup([summary({ id: 3, publicId: null })])
+    await flushPromises()
 
-    const { memberIds } = setup([summary({ id: 3 })])
+    expect(getPublicCollectionMock).not.toHaveBeenCalled()
+    // 无键可查：留空让卡片回退占位图
+    expect(memberIds[3]).toEqual([])
+  })
+
+  it('falls back to an empty list when the detail request fails', async () => {
+    getPublicCollectionMock.mockRejectedValueOnce(new Error('boom'))
+
+    const { memberIds } = setup([summary({ id: 3, publicId: 'pub-3' })])
     await flushPromises()
 
     expect(memberIds[3]).toEqual([])

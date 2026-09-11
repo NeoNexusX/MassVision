@@ -92,6 +92,7 @@ const handleUploadSuccess = (_datasetName: string) => {
       <DatasetFilterBar
         :show-add-filter="true"
         :show-upload="true"
+        :show-collections-link="true"
         search-placeholder="Search Datasets"
         @upload="handleUpload"
         @search="handleSearch"

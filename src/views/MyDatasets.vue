@@ -46,6 +46,7 @@
       <DatasetFilterBar
         :show-add-filter="true"
         :show-upload="true"
+        :show-collections-link="true"
         search-placeholder="Search my datasets"
         @upload="handleUpload"
         @search="handleSearch"
@@ -80,6 +81,14 @@
         @cancel="explore.cancelExplore"
       />
 
+      <!-- 元信息编辑弹窗：由卡片右侧的 Edit 触发（Overview 页已移除该入口，避免两处入口） -->
+      <FileMetadataDialog
+        :open="!!editingDataset"
+        :dataset="editingDataset"
+        @close="editingDataset = null"
+        @saved="handleMetadataSaved"
+      />
+
       <DatasetList
         :datasets="datasets"
         :loading="loading"
@@ -94,6 +103,7 @@
         @download="handleDownloadRaw"
         @delete="handleDelete"
         @explore="handleExplore"
+        @edit="handleEdit"
         @change-size="changeSize"
         @go-to-page="goToPage"
       >
@@ -110,6 +120,8 @@ import DatasetList from '@/features/datasets/components/DatasetList.vue'
 import DatasetFilterBar from '@/features/datasets/components/DatasetFilterBar.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import ExploreConfirmDialog from '@/features/datasets/components/ExploreConfirmDialog.vue'
+import FileMetadataDialog from '@/features/datasets/components/FileMetadataDialog.vue'
+import type { File } from '@/features/datasets/types/dataset'
 import { listUserFiles, deleteFile, type FileListSort } from '@/features/datasets/api/datasetApi'
 import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
@@ -226,6 +238,18 @@ const deleteConfirm = useConfirmDelete({
 
 const explore = useExploreDataset()
 const { showExploreConfirm, isConverting } = explore
+
+// ---- 元信息编辑：卡片 Edit → 弹窗，保存后按 id 就地替换该行（不整页重拉）----
+const editingDataset = ref<File | null>(null)
+
+function handleEdit(id: string) {
+  editingDataset.value = datasets.value.find((d) => d.id === id) ?? null
+}
+
+function handleMetadataSaved(file: File) {
+  const index = datasets.value.findIndex((d) => d.id === file.id)
+  if (index !== -1) datasets.value[index] = file
+}
 
 const handleExplore = (id?: string) => {
   if (!id) return

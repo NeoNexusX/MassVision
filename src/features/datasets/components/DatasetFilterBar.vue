@@ -36,6 +36,17 @@
           </div>
         </teleport>
       </div>
+
+      <!-- 跨页入口：数据集列表 ↔ 数据集合列表，与 Add filter 并排。
+           目标路由 requiresAuth，未登录时由全局守卫带 redirect 回登录页 -->
+      <router-link
+        v-if="showCollectionsLink"
+        to="/collections"
+        class="flex w-full sm:w-auto items-center justify-center gap-2 bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content py-2 px-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-[1em] font-medium"
+      >
+        <SvgIcon type="circle_stack" class="w-4 h-4 shrink-0" />
+        <span class="truncate">Collections</span>
+      </router-link>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full md:w-auto min-w-0">
@@ -81,11 +92,14 @@ withDefaults(
   defineProps<{
     showUpload?: boolean
     showAddFilter?: boolean
+    /** 在 Add filter 旁显示进入 /collections 的按钮（数据集列表 ↔ 集合列表互跳） */
+    showCollectionsLink?: boolean
     searchPlaceholder?: string
   }>(),
   {
     showUpload: false,
     showAddFilter: false,
+    showCollectionsLink: false,
     searchPlaceholder: 'Search datasets',
   },
 )

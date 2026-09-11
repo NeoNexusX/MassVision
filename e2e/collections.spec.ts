@@ -69,18 +69,20 @@ test.describe('Collection create → overview → delete', () => {
 
     await page.getByRole('button', { name: 'Create Collection' }).click()
 
-    // 跳转 overview
-    await expect(page).toHaveURL(/\/collections\/\d+$/, { timeout: 15_000 })
+    // 跳转 overview（无路径参数：id 走 history.state）
+    await expect(page).toHaveURL(/\/collections\/overview$/, { timeout: 15_000 })
     await expect(page.locator('h1')).toContainText(name)
     await expect(page.locator('h2:has-text("Collection Metadata")')).toBeVisible()
     await expect(page.locator('h2:has-text("Members")')).toBeVisible()
 
-    // 内嵌 Edit：改名称后头部更新
+    // 内嵌 Edit：页内原地编辑（无弹窗），改名称后头部实时更新
     await page.getByRole('button', { name: 'Edit' }).click()
     const renamed = `${name} (edited)`
-    await page.locator('.modal-box input[maxlength="80"]').fill(renamed)
+    await page.locator('input[maxlength="80"]').fill(renamed)
     await page.getByRole('button', { name: 'Save Changes' }).click()
-    await expect(page.locator('h1')).toContainText(renamed, { timeout: 15_000 })
+    // toast 是保存真正落到后端的信号（头部是草稿联动，不能单独作数）
+    await expect(page.getByText('Collection updated')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('h1')).toContainText(renamed)
 
     // 删除集合 → 回列表
     await page.getByRole('button', { name: 'Delete' }).click()
@@ -98,7 +100,7 @@ test.describe('Collection member manage-mode', () => {
     test.skip(picked === null, '没有可加入集合的公开 imzML 数据集')
     await page.getByPlaceholder('e.g. Human Kidney MALDI Atlas').fill(name)
     await page.getByRole('button', { name: 'Create Collection' }).click()
-    await expect(page).toHaveURL(/\/collections\/\d+$/, { timeout: 15_000 })
+    await expect(page).toHaveURL(/\/collections\/overview$/, { timeout: 15_000 })
 
     // owner 视角：Add Members / Remove Selected 工具条存在
     await expect(page.getByRole('button', { name: 'Add Members' })).toBeVisible()
@@ -116,7 +118,7 @@ test.describe('Public collection page', () => {
   test.use({ storageState: { cookies: [], origins: [] } })
 
   test('invalid public id shows not-found state without auth', async ({ page }) => {
-    await page.goto('/collections/public/00000000000000000000000000000000')
+    await page.goto('/collections/00000000000000000000000000000000')
     await expect(page.getByText('Collection not found')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('h1:has-text("Collections")')).toHaveCount(0)
   })

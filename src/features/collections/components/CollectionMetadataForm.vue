@@ -1,7 +1,7 @@
 <template>
   <!-- 集合元数据编辑表单：由 metadataFields 定义表驱动（与只读面板同一张表，
        单一事实来源）。list 字段用 TagInput，long 字段用 textarea，其余 input。
-       草稿由父级（CollectionDialog / CreateCollectionView）持有并传入，
+       草稿由父级（CollectionOverviewView / CreateCollectionView）持有并传入，
        本组件只做字段绑定与「自动推导」提示，不做提交。
        excludeKeys：创建页把 name/description 交给专门的卡片，这里不重复渲染；
        autoKeys/lockedKeys：可从选中数据集推导的字段及其被用户接管的状态。 -->

@@ -23,6 +23,11 @@ defineProps({
     type: Object as PropType<Record<number, number[]>>,
     default: () => ({}),
   },
+  /** 集合 id → 封面是否仍在拉取（补齐期间卡片封面显示骨架） */
+  coverLoading: {
+    type: Object as PropType<Record<number, boolean>>,
+    default: () => ({}),
+  },
 })
 
 const emit = defineEmits<{
@@ -98,6 +103,7 @@ const emit = defineEmits<{
         :collection="collection"
         :can-edit="canEdit(collection)"
         :member-ids="memberIds[collection.id]"
+        :cover-loading="coverLoading[collection.id]"
         @view="$emit('view', $event)"
         @delete="$emit('delete', $event)"
       />

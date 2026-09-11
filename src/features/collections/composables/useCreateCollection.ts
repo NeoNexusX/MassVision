@@ -53,9 +53,7 @@ export function useCreateCollection() {
   // 后端 list_files 的筛选参数不含 status（已确认），completed 只能前端兜底过滤，
   // 避免把 uploading/failed 的文件选进集合后在保存时撞 409。
   // 注意 meta 仍是后端未过滤的总数，极端情况下分页条与实际行数会略有出入。
-  const datasets = computed(() =>
-    rawDatasets.value.filter((d) => d.status === 'completed'),
-  )
+  const datasets = computed(() => rawDatasets.value.filter((d) => d.status === 'completed'))
 
   const datasetQuery = ref('')
 
@@ -122,7 +120,12 @@ export function useCreateCollection() {
       )
       showToast('Collection created successfully', 'success')
       saved.value = true
-      router.replace(`/collections/${detail.id}`)
+      // 详情页无路径参数（replace 让创建页不留在历史栈里）：详情读取走公开
+      // 接口，public_id 随 state 传递；数字 id 留给编辑/删除等写操作
+      router.replace({
+        name: 'CollectionOverview',
+        state: { collectionId: detail.id, publicId: detail.publicId ?? undefined },
+      })
     } catch (err: any) {
       // 409 invalid collection members 等：CollectionApiError.message 是后端 detail 原文
       showToast(collectionErrorMessage(err, 'Failed to create collection'), 'error')

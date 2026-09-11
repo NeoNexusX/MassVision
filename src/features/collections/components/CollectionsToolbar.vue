@@ -47,12 +47,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import SearchInput from '@/shared/components/SearchInput.vue'
 
-defineProps<{
+const props = defineProps<{
   /** 仅显示当前登录用户的集合（切换 /collections/all ↔ /collections） */
   mineOnly?: boolean
+  /** 当前已应用的搜索词。空态里的 Clear Search 只重置外层状态，
+   *  这里跟着清空输入框，避免框里留着旧词与列表状态不一致 */
+  searchApplied?: string
 }>()
 
 const emit = defineEmits<{
@@ -61,6 +64,15 @@ const emit = defineEmits<{
 }>()
 
 const searchQuery = ref('')
+
+// 外部清空搜索（如 Clear Search 按钮）时同步清掉输入框；
+// 提交搜索（变为非空）不动输入框——两者本就同值
+watch(
+  () => props.searchApplied,
+  (v) => {
+    if (!v) searchQuery.value = ''
+  },
+)
 
 const onSearchClick = () => emit('search', searchQuery.value)
 </script>

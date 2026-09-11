@@ -2,7 +2,7 @@ import type { CollectionMetadata } from '../types/collection'
 
 /**
  * Collection 学术元数据的字段定义表——单一事实来源：
- * 本期驱动 CollectionMetadataPanel 的只读展示（分组渲染、空值隐藏），
+ * 本期驱动 CollectionMetadataPanel 的只读展示（分组渲染，空值显示「—」占位），
  * 二期编辑表单直接复用为控件定义（key 已是后端 PATCH 字段名，snake_case）。
  */
 

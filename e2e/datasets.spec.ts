@@ -84,7 +84,7 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * 卡片状态、可见性、删除按钮
+   * 卡片状态、可见性、编辑与删除按钮
    */
   test('each card shows status, visibility, and delete button', async ({ page }) => {
     await page.goto('/mydatasets')
@@ -94,10 +94,10 @@ test.describe('My Datasets', () => {
       page.locator('button, div').filter({ hasText: /Uploaded|Processing|Failed/ }).first()
     ).toBeVisible()
 
-    await expect(
-      page.locator('button, div').filter({ hasText: /Public|Private/ }).first()
-    ).toBeVisible()
+    // 可见性标志已挪到文件名同一行、只留 svg：文案不在 DOM 文本里，改按 title 定位
+    await expect(page.locator('[title="Public"], [title="Private"]').first()).toBeVisible()
 
+    await expect(page.getByRole('button', { name: 'Edit' }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Delete' }).first()).toBeVisible()
   })
 
