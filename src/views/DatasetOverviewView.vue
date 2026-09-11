@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useDatasetDetail } from '@/features/datasets/composables/useDatasetDetail'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import FileMetadataDialog from '@/features/datasets/components/FileMetadataDialog.vue'
 import InfoField from '@/features/datasets/components/InfoField.vue'
+import type { File } from '@/features/datasets/types/dataset'
+import { useAuthStore } from '@/shared/auth/authStore'
+
+const auth = useAuthStore()
 
 const {
   source,
@@ -29,10 +34,20 @@ const {
   confirmSetPublic,
 } = useDatasetDetail()
 
+// ---- 元信息编辑（PATCH /files/{file_id}）：登录且非分享视图即可编辑，
+//      后端校验是否文件持有者（非持有者 403） ----
+const canEditMetadata = computed(() => !isShareView.value && !!auth.token)
+const metadataOpen = ref(false)
+
+function onMetadataSaved(file: File) {
+  // 响应即更新后的文件，直接替换本地状态（预览图等不受影响）
+  dataset.value = file
+}
+
 // 状态徽章的样式与文案（completed/uploading/failed -> success/info/error，其余中性）
 const STATUS_BADGE: Record<string, { class: string; label: string }> = {
   completed: { class: 'badge-success bg-success/10 text-success', label: 'Uploaded' },
-  uploading: { class: 'badge-info bg-info/10 text-info', label: 'Uploading' },
+  uploading: { class: 'badge-info bg-info/10 text-info', label: 'Processing' },
   failed: { class: 'badge-error bg-error/10 text-error', label: 'Failed' },
 }
 const statusBadge = computed(() => {
@@ -127,6 +142,14 @@ const statusBadge = computed(() => {
               {{ dataset.filename }}
             </h2>
             <div class="flex flex-wrap items-center gap-2">
+              <button
+                v-if="canEditMetadata"
+                @click="metadataOpen = true"
+                class="btn btn-sm h-8 min-h-8 btn-outline"
+              >
+                <svg-icon type="pencil" class="w-4 h-4" />
+                Edit Metadata
+              </button>
               <button
                 v-if="source === 'my' && !dataset.isPublic"
                 @click="openPublicConfirm"
@@ -273,6 +296,14 @@ const statusBadge = computed(() => {
         :loading="makingPublic"
         @confirm="confirmSetPublic"
         @cancel="cancelPublicConfirm"
+      />
+
+      <!-- 元信息编辑弹窗（登录且非分享视图） -->
+      <FileMetadataDialog
+        :open="metadataOpen"
+        :dataset="dataset"
+        @close="metadataOpen = false"
+        @saved="onMetadataSaved"
       />
     </div>
   </div>

@@ -25,7 +25,7 @@
 
       <!-- 图片 -->
       <div class="w-full max-w-[250px] min-w-[120px] aspect-square rounded-lg overflow-hidden border border-base-300">
-        <DatasetPreviewGallery :file-id="dataset.id" />
+        <DatasetPreviewGallery :file-id="dataset.id" :storage-mode="dataset.storageMode" />
       </div>
 
       <!-- 中间信息：以左容器为基准，在图片与右侧容器之间居中 -->
@@ -136,7 +136,7 @@ const actionItems = computed<ActionItem[]>(() => {
   // Upload status
   const status = props.dataset.status
   if (status === 'uploading')
-    items.push({ id: 'status', label: 'Uploading', colorClass: 'text-info', spinner: true })
+    items.push({ id: 'status', label: 'Processing', colorClass: 'text-info', spinner: true })
   else if (status === 'completed')
     items.push({ id: 'status', icon: 'success', label: 'Uploaded', colorClass: 'text-success' })
   else if (status === 'failed')

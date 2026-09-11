@@ -46,6 +46,27 @@ export async function setFilePublic(fileId: string | number) {
   return res.data
 }
 
+// PATCH /files/{file_id} — 文件元数据部分更新（键为后端 snake_case）。
+// 可改：样本属性 8 个 + spectrum_mode + storage_mode；is_public/experiment_type/
+// filename 等系统字段禁改。权限：任一文件持有者。响应为更新后的 FilePublic。
+export interface FileMetadataPatch {
+  organism?: string
+  organism_part?: string
+  condition?: string
+  sample_growth_conditions?: string
+  sample_stabilization?: string
+  tissue_modification?: string
+  maldi_matrix?: string
+  maldi_matrix_application?: string
+  spectrum_mode?: string // 'profile' | 'centroid'
+  storage_mode?: string // 'continuous' | 'processed'
+}
+
+export async function patchFileMetadata(fileId: string | number, patch: FileMetadataPatch) {
+  const res = await auth_api.patch(`/files/${fileId}`, patch)
+  return res.data
+}
+
 // POST /files/list_files?page={page}&size={size}
 // Backend expects a JSON body of filter attributes; returns { data: [...], meta: {...} }.
 export async function listFiles(filters: Record<string, any> = {}, page = 1, size = getConfig().pagination.defaultPageSize, isPublic = false) {
