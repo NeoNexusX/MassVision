@@ -1,12 +1,15 @@
 <template>
-  <!-- 集合元信息编辑弹窗（overview 内嵌 Edit）：表单体直接复用 CollectionFormCard
-       （name≤80 / description≤300 校验现成）。提交只发送出现且变化的字段
-       （exclude_unset 语义），成功后由父级用返回的 CollectionDetail 更新页面。 -->
+  <!-- 集合元数据编辑弹窗（overview 内嵌 Edit）：完整 22 字段表单，
+       由 CollectionMetadataForm 表驱动渲染，草稿差量（buildMetadataPatch）
+       决定提交内容——只发变化的字段（exclude_unset 语义）。
+       内容较长，弹窗体限高滚动。 -->
   <dialog class="modal" :class="{ 'modal-open': open }">
-    <div class="modal-box max-w-lg page-type">
+    <div class="modal-box max-w-2xl page-type">
       <h3 class="text-[1.15em] font-bold text-base-content mb-4">Edit Collection</h3>
 
-      <CollectionFormCard v-model:name="name" v-model:description="description" />
+      <div class="max-h-[60vh] overflow-y-auto pr-1">
+        <CollectionMetadataForm v-if="draft" :draft="draft" />
+      </div>
 
       <p v-if="validationError" class="text-error text-[0.85em] mt-2">{{ validationError }}</p>
 
@@ -14,7 +17,7 @@
         <button class="btn text-[1em]" :disabled="saving" @click="close">Cancel</button>
         <button
           class="btn btn-primary text-[1em]"
-          :disabled="saving || !name.trim() || !dirty"
+          :disabled="saving || !draft?.name?.trim() || !dirty"
           @click="save"
         >
           <span v-if="saving" class="loading loading-spinner loading-sm"></span>
@@ -29,12 +32,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import type { PropType } from 'vue'
-import CollectionFormCard from '@/features/collections/components/CollectionFormCard.vue'
+import { computed, reactive, ref, watch, type PropType } from 'vue'
+import CollectionMetadataForm from '@/features/collections/components/CollectionMetadataForm.vue'
 import { useToast } from '@/shared/composables/useToast'
 import { collectionErrorMessage, updateCollection } from '../api/collectionApi'
-import type { CollectionDetail, CollectionPatchPayload } from '../types/collection'
+import { buildMetadataPatch, toMetadataDraft } from '../utils/metadataPatch'
+import type { CollectionDetail, CollectionMetadataDraft } from '../types/collection'
 
 const props = defineProps({
   open: { type: Boolean, required: true },
@@ -48,52 +51,65 @@ const emit = defineEmits<{
 
 const { showToast } = useToast()
 
-const name = ref('')
-const description = ref('')
+const draft = ref<CollectionMetadataDraft | null>(null)
 const saving = ref(false)
 const validationError = ref('')
 
-// 每次打开时用集合当前值初始化表单
+// 每次打开时用集合当前元数据初始化草稿（name/description 以顶层字段为准）
 watch(
   () => props.open,
   (open) => {
     if (open && props.collection) {
-      name.value = props.collection.name
-      description.value = props.collection.description ?? ''
+      draft.value = reactive(
+        toMetadataDraft({
+          ...props.collection.metadata,
+          name: props.collection.name,
+          description: props.collection.description ?? '',
+        }),
+      )
       validationError.value = ''
     }
   },
 )
 
+// 差量即脏态：没有变化的字段时 Save 禁用
 const dirty = computed(() => {
-  if (!props.collection) return false
-  return (
-    name.value !== props.collection.name ||
-    description.value !== (props.collection.description ?? '')
-  )
+  if (!props.collection || !draft.value) return false
+  return Object.keys(currentPatch()).length > 0
 })
 
+function currentPatch() {
+  return buildMetadataPatch(
+    {
+      ...props.collection!.metadata,
+      name: props.collection!.name,
+      description: props.collection!.description ?? '',
+    },
+    draft.value!,
+  )
+}
+
 async function save() {
-  if (!props.collection || saving.value) return
-  const trimmed = name.value.trim()
-  if (!trimmed) {
+  if (!props.collection || !draft.value || saving.value) return
+  const name = draft.value.name.trim()
+  if (!name) {
     validationError.value = 'Name is required.'
     return
   }
-  if (trimmed.length > 80) {
+  if (name.length > 80) {
     validationError.value = 'Name must be at most 80 characters.'
     return
   }
-  if (description.value.length > 300) {
+  if ((draft.value.description ?? '').length > 300) {
     validationError.value = 'Description must be at most 300 characters.'
     return
   }
 
-  // 只放变化字段（PATCH exclude_unset 语义）
-  const patch: CollectionPatchPayload = {}
-  if (trimmed !== props.collection.name) patch.name = trimmed
-  if (description.value !== (props.collection.description ?? ''))
-    patch.description = description.value
+  const patch = currentPatch()
+  if (!Object.keys(patch).length) {
+    close()
+    return
+  }
 
   saving.value = true
   validationError.value = ''

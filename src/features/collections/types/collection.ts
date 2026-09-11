@@ -81,10 +81,19 @@ export interface CollectionCreatePayload {
   file_ids?: number[]
 }
 
-/** PATCH /collections/{id} 请求体；exclude_unset 语义：只放要改的字段 */
-export interface CollectionPatchPayload {
-  name?: string
-  description?: string
+/**
+ * PATCH /collections/{id} 请求体：全部元数据字段均可部分更新。
+ * exclude_unset 语义：只放要改的字段（buildMetadataPatch 负责差量构建）。
+ * 键即 CollectionMetadata 的 snake_case 键，与后端 CollectionPatch 一一对应。
+ */
+export type CollectionPatchPayload = Partial<CollectionMetadata>
+
+/** 编辑表单草稿：list 字段为 string[]，其余为 string，空值归一 '' / []
+ *  （toMetadataDraft 生成，buildMetadataPatch 消费）。-? 去掉可选性，草稿字段必填。 */
+export type CollectionMetadataDraft = {
+  -readonly [K in keyof CollectionMetadata]-?: CollectionMetadata[K] extends string[] | undefined
+    ? string[]
+    : string
 }
 
 /** DELETE /collections/{id}/members 响应：removed/skipped 供对账 */
