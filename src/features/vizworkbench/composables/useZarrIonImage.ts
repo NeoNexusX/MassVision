@@ -325,6 +325,37 @@ async function loadIonSliceSum(indices: number[]): Promise<Float32Array> {
   return matrix
 }
 
+/**
+ * Load one ion image by m/z index WITHOUT touching the single-image state
+ * (`ionMatrix` / `selectedMzIndex`). Used by the multi-channel overlay, which
+ * keeps its own per-channel matrices.
+ *
+ * Throws on any failure (missing store, non-continuous data, invalid index,
+ * or a store swap while the read was in flight) — callers surface the message
+ * on the channel row.
+ */
+export async function loadIonMatrixByIndex(
+  idx: number,
+  tolerance: number,
+): Promise<Float32Array> {
+  if (dataModeRef.value !== 'continuous') {
+    throw new Error('Multi-ion overlay is only available for continuous data')
+  }
+  const requestStore = store
+  const axis = mzAxisRef.value
+  if (!requestStore || !axis) throw new Error('Zarr store is unavailable')
+  if (idx < 0 || idx >= axis.length) throw new Error('Invalid m/z index')
+  // 钳位容差到 [min, max]，与 loadForMzIndex 保持一致的语义
+  const tol = Math.min(
+    ZARR_STORE.maxMzTolerance,
+    Math.max(ZARR_STORE.minMzTolerance, tolerance),
+  )
+  const matrix = await loadIonSliceSum(findMzRangeIndices(idx, tol))
+  // 读取期间 store 被 dispose/替换（换 run 或离开页面）→ 结果作废
+  if (!store || store !== requestStore) throw new Error('Zarr session changed')
+  return matrix
+}
+
 // ---- Binary search in m/z axis ----
 
 export function findClosestMzIndex(target: number): number {

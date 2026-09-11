@@ -30,6 +30,31 @@ export function useResultROI(
   // Computed
   const draftReady = computed(() => currentDraft.value !== null)
 
+  /**
+   * Union of every confirmed ROI as a 0/1 mask (row-major, 1 = inside any ROI).
+   * null when the ROI-only view is off or there are no ROIs. Exposed so the
+   * multi-ion overlay can mask each channel without copying its matrix.
+   */
+  const roiUnionMask = computed<Uint8Array | null>(() => {
+    const w = ionCols.value
+    const h = ionRows.value
+    if (!viewingROI.value || !confirmedROIs.value.length || !w || !h) return null
+    const mask = new Uint8Array(w * h)
+    for (const roi of confirmedROIs.value) {
+      const m = roi.mask
+      if (!m || !m.length) continue
+      for (let r = 0; r < h; r++) {
+        const rowOff = r * w
+        const maskRow = m[r]
+        if (!maskRow) continue
+        for (let c = 0; c < w; c++) {
+          if (maskRow[c]) mask[rowOff + c] = 1
+        }
+      }
+    }
+    return mask
+  })
+
   const displayMatrix = computed(() => {
     const matrix = ionMatrix.value
     const w = ionCols.value
@@ -87,6 +112,7 @@ export function useResultROI(
     draftReady,
     viewingROI,
     displayMatrix,
+    roiUnionMask,
     roiSelectTool: (value: string | null) => roiSelectTool(value as ROIType | null),
     roiConfirm,
     roiCancel,
