@@ -10,7 +10,9 @@
         {{ dataset?.filename }}
       </p>
 
-      <div class="max-h-[60vh] overflow-y-auto pr-1">
+      <!-- v-if 守卫：dialog 常驻 DOM（modal-open 只切显隐），draft 在打开时才
+           初始化；无守卫会在关闭状态下渲染 null 的字段绑定，整个页面崩掉 -->
+      <div v-if="draft" class="max-h-[60vh] overflow-y-auto pr-1">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           <label
             v-for="field in TEXT_FIELDS"
