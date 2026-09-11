@@ -35,17 +35,23 @@ describe('FileMetadataDialog', () => {
 
     expect(wrapper.find('dialog.modal').exists()).toBe(true)
     // 守卫生效：关闭态不渲染字段绑定
-    expect(wrapper.find('input[type="text"]').exists()).toBe(false)
+    expect(wrapper.find('input').exists()).toBe(false)
+    expect(wrapper.find('select').exists()).toBe(false)
   })
 
-  it('populates the draft inputs when opened', async () => {
+  it('populates the draft when opened (SelectWithOther falls back to Other input)', async () => {
     const wrapper = mountDialog(false)
 
     await wrapper.setProps({ open: true })
     await nextTick()
 
-    const organismInput = wrapper.find('input[type="text"]')
-    expect((organismInput.element as HTMLInputElement).value).toBe('Mouse')
-    expect(wrapper.find('select').element.value).toBe('profile')
+    // 'Mouse' 不在 ORGANISMS 词表内 → 组件自动落到 Other 自定义输入回显
+    // （该 input 无显式 type 属性，不能用 input[type=text] 选择器）
+    const otherInput = wrapper.find('input')
+    expect((otherInput.element as HTMLInputElement).value).toBe('Mouse')
+
+    // 'profile' 在枚举内 → 对应下拉直接选中
+    const selectValues = wrapper.findAll('select').map((s) => s.element.value)
+    expect(selectValues).toContain('profile')
   })
 })

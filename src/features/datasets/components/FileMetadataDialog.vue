@@ -14,37 +14,40 @@
            初始化；无守卫会在关闭状态下渲染 null 的字段绑定，整个页面崩掉 -->
       <div v-if="draft" class="max-h-[60vh] overflow-y-auto pr-1">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+          <!-- 8 个样本属性：与上传表单同款 SelectWithOther（词表 + Other 自定义输入）。
+               当前值不在词表内时组件自动落到 Other 输入框回显。 -->
           <label
             v-for="field in TEXT_FIELDS"
             :key="field.key"
             class="flex flex-col gap-1 min-w-0"
           >
             <span class="text-[0.8em] font-medium text-base-content/70">{{ field.label }}</span>
-            <input
+            <SelectWithOther
               v-model="draft![field.key]"
-              type="text"
-              :list="`suggest-${field.key}`"
-              class="input input-bordered w-full text-[0.95em]"
+              :options="field.suggestions"
+              :placeholder="`Select ${field.label.toLowerCase()}...`"
+              other-placeholder="Please specify..."
             />
-            <!-- 领域词表建议（datalist：可自由输入，也提供学科常用值） -->
-            <datalist :id="`suggest-${field.key}`">
-              <option v-for="opt in field.suggestions" :key="opt" :value="opt" />
-            </datalist>
           </label>
 
+          <!-- 枚举：IconSelect 下拉；选回占位「—」= 不修改该字段 -->
           <label class="flex flex-col gap-1 min-w-0">
             <span class="text-[0.8em] font-medium text-base-content/70">Spectrum Mode</span>
-            <select v-model="draft!.spectrum_mode" class="select select-bordered w-full text-[0.95em]">
-              <option value="">—</option>
-              <option v-for="opt in SPECTRUM_MODES" :key="opt" :value="opt">{{ opt }}</option>
-            </select>
+            <IconSelect
+              v-model="draft!.spectrum_mode"
+              :options="SPECTRUM_MODES"
+              placeholder="—"
+              hide-label
+            />
           </label>
           <label class="flex flex-col gap-1 min-w-0">
             <span class="text-[0.8em] font-medium text-base-content/70">Storage Mode</span>
-            <select v-model="draft!.storage_mode" class="select select-bordered w-full text-[0.95em]">
-              <option value="">—</option>
-              <option v-for="opt in STORAGE_MODES" :key="opt" :value="opt">{{ opt }}</option>
-            </select>
+            <IconSelect
+              v-model="draft!.storage_mode"
+              :options="STORAGE_MODES"
+              placeholder="—"
+              hide-label
+            />
           </label>
         </div>
       </div>
@@ -65,6 +68,8 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch, type PropType } from 'vue'
+import IconSelect from '@/shared/components/IconSelect.vue'
+import SelectWithOther from '@/shared/components/SelectWithOther.vue'
 import {
   CONDITIONS,
   MALDI_MATRICES,
