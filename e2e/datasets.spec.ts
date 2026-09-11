@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page, type Locator } from '@playwright/test'
 import { sizeToMB, ALGO_DATASET_NAMES } from './utils.js'
 
 const MAX_DOWNLOAD_MB = 300
@@ -30,19 +30,23 @@ async function resetMyDatasetSearch(page: Page) {
   await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 }
 
-/** 在 /workspace 等第一行任务不再是 Loading，然后轮询到 Running 消失 */
-async function waitForWorkspaceTaskFinished(page: Page, timeoutMs: number) {
+/**
+ * 在 /workspace 轮询刷新，直到**给定的那一行**不再是 Running。
+ *
+ * 必须按行等待，不能看整张表："表里还有 Running 吗" 会被别的任务干扰
+ * （例如上一次 Peak Alignment 超时残留的任务），导致白等到超时。
+ */
+async function waitForTaskRowFinished(page: Page, row: Locator, timeoutMs: number) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     await page.reload()
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first())
       .not.toHaveText('Loading...', { timeout: 15_000 })
-    const hasRunning = (await page.locator('table').getByText('Running').count()) > 0
-    if (!hasRunning) return
+    if ((await row.getByText('Running').count()) === 0) return
     await page.waitForTimeout(10_000)
   }
-  throw new Error(`Workspace task still Running after ${timeoutMs / 1000}s`)
+  throw new Error(`Task still Running after ${timeoutMs / 1000}s`)
 }
 
 /**
@@ -181,28 +185,12 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * 排序：选 File Size 后，第一页卡片的 File Size 应降序。
-   * 排序是纯前端行为（useDatasetList.handleSort 在已加载数据上原地排序，不发请求、
-   * 无 loading 态），selectOption 返回后 DOM 即重排，直接断言即可。
-   * 显示值是四舍五入的，round 单调 ⇒ 实际值降序必然蕴含显示值非递增。
+   * 排序用例暂时移除。
+   *
+   * 当前「File Size 降序」是 useDatasetList.handleSort 在**前端**对已加载的那一页
+   * 原地排序，属于过渡实现；等后端支持排序参数后再补回对应用例（届时断言的是
+   * 服务端返回的顺序，而不是前端重排的结果）。
    */
-  test('sort — selecting file size orders cards by size (desc)', async ({ page }) => {
-    await page.goto('/mydatasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    const sortSelect = page.locator('select:has(option[value="size_bytes"])')
-    await sortSelect.selectOption('size_bytes')
-
-    const sizeTexts = await page.locator('p:has-text("File Size:")').allInnerTexts()
-    const sizes = sizeTexts.map(sizeToMB).filter(Number.isFinite)
-    expect(sizes.length, 'expected at least one parsable card size').toBeGreaterThan(0)
-    for (let i = 1; i < sizes.length; i++) {
-      expect(
-        sizes[i]!,
-        `card ${i}: ${sizes[i]}MB should be <= card ${i - 1}: ${sizes[i - 1]}MB`,
-      ).toBeLessThanOrEqual(sizes[i - 1]!)
-    }
-  })
 
   /**
    * Filter 面板
@@ -226,7 +214,9 @@ test.describe('My Datasets', () => {
   test('explore — creates direct-conversion task, verifies TIC image and per-pixel spectrum, then cleans up', async ({ page, browserName }) => {
     // 建任务的重后端操作只在 chromium 跑，firefox/webkit 跑纯 UI 即可，避免重复建任务
     test.skip(browserName !== 'chromium', 'raw-convert 任务只在 chromium 创建一次')
-    test.setTimeout(300_000)
+    // 内层等待上限合计约 375s（等任务 180s + TIC 图 30s + 两次点击/谱图 60+60+30+15s），
+    // 300s 装不下，只要后端任务跑得稍久就会先撞全局超时。
+    test.setTimeout(420_000)
 
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
@@ -263,21 +253,23 @@ test.describe('My Datasets', () => {
     await expect(page.locator('table tbody tr').first().locator('td').first())
       .not.toHaveText('Loading...', { timeout: 15_000 })
 
-    // Methods 列显示 "Direct conversion (no preprocessing)"
-    const runningRow = page.locator('table tr').filter({ hasText: 'Running' }).first()
-    await expect(runningRow).toBeVisible({ timeout: 15_000 })
-    await expect(runningRow.locator('td').filter({ hasText: 'Direct conversion' })).toBeVisible()
+    // 按「数据集名 + Methods 列 Direct conversion」定位本次创建的任务行。
+    // 不能裸取"第一条 Running"或"第一条 Completed"——Workspace 里可能同时有别的
+    // 任务（例如上一次 Peak Alignment 超时残留的），取错行会让后续断言全部落到错行上。
+    const myTaskRow = page
+      .locator('table tbody tr')
+      .filter({ hasText: name })
+      .filter({ hasText: 'Direct conversion' })
+      .first()
+    await expect(myTaskRow).toBeVisible({ timeout: 15_000 })
+    await expect(myTaskRow).toContainText('Running')
 
-    // 轮询刷新，等待任务完成（最多 3 分钟）
-    await waitForWorkspaceTaskFinished(page, 180_000)
-    await expect(page.locator('table').getByText('Running')).not.toBeVisible()
-    // Recent Results 里可能已有其他历史 Completed 记录，用 .getByText('Completed') 裸查会撞 strict mode，
-    // 直接断言最新（第一行）已经变成 Completed
-    await expect(page.locator('table tbody tr').first()).toContainText('Completed')
+    // 轮询刷新，等**本次**任务完成（最多 3 分钟）
+    await waitForTaskRowFinished(page, myTaskRow, 180_000)
+    await expect(myTaskRow).toContainText('Completed')
 
-    // 查看结果（后端按最新在前返回，刚完成的任务在第一行）
-    const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
-    await completedRow.getByRole('button', { name: 'View' }).click()
+    // 查看结果
+    await myTaskRow.getByRole('button', { name: 'View' }).click()
     await expect(page).toHaveURL(/\/vizworkbench/)
 
     // TIC 图（processed 模式绘图区）。实际标题是 "Image View"（见 IonImageSection.vue imageTitle），
@@ -342,11 +334,13 @@ test.describe('My Datasets', () => {
     await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 10_000 })
 
     // 清理：回 Workspace 删除刚创建的 raw-convert 结果。
-    // 不能删"第一行"——Workspace 里可能同时有 Peak Alignment 等其它任务，
-    // 第一行未必是本次创建的。按 Methods 列文本 "Direct conversion" 定位那一行。
+    // 同样要按「数据集名 + Direct conversion」定位——Workspace 里可能同时有其它
+    // 任务，删错行会清掉别人的结果。
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-    const rawConvertRow = page.locator('table tbody tr')
+    const rawConvertRow = page
+      .locator('table tbody tr')
+      .filter({ hasText: name })
       .filter({ hasText: 'Direct conversion' })
       .first()
     await expect(rawConvertRow).toBeVisible({ timeout: 10_000 })
@@ -455,24 +449,10 @@ test.describe('Public Datasets', () => {
     }
   })
 
-  test('sort — selecting file size orders cards by size (desc)', async ({ page }) => {
-    await page.goto('/datasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    const sortSelect = page.locator('select:has(option[value="size_bytes"])')
-    await sortSelect.selectOption('size_bytes')
-
-    // 排序是纯前端行为（无请求、无 loading 态），直接断言第一页卡片的 File Size 降序
-    const sizeTexts = await page.locator('p:has-text("File Size:")').allInnerTexts()
-    const sizes = sizeTexts.map(sizeToMB).filter(Number.isFinite)
-    expect(sizes.length, 'expected at least one parsable card size').toBeGreaterThan(0)
-    for (let i = 1; i < sizes.length; i++) {
-      expect(
-        sizes[i]!,
-        `card ${i}: ${sizes[i]}MB should be <= card ${i - 1}: ${sizes[i - 1]}MB`,
-      ).toBeLessThanOrEqual(sizes[i - 1]!)
-    }
-  })
+  /*
+   * 排序用例暂时移除（与 My Datasets 侧同样的原因）：当前排序是前端对已加载的
+   * 一页做原地重排，属于过渡实现，等后端支持排序参数后再补回。
+   */
 
   /**
    * 随机选一张 <300MB 的卡：第一次点击真实下载，限流窗口内的第二次点击被拦截

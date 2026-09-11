@@ -60,6 +60,21 @@ function peakAlignmentRow(page: Page, dataset?: string) {
 let createdDataset: string | null = null
 
 /**
+ * Peak Alignment 后端任务的最长等待时间。
+ *
+ * 这条链路里最耗时的就是后端跑 align，其余步骤都快，所以所有与之相关的预算
+ * 都由这一个数推导，避免各处对不上（之前 submit 轮询 120s / 全局 180s、
+ * helper 轮询 180s / 全局也是 180s、Cleanup 干脆没设全局用默认 30s ——
+ * 等待上限 ≥ 全局超时，条件永远等不到）。
+ *
+ * 实测：同一数据集两次跑分别 108s、176s，波动大且会超过 2 分钟，
+ * 所以留足余量取 5 分钟，避免差几秒就误判失败。
+ */
+const ALIGN_WAIT_MS = 300_000
+/** 轮询预算 + 页面加载/断言余量。 */
+const ALIGN_TEST_TIMEOUT_MS = ALIGN_WAIT_MS + 120_000
+
+/**
  * 等待 submit 创建的 Peak Alignment 任务从 Running 变为 Completed 可查看。
  * 任务创建后要排队+计算，不会立刻 Completed，10s 内的 toBeVisible 断言会误报。
  * 轮询刷新（与 Cleanup 的等待逻辑一致），直到该行 Status 列变成 Completed。
@@ -74,7 +89,7 @@ async function waitForPeakAlignmentReady(page: Page) {
     test.skip(true, '本轮 submit 未创建 Peak Alignment 任务（skip / 创建前失败）')
     throw new Error('skipped')
   }
-  const deadline = Date.now() + 180_000
+  const deadline = Date.now() + ALIGN_WAIT_MS
   while (Date.now() < deadline) {
     const row = peakAlignmentRow(page, createdDataset)
     if ((await row.getByText('Completed').count()) > 0) return row
@@ -84,7 +99,7 @@ async function waitForPeakAlignmentReady(page: Page) {
       .not.toHaveText('Loading...', { timeout: 15_000 })
     await page.waitForTimeout(5_000)
   }
-  throw new Error('Peak Alignment task did not become Completed within 180s')
+  throw new Error(`Peak Alignment task did not become Completed within ${ALIGN_WAIT_MS / 1000}s`)
 }
 
 // ============================================================
@@ -221,25 +236,34 @@ test.describe.serial('Peak Alignment journey', () => {
   // 180s 等不到位，还拖长 CI）。后续查看用例与 Cleanup 做了同样的 chromium-only skip。
   test('submit — creates Peak Alignment task and waits for completion', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'Peak Alignment 任务只在 chromium 创建一次（后端完成时间不可控）')
-    test.setTimeout(180_000)
+    test.setTimeout(ALIGN_TEST_TIMEOUT_MS)
     await page.goto('/workspace/new')
     await page.locator('.tab:has-text("My Datasets")').click()
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
     // 用真实数据集跑算法（不再随机挑 <ALGO_MAX_MB 的卡——可能选中 1KB 合成测试文件，
     // 后端解析必然 Failed）。从 ALGO_DATASET_NAMES 里随机选一个，用搜索框按名称过滤后选中。
-    const search = page.getByPlaceholder('Search...')
+    // 注意 placeholder 与 DataSourceStep 里的 SearchInput 保持一致（"Search datasets"）。
+    const search = page.getByPlaceholder('Search datasets')
     const name = ALGO_DATASET_NAMES[Math.floor(Math.random() * ALGO_DATASET_NAMES.length)]!
     await search.fill(name)
-    await page.waitForTimeout(500) // datasetQuery 有 300ms 防抖
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
-    const radio = page.locator('input[name="selectedDataset"]').first()
-    if (!(await radio.isVisible().catch(() => false))) {
+    // 按**数据集名**定位那一行再点。两种"等就绪"的写法都不能用：
+    //   - 等 .animate-pulse：DataSourceStep 的加载态是 loading-spinner，页面没有骨架屏元素，
+    //     toHaveCount(0) 会立刻通过；
+    //   - 等"第一个 radio 可见"：列表还没被过滤时，初始那批 radio 就已经可见，会点到列表
+    //     第一行（曾因此给 Rat_Liver 建了任务，却去找 Human_Kidney 的行）。
+    // 按名字过滤则与过滤是否已生效无关——命中的一定是目标数据集那一行。
+    const datasetRow = page.locator('li').filter({ hasText: name }).first()
+    const found = await datasetRow
+      .waitFor({ state: 'visible', timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false)
+    if (!found) {
       test.skip(true, `Dataset "${name}" not found on this backend`)
       return
     }
-    await radio.locator('..').click()
+    await datasetRow.click()
 
     // 明确选中 Peak Alignment，而不是"点最后一个方法"——随机数据集下最后一个方法未必是 align。
     // profile 数据要先选中 Peak Picking 才会暴露 Peak Alignment；centroid+continuous 则根本不支持 align。
@@ -276,9 +300,9 @@ test.describe.serial('Peak Alignment journey', () => {
     createdDataset = name
 
     // 轮询刷新，等本次任务（按数据集名定位，不依赖"第一行=最新"的假设）
-    // Running 消失，最多 2 分钟。locator 是惰性的，reload 后无需重新构造。
+    // Running 消失。locator 是惰性的，reload 后无需重新构造。
     const myRow = page.locator('table tbody tr').filter({ hasText: name }).first()
-    const deadline = Date.now() + 120_000
+    const deadline = Date.now() + ALIGN_WAIT_MS
     while (Date.now() < deadline) {
       await page.reload()
       await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
@@ -288,13 +312,14 @@ test.describe.serial('Peak Alignment journey', () => {
       if ((await myRow.getByText('Running').count()) === 0) break
       await page.waitForTimeout(10_000)
     }
-    await expect(myRow.getByText('Running')).not.toBeVisible()
+    // 轮询用尽仍未结束才算失败（给足等待，避免刚过 deadline 就断言、差几秒误判）
+    await expect(myRow.getByText('Running')).not.toBeVisible({ timeout: 10_000 })
   })
 
   test('vizworkbench — loads ion image, spectrum, metadata, and responds to click', async ({ page, browserName }) => {
     // 依赖上一用例在 chromium 提交的 Peak Alignment 任务；非 chromium 下任务不创建，skip 一致
     test.skip(browserName !== 'chromium', 'Peak Alignment 任务只在 chromium 创建，依赖它的断言不跨浏览器')
-    test.setTimeout(180_000)
+    test.setTimeout(ALIGN_TEST_TIMEOUT_MS)
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
@@ -351,7 +376,7 @@ test.describe.serial('Peak Alignment journey', () => {
   test('vizworkbench — switches colormap and keeps ion image stable', async ({ page, browserName }) => {
     // 同上：依赖 chromium 提交的 Peak Alignment 任务，skip 保持一致
     test.skip(browserName !== 'chromium', 'Peak Alignment 任务只在 chromium 创建，依赖它的断言不跨浏览器')
-    test.setTimeout(180_000)
+    test.setTimeout(ALIGN_TEST_TIMEOUT_MS)
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
@@ -389,6 +414,8 @@ test.describe('Cleanup', () => {
   test('delete completed result', async ({ page, browserName }) => {
     // 与 submit 对应：任务只在 chromium 建，这里也只在 chromium 删
     test.skip(browserName !== 'chromium', 'Peak Alignment 任务只在 chromium 创建，清理也只在 chromium')
+    // 之前这里没设全局超时 → 用配置默认 30s，而轮询预算就有 120s，任务没提前跑完必炸
+    test.setTimeout(ALIGN_TEST_TIMEOUT_MS)
     // submit 没有创建任务（skip / 创建前失败）时不删任何行——
     // 宁可留下未清理的任务，也不误删历史数据
     if (!createdDataset) {
@@ -398,9 +425,9 @@ test.describe('Cleanup', () => {
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
 
-    // 等本次 Peak Alignment 任务跑完（那行 Running 消失），最多 2 分钟。
+    // 等本次 Peak Alignment 任务跑完（那行 Running 消失）
     const row = peakAlignmentRow(page, createdDataset)
-    const deadline = Date.now() + 120_000
+    const deadline = Date.now() + ALIGN_WAIT_MS
     while (Date.now() < deadline) {
       await page.reload()
       await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
