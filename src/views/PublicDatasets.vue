@@ -3,7 +3,7 @@ import { defineAsyncComponent, ref } from 'vue'
 import DatasetList from '@/features/datasets/components/DatasetList.vue'
 import DatasetFilterBar from '@/features/datasets/components/DatasetFilterBar.vue'
 import ExploreConfirmDialog from '@/features/datasets/components/ExploreConfirmDialog.vue'
-import { listFiles } from '@/features/datasets/api/datasetApi'
+import { listFiles, type FileListSort } from '@/features/datasets/api/datasetApi'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
 import { useDatasetListPage } from '@/features/datasets/composables/useDatasetListPage'
 import { useExploreDataset } from '@/features/datasets/composables/useExploreDataset'
@@ -19,8 +19,8 @@ const UploadModal = defineAsyncComponent(
 // Use composable for datasets (fetch/map/pagination/sort)
 const initialFilters = createDefaultDatasetFilters()
 
-const fetcher = async (f: Record<string, any>, p: number, s: number) => {
-  return await listFiles(f, p, s, true) // 列表加载不需要登录
+const fetcher = async (f: Record<string, any>, p: number, s: number, sort?: FileListSort) => {
+  return await listFiles(f, p, s, true, sort) // 列表加载不需要登录
 }
 
 const {

@@ -110,7 +110,7 @@ import DatasetList from '@/features/datasets/components/DatasetList.vue'
 import DatasetFilterBar from '@/features/datasets/components/DatasetFilterBar.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import ExploreConfirmDialog from '@/features/datasets/components/ExploreConfirmDialog.vue'
-import { listUserFiles, deleteFile } from '@/features/datasets/api/datasetApi'
+import { listUserFiles, deleteFile, type FileListSort } from '@/features/datasets/api/datasetApi'
 import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
 import { useDatasetListPage } from '@/features/datasets/composables/useDatasetListPage'
@@ -130,11 +130,11 @@ const initialFilters = createDefaultDatasetFilters()
 
 const auth = useAuthStore()
 
-const fetcher = async (f: Record<string, any>, p: number, s: number) => {
+const fetcher = async (f: Record<string, any>, p: number, s: number, sort?: FileListSort) => {
   // ensure username is set for MyDatasets
   const username = auth.user?.username || ''
   const body = { ...f, username }
-  return await listUserFiles(body, p, s)
+  return await listUserFiles(body, p, s, sort)
 }
 
 // Quota

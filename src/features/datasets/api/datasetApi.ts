@@ -68,18 +68,29 @@ export async function patchFileMetadata(fileId: string | number, patch: FileMeta
   return res.data
 }
 
-// POST /files/list_files?page={page}&size={size}
+/** 文件列表服务端排序（sort_by/order 白名单与后端一致，非法值 422） */
+export interface FileListSort {
+  sortBy: 'uploaded_at' | 'size'
+  order: 'asc' | 'desc'
+}
+
+// POST /files/list_files?page={page}&size={size}&sort_by={sort_by}&order={order}
 // Backend expects a JSON body of filter attributes; returns { data: [...], meta: {...} }.
-export async function listFiles(filters: Record<string, any> = {}, page = 1, size = getConfig().pagination.defaultPageSize, isPublic = false) {
+// 排序/分页参数走 query string，过滤条件仍在请求体；同值行按 file_id 倒序兜底。
+export async function listFiles(filters: Record<string, any> = {}, page = 1, size = getConfig().pagination.defaultPageSize, isPublic = false, sort?: FileListSort) {
   const client = isPublic ? api : auth_api
-  const res = await client.post('/files/list_files', filters, { params: { page, size } })
+  const res = await client.post('/files/list_files', filters, {
+    params: { page, size, sort_by: sort?.sortBy, order: sort?.order },
+  })
   return res.data
 }
 
 // List files for the current user (backend separates public vs user scope)
-// POST /files/list_user_files?page={page}&size={size}
-export async function listUserFiles(filters: Record<string, any> = {}, page = 1, size = getConfig().pagination.defaultPageSize) {
-  const res = await auth_api.post('/files/list_user_files', filters, { params: { page, size } })
+// POST /files/list_user_files?page={page}&size={size}&sort_by={sort_by}&order={order}
+export async function listUserFiles(filters: Record<string, any> = {}, page = 1, size = getConfig().pagination.defaultPageSize, sort?: FileListSort) {
+  const res = await auth_api.post('/files/list_user_files', filters, {
+    params: { page, size, sort_by: sort?.sortBy, order: sort?.order },
+  })
   return res.data
 }
 

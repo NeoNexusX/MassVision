@@ -98,11 +98,15 @@ const emit = defineEmits<{
 }>()
 
 const searchQuery = ref('')
-const sortValue = ref('submission_time')
+// 复合值 'field:order'：字段 + 方向一起选，由 useDatasetList.handleSort 解析后
+// 映射到后端 sort_by/order query 参数（uploaded_at / size × asc / desc）
+const sortValue = ref('submission_time:desc')
 
 const sortOptions: SortOption[] = [
-  { label: 'Sort by submission time', value: 'submission_time' },
-  { label: 'Sort by file size', value: 'size_bytes' },
+  { label: 'Submission time (newest first)', value: 'submission_time:desc' },
+  { label: 'Submission time (oldest first)', value: 'submission_time:asc' },
+  { label: 'File size (largest first)', value: 'size_bytes:desc' },
+  { label: 'File size (smallest first)', value: 'size_bytes:asc' },
 ]
 
 const showFilterPanel = ref(false)

@@ -2,8 +2,14 @@ import { useRouter } from 'vue-router'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
 import { useDatasetListRouteState } from '@/features/datasets/composables/useDatasetListRouteState'
 import { useAuthStore } from '@/shared/auth/authStore'
+import type { FileListSort } from '@/features/datasets/api/datasetApi'
 
-type Fetcher = (filters: Record<string, any>, page: number, size: number) => Promise<any>
+type Fetcher = (
+  filters: Record<string, any>,
+  page: number,
+  size: number,
+  sort?: FileListSort,
+) => Promise<any>
 
 /**
  * MyDatasets / PublicDatasets 两个列表页共用的装配逻辑：
