@@ -47,8 +47,8 @@ export async function setFilePublic(fileId: string | number) {
 }
 
 // PATCH /files/{file_id} — 文件元数据部分更新（键为后端 snake_case）。
-// 可改：样本属性 8 个 + spectrum_mode + storage_mode；is_public/experiment_type/
-// filename 等系统字段禁改。权限：任一文件持有者。响应为更新后的 FilePublic。
+// 可改：样本属性 9 个（含 solvent）+ spectrum_mode + storage_mode；is_public/
+// experiment_type/filename 等系统字段禁改。权限：任一文件持有者。响应为更新后的 FilePublic。
 export interface FileMetadataPatch {
   organism?: string
   organism_part?: string
@@ -58,6 +58,7 @@ export interface FileMetadataPatch {
   tissue_modification?: string
   maldi_matrix?: string
   maldi_matrix_application?: string
+  solvent?: string // "N% Name, ..." 复合串，与上传表单同构
   spectrum_mode?: string // 'profile' | 'centroid'
   storage_mode?: string // 'continuous' | 'processed'
 }

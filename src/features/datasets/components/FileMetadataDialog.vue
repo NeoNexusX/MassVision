@@ -1,8 +1,9 @@
 <template>
   <!-- 数据集元信息编辑弹窗（Dataset Overview 内嵌）：
-       PATCH /files/{file_id}，可改样本属性 8 个（文本 + 领域词表 datalist 建议）
-       + spectrum_mode / storage_mode（枚举下拉）。差量提交只发变化的键；
-       枚举字段空值（“—”）不发送。保存成功后把返回的 FilePublic 交回父级。 -->
+       PATCH /files/{file_id}，可改样本属性 9 个（8 个 SelectWithOther 词表下拉
+       + solvent 复合选择器）+ spectrum_mode / storage_mode（枚举下拉）。
+       差量提交只发变化的键；枚举字段空值（后端不接受的 ''）不发送。
+       保存成功后把返回的 FilePublic 交回父级。 -->
   <dialog class="modal" :class="{ 'modal-open': open }">
     <div class="modal-box w-11/12 max-w-2xl page-type">
       <h3 class="text-[1.15em] font-bold text-base-content mb-1">Edit Metadata</h3>
@@ -12,7 +13,7 @@
 
       <!-- v-if 守卫：dialog 常驻 DOM（modal-open 只切显隐），draft 在打开时才
            初始化；无守卫会在关闭状态下渲染 null 的字段绑定，整个页面崩掉 -->
-      <div v-if="draft" class="max-h-[60vh] overflow-y-auto pr-2">
+      <div v-if="draft" class="max-h-[60vh] overflow-y-auto px-3">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           <!-- 8 个样本属性：与上传表单同款 SelectWithOther（词表 + Other 自定义输入）。
                当前值不在词表内时组件自动落到 Other 输入框回显。 -->
@@ -30,13 +31,21 @@
             />
           </label>
 
-          <!-- 枚举：IconSelect 下拉；选回占位「—」= 不修改该字段 -->
+          <!-- 溶剂：与上传页同款复合控件（"N% 名称" 逗号分隔，可增删条目）。
+               整行占满：百分比输入 + 溶剂下拉 + 条目列表在窄栏里会挤成一团。 -->
+          <div class="flex flex-col gap-1 min-w-0 col-span-full">
+            <span class="text-[0.8em] font-medium text-base-content/70">Solvent</span>
+            <SolventPicker v-model="draft!.solvent" :solvent-options="SOLVENTS" />
+          </div>
+
+          <!-- 枚举：IconSelect 下拉。placeholder="" 让 IconSelect 不渲染占位项，
+               下拉里只有真实取值；未设置的字段显示为空（选中态 = 不修改该字段） -->
           <label class="flex flex-col gap-1 min-w-0">
             <span class="text-[0.8em] font-medium text-base-content/70">Spectrum Mode</span>
             <IconSelect
               v-model="draft!.spectrum_mode"
               :options="SPECTRUM_MODES"
-              placeholder="—"
+              placeholder=""
               hide-label
             />
           </label>
@@ -45,7 +54,7 @@
             <IconSelect
               v-model="draft!.storage_mode"
               :options="STORAGE_MODES"
-              placeholder="—"
+              placeholder=""
               hide-label
             />
           </label>
@@ -70,6 +79,7 @@
 import { computed, reactive, ref, watch, type PropType } from 'vue'
 import IconSelect from '@/shared/components/IconSelect.vue'
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
+import SolventPicker from '@/features/upload/components/SolventPicker.vue'
 import {
   CONDITIONS,
   MALDI_MATRICES,
@@ -78,6 +88,7 @@ import {
   ORGANISM_PARTS,
   SAMPLE_GROWTH_CONDITIONS,
   SAMPLE_STABILIZATIONS,
+  SOLVENTS,
   SPECTRUM_MODES,
   STORAGE_MODES,
   TISSUE_MODIFICATIONS,
@@ -91,7 +102,7 @@ import {
   type FileMetadataKey,
 } from '@/features/datasets/utils/fileMetadataPatch'
 import type { File } from '@/features/datasets/types/dataset'
-import { extractBackendError } from '@/shared/api/httpClient'
+import { extractBackendError, isPermissionDenied } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
 
 const props = defineProps({
@@ -151,7 +162,12 @@ async function save() {
     emit('saved', mapItemToDataset(raw))
     emit('close')
   } catch (err: any) {
-    showToast(extractBackendError(err, 'Failed to update metadata'), 'error')
+    // 非持有者改别人的数据 → 后端 403 / "permission denied"。
+    // 原文对用户无信息量，换成能看懂的说法。
+    const message = isPermissionDenied(err)
+      ? 'You do not own this dataset, so you cannot modify it.'
+      : extractBackendError(err, 'Failed to update metadata')
+    showToast(message, 'error')
   } finally {
     saving.value = false
   }

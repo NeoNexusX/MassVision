@@ -56,4 +56,15 @@ describe('buildFileMetadataPatch', () => {
 
     expect(buildFileMetadataPatch(baseFile, draft)).toEqual({ storage_mode: 'processed' })
   })
+
+  // 回归：solvent 曾被漏出可改字段清单（其余样本属性都能改，只有它改不了）
+  it('round-trips solvent and sends it as a plain text field when changed', () => {
+    const file = { ...baseFile, solvent: '50% Methanol (MeOH), 50% Water' } as File
+
+    expect(toFileMetadataDraft(file).solvent).toBe('50% Methanol (MeOH), 50% Water')
+
+    const draft = toFileMetadataDraft(file)
+    draft.solvent = '100% Water'
+    expect(buildFileMetadataPatch(file, draft)).toEqual({ solvent: '100% Water' })
+  })
 })
