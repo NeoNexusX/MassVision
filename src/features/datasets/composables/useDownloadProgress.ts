@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { ossDownloadAndSave, ossDownloadRaw } from '@/features/datasets/utils/downloadHelper'
+import { ossDownloadAndSave, ossDownloadRaw, ossDownloadRawNoauth } from '@/features/datasets/utils/downloadHelper'
 import { useDownloadStore } from '@/features/datasets/stores/downloadStore'
 import { useToast } from '@/shared/composables/useToast'
 import { extractBackendError } from '@/shared/api/httpClient'
@@ -79,5 +79,42 @@ export function useDownloadProgress() {
     }
   }
 
-  return { handleDownload, handleDownloadRaw, isPacking, packingIds }
+  /**
+   * RAW no-auth download for the public collection page:
+   * /files/{file_id}/download_raw_noauth (backend serves is_public files only).
+   */
+  const handleDownloadPublicRaw = async (id?: string) => {
+    if (!id) return
+    if (packingIds.has(id)) return
+
+    if (!downloadStore.canDownload()) {
+      if (downloadStore.downloading) {
+        showToast('A download is already in progress.', 'warning')
+      } else {
+        const remain = Math.ceil(downloadStore.cooldownRemaining())
+        showToast(`Download is limited. Please wait ${remain}s.`, 'warning')
+      }
+      return
+    }
+
+    packingIds.add(id)
+    downloadStore.startDownload(id)
+    const toastId = showToast('Downloading...', 'info', 0)
+    try {
+      await ossDownloadRawNoauth(id)
+      downloadStore.completeDownload()
+      removeToast(toastId)
+      showToast('Download started', 'success')
+    } catch (error) {
+      downloadStore.failDownload()
+      removeToast(toastId)
+      const message = extractBackendError(error, 'Failed to download file')
+      showToast(message, 'error')
+      console.error('Download error:', error)
+    } finally {
+      packingIds.delete(id)
+    }
+  }
+
+  return { handleDownload, handleDownloadRaw, handleDownloadPublicRaw, isPacking, packingIds }
 }

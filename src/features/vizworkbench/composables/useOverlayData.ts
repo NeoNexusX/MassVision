@@ -322,7 +322,7 @@ export function useOverlayData(
     if (s.includes('fail') || task.error_message) {
       stopPolling()
       clusteringComputing.value = false
-      overlayError.value = task.error_message || `Clustering task ${s || 'failed'}.`
+      overlayError.value = task.error_message || `UMAP task ${s || 'failed'}.`
       return
     }
     clusteringComputing.value = true
@@ -345,7 +345,7 @@ export function useOverlayData(
       const task = await createClustering(runId.value)
       await applyTaskStatus(task)
       if (clusteringComputing.value) {
-        showToast('Clustering task started - status is checked automatically every 5s.', 'info')
+        showToast('UMAP task started - status is checked automatically every 5s.', 'info')
       }
     } catch (e) {
       showToast(extractBackendError(e, 'Failed to create clustering task'), 'error')
@@ -366,7 +366,7 @@ export function useOverlayData(
       const task = await createClustering(runId.value)
       await applyTaskStatus(task)
       if (clusteringComputing.value) {
-        showToast('Clustering is still computing…', 'info')
+        showToast('UMAP is still computing…', 'info')
       }
     } catch (e) {
       showToast(extractBackendError(e, 'Failed to refresh clustering status'), 'error')
@@ -598,11 +598,6 @@ export function useOverlayData(
     return kmeansLabels
   }
 
-  /** Dimensions of the cached KMeans/UMAP raster grid, or null if not loaded. */
-  function getKmeansDims(): { width: number; height: number } | null {
-    return dims ? { width: dims.width, height: dims.height } : null
-  }
-
   /**
    * Export an RGB raster (H×W×3 uint8) as a scaled-up PNG download.
    * Background pixels (0,0,0) become transparent. Used by the UMAP/KMeans
@@ -693,8 +688,6 @@ export function useOverlayData(
     clearKmeansClusters,
     /** Current KMeans labels (Int32Array, -1 = background) or null. */
     getKmeansLabels,
-    /** Dimensions of the cached KMeans/UMAP raster grid, or null. */
-    getKmeansDims,
     /** Set/clear a comparison overlay (region A/B highlight) that overrides UMAP/KMeans. */
     setComparisonOverlay,
     /** Export the UMAP RGB image as a standalone PNG. */

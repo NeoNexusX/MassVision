@@ -3,8 +3,19 @@ import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
 import { buildPageList } from '@/shared/utils/pagination'
 import { getConfig } from '@/shared/config/runtimeConfig'
 import type { File } from '@/features/datasets/types/dataset'
+import type { FileListSort } from '@/features/datasets/api/datasetApi'
 
-type Fetcher = (filters: Record<string, any>, page: number, size: number) => Promise<any>
+type Fetcher = (
+  filters: Record<string, any>,
+  page: number,
+  size: number,
+  sort?: FileListSort,
+) => Promise<any>
+
+/** 前端排序键 → 后端 sort_by 白名单（submission_time=上传时间，size_bytes=文件大小） */
+function toServerSort(key: string): FileListSort['sortBy'] {
+  return key === 'size_bytes' ? 'size' : 'uploaded_at'
+}
 
 export function useDatasetList(
   // Arguments
@@ -35,20 +46,6 @@ export function useDatasetList(
   )
 
   // Methods
-  // 返回排序后的新数组，不原地 mutate（handleSort 直接传入响应式 datasets，原地排序是副作用）
-  const applyClientSort = (arr: File[]) => {
-    return [...arr].sort((a, b) => {
-      if (currentSort.value === 'size_bytes') {
-        const sa = a.sizeBytes || 0
-        const sb = b.sizeBytes || 0
-        return sortDesc.value ? sb - sa : sa - sb
-      }
-      const ta = new Date(a.submitTime).getTime()
-      const tb = new Date(b.submitTime).getTime()
-      return sortDesc.value ? tb - ta : ta - tb
-    })
-  }
-
   const normalizeFilters = (f: Record<string, any>) => {
     const out: Record<string, any> = {}
     for (const k in f) {
@@ -69,9 +66,13 @@ export function useDatasetList(
     error.value = ''
     const p = opts?.page ?? page.value
     const s = opts?.size ?? size.value
+    const sort: FileListSort = {
+      sortBy: toServerSort(currentSort.value),
+      order: sortDesc.value ? 'desc' : 'asc',
+    }
     try {
       // fetcher 现已返回解包后的响应体（{ data, meta }），不再是 axios response
-      const data = (await fetcher(normalizeFilters(filters as Record<string, any>), p, s)) || {}
+      const data = (await fetcher(normalizeFilters(filters as Record<string, any>), p, s, sort)) || {}
 
       if (data.meta) {
         meta.current_page = data.meta.current_page || p
@@ -81,10 +82,10 @@ export function useDatasetList(
         meta.total_records = data.meta.total_records || meta.current_records
       }
 
-      const items = Array.isArray(data.data)
+      // 排序已由服务端完成（同值行按 file_id 倒序兜底），前端不再重排
+      datasets.value = Array.isArray(data.data)
         ? data.data.map((it: any, idx: number) => mapItemToDataset(it, idx))
         : []
-      datasets.value = applyClientSort(items)
       page.value = p
       size.value = s
     } catch (err: any) {
@@ -101,13 +102,13 @@ export function useDatasetList(
   }
 
   const handleSort = (sortValue: string) => {
-    if (currentSort.value === sortValue) {
-      sortDesc.value = !sortDesc.value
-    } else {
-      currentSort.value = sortValue
-      sortDesc.value = true
-    }
-    datasets.value = applyClientSort(datasets.value)
+    // 复合值 'field:order'（DatasetFilterBar 下拉产生）：方向显式携带，直接生效；
+    // 兼容不带方向的旧值（缺省 desc）
+    const [field, order] = sortValue.split(':')
+    currentSort.value = field || 'submission_time'
+    sortDesc.value = order !== 'asc'
+    // 服务端排序：换排序后回到第一页重新拉取
+    fetchFiles({ page: 1, size: size.value })
   }
 
   const goToPage = (np: number) => {

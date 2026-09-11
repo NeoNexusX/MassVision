@@ -1,6 +1,6 @@
 {
   "appName": "SpatialXomics",
-  "version": "0.6.1",
+  "version": "0.7.1",
   "zarr": {
     "spectraChunkCacheSize": 100,
     "spectraConcurrency": 16
@@ -58,6 +58,13 @@
             "to": "/mydatasets",
             "icon": "folder",
             "label": "My Datasets",
+            "active": true,
+            "requireAuth": true
+          },
+          {
+            "to": "/collections",
+            "icon": "circle_stack",
+            "label": "Collections",
             "active": true,
             "requireAuth": true
           }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import PaginationBar from '@/shared/components/PaginationBar.vue'
+import SearchInput from '@/shared/components/SearchInput.vue'
 import { formatBytes } from '@/shared/utils/format'
 
 defineProps<{
@@ -41,11 +42,11 @@ const emit = defineEmits<{
 
     <div v-if="activeTab === 'my' || activeTab === 'public'">
       <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
-        <input
-          :value="datasetQuery"
-          @input="emit('update:datasetQuery', ($event.target as HTMLInputElement).value)"
-          placeholder="Search..."
-          class="input input-bordered w-full sm:w-48"
+        <SearchInput
+          :model-value="datasetQuery"
+          placeholder="Search datasets"
+          class="w-full sm:w-48"
+          @update:model-value="emit('update:datasetQuery', $event)"
         />
         <div
           v-if="meta.total_pages > 0"

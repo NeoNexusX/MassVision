@@ -33,7 +33,7 @@ function toggle() {
 }
 
 const categoryFilter = ref<ComparisonCategory | 'all'>('all')
-const sortKey = ref<'ratio' | 'meanA' | 'meanB' | 'mz' | 'detA' | 'detB'>('ratio')
+const sortKey = ref<'ratio' | 'meanA' | 'meanB' | 'mz' | 'detA' | 'detB' | 'detRatio'>('detRatio')
 const sortDir = ref<'desc' | 'asc'>('desc')
 const page = ref(0)
 const PAGE_SIZE = 30
@@ -86,6 +86,12 @@ const sortedResults = computed(() => {
       case 'ratio': {
         const logA = a.ratio === Infinity ? Infinity : a.ratio === 0 ? -Infinity : Math.log2(a.ratio)
         const logB = b.ratio === Infinity ? Infinity : b.ratio === 0 ? -Infinity : Math.log2(b.ratio)
+        cmp = Math.abs(logA) - Math.abs(logB)
+        break
+      }
+      case 'detRatio': {
+        const logA = a.detRatio === Infinity ? Infinity : a.detRatio === 0 ? -Infinity : Math.log2(a.detRatio)
+        const logB = b.detRatio === Infinity ? Infinity : b.detRatio === 0 ? -Infinity : Math.log2(b.detRatio)
         cmp = Math.abs(logA) - Math.abs(logB)
         break
       }
@@ -148,6 +154,20 @@ function formatRatio(v: number): string {
   if (v >= 100) return '>100×'
   if (v >= 1) return v.toFixed(2) + '×'
   return v.toFixed(2) + '×'
+}
+
+/**
+ * 比值列的定向显示：富集方（数值更大的一方）做分子，B 强时显示 B/A 的倒数，
+ * 这样所有比值都 >= 1，方向由旁边的小标签（A/B 或 B/A）+ 区域颜色标明。
+ * 原始值仍保存在 row 上，排序继续用 |log2|（方向无关），不受显示方向影响。
+ */
+function orientedLabel(v: number): 'A/B' | 'B/A' {
+  return v >= 1 ? 'A/B' : 'B/A'
+}
+
+function orientedValue(v: number): number {
+  if (v === Infinity || v === 0) return Infinity // 0 = 对侧独占，反向比值为 ∞
+  return v >= 1 ? v : 1 / v
 }
 
 function formatDet(v: number): string {
@@ -294,20 +314,23 @@ watch(
               <th :class="TH_SORT" @click="setSort('mz')">
                 <i>m/z</i><SvgIcon v-if="sortIcon('mz')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
+              <th :class="TH_SORT" @click="setSort('detA')">
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionAColor ?? 'currentColor' }"></span>Det A</span><SvgIcon v-if="sortIcon('detA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
+              </th>
+              <th :class="TH_SORT" @click="setSort('detB')">
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionBColor ?? 'currentColor' }"></span>Det B</span><SvgIcon v-if="sortIcon('detB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
+              </th>
+              <th :class="TH_SORT" @click="setSort('detRatio')" title="Detection-rate ratio, oriented so the enriched side is the numerator. >= 2x counts as enriched">
+                Det Ratio<SvgIcon v-if="sortIcon('detRatio')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
+              </th>
               <th :class="TH_SORT" @click="setSort('meanA')">
                 <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionAColor ?? 'currentColor' }"></span>Mean A</span><SvgIcon v-if="sortIcon('meanA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
               <th :class="TH_SORT" @click="setSort('meanB')">
                 <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionBColor ?? 'currentColor' }"></span>Mean B</span><SvgIcon v-if="sortIcon('meanB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
-              <th :class="TH_SORT" @click="setSort('ratio')">
-                A/B<SvgIcon v-if="sortIcon('ratio')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
-              </th>
-              <th :class="TH_SORT" @click="setSort('detA')">
-                Det A<SvgIcon v-if="sortIcon('detA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
-              </th>
-              <th :class="TH_SORT" @click="setSort('detB')">
-                Det B<SvgIcon v-if="sortIcon('detB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
+              <th :class="TH_SORT" @click="setSort('ratio')" title="Mean-intensity ratio, oriented so the stronger side is the numerator">
+                Mean Ratio<SvgIcon v-if="sortIcon('ratio')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
               <th class="whitespace-nowrap">Category</th>
             </tr>
@@ -322,14 +345,20 @@ watch(
               @click="emit('select-mz', row.ionIndex)"
             >
               <td :class="TD_NUM">{{ row.mz.toFixed(6) }}</td>
-              <td :class="TD_NUM">{{ formatMean(row.meanA) }}</td>
-              <td :class="TD_NUM">{{ formatMean(row.meanB) }}</td>
-              <td :class="TD_NUM" :style="{ color: row.ratio > 1 ? (regionAColor ?? undefined) : row.ratio < 1 && row.ratio > 0 ? (regionBColor ?? undefined) : undefined }">
-                <span v-if="row.ratio === Infinity" class="text-[1.2em] font-bold leading-none align-middle">∞</span>
-                <template v-else>{{ formatRatio(row.ratio) }}</template>
-              </td>
               <td :class="TD_NUM">{{ formatDet(row.detA) }}</td>
               <td :class="TD_NUM">{{ formatDet(row.detB) }}</td>
+              <td :class="TD_NUM" :style="{ color: row.detRatio >= 1 ? (regionAColor ?? undefined) : (regionBColor ?? undefined) }">
+                <span v-if="orientedValue(row.detRatio) === Infinity" class="text-[1.2em] font-bold leading-none align-middle">∞</span>
+                <template v-else>{{ formatRatio(orientedValue(row.detRatio)) }}</template>
+                <span class="ml-1 text-[0.75em] text-base-content/50">{{ orientedLabel(row.detRatio) }}</span>
+              </td>
+              <td :class="TD_NUM">{{ formatMean(row.meanA) }}</td>
+              <td :class="TD_NUM">{{ formatMean(row.meanB) }}</td>
+              <td :class="TD_NUM" :style="{ color: row.ratio >= 1 ? (regionAColor ?? undefined) : (regionBColor ?? undefined) }">
+                <span v-if="orientedValue(row.ratio) === Infinity" class="text-[1.2em] font-bold leading-none align-middle">∞</span>
+                <template v-else>{{ formatRatio(orientedValue(row.ratio)) }}</template>
+                <span class="ml-1 text-[0.75em] text-base-content/50">{{ orientedLabel(row.ratio) }}</span>
+              </td>
               <td class="text-center whitespace-nowrap">
                 <span class="badge badge-sm whitespace-nowrap text-[1em]" :class="CATEGORY_META[row.category].badge" :style="categoryStyle(row.category)">
                   {{ CATEGORY_META[row.category].label }}

@@ -36,31 +36,41 @@
   },
   "timeline": [
     {
+      "date": "September 11",
+      "version": "0.7.1",
+      "features": [
+        "Collections hub: curate public imzML datasets into shareable collections",
+        "Collection overview with academic metadata editing, member management and drag-to-reorder",
+        "Public collection share links accessible without sign-in",
+        "Multi-ion channel overlay and ROI/KMeans mask export (.npy / .csv)",
+        "Dataset metadata editing with solvent support and server-side list sorting",
+        "Streaming multipart upload with abort handling and verified resume"
+      ]
+    },
+    {
+      "date": "August 30",
+      "version": "0.6.3",
+      "features": [
+        "Dataset cards with hover-gallery preview (TIC + ion images)",
+        "Runtime configuration split with faster first paint",
+        "Visualization workbench refactor with results panel improvements"
+      ]
+    },
+    {
+      "date": "August 18",
+      "version": "0.6.2",
+      "features": [
+        "App-wide UI polish and bug-fix batch",
+        "Annotation CSV worker reliability fixes"
+      ]
+    },
+    {
       "date": "August 16",
       "version": "0.6.1",
       "features": [
         "UMAP and KMeans clustering overlays with PNG export",
         "Annotation CSV import with m/z matching and PubChem lookup",
         "Region comparison with statistical analysis and category filtering"
-      ]
-    },
-    {
-      "date": "July 19",
-      "version": "0.5.3",
-      "features": [
-        "Unified page typography",
-        "Improved mobile layouts across key workflows",
-        "Added Playwright mobile regression coverage"
-      ]
-    },
-    {
-      "date": "July 17",
-      "version": "0.5.2",
-      "features": [
-        "Updated documentation",
-        "Added real file upload/download tests",
-        "Fixed memory leak in result page",
-        "Style adjustments on several pages"
       ]
     }
   ],

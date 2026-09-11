@@ -41,9 +41,11 @@ test.describe('mobile responsive layout', () => {
     await expect(page.getByRole('button', { name: 'Add filter' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Upload New Dataset' })).toBeVisible()
 
+    // 排序下拉的 option value 是「字段:方向」复合值（DatasetFilterBar），
+    // 不再是裸的 submission_time；用前缀匹配避免方向字面量写死在这里。
     const sort = page
       .locator('select')
-      .filter({ has: page.locator('option[value="submission_time"]') })
+      .filter({ has: page.locator('option[value^="submission_time"]') })
     await expect(sort).toBeVisible()
     expect((await sort.boundingBox())!.width).toBeGreaterThan(120)
     await expectNoHorizontalPageOverflow(page)

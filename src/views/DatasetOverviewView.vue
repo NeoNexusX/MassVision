@@ -29,10 +29,12 @@ const {
   confirmSetPublic,
 } = useDatasetDetail()
 
+// 元信息编辑已移到 My Datasets 卡片的 Edit（Overview 只读展示）
+
 // 状态徽章的样式与文案（completed/uploading/failed -> success/info/error，其余中性）
 const STATUS_BADGE: Record<string, { class: string; label: string }> = {
   completed: { class: 'badge-success bg-success/10 text-success', label: 'Uploaded' },
-  uploading: { class: 'badge-info bg-info/10 text-info', label: 'Uploading' },
+  uploading: { class: 'badge-info bg-info/10 text-info', label: 'Processing' },
   failed: { class: 'badge-error bg-error/10 text-error', label: 'Failed' },
 }
 const statusBadge = computed(() => {

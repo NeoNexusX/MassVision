@@ -1,53 +1,71 @@
 <template>
+  <!-- 六个容器：卡片 → 左（文件名/图片/信息）+ 右（状态/操作）。
+       右侧容器固定 160px 宽（lg），public 与 my datasets 卡片几何完全一致；
+       中间信息以左容器为基准居中，右侧操作列靠左、纵向均匀分布。 -->
   <div
-    class="flex flex-col items-center lg:flex-row lg:items-center p-4 gap-4
+    class="flex flex-col lg:flex-row p-4 gap-x-4 gap-y-2
       bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md
       transition-shadow duration-200 border border-base-300
       cursor-pointer relative overflow-hidden"
     @click="$emit('view-overview', dataset.id)"
   >
-    <!-- Unclickable background mask to intercept clicks on the entire right side and bottom right edges -->
-    <div
-      class="absolute right-0 top-0 bottom-0 lg:w-[140px] w-full max-lg:h-[140px] max-lg:top-auto z-0 cursor-default"
-      @click.stop
-    ></div>
-
-    <!-- Left: Image Gallery -->
-    <div class="relative z-10 w-full max-w-[250px] min-w-[120px] aspect-square rounded-lg overflow-hidden border border-base-300">
-      <DatasetPreviewGallery :file-id="dataset.id" />
-    </div>
-
-    <!-- Middle: Info -->
-    <div class="relative z-10 flex flex-1 flex-col justify-center gap-2 min-w-0 max-w-full text-base-content">
-        <h3
-          class="block truncate cursor-pointer min-w-0 mb-1
-            font-bold text-base-content text-[1.1em]
+    <!-- 左侧容器：文件名 + 图片 + 中间信息 -->
+    <div class="flex flex-1 min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+      <!-- 文件名 + 可见性标志：标志由右侧操作列移到这里（同一行）。
+           My Datasets 才有（public 列表不展示），且只保留 svg——文字信息
+           收进 title/aria-label，不占横向空间。 -->
+      <h3
+        class="w-full flex items-center gap-2 min-w-0
+          font-bold text-base-content text-[1.1em] leading-snug"
+        :aria-label="`Dataset name: ${dataset.filename || dataset.name}`"
+      >
+        <span
+          class="truncate cursor-pointer min-w-0
             hover:text-primary dark:hover:text-indigo-400 transition-colors"
-          @click.stop="$emit('view-overview', dataset.id)"
           :title="dataset.filename || dataset.name"
-          :aria-label="`Dataset name: ${dataset.filename || dataset.name}`"
+          @click.stop="$emit('view-overview', dataset.id)"
         >
           {{ dataset.name }}
-        </h3>
+        </span>
+        <span
+          v-if="isMyDataset"
+          class="shrink-0 inline-flex items-center text-slate-400"
+          :title="dataset.isPublic ? 'Public' : 'Private'"
+          :aria-label="dataset.isPublic ? 'Public' : 'Private'"
+        >
+          <SvgIcon :type="dataset.isPublic ? 'region' : 'password'" class="w-[1.1em] h-[1.1em]" />
+        </span>
+      </h3>
 
-      <p
-        v-for="field in metaFields"
-        :key="field.label"
-        class="truncate text-[0.95em] "
-        :title="field.value ?? ''"
-      >
-        <span>{{ field.label }}</span>
-        <span class="ml-2 font-semibold">{{ field.value || '—' }}</span>
-      </p>
+      <!-- 图片 -->
+      <div class="w-full max-w-[250px] min-w-[120px] aspect-square rounded-lg overflow-hidden border border-base-300">
+        <DatasetPreviewGallery :file-id="dataset.id" :storage-mode="dataset.storageMode" />
+      </div>
 
+      <!-- 中间信息：以左容器为基准，在图片与右侧容器之间居中 -->
+      <div class="flex flex-1 flex-col justify-center gap-2 min-w-0 max-w-full text-base-content">
+        <p
+          v-for="field in metaFields"
+          :key="field.label"
+          class="truncate text-[0.95em] "
+          :title="field.value ?? ''"
+        >
+          <span>{{ field.label }}</span>
+          <span class="ml-2 font-semibold">{{ field.value || '—' }}</span>
+        </p>
+
+      </div>
     </div>
 
-    <!-- Right: Actions -->
-    <div class="relative z-10 cursor-default
-        flex flex-row flex-wrap gap-2 items-center self-stretch
-        w-full justify-evenly
-        lg:w-auto lg:flex-col
-        border-t border-base-300 pt-3
+    <!-- 右侧容器：上传状态 + 操作。整列点击不触发卡片跳转。
+         lg：靠左对齐，160px 减去 pl-3 后的内容盒能装下最宽的
+         "Visualize" 项（约 133px）并给右侧留出空隙；justify-evenly
+         随条目数自适应拉开间距（public 4 项也能均匀排满整列） -->
+    <div
+      class="cursor-default
+        flex flex-row flex-wrap gap-2 items-center justify-evenly
+        w-full border-t border-base-300 pt-3
+        lg:w-[160px] lg:flex-col lg:items-start lg:self-stretch
         lg:border-l lg:border-t-0 lg:pt-0 lg:pl-3"
       @click.stop
     >
@@ -97,6 +115,7 @@ const emit = defineEmits<{
   (e: 'download', id: string): void
   (e: 'delete', id: string): void
   (e: 'explore', id: string): void
+  (e: 'edit', id: string): void
 }>()
 
 const submitDate = computed(() =>
@@ -132,19 +151,20 @@ const actionItems = computed<ActionItem[]>(() => {
   // Upload status
   const status = props.dataset.status
   if (status === 'uploading')
-    items.push({ id: 'status', label: 'Uploading', colorClass: 'text-info', spinner: true })
+    items.push({ id: 'status', label: 'Processing', colorClass: 'text-info', spinner: true })
   else if (status === 'completed')
     items.push({ id: 'status', icon: 'success', label: 'Uploaded', colorClass: 'text-success' })
   else if (status === 'failed')
     items.push({ id: 'status', icon: 'error', label: 'Failed', colorClass: 'text-error' })
 
-  // Visibility badge (display only, no action)
+  // 元信息编辑（原本在 Dataset Overview 页，现收到卡片右侧；可见性标志已挪到文件名旁）
   if (props.isMyDataset)
     items.push({
-      id: 'visibility',
-      icon: props.dataset.isPublic ? 'region' : 'password',
-      label: props.dataset.isPublic ? 'Public' : 'Private',
-      colorClass: 'text-slate-400',
+      id: 'edit',
+      icon: 'pencil',
+      label: 'Edit',
+      colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
+      onClick: () => emit('edit', props.dataset.id),
     })
 
   // Action buttons
@@ -174,7 +194,7 @@ const actionItems = computed<ActionItem[]>(() => {
   items.push(
     {
       id: 'overview',
-      icon: 'link',
+      icon: 'document-text',
       label: 'Overview',
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
       onClick: () => emit('view-overview', props.dataset.id),

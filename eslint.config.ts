@@ -31,6 +31,12 @@ export default defineConfigWithVueTs(
   {
     ...pluginVitest.configs.recommended,
     files: ['src/**/__tests__/*'],
+    rules: {
+      ...pluginVitest.configs.recommended.rules,
+      // 断言封装在辅助函数里（如 expectRoundTrip）时，规则默认只认 expect，
+      // 需显式把这类函数名加入白名单，否则会误报 "Test has no assertions"。
+      'vitest/expect-expect': ['error', { assertFunctionNames: ['expect', 'expect*'] }],
+    },
   },
   
   {

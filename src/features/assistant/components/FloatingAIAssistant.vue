@@ -261,9 +261,12 @@ const resizing = reactive({
   origH: 0,
 })
 
-// Default: bottom-right
-position.x = window.innerWidth - size.w - 24
-position.y = window.innerHeight - size.h - 24
+// Default: bottom-right。小屏（手机）先把默认尺寸收进视口再定位，
+// 否则 380px 宽的面板会横向溢出，初始 x/y 还会被算成负数
+size.w = Math.min(380, window.innerWidth - 16)
+size.h = Math.min(520, window.innerHeight - 16)
+position.x = Math.max(0, window.innerWidth - size.w - 24)
+position.y = Math.max(0, window.innerHeight - size.h - 24)
 
 const panelStyle = computed(() => ({
   width: `${size.w}px`,
