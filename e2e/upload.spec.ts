@@ -176,7 +176,7 @@ async function runUploadRoundTrip(page: Page, params: RoundTripParams): Promise<
       const isTargetVisible = await cardHeading.isVisible().catch(() => false)
       if (isTargetVisible) {
         const restoredCard = cardHeading.locator('..').locator('..')
-        const stillUploading = await restoredCard.getByText('Uploading').isVisible().catch(() => false)
+        const stillUploading = await restoredCard.getByText('Processing').isVisible().catch(() => false)
         if (!stillUploading) break
       }
       await page.waitForTimeout(params.pollInterval)

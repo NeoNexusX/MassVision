@@ -87,7 +87,7 @@ test.describe('My Datasets', () => {
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
     await expect(
-      page.locator('button, div').filter({ hasText: /Uploaded|Uploading|Failed/ }).first()
+      page.locator('button, div').filter({ hasText: /Uploaded|Processing|Failed/ }).first()
     ).toBeVisible()
 
     await expect(
