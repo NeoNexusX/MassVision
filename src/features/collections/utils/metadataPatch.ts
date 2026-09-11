@@ -1,5 +1,6 @@
 import { METADATA_FIELDS } from '../constants/metadataFields'
 import type {
+  CollectionCreatePayload,
   CollectionMetadata,
   CollectionMetadataDraft,
   CollectionPatchPayload,
@@ -8,7 +9,7 @@ import type {
 /**
  * 集合元数据的编辑草稿 ⇄ PATCH 载荷转换（纯函数，便于单测）。
  *
- * 草稿形态：22 个字段统一为 string（text/long）或 string[]（list），
+ * 草稿形态：18 个字段统一为 string（text/long）或 string[]（list），
  * 空值归一为 '' / []，让表单控件绑定简单且类型安全。
  * 载荷形态：只包含与当前值不同的字段（exclude_unset 语义），
  * 键为后端 snake_case（与 CollectionMetadata 同键）。
@@ -42,4 +43,28 @@ export function buildMetadataPatch(
     }
   }
   return patch
+}
+
+/**
+ * 创建草稿 → POST /collections 请求体。与 PATCH 的差量语义不同：
+ * 这里没有「当前值」可比较，**只带非空字段**，空串 / 空数组直接省略，
+ * 让后端用自己的默认值（避免用空值覆盖）。文本字段顺手 trim，
+ * 与创建页原来对 name 的处理一致。
+ */
+export function buildCollectionCreatePayload(
+  draft: CollectionMetadataDraft,
+  fileIds: number[],
+): CollectionCreatePayload {
+  const payload: Record<string, unknown> = { file_ids: fileIds }
+  for (const field of METADATA_FIELDS) {
+    const value = draft[field.key]
+    if (field.type === 'list') {
+      const list = value as string[]
+      if (list.length) payload[field.key] = list
+      continue
+    }
+    const text = String(value ?? '').trim()
+    if (text) payload[field.key] = text
+  }
+  return payload as CollectionCreatePayload
 }

@@ -19,8 +19,8 @@
         </button>
       </div>
 
-      <!-- 搜索 / 排序工具栏 -->
-      <CollectionsToolbar @search="handleSearch" @sort="handleSort" />
+      <!-- 搜索 / 范围切换（全部 ↔ 我的）/ 排序（仅 updated_at 倒序）工具栏 -->
+      <CollectionsToolbar v-model:mine-only="mineOnly" @search="handleSearch" />
 
       <!-- 列表（骨架屏 / 空态 / 网格 / 分页） -->
       <CollectionList
@@ -64,19 +64,20 @@ import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 
 const router = useRouter()
 
-// 列表装配（取数/本地搜索排序分页/删除），数据源为真实 API（GET /collections）
+// 列表装配（取数/服务端分页/范围切换/本地搜索/删除）：
+// 默认 GET /collections/all 浏览全库集合，勾选 Mine only 切到 GET /collections
 const {
   collections,
   loading,
   error,
   meta,
   size,
+  mineOnly,
   search,
   pagination,
   canEdit,
   handleSearch,
   clearSearch,
-  handleSort,
   goToPage,
   changeSize,
   removeCollection,

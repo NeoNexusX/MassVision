@@ -38,12 +38,31 @@
         @clear-all="clear"
       />
 
-      <!-- Step 3: 集合元信息 -->
+      <!-- Step 3: 集合元信息（名称/简介） -->
       <CollectionFormCard
         class="mt-6"
-        v-model:name="form.name"
-        v-model:description="form.description"
+        v-model:name="metadata.name"
+        v-model:description="metadata.description"
       />
+
+      <!-- Step 4: 学术元数据。可从选中数据集推导的 12 个 list 字段已自动预填，
+           手改某字段后该字段停止自动同步，旁边出现「Reset to detected」。 -->
+      <section
+        class="mt-6 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6"
+      >
+        <h2 class="text-[1.25em] font-bold text-base-content mb-1">Step 4: Metadata</h2>
+        <p class="text-[0.9em] text-base-content/60 mb-4">
+          Sample and acquisition fields are pre-filled from the selected datasets. Edit any
+          of them and it stops updating automatically.
+        </p>
+        <CollectionMetadataForm
+          :draft="metadata"
+          :exclude-keys="['name', 'description']"
+          :auto-keys="derivedKeys"
+          :locked-keys="lockedKeys"
+          @reset-field="resetDerivedField"
+        />
+      </section>
     </div>
 
     <!-- 底部 sticky 操作条：汇总 + Cancel/Create，选择/排序时始终可见。
@@ -92,6 +111,7 @@ import { useRouter } from 'vue-router'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import CollectionDatasetPicker from '@/features/collections/components/CollectionDatasetPicker.vue'
 import CollectionFormCard from '@/features/collections/components/CollectionFormCard.vue'
+import CollectionMetadataForm from '@/features/collections/components/CollectionMetadataForm.vue'
 import SelectedDatasetList from '@/features/collections/components/SelectedDatasetList.vue'
 import { useCreateCollection } from '@/features/collections/composables/useCreateCollection'
 
@@ -119,8 +139,11 @@ const {
   moveDown,
   removeById,
   clear,
-  // 表单
-  form,
+  // 表单（name/description 与学术元数据共用一份草稿）
+  metadata,
+  derivedKeys,
+  lockedKeys,
+  resetDerivedField,
   canCreate,
   // 动作
   submit,

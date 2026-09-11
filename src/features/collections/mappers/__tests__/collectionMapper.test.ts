@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { mapCollectionDetail, mapCollectionSummary } from '../collectionMapper'
 
 // 真实后端（GET /collections）把元数据平铺在顶层，没有嵌套 metadata 对象
+// （pixel_size_* / resolving_power / mz 已随集合级数值字段下线，不再出现在响应中）
 const flatRaw = {
   id: 7,
-  public_id: 'a'.repeat(32),
+  public_id: 'aB3xK9mQ2rT7wY1z',
   owner_id: 3,
   owner_username: 'lyk',
   name: 'Mouse kidney MSI',
@@ -25,10 +26,6 @@ const flatRaw = {
   polarity: ['negative'],
   ionisation_source: [],
   analyzer: ['FTICR'],
-  pixel_size_horizontal: [],
-  pixel_size_vertical: [],
-  resolving_power: [],
-  mz: [],
   member_count: 3,
   total_size: 1024,
   created_at: '2026-09-01T00:00:00',
@@ -51,7 +48,7 @@ describe('mapCollectionDetail', () => {
     expect(d.memberCount).toBe(3)
     expect(d.totalSize).toBe(1024)
     expect(d.ownerUsername).toBe('lyk')
-    expect(d.publicId).toBe('a'.repeat(32))
+    expect(d.publicId).toBe('aB3xK9mQ2rT7wY1z')
     expect(d.updatedAt).toBe('2026-09-09T00:00:00')
     expect(d.title).toBe('A title')
   })
@@ -65,6 +62,21 @@ describe('mapCollectionDetail', () => {
     expect(d.metadata.analyzer).toEqual(['FTICR'])
     expect(d.metadata.journal_name).toBe('Nature')
     expect(d.metadata.name).toBe('Mouse kidney MSI')
+  })
+
+  it('drops the retired collection-level numeric instrument fields', () => {
+    // 即便旧响应残留这 4 个字段，也不进入 metadata（字段表已下线）
+    const d = mapCollectionDetail({
+      ...detailRaw,
+      pixel_size_horizontal: ['10'],
+      pixel_size_vertical: ['10'],
+      resolving_power: ['100000'],
+      mz: ['100.0'],
+    })
+
+    expect((d.metadata as unknown as Record<string, unknown>).pixel_size_horizontal).toBeUndefined()
+    expect((d.metadata as unknown as Record<string, unknown>).resolving_power).toBeUndefined()
+    expect((d.metadata as unknown as Record<string, unknown>).mz).toBeUndefined()
   })
 
   it('still supports a nested metadata object if the backend switches to one', () => {
@@ -122,7 +134,7 @@ describe('mapCollectionSummary', () => {
       totalSize: 1024,
       ownerUsername: 'lyk',
       organism: ['mouse'],
-      publicId: 'a'.repeat(32),
+      publicId: 'aB3xK9mQ2rT7wY1z',
     })
   })
 })

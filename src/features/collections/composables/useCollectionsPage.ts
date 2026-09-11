@@ -1,33 +1,48 @@
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useAuthStore } from '@/shared/auth/authStore'
 import { useToast } from '@/shared/composables/useToast'
 import { getConfig } from '@/shared/config/runtimeConfig'
 import { buildPageList } from '@/shared/utils/pagination'
-import { collectionErrorMessage, deleteCollection, listCollections } from '../api/collectionApi'
-import type { CollectionListMeta, CollectionSortKey, CollectionSummary } from '../types/collection'
+import {
+  collectionErrorMessage,
+  deleteCollection,
+  listAllCollections,
+  listCollections,
+} from '../api/collectionApi'
+import type { CollectionListMeta, CollectionSummary } from '../types/collection'
 
 // 每页条数与数据集列表一致，走全局 config（默认 10，选项 [6,10,20]）
 
 /**
- * Collections 列表页装配：取数（真实 API）/ 搜索 / 排序 / 分页 / 删除。
+ * Collections 列表页装配：取数（服务端分页）/ 范围切换 / 搜索 / 删除。
  *
- * 后端 GET /collections 返回**全部用户的公开集合**（需登录；按 updated_at 倒序，
- * 无分页/搜索/排序参数），因此这里一次拉全量后用 computed 链在本地做
- * 过滤 → 排序 → 分页；后端补上这些参数后可平滑切回服务端查询。
- * 列表含他人集合，写操作（删除）仅对 owner/admin 开放（canEdit）。
- * Create 走独立页面 /collections/new；Edit 内嵌在 overview 页。
+ * 数据源（均按 updated_at 倒序，服务端分页 {meta, data}）：
+ * - 默认 GET /collections/all —— 全库集合（浏览全部，含他人集合）；
+ * - 勾选「My collections only」后走 GET /collections —— 仅当前登录用户的集合。
+ * 后端未提供集合搜索/排序参数：排序固定 updated_at 倒序（无控件），
+ * search 是**本地**逻辑，只作用于当前页；后端补上参数后可挪进请求。
+ * 写操作（删除）仅对 owner/admin 开放（canEdit）。Create 走独立页面 /collections/new；
+ * Edit 内嵌在 overview 页。
  */
 export function useCollectionsPage() {
   const auth = useAuthStore()
   const { showToast } = useToast()
 
-  const all = ref<CollectionSummary[]>([])
+  // 当前页服务端数据；搜索在 collections computed 里本地派生
+  const rows = ref<CollectionSummary[]>([])
   const loading = ref(false)
   const error = ref('')
   const page = ref(1)
   const size = ref(getConfig().pagination.defaultPageSize || 10)
+  const mineOnly = ref(false)
   const search = ref('')
-  const sort = ref<CollectionSortKey>('updated_desc')
+
+  const meta = reactive<CollectionListMeta>({
+    current_page: 1,
+    current_records: 0,
+    total_pages: 1,
+    total_records: 0,
+  })
 
   // 所有者或管理员才能删除/编辑（列表含他人集合，与后端写权限一致）
   const canEdit = (c: CollectionSummary) =>
@@ -37,8 +52,11 @@ export function useCollectionsPage() {
     loading.value = true
     error.value = ''
     try {
-      all.value = await listCollections()
-      page.value = Math.min(targetPage, meta.value.total_pages)
+      const fetcher = mineOnly.value ? listCollections : listAllCollections
+      const res = await fetcher(targetPage, size.value)
+      rows.value = res.data
+      Object.assign(meta, res.meta)
+      page.value = res.meta.current_page || targetPage
     } catch (err: any) {
       error.value = collectionErrorMessage(err, 'Failed to load collections. Please try again.')
     } finally {
@@ -46,76 +64,42 @@ export function useCollectionsPage() {
     }
   }
 
-  // ---- 本地查询链：过滤 → 排序 → 分页 ----
-  const filtered = computed(() => {
+  // ---- 本地过滤（仅当前页数据）----
+  const collections = computed(() => {
     const q = search.value.trim().toLowerCase()
-    if (!q) return all.value
-    return all.value.filter(
+    if (!q) return rows.value
+    return rows.value.filter(
       (c) =>
         c.name.toLowerCase().includes(q) || (c.title ?? '').toLowerCase().includes(q),
     )
   })
 
-  const sorted = computed(() => {
-    const arr = [...filtered.value]
-    switch (sort.value) {
-      case 'name_asc':
-        return arr.sort((a, b) => a.name.localeCompare(b.name))
-      case 'count_desc':
-        return arr.sort((a, b) => b.memberCount - a.memberCount)
-      default:
-        // 后端默认序：updated_at 倒序（本地重排以覆盖用户删改后的状态）
-        return arr.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))
-    }
-  })
-
-  const meta = computed<CollectionListMeta>(() => ({
-    current_page: page.value,
-    total_pages: Math.max(1, Math.ceil(sorted.value.length / size.value)),
-    total_records: sorted.value.length,
-  }))
-
-  // 搜索/换页大小导致总页数缩水时，当前页回落到最后一页
-  watch(
-    () => meta.value.total_pages,
-    (total) => {
-      if (page.value > total) page.value = total
-    },
-  )
-
-  const collections = computed(() => {
-    const start = (page.value - 1) * size.value
-    return sorted.value.slice(start, start + size.value)
-  })
-
-  const pagination = computed(() => buildPageList(page.value, meta.value.total_pages))
+  const pagination = computed(() => buildPageList(page.value, meta.total_pages))
 
   const handleSearch = (q: string) => {
     search.value = q
-    page.value = 1
   }
 
   const clearSearch = () => handleSearch('')
 
-  const handleSort = (key: CollectionSortKey) => {
-    sort.value = key
-    page.value = 1
-  }
+  // 范围切换：回到第一页重新拉取（两个接口的数据集不同，页码不可比）
+  watch(mineOnly, () => fetchPage(1))
 
   const goToPage = (p: number) => {
-    page.value = p
+    fetchPage(p)
   }
 
   const changeSize = (s: number) => {
     size.value = s
-    page.value = 1
+    fetchPage(1)
   }
 
-  /** 删除集合（不动文件）。本地移除即可，列表已是全量数据 */
+  /** 删除集合（不动文件）。服务端分页下重拉当前页；尾页删尽则回落一页 */
   async function removeCollection(id: number) {
     await deleteCollection(id)
-    all.value = all.value.filter((c) => c.id !== id)
     showToast('Collection deleted', 'success')
+    const target = rows.value.length <= 1 && page.value > 1 ? page.value - 1 : page.value
+    await fetchPage(target)
   }
 
   onMounted(() => fetchPage())
@@ -127,13 +111,13 @@ export function useCollectionsPage() {
     meta,
     page,
     size,
+    mineOnly,
     search,
     pagination,
     canEdit,
     fetchPage,
     handleSearch,
     clearSearch,
-    handleSort,
     goToPage,
     changeSize,
     removeCollection,

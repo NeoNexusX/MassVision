@@ -5,9 +5,11 @@ import type {
   CollectionApiError,
   CollectionCreatePayload,
   CollectionDetail,
+  CollectionListMeta,
   CollectionPatchPayload,
   CollectionSummary,
   MemberRemovalResult,
+  PublicCollectionDetail,
 } from '../types/collection'
 
 /**
@@ -45,7 +47,7 @@ export function collectionErrorMessage(err: any, fallback: string): string {
   return extractBackendError(err, fallback)
 }
 
-/** 响应信封防御归一：GET /collections 可能是纯数组或 { data } / { items } 信封 */
+/** 响应信封防御归一：列表接口可能返回纯数组或 { data } / { items } 信封 */
 function normalizeList(body: any): any[] {
   if (Array.isArray(body)) return body
   if (body && Array.isArray(body.data)) return body.data
@@ -53,10 +55,36 @@ function normalizeList(body: any): any[] {
   return []
 }
 
-// GET /collections — 全部用户的公开集合（需登录；按 updated_at 倒序，后端无分页/搜索参数）
-export async function listCollections(): Promise<CollectionSummary[]> {
-  const body = await unwrap(() => auth_api.get('/collections'))
-  return normalizeList(body).map(mapCollectionSummary)
+/** meta 防御归一：缺字段时退化为单页语义 */
+function toListMeta(meta: any): CollectionListMeta {
+  return {
+    current_page: meta?.current_page ?? 1,
+    current_records: meta?.current_records ?? 0,
+    total_pages: meta?.total_pages ?? 1,
+    total_records: meta?.total_records ?? 0,
+  }
+}
+
+/** GET /collections 与 GET /collections/all 的分页响应（{meta, data}，与文件列表一致） */
+export interface CollectionListResponse {
+  meta: CollectionListMeta
+  data: CollectionSummary[]
+}
+
+// GET /collections?page=&size= — 当前登录用户的集合（owner 过滤），updated_at 倒序
+export async function listCollections(page: number, size: number): Promise<CollectionListResponse> {
+  const body = await unwrap<any>(() => auth_api.get('/collections', { params: { page, size } }))
+  return { meta: toListMeta(body?.meta), data: normalizeList(body).map(mapCollectionSummary) }
+}
+
+// GET /collections/all?page=&size= — 全库集合（任意登录用户，不做 owner 过滤），
+// 用于「浏览全部」；分页/排序与 /collections 完全一致
+export async function listAllCollections(
+  page: number,
+  size: number,
+): Promise<CollectionListResponse> {
+  const body = await unwrap<any>(() => auth_api.get('/collections/all', { params: { page, size } }))
+  return { meta: toListMeta(body?.meta), data: normalizeList(body).map(mapCollectionSummary) }
 }
 
 // GET /collections/{id} — 详情 + 有序成员
@@ -111,8 +139,8 @@ export async function reorderMembers(id: number, fileIds: number[]): Promise<Col
   return mapCollectionDetail(body)
 }
 
-// GET /collections/public/{public_id} — 免登录公开页详情
-export async function getPublicCollection(publicId: string): Promise<CollectionDetail> {
+// GET /collections/public/{public_id} — 免登录公开页详情（响应无数字 id，见 PublicCollectionDetail）
+export async function getPublicCollection(publicId: string): Promise<PublicCollectionDetail> {
   const body = await unwrap(() => api.get(`/collections/public/${publicId}`))
   return mapCollectionDetail(body)
 }

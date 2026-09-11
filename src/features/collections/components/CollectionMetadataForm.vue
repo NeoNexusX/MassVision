@@ -1,44 +1,70 @@
 <template>
   <!-- 集合元数据编辑表单：由 metadataFields 定义表驱动（与只读面板同一张表，
        单一事实来源）。list 字段用 TagInput，long 字段用 textarea，其余 input。
-       草稿由父级（CollectionDialog）持有并传入，本组件只做字段绑定，不做提交。 -->
+       草稿由父级（CollectionDialog / CreateCollectionView）持有并传入，
+       本组件只做字段绑定与「自动推导」提示，不做提交。
+       excludeKeys：创建页把 name/description 交给专门的卡片，这里不重复渲染；
+       autoKeys/lockedKeys：可从选中数据集推导的字段及其被用户接管的状态。 -->
   <div class="flex flex-col gap-5">
     <section v-for="group in visibleGroups" :key="group.id">
       <h4
+        v-if="fieldsOf(group.id).length"
         class="text-[0.85em] font-semibold uppercase tracking-wide text-base-content/50
           border-b border-base-200 dark:border-slate-700 pb-1 mb-3"
       >
         {{ group.label }}
       </h4>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-        <label
+        <div
           v-for="field in fieldsOf(group.id)"
           :key="field.key"
           class="flex flex-col gap-1 min-w-0"
           :class="field.type === 'long' ? 'sm:col-span-2' : ''"
         >
-          <span class="text-[0.8em] font-medium text-base-content/70">
-            {{ field.label }}
-            <span v-if="field.key === 'name'" class="text-error">*</span>
-          </span>
+          <label class="flex flex-col gap-1 min-w-0">
+            <span class="text-[0.8em] font-medium text-base-content/70">
+              {{ field.label }}
+              <span v-if="field.key === 'name'" class="text-error">*</span>
+            </span>
 
-          <input
-            v-if="field.type === 'text'"
-            v-model="d[field.key]"
-            type="text"
-            class="input input-bordered w-full text-[0.95em]"
-            :maxlength="field.key === 'name' ? 80 : undefined"
-            :placeholder="placeholderOf(field)"
-          />
-          <textarea
-            v-else-if="field.type === 'long'"
-            v-model="d[field.key]"
-            rows="2"
-            class="textarea textarea-bordered w-full text-[0.95em] resize-none"
-            :placeholder="placeholderOf(field)"
-          ></textarea>
-          <TagInput v-else v-model="d[field.key]" :name="field.label" :placeholder="placeholderOf(field)" />
-        </label>
+            <input
+              v-if="field.type === 'text'"
+              v-model="d[field.key]"
+              type="text"
+              class="input input-bordered w-full text-[0.95em]"
+              :maxlength="field.key === 'name' ? 80 : undefined"
+              :placeholder="placeholderOf(field)"
+            />
+            <textarea
+              v-else-if="field.type === 'long'"
+              v-model="d[field.key]"
+              rows="2"
+              class="textarea textarea-bordered w-full text-[0.95em] resize-none"
+              :placeholder="placeholderOf(field)"
+            ></textarea>
+            <TagInput
+              v-else
+              v-model="d[field.key]"
+              :name="field.label"
+              :placeholder="placeholderOf(field)"
+            />
+          </label>
+
+          <!-- 用户接管了自动推导的字段后，给一个回到「按数据集识别」的入口 -->
+          <div
+            v-if="autoKeys.includes(field.key) && lockedKeys.includes(field.key)"
+            class="flex items-center gap-1.5 text-[0.75em] text-base-content/50"
+          >
+            <span>Edited by hand.</span>
+            <button
+              type="button"
+              class="text-primary hover:underline"
+              @click="emit('reset-field', field.key)"
+            >
+              Reset to detected
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   </div>
@@ -58,14 +84,26 @@ import type { CollectionMetadataDraft } from '../types/collection'
 const props = defineProps({
   /** 父级持有的草稿（reactive），本组件直接绑定其字段 */
   draft: { type: Object as PropType<CollectionMetadataDraft>, required: true },
+  /** 由父级另行渲染、本表单跳过的字段键 */
+  excludeKeys: { type: Array as PropType<readonly string[]>, default: () => [] },
+  /** 当前由选中数据集自动推导（预填）的字段键 */
+  autoKeys: { type: Array as PropType<readonly string[]>, default: () => [] },
+  /** 已被用户手改、停止自动同步的字段键 */
+  lockedKeys: { type: Array as PropType<readonly string[]>, default: () => [] },
 })
+
+const emit = defineEmits<{
+  (e: 'reset-field', key: string): void
+}>()
 
 // v-model 到「联合键」的索引写入在 TS 下不可赋值，松化一层仅用于模板绑定；
 // 对外 API 仍以 CollectionMetadataDraft 强类型约束。
 const d = computed(() => props.draft as Record<string, any>)
 
 function fieldsOf(group: MetadataGroupId) {
-  return METADATA_FIELDS.filter((f) => f.group === group)
+  return METADATA_FIELDS.filter(
+    (f) => f.group === group && !props.excludeKeys.includes(f.key as string),
+  )
 }
 
 const visibleGroups = computed(() => METADATA_GROUPS)

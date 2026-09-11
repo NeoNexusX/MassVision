@@ -10,7 +10,7 @@ import type { FilePublicResponse } from '@/features/datasets/types/dataset'
  *   避免与二期编辑表单做双向映射）；与分页 meta 的 snake 先例一致。
  */
 
-/** GET /collections 列表行（全部用户的公开集合，需登录；后端按 updated_at 倒序） */
+/** GET /collections（我的集合）/ GET /collections/all（全库）列表行；按 updated_at 倒序 */
 export interface CollectionSummary {
   id: number
   name: string
@@ -25,7 +25,7 @@ export interface CollectionSummary {
   organism: string[]
   createdAt: string | null
   updatedAt: string | null
-  /** 免登录分享 id（32 位 hex）。后端是否在响应中返回未确认，无则分享入口隐藏 */
+  /** 免登录分享 id（16 位 base62）。后端是否在响应中返回未确认，无则分享入口隐藏 */
   publicId: string | null
 }
 
@@ -34,6 +34,12 @@ export interface CollectionDetail extends CollectionSummary {
   metadata: CollectionMetadata
   members: CollectionMember[]
 }
+
+/**
+ * 公开页详情（GET /collections/public/{public_id}）：响应不返回数字 id
+ * （公开页禁止暴露可枚举的自增 id，对外只用 public_id），其余同 CollectionDetail。
+ */
+export type PublicCollectionDetail = Omit<CollectionDetail, 'id'> & { id?: number }
 
 /** 集合成员（由 FilePublic 映射；id 保持后端的 number） */
 export interface CollectionMember {
@@ -68,17 +74,18 @@ export interface CollectionMetadata {
   polarity?: string[]
   ionisation_source?: string[]
   analyzer?: string[]
-  pixel_size_horizontal?: string[]
-  pixel_size_vertical?: string[]
-  resolving_power?: string[]
-  mz?: string[]
+  // 集合级数值型仪器字段（pixel_size_horizontal / pixel_size_vertical /
+  // resolving_power / mz）已下线，响应中不再返回；文件级同名字段不受影响
 }
 
-/** POST /collections 请求体；file_ids 数组顺序 = position 1..n */
-export interface CollectionCreatePayload {
+/**
+ * POST /collections 请求体；file_ids 数组顺序 = position 1..n。
+ * 元数据字段与 PATCH 一一对应（后端 CollectionCreate 同样接收全部 18 个），
+ * 所以创建时就能带上元数据，不必建完再 PATCH 一次；空值不发送。
+ */
+export type CollectionCreatePayload = Partial<CollectionMetadata> & {
   name: string
-  description?: string
-  file_ids?: number[]
+  file_ids: number[]
 }
 
 /**
@@ -117,12 +124,10 @@ export function isCollectionApiError(e: unknown): e is CollectionApiError {
   return e instanceof Error && 'backendMessage' in e
 }
 
-/** 列表页本地排序键（后端无排序参数，前端全量拉取后本地排） */
-export type CollectionSortKey = 'updated_desc' | 'name_asc' | 'count_desc'
-
-/** 与 PaginationFooter / buildPageList 对齐的分页元信息（列表页本地拼装） */
+/** 与 PaginationFooter / buildPageList 对齐的分页元信息（GET /collections(/all) 的 meta 原样） */
 export interface CollectionListMeta {
   current_page: number
+  current_records: number
   total_pages: number
   total_records: number
 }

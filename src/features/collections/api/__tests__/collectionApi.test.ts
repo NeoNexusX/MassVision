@@ -14,6 +14,7 @@ import {
   deleteCollection,
   getCollection,
   getPublicCollection,
+  listAllCollections,
   listCollections,
   removeMembers,
   reorderMembers,
@@ -41,20 +42,64 @@ beforeEach(() => {
 })
 
 describe('collectionApi', () => {
-  it('listCollections normalizes plain-array / {data} / {items} envelopes', async () => {
+  it('listCollections paginates via query params and unwraps {meta, data}', async () => {
     const row = { id: 1, name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
 
-    authGet.mockResolvedValueOnce({ data: [row] })
-    expect(await listCollections()).toHaveLength(1)
+    authGet.mockResolvedValueOnce({
+      data: {
+        meta: { current_page: 2, current_records: 10, total_pages: 3, total_records: 25 },
+        data: [row],
+      },
+    })
+    const res = await listCollections(2, 10)
 
-    authGet.mockResolvedValueOnce({ data: { data: [row, row] } })
-    expect(await listCollections()).toHaveLength(2)
+    expect(authGet).toHaveBeenCalledWith('/collections', { params: { page: 2, size: 10 } })
+    expect(res.meta).toEqual({
+      current_page: 2,
+      current_records: 10,
+      total_pages: 3,
+      total_records: 25,
+    })
+    expect(res.data).toHaveLength(1)
+    expect(res.data.map((r) => r.name)).toEqual(['a'])
+  })
+
+  it('listCollections still tolerates legacy envelopes, meta falls back to single page', async () => {
+    const row = { id: 1, name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
+
+    authGet.mockResolvedValueOnce({ data: [row, row] })
+    const plain = await listCollections(1, 10)
+    expect(plain.data).toHaveLength(2)
+    expect(plain.meta).toEqual({
+      current_page: 1,
+      current_records: 0,
+      total_pages: 1,
+      total_records: 0,
+    })
 
     authGet.mockResolvedValueOnce({ data: { items: [row] } })
-    expect(await listCollections()).toHaveLength(1)
+    const items = await listCollections(1, 10)
+    expect(items.data).toHaveLength(1)
 
     authGet.mockResolvedValueOnce({ data: {} })
-    expect(await listCollections()).toEqual([])
+    const empty = await listCollections(1, 10)
+    expect(empty.data).toEqual([])
+  })
+
+  it('listAllCollections hits /collections/all with the same pagination contract', async () => {
+    const row = { id: 1, name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
+
+    authGet.mockResolvedValueOnce({
+      data: {
+        meta: { current_page: 1, current_records: 1, total_pages: 1, total_records: 1 },
+        data: [row],
+      },
+    })
+    const res = await listAllCollections(1, 10)
+
+    expect(authGet).toHaveBeenCalledWith('/collections/all', { params: { page: 1, size: 10 } })
+    expect(res.data).toHaveLength(1)
+    expect(res.meta.total_records).toBe(1)
   })
 
   it('getCollection maps the detail response', async () => {
@@ -107,12 +152,16 @@ describe('collectionApi', () => {
     expect(authPatch).toHaveBeenCalledWith('/collections/7/members/order', { file_ids: [42, 7, 15] })
   })
 
-  it('getPublicCollection uses the no-auth client', async () => {
-    publicGet.mockResolvedValueOnce({ data: detailBody })
-    const d = await getPublicCollection('a'.repeat(32))
-    expect(publicGet).toHaveBeenCalledWith(`/collections/public/${'a'.repeat(32)}`)
+  it('getPublicCollection uses the no-auth client and tolerates the missing numeric id', async () => {
+    // 公开页响应已去掉数字 id（对外只用 public_id，16 位 base62）
+    const publicBody = { ...detailBody, id: undefined, public_id: 'aB3xK9mQ2rT7wY1z' }
+    publicGet.mockResolvedValueOnce({ data: publicBody })
+    const d = await getPublicCollection('aB3xK9mQ2rT7wY1z')
+    expect(publicGet).toHaveBeenCalledWith('/collections/public/aB3xK9mQ2rT7wY1z')
     expect(authGet).not.toHaveBeenCalled()
-    expect(d.id).toBe(7)
+    expect(d.id).toBeUndefined()
+    expect(d.publicId).toBe('aB3xK9mQ2rT7wY1z')
+    expect(d.memberCount).toBe(1)
   })
 
   it('wraps axios errors into CollectionApiError with status and backend detail', async () => {

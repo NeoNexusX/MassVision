@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildMetadataPatch, toMetadataDraft } from '../metadataPatch'
+import {
+  buildCollectionCreatePayload,
+  buildMetadataPatch,
+  toMetadataDraft,
+} from '../metadataPatch'
 import type { CollectionMetadata } from '../../types/collection'
 
 const current: CollectionMetadata = {
@@ -80,5 +84,45 @@ describe('buildMetadataPatch', () => {
     draft.doi = ['10.1000/a']
     draft.analyzer = ['FTICR']
     expect(buildMetadataPatch(current, draft)).toEqual({})
+  })
+})
+
+describe('buildCollectionCreatePayload', () => {
+  it('omits empty fields so the backend keeps its own defaults', () => {
+    const draft = toMetadataDraft({ name: 'Mouse kidney MSI' })
+
+    expect(buildCollectionCreatePayload(draft, [42, 7])).toEqual({
+      name: 'Mouse kidney MSI',
+      file_ids: [42, 7],
+    })
+  })
+
+  it('carries non-empty text and list fields through unchanged', () => {
+    const draft = toMetadataDraft({
+      name: 'Mouse kidney MSI',
+      description: 'A curated set',
+      doi: ['10.1000/a'],
+      organism: ['Mouse (Mus musculus)'],
+    })
+
+    expect(buildCollectionCreatePayload(draft, [42])).toEqual({
+      name: 'Mouse kidney MSI',
+      file_ids: [42],
+      description: 'A curated set',
+      doi: ['10.1000/a'],
+      organism: ['Mouse (Mus musculus)'],
+    })
+  })
+
+  it('treats whitespace-only text as empty and trims the rest', () => {
+    const draft = toMetadataDraft({ name: 'X' })
+    draft.title = '   '
+    draft.journal_name = '  Nature Methods  '
+
+    expect(buildCollectionCreatePayload(draft, [1])).toEqual({
+      name: 'X',
+      file_ids: [1],
+      journal_name: 'Nature Methods',
+    })
   })
 })

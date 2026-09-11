@@ -5,6 +5,10 @@ import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
 import type { File } from '@/features/datasets/types/dataset'
 import { useToast } from '@/shared/composables/useToast'
 import { collectionErrorMessage, createCollection } from '../api/collectionApi'
+import { DERIVED_METADATA_KEYS } from '../utils/deriveCollectionMetadata'
+import { buildCollectionCreatePayload, toMetadataDraft } from '../utils/metadataPatch'
+import type { CollectionMetadataDraft } from '../types/collection'
+import { useDerivedMetadataSync } from './useDerivedMetadataSync'
 import { useOrderedSelection } from './useOrderedSelection'
 
 /**
@@ -83,13 +87,22 @@ export function useCreateCollection() {
     Array.from(new Set(selected.value.map((d) => d.organism).filter(Boolean))),
   )
 
-  // ---- 3) 表单 ----
-  const form = reactive({ name: '', description: '' })
+  // ---- 3) 元数据草稿：name/description 与 18 个学术字段同一份 draft ----
+  const metadata = reactive<CollectionMetadataDraft>(toMetadataDraft({ name: '' }))
+
+  // 可从选中数据集推导的 8 个 list 字段：自动预填，用户手改后该字段被接管。
+  // 取去重并集，成员取值不同就多个值——集合元数据的语义是「涵盖的取值集合」。
+  const derivedDraft = metadata as unknown as Record<string, string[]>
+  const { lockedKeys, resetDerivedField } = useDerivedMetadataSync(selected, derivedDraft)
 
   const isDirty = computed(
-    () => selectedCount.value > 0 || form.name !== '' || form.description !== '',
+    () =>
+      selectedCount.value > 0 ||
+      Object.values(metadata).some((v) =>
+        Array.isArray(v) ? v.length > 0 : String(v).trim() !== '',
+      ),
   )
-  const canCreate = computed(() => form.name.trim() !== '' && selectedCount.value > 0)
+  const canCreate = computed(() => metadata.name.trim() !== '' && selectedCount.value > 0)
 
   // ---- 4) 保存：file_ids 数组顺序 = position 1..n，成功跳转 overview ----
   const saving = ref(false)
@@ -100,11 +113,13 @@ export function useCreateCollection() {
     if (!canCreate.value || saving.value) return
     saving.value = true
     try {
-      const detail = await createCollection({
-        name: form.name.trim(),
-        description: form.description || undefined,
-        file_ids: selected.value.map((d) => Number(d.id)),
-      })
+      // 元数据随创建一起提交（POST /collections 与 PATCH 同字段集），空值不发
+      const detail = await createCollection(
+        buildCollectionCreatePayload(
+          metadata,
+          selected.value.map((d) => Number(d.id)),
+        ),
+      )
       showToast('Collection created successfully', 'success')
       saved.value = true
       router.replace(`/collections/${detail.id}`)
@@ -166,8 +181,12 @@ export function useCreateCollection() {
     moveDown,
     removeById,
     clear,
-    // 表单
-    form,
+    // 元数据表单
+    metadata,
+    /** 当前由选中数据集自动推导的字段键 */
+    derivedKeys: DERIVED_METADATA_KEYS,
+    lockedKeys,
+    resetDerivedField,
     isDirty,
     canCreate,
     // 动作

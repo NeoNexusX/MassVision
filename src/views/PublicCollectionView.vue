@@ -83,13 +83,14 @@ import { useRoute } from 'vue-router'
 import CollectionMetadataPanel from '@/features/collections/components/CollectionMetadataPanel.vue'
 import CollectionMemberList from '@/features/collections/components/CollectionMemberList.vue'
 import { collectionErrorMessage, getPublicCollection } from '@/features/collections/api/collectionApi'
-import type { CollectionDetail, CollectionMember } from '@/features/collections/types/collection'
+import type { CollectionMember, PublicCollectionDetail } from '@/features/collections/types/collection'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
 import { formatBytes } from '@/shared/utils/format'
 
 const route = useRoute()
 
-const detail = ref<CollectionDetail | null>(null)
+// 公开页响应不带数字 id（对外只用 public_id），成员下载用文件级 file_id
+const detail = ref<PublicCollectionDetail | null>(null)
 const loading = ref(false)
 const error = ref('')
 

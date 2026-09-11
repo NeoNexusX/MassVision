@@ -6,7 +6,7 @@ import type { CollectionMetadata } from '../types/collection'
  * 二期编辑表单直接复用为控件定义（key 已是后端 PATCH 字段名，snake_case）。
  */
 
-export type MetadataGroupId = 'general' | 'citation' | 'sample' | 'acquisition' | 'spatial'
+export type MetadataGroupId = 'general' | 'citation' | 'sample' | 'acquisition'
 
 export type MetadataFieldType = 'text' | 'long' | 'list'
 
@@ -22,7 +22,6 @@ export const METADATA_GROUPS: { id: MetadataGroupId; label: string }[] = [
   { id: 'citation', label: 'Citation' },
   { id: 'sample', label: 'Sample' },
   { id: 'acquisition', label: 'Acquisition' },
-  { id: 'spatial', label: 'Spatial' },
 ]
 
 export const METADATA_FIELDS: MetadataFieldDef[] = [
@@ -45,14 +44,10 @@ export const METADATA_FIELDS: MetadataFieldDef[] = [
   { key: 'sample_growth_conditions', label: 'Growth Conditions', type: 'list', group: 'sample' },
   { key: 'tissue_modification', label: 'Tissue Modification', type: 'list', group: 'sample' },
   // Acquisition
+  // （resolving_power / mz / pixel_size_* 已随集合级数值字段下线；文件级同名字段不受影响）
   { key: 'polarity', label: 'Polarity', type: 'list', group: 'acquisition' },
   { key: 'ionisation_source', label: 'Ionisation Source', type: 'list', group: 'acquisition' },
   { key: 'analyzer', label: 'Analyzer', type: 'list', group: 'acquisition' },
-  { key: 'resolving_power', label: 'Resolving Power', type: 'list', group: 'acquisition' },
-  { key: 'mz', label: 'm/z', type: 'list', group: 'acquisition' },
-  // Spatial
-  { key: 'pixel_size_horizontal', label: 'Pixel Size (Horizontal)', type: 'list', group: 'spatial' },
-  { key: 'pixel_size_vertical', label: 'Pixel Size (Vertical)', type: 'list', group: 'spatial' },
 ]
 
 /** 该字段是否有可展示的值（空串/null/undefined/空数组都视为未填写） */
