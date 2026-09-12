@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatErrorMessage } from '../httpClient'
+import { formatErrorMessage, isPermissionDenied } from '../httpClient'
 
 describe('formatErrorMessage', () => {
   it('returns a safe fallback for null/undefined', () => {
@@ -45,5 +45,26 @@ describe('formatErrorMessage', () => {
     const circular: Record<string, unknown> = {}
     circular.self = circular
     expect(formatErrorMessage(circular)).toBe('[object Object]')
+  })
+})
+
+describe('isPermissionDenied', () => {
+  it('detects 403 regardless of the backend detail wording', () => {
+    expect(isPermissionDenied({ response: { status: 403, data: { detail: 'nope' } } })).toBe(true)
+  })
+
+  it('detects permission/ownership wording even without a 403 status', () => {
+    expect(
+      isPermissionDenied({ response: { status: 400, data: { detail: 'Permission denied' } } }),
+    ).toBe(true)
+    expect(isPermissionDenied({ message: 'You are not the owner of this file' })).toBe(true)
+  })
+
+  it('does not treat other failures as permission errors', () => {
+    expect(
+      isPermissionDenied({ response: { status: 500, data: { detail: 'Internal server error' } } }),
+    ).toBe(false)
+    expect(isPermissionDenied({ response: { status: 422, data: { detail: [{ msg: 'bad field' }] } } })).toBe(false)
+    expect(isPermissionDenied(new Error('Network Error'))).toBe(false)
   })
 })

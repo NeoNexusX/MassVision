@@ -15,7 +15,7 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   success: { label: 'Completed', cls: 'badge-success badge-soft bg-success/10 text-success border-success/30' },
   failed: { label: 'Failed', cls: 'badge-error badge-soft bg-error/10 text-error border-error/30' },
   error: { label: 'Failed', cls: 'badge-error badge-soft bg-error/10 text-error border-error/30' },
-  uploading: { label: 'Uploading', cls: 'badge-info badge-soft bg-info/10 text-info border-info/30' },
+  uploading: { label: 'Processing', cls: 'badge-info badge-soft bg-info/10 text-info border-info/30' },
   active: { label: 'Active', cls: 'badge-success badge-soft bg-success/10 text-success border-success/30' },
   inactive: { label: 'Inactive', cls: 'badge-neutral badge-soft bg-base-200 text-base-content/60 border-base-300' },
 }

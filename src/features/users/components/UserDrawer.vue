@@ -103,7 +103,7 @@ const hasErrors = computed(() => Object.keys(errors.value).length > 0)
         </div>
 
         <!-- Detail Fields -->
-        <div class="grid grid-cols-2 gap-x-6 gap-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           <div>
             <span class="text-sm font-medium text-base-content/50">ID</span>
             <p class="text-base mt-0.5">{{ selectedUser.id }}</p>

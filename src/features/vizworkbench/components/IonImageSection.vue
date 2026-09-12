@@ -4,6 +4,7 @@ import SvgIcon from '@/shared/components/SvgIcon.vue'
 import IonImageViewer from '@/features/vizworkbench/components/visuals/IonImageViewer.vue'
 import ROIOverlay from '@/features/vizworkbench/components/visuals/ROIOverlay.vue'
 import type { ROIType } from '@/features/vizworkbench/composables/useROI'
+import type { ViewIonChannel } from '@/features/vizworkbench/composables/useIonChannels'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
 const props = defineProps<{
@@ -39,6 +40,12 @@ const props = defineProps<{
   normalizationError?: string | null
   /** zarr 是否预存 stats/tic（TIC 归一化可用） */
   hasTic?: boolean
+  /** 多离子叠加模式 */
+  channelsMode?: boolean
+  /** 可见且已加载的叠加通道 */
+  channels?: ViewIonChannel[]
+  /** ROI 并集掩膜（叠加模式下按此裁剪通道） */
+  roiMask?: Uint8Array | null
 }>()
 
 const emit = defineEmits<{
@@ -156,6 +163,9 @@ onBeforeUnmount(() => {
           :normalization-error="normalizationError"
           :has-tic="hasTic"
           :image-title="imageTitle"
+          :channels-mode="channelsMode"
+          :channels="channels"
+          :roi-mask="roiMask"
           @update:mz-tolerance="emit('update:mzTolerance', $event)"
           @update:colormap="emit('update:colormap', $event)"
           @update:intensity-scale="emit('update:intensityScale', $event)"
@@ -163,9 +173,10 @@ onBeforeUnmount(() => {
           @reset="emit('reset-controls')"
           @select-pixel="(col, row) => emit('select-pixel', col, row)"
         />
-        <!-- 切换 m/z 时的加载遮罩（延迟出现，避免快速切换一闪而过） -->
+        <!-- 切换 m/z 时的加载遮罩（延迟出现，避免快速切换一闪而过）。
+             多离子叠加模式下中列显示的是通道合成图，隐藏单图的加载遮罩。 -->
         <div
-          v-if="showLoadingOverlay && ionMatrix"
+          v-if="showLoadingOverlay && ionMatrix && !channelsMode"
           class="absolute inset-0 flex items-center justify-center bg-base-100/80 backdrop-blur-[2px] z-10 transition-opacity duration-200"
         >
           <div class="flex flex-col items-center gap-3">
@@ -191,11 +202,16 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- 强度条 -->
-    <div class="shrink-0 flex flex-col items-center gap-2 w-[3em] text-[1.2em]">
+    <!-- 强度条：多离子叠加模式下每通道各自归一化，此条不适用 → 置灰但保留 DOM -->
+    <div
+      class="shrink-0 flex flex-col items-center gap-2 w-[3em] text-[1.2em]"
+      :class="{ 'opacity-40 pointer-events-none': channelsMode }"
+      :title="channelsMode ? 'Not used in multi-ion overlay mode' : undefined"
+    >
       <button
         class="text-base-content/40 hover:text-base-content w-[3em]"
         title="Reset to auto range"
+        :disabled="channelsMode"
         @click="emit('reset-range')"
       >
         <SvgIcon type="refresh" />

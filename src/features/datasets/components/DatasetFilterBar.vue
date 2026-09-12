@@ -4,11 +4,11 @@
   >
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full md:w-auto">
       <div class="flex flex-1 items-center gap-2 min-w-0">
-        <IconInput
+        <SearchInput
           v-model="searchQuery"
-          icon-type="search"
           :placeholder="searchPlaceholder"
-          @keydown.enter.prevent="onSearchClick"
+          class="flex-1 min-w-0"
+          @search="onSearchClick"
         />
         <button @click="onSearchClick" class="btn btn-primary shrink-0 text-[1em]">Search</button>
       </div>
@@ -36,6 +36,17 @@
           </div>
         </teleport>
       </div>
+
+      <!-- 跨页入口：数据集列表 ↔ 数据集合列表，与 Add filter 并排。
+           目标路由 requiresAuth，未登录时由全局守卫带 redirect 回登录页 -->
+      <router-link
+        v-if="showCollectionsLink"
+        to="/collections"
+        class="flex w-full sm:w-auto items-center justify-center gap-2 bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content py-2 px-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-[1em] font-medium"
+      >
+        <SvgIcon type="circle_stack" class="w-4 h-4 shrink-0" />
+        <span class="truncate">Collections</span>
+      </router-link>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full md:w-auto min-w-0">
@@ -69,7 +80,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import DatasetFilterPanel from '@/features/datasets/components/DatasetFilterPanel.vue'
-import IconInput from '@/shared/components/IconInput.vue'
+import SearchInput from '@/shared/components/SearchInput.vue'
 import { useClickOutside } from '@/shared/composables/useClickOutside'
 
 interface SortOption {
@@ -81,30 +92,35 @@ withDefaults(
   defineProps<{
     showUpload?: boolean
     showAddFilter?: boolean
+    /** 在 Add filter 旁显示进入 /collections 的按钮（数据集列表 ↔ 集合列表互跳） */
+    showCollectionsLink?: boolean
     searchPlaceholder?: string
   }>(),
   {
     showUpload: false,
     showAddFilter: false,
-    searchPlaceholder: 'Search by name/sample/institution',
+    showCollectionsLink: false,
+    searchPlaceholder: 'Search datasets',
   },
 )
 
 const emit = defineEmits<{
   (e: 'search', query: string): void
-  (e: 'filter-status', status: string[]): void
   (e: 'apply-filters', payload: Record<string, any>): void
   (e: 'sort', value: string): void
   (e: 'upload'): void
 }>()
 
 const searchQuery = ref('')
-const selectedStatuses = ref<string[]>([])
-const sortValue = ref('submission_time')
+// 复合值 'field:order'：字段 + 方向一起选，由 useDatasetList.handleSort 解析后
+// 映射到后端 sort_by/order query 参数（uploaded_at / size × asc / desc）
+const sortValue = ref('submission_time:desc')
 
 const sortOptions: SortOption[] = [
-  { label: 'Sort by submission time', value: 'submission_time' },
-  { label: 'Sort by file size', value: 'size_bytes' },
+  { label: 'Submission time (newest first)', value: 'submission_time:desc' },
+  { label: 'Submission time (oldest first)', value: 'submission_time:asc' },
+  { label: 'File size (largest first)', value: 'size_bytes:desc' },
+  { label: 'File size (smallest first)', value: 'size_bytes:asc' },
 ]
 
 const showFilterPanel = ref(false)
@@ -151,6 +167,5 @@ onUnmounted(() => {
   window.removeEventListener('resize', computePanelPosition)
 })
 
-watch(selectedStatuses, (value) => emit('filter-status', value))
 watch(sortValue, (value) => emit('sort', value))
 </script>

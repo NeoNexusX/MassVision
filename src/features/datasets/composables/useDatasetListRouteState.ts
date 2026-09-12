@@ -42,10 +42,6 @@ export function useDatasetListRouteState(options: DatasetRouteStateOptions) {
     applyAndRefresh({ filename: query || '' })
   }
 
-  const handleStatusFilter = (statuses: string[]) => {
-    applyAndRefresh({ status: statuses })
-  }
-
   const handleApplyFilters = (payload: Record<string, any>) => {
     applyAndRefresh(payload)
   }
@@ -69,7 +65,6 @@ export function useDatasetListRouteState(options: DatasetRouteStateOptions) {
 
   return {
     handleSearch,
-    handleStatusFilter,
     handleApplyFilters,
     goToPage,
     changeSize,

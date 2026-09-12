@@ -73,12 +73,14 @@
             <span class="font-semibold" :style="{ color: roi.color }">{{
               roi.label
             }}</span>
-            <button
-              class="text-base-content hover:text-error"
-              @click="$emit('delete', roi.id)"
-            >
-              <SvgIcon type="trash" />
-            </button>
+            <div class="flex items-center gap-1">
+              <button
+                class="text-base-content hover:text-error"
+                @click="$emit('delete', roi.id)"
+              >
+                <SvgIcon type="trash" />
+              </button>
+            </div>
           </div>
           <span class="text-base-content">{{
             roi.type === 'freehand' ? 'Lasso' : 'Rectangle'

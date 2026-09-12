@@ -1,19 +1,17 @@
 <template>
   <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto scrollbar-thin overflow-x-hidden pr-4 lg:pr-[1em]">
     <!-- ─── Info ─── -->
-    <div class="pt-3 border-t border-base-content/50">
-      <div class="text-[1.3em] font-semibold text-base-content mb-2">Info</div>
+    <CollapsibleSection title="Info">
       <div class="space-y-1.5 text-[1.1em] text-base-content">
         <div v-for="row in infoRows" :key="row.label" class="flex justify-between">
           <span>{{ row.label }}</span>
           <span class="font-mono text-base-content">{{ row.value }}</span>
         </div>
       </div>
-    </div>
+    </CollapsibleSection>
 
     <!-- ─── Display Range ─── -->
-    <div class="mt-5 pt-4 border-t border-base-content/50">
-      <div class="text-[1.2em] font-semibold text-base-content mb-2">Display range</div>
+    <CollapsibleSection title="Display range" class="mt-5">
       <!-- The two fixed columns keep their width on the wrapper, which sits at the
            section's base font size: an em width on the same element as text-[1.125em]
            would resolve against that larger size instead (1.75em -> 1.97em). -->
@@ -47,11 +45,10 @@
           </div>
         </div>
       </div>
-    </div>
+    </CollapsibleSection>
 
     <!-- ─── Statistic ─── -->
-    <div class="mt-5 pt-4 border-t border-base-content/50">
-      <div class="text-[1.3em] font-semibold text-base-content mb-2">Statistic</div>
+    <CollapsibleSection title="Statistic" class="mt-5">
       <div class="space-y-2 p-2">
         <div class="relative h-[5em] rounded border border-base-content/50 bg-base-200">
           <canvas ref="histCanvasRef" class="absolute inset-0 w-full h-full" />
@@ -71,11 +68,10 @@
           </div>
         </div>
       </div>
-    </div>
+    </CollapsibleSection>
 
     <!-- ─── Preprocessing ─── -->
-    <div v-if="methods.length" class="mt-5 pt-4 border-t border-base-content/50">
-      <div class="text-[1.2em] font-semibold text-base-content mb-2">Preprocessing</div>
+    <CollapsibleSection v-if="methods.length" title="Preprocessing" class="mt-5">
       <div class="space-y-1">
         <div
           v-for="m in methods"
@@ -87,7 +83,7 @@
           <span class="truncate">{{ m }}</span>
         </div>
       </div>
-    </div>
+    </CollapsibleSection>
 
     <slot name="actions" />
   </div>
@@ -95,6 +91,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onBeforeUnmount, watch, type PropType } from 'vue'
+import CollapsibleSection from '@/shared/components/CollapsibleSection.vue'
 
 const props = defineProps({
   globalMin: { type: Number, required: true },
@@ -183,6 +180,10 @@ function drawHistogram() {
   const bins = props.histogram
   if (!bins.length) return
   const rect = canvas.getBoundingClientRect()
+  // Collapsed section: display:none reports a 0×0 box. Skip so the canvas
+  // keeps its last good bitmap until the section is reopened (the observer
+  // fires again with the real size).
+  if (!rect.width || !rect.height) return
   const dpr = window.devicePixelRatio || 1
   canvas.width = rect.width * dpr
   canvas.height = rect.height * dpr

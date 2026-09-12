@@ -178,7 +178,7 @@ export async function uploadImzmlZipFileOSS({
     }
     onProgress?.({ stage: 'uploading', percent: 0, message: 'Resuming upload...' })
   } else {
-    // 文件名：{organism}_{part}_{source}_{pixelX}_{polarity}_{hash6}
+    // 文件名：{hash6}_{organism}_{part}_{source}_{pixelX}_{polarity}
     normalizedFilename = generateDatasetFilename(metadata, fileHash)
 
     // -----------------------------------------------------------
@@ -268,6 +268,9 @@ export async function uploadImzmlZipFileOSS({
     authorizationV4: true,
     bucket: ossData.oss_bucket,
     timeout: OSS_UPLOAD.timeout,
+    // endpoint is a bare domain (VITE_OSS_ENDPOINT); force https so ali-oss
+    // does not fall back to http:// when assembling the request URL
+    secure: true,
     ...(ENV.ossEndpoint ? { endpoint: ENV.ossEndpoint } : {}),
   }
   // 延迟加载：只有真正开始上传才需要 ali-oss

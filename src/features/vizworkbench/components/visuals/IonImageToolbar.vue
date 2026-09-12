@@ -10,14 +10,14 @@
           class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 h-8 flex items-center"
           :title="`m/z ${selectedMz.toFixed(8)}`"
         >
-          <span class="text-base-content/50 pr-[0.25em]"><i>m/z</i></span>
+          <span class="text-base-content/50 pr-[0.5em]"><i>m/z</i></span>
           <input
             data-testid="selected-mz"
             type="text"
             inputmode="decimal"
             autocomplete="off"
             spellcheck="false"
-            class="bg-transparent outline-none w-24 font-mono font-semibold"
+            class="bg-transparent outline-none w-28 font-mono font-semibold"
             :value="mzInput"
             @input="onMzInput"
             @blur="onMzBlur"
@@ -48,16 +48,19 @@
           inputmode="decimal"
           autocomplete="off"
           spellcheck="false"
-          class="input input-sm input-bordered w-28 font-mono text-[1em]"
+          class="input input-sm input-bordered w-24 font-mono text-[1em]"
           :value="mzTolerance"
           @input="onToleranceInput"
           @blur="onToleranceBlur"
         />
       </div>
-      <!-- Colormap（两种模式都可用） -->
+      <!-- Colormap（两种模式都可用；多离子叠加时置灰，颜色由通道决定） -->
       <select
         data-testid="colormap-select"
         class="select select-fluid select-bordered w-28"
+        :class="{ 'opacity-50': channelsMode }"
+        :disabled="channelsMode"
+        :title="channelsMode ? 'Not used in multi-ion overlay mode' : undefined"
         :value="colormap"
         @change="$emit('update:colormap', ($event.target as HTMLSelectElement).value)"
       >
@@ -68,9 +71,16 @@
         <span v-if="normalizationLoading" class="loading loading-spinner loading-xs"></span>
         <select
           data-testid="intensity-scale-select"
-          class="select select-fluid select-bordered w-36"
-          :class="normalizationError ? 'select-error' : ''"
-          :title="normalizationError ? `Normalization failed: ${normalizationError}` : undefined"
+          class="select select-fluid select-bordered w-28"
+          :class="[normalizationError ? 'select-error' : '', channelsMode ? 'opacity-50' : '']"
+          :disabled="channelsMode"
+          :title="
+            channelsMode
+              ? 'Not used in multi-ion overlay mode'
+              : normalizationError
+                ? `Normalization failed: ${normalizationError}`
+                : undefined
+          "
           :value="intensityScale"
           @change="$emit('update:intensityScale', ($event.target as HTMLSelectElement).value)"
         >
@@ -79,7 +89,15 @@
           <option v-if="dataMode === 'continuous' && hasTic" value="tic" title="Divide each pixel by its total ion current (pre-computed stats/tic)">TIC norm</option>
         </select>
       </div>
-      <button class="btn btn-fluid btn-ghost" @click="$emit('reset')">Reset</button>
+      <button
+        class="btn btn-fluid btn-ghost"
+        :class="{ 'opacity-50': channelsMode }"
+        :disabled="channelsMode"
+        :title="channelsMode ? 'Not used in multi-ion overlay mode' : undefined"
+        @click="$emit('reset')"
+      >
+        Reset
+      </button>
       <button class="btn btn-fluid btn-ghost" title="Export current view as PNG" @click="$emit('download')">
         <SvgIcon type="download" />
         PNG
@@ -117,6 +135,8 @@ const props = defineProps<{
   normalizationError?: string | null
   /** zarr 是否预存 stats/tic（TIC 归一化的唯一数据源） */
   hasTic?: boolean
+  /** 多离子叠加模式：colormap / 强度标度 / Reset 不适用，置灰但保留 */
+  channelsMode?: boolean
   /** 工具栏标题 */
   title?: string
 }>()
@@ -134,12 +154,12 @@ const emit = defineEmits<{
 
 /** 输入框内容：默认随 selectedMz 同步（谱图点击/搜索命中后刷新），
  *  用户键入的值保留为待搜索内容。 */
-const mzInput = ref(props.selectedMz.toFixed(4))
+const mzInput = ref(props.selectedMz.toFixed(6))
 
 watch(
   () => props.selectedMz,
   (v) => {
-    mzInput.value = v.toFixed(4)
+    mzInput.value = v.toFixed(6)
   },
 )
 
@@ -151,7 +171,7 @@ function onMzInput(e: Event) {
  *  合法数值保留，避免 blur 先于 Search 的 click 触发把待搜索值冲掉。 */
 function onMzBlur() {
   const raw = Number(mzInput.value)
-  if (!(raw > 0)) mzInput.value = props.selectedMz.toFixed(4)
+  if (!(raw > 0)) mzInput.value = props.selectedMz.toFixed(6)
 }
 
 /** 发起搜索：解析、最近峰命中与容差判定在父级完成（需要 m/z 轴与 tolerance）。
@@ -162,7 +182,7 @@ function onMzBlur() {
 function onSearchMz() {
   emit('search-mz', mzInput.value)
   void nextTick(() => {
-    mzInput.value = props.selectedMz.toFixed(4)
+    mzInput.value = props.selectedMz.toFixed(6)
   })
 }
 

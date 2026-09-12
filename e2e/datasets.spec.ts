@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page, type Locator } from '@playwright/test'
 import { sizeToMB, ALGO_DATASET_NAMES } from './utils.js'
 
 const MAX_DOWNLOAD_MB = 300
@@ -30,19 +30,23 @@ async function resetMyDatasetSearch(page: Page) {
   await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 }
 
-/** 在 /workspace 等第一行任务不再是 Loading，然后轮询到 Running 消失 */
-async function waitForWorkspaceTaskFinished(page: Page, timeoutMs: number) {
+/**
+ * 在 /workspace 轮询刷新，直到**给定的那一行**不再是 Running。
+ *
+ * 必须按行等待，不能看整张表："表里还有 Running 吗" 会被别的任务干扰
+ * （例如上一次 Peak Alignment 超时残留的任务），导致白等到超时。
+ */
+async function waitForTaskRowFinished(page: Page, row: Locator, timeoutMs: number) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     await page.reload()
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
     await expect(page.locator('table tbody tr').first().locator('td').first())
       .not.toHaveText('Loading...', { timeout: 15_000 })
-    const hasRunning = (await page.locator('table').getByText('Running').count()) > 0
-    if (!hasRunning) return
+    if ((await row.getByText('Running').count()) === 0) return
     await page.waitForTimeout(10_000)
   }
-  throw new Error(`Workspace task still Running after ${timeoutMs / 1000}s`)
+  throw new Error(`Task still Running after ${timeoutMs / 1000}s`)
 }
 
 /**
@@ -80,27 +84,30 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * 卡片状态、可见性、删除按钮
+   * 卡片状态、可见性、编辑与删除按钮
    */
   test('each card shows status, visibility, and delete button', async ({ page }) => {
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
     await expect(
-      page.locator('button, div').filter({ hasText: /Uploaded|Uploading|Failed/ }).first()
+      page.locator('button, div').filter({ hasText: /Uploaded|Processing|Failed/ }).first()
     ).toBeVisible()
 
-    await expect(
-      page.locator('button, div').filter({ hasText: /Public|Private/ }).first()
-    ).toBeVisible()
+    // 可见性标志已挪到文件名同一行、只留 svg：文案不在 DOM 文本里，改按 title 定位
+    await expect(page.locator('[title="Public"], [title="Private"]').first()).toBeVisible()
 
+    await expect(page.getByRole('button', { name: 'Edit' }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Delete' }).first()).toBeVisible()
   })
 
   /**
-   * 随机下载一张卡
+   * 随机选一张 <300MB 的卡：第一次点击真实下载（download 事件 + 文件名校验），
+   * 限流窗口内的第二次点击被拦截。合并前是两个独立测试各真实下载一次——
+   * 合并后每浏览器少一次下载，且限流路径也带上了大小过滤（原先裸随机选卡，
+   * 可能选中 1GB 的测试数据真下载）。
    */
-  test('download — triggers download on a random card', async ({ page }) => {
+  test('download — downloads a random <300MB card, then rate limit blocks the next', async ({ page }) => {
     test.setTimeout(60_000)  // WebKit 下载偶发较慢
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
@@ -116,47 +123,34 @@ test.describe('My Datasets', () => {
       const sizeText = await card.locator('p:has-text("File Size:")').innerText()
       if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
     }
-    const pick = eligible.length > 0
-      ? eligible[Math.floor(Math.random() * eligible.length)]
-      : 0
+    test.skip(eligible.length === 0, `No card under ${MAX_DOWNLOAD_MB}MB on this backend`)
 
+    const pick = eligible[Math.floor(Math.random() * eligible.length)]!
     const card = downloadBtns.nth(pick).locator('..').locator('..')
     const cardName = await card.locator('h3').innerText()
     await expect(card.locator('h3')).not.toBeEmpty()
+    console.log(`[download/mydatasets] random pick: ${cardName}`) // 随机选卡留痕，flake 时可复现
 
+    // 第一次点击：真实 download 事件 + toast
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       downloadBtns.nth(pick).click(),
     ])
-
     const filename = download.suggestedFilename()
     expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
+    await expect(page.locator('.toast')).toContainText('Download started')
 
     // 清理下载文件（WebKit 偶发超时，忽略）
     try { await download.delete() } catch { /* ok */ }
-  })
 
-  test('download rate limit — second download is blocked', async ({ page }) => {
-    await page.goto('/mydatasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    const btns = page.locator('button').filter({ hasText: /Download/ })
-    const count = await btns.count()
-    const idx1 = Math.floor(Math.random() * count)
-    let idx2: number
-    if (count > 1) {
-      do { idx2 = Math.floor(Math.random() * count) } while (idx2 === idx1)
-    } else {
-      idx2 = idx1
-    }
-
-    await btns.nth(idx1).click()
-    await expect(page.locator('.toast')).toContainText('Download started')
+    // 等第一次下载登记进限流窗口，再点第二张（另一张符合条件的卡；没有就重复同一张）
     await page.waitForTimeout(2000)
-
-    await btns.nth(idx2).click()
+    const others = eligible.filter((i) => i !== pick)
+    const second = others.length > 0
+      ? others[Math.floor(Math.random() * others.length)]!
+      : pick
+    await downloadBtns.nth(second).click()
     await expect(page.locator('.toast')).toContainText(/Download is limited/)
-    await page.waitForTimeout(1000)
   })
 
   /**
@@ -191,18 +185,53 @@ test.describe('My Datasets', () => {
   })
 
   /**
-   * 排序切换
+   * 排序（服务端）：选 File size 升/降序后，断言后端确实按该顺序返回。
+   * 通过 waitForResponse 确认请求带上了 sort_by/order（防「下拉只改 UI 不发请求」
+   * 的假阳性），再按卡片上的 File Size 文本验证第一页的真实顺序。
    */
-  test('sort — toggles between submission time and file size', async ({ page }) => {
+  test('sort — file size ordering is applied by the server', async ({ page }) => {
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
-    const sortSelect = page.locator('select:has(option[value="size_bytes"])')
-    await sortSelect.selectOption('size_bytes')
-    await page.waitForTimeout(300)
+    const sortSelect = page
+      .locator('select')
+      .filter({ has: page.locator('option[value="size_bytes:desc"]') })
+    await expect(sortSelect).toBeVisible()
 
-    await expect(page.getByText('Organism:').first()).toBeVisible()
-    await expect(page.getByText('File Size:').first()).toBeVisible()
+    /** 当前第一页所有卡片的体积（MB），按卡片出现顺序 */
+    const cardSizes = async () =>
+      (await page.locator('p:has-text("File Size:")').allInnerTexts()).map(sizeToMB)
+
+    // 降序：请求带 sort_by=size&order=desc，卡片体积应非升序排列
+    const [descResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('list_user_files') && r.url().includes('sort_by=size') && r.url().includes('order=desc'),
+      ),
+      sortSelect.selectOption('size_bytes:desc'),
+    ])
+    expect(descResp.ok()).toBeTruthy()
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    let sizes = await cardSizes()
+    test.skip(sizes.length < 2, '后端数据不足 2 条，无法验证排序顺序')
+    for (let i = 1; i < sizes.length; i++) {
+      expect(sizes[i]!, `row ${i} should be <= row ${i - 1} (desc)`).toBeLessThanOrEqual(sizes[i - 1]!)
+    }
+
+    // 反向切升序：方向必须真的翻转（防止排序参数被后端忽略）
+    const [ascResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('list_user_files') && r.url().includes('sort_by=size') && r.url().includes('order=asc'),
+      ),
+      sortSelect.selectOption('size_bytes:asc'),
+    ])
+    expect(ascResp.ok()).toBeTruthy()
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    sizes = await cardSizes()
+    for (let i = 1; i < sizes.length; i++) {
+      expect(sizes[i]!, `row ${i} should be >= row ${i - 1} (asc)`).toBeGreaterThanOrEqual(sizes[i - 1]!)
+    }
   })
 
   /**
@@ -227,7 +256,9 @@ test.describe('My Datasets', () => {
   test('explore — creates direct-conversion task, verifies TIC image and per-pixel spectrum, then cleans up', async ({ page, browserName }) => {
     // 建任务的重后端操作只在 chromium 跑，firefox/webkit 跑纯 UI 即可，避免重复建任务
     test.skip(browserName !== 'chromium', 'raw-convert 任务只在 chromium 创建一次')
-    test.setTimeout(300_000)
+    // 内层等待上限合计约 375s（等任务 180s + TIC 图 30s + 两次点击/谱图 60+60+30+15s），
+    // 300s 装不下，只要后端任务跑得稍久就会先撞全局超时。
+    test.setTimeout(420_000)
 
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
@@ -264,21 +295,23 @@ test.describe('My Datasets', () => {
     await expect(page.locator('table tbody tr').first().locator('td').first())
       .not.toHaveText('Loading...', { timeout: 15_000 })
 
-    // Methods 列显示 "Direct conversion (no preprocessing)"
-    const runningRow = page.locator('table tr').filter({ hasText: 'Running' }).first()
-    await expect(runningRow).toBeVisible({ timeout: 15_000 })
-    await expect(runningRow.locator('td').filter({ hasText: 'Direct conversion' })).toBeVisible()
+    // 按「数据集名 + Methods 列 Direct conversion」定位本次创建的任务行。
+    // 不能裸取"第一条 Running"或"第一条 Completed"——Workspace 里可能同时有别的
+    // 任务（例如上一次 Peak Alignment 超时残留的），取错行会让后续断言全部落到错行上。
+    const myTaskRow = page
+      .locator('table tbody tr')
+      .filter({ hasText: name })
+      .filter({ hasText: 'Direct conversion' })
+      .first()
+    await expect(myTaskRow).toBeVisible({ timeout: 15_000 })
+    await expect(myTaskRow).toContainText('Running')
 
-    // 轮询刷新，等待任务完成（最多 3 分钟）
-    await waitForWorkspaceTaskFinished(page, 180_000)
-    await expect(page.locator('table').getByText('Running')).not.toBeVisible()
-    // Recent Results 里可能已有其他历史 Completed 记录，用 .getByText('Completed') 裸查会撞 strict mode，
-    // 直接断言最新（第一行）已经变成 Completed
-    await expect(page.locator('table tbody tr').first()).toContainText('Completed')
+    // 轮询刷新，等**本次**任务完成（最多 3 分钟）
+    await waitForTaskRowFinished(page, myTaskRow, 180_000)
+    await expect(myTaskRow).toContainText('Completed')
 
-    // 查看结果（后端按最新在前返回，刚完成的任务在第一行）
-    const completedRow = page.locator('table tr').filter({ hasText: 'Completed' }).first()
-    await completedRow.getByRole('button', { name: 'View' }).click()
+    // 查看结果
+    await myTaskRow.getByRole('button', { name: 'View' }).click()
     await expect(page).toHaveURL(/\/vizworkbench/)
 
     // TIC 图（processed 模式绘图区）。实际标题是 "Image View"（见 IonImageSection.vue imageTitle），
@@ -343,11 +376,13 @@ test.describe('My Datasets', () => {
     await expect(page.getByText('Ionisation Source')).toBeVisible({ timeout: 10_000 })
 
     // 清理：回 Workspace 删除刚创建的 raw-convert 结果。
-    // 不能删"第一行"——Workspace 里可能同时有 Peak Alignment 等其它任务，
-    // 第一行未必是本次创建的。按 Methods 列文本 "Direct conversion" 定位那一行。
+    // 同样要按「数据集名 + Direct conversion」定位——Workspace 里可能同时有其它
+    // 任务，删错行会清掉别人的结果。
     await page.goto('/workspace')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-    const rawConvertRow = page.locator('table tbody tr')
+    const rawConvertRow = page
+      .locator('table tbody tr')
+      .filter({ hasText: name })
       .filter({ hasText: 'Direct conversion' })
       .first()
     await expect(rawConvertRow).toBeVisible({ timeout: 10_000 })
@@ -456,19 +491,106 @@ test.describe('Public Datasets', () => {
     }
   })
 
-  test('sort — toggles between submission time and file size', async ({ page }) => {
+  /**
+   * 排序（服务端）：与 My Datasets 侧同一套断言，走 /files/list_files 公开端点。
+   */
+  test('sort — file size ordering is applied by the server', async ({ page }) => {
     await page.goto('/datasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
-    const sortSelect = page.locator('select:has(option[value="size_bytes"])')
-    await sortSelect.selectOption('size_bytes')
-    await page.waitForTimeout(300)
+    const sortSelect = page
+      .locator('select')
+      .filter({ has: page.locator('option[value="size_bytes:desc"]') })
+    await expect(sortSelect).toBeVisible()
 
-    await expect(page.getByText('Organism:').first()).toBeVisible()
-    await expect(page.getByText('File Size:').first()).toBeVisible()
+    const cardSizes = async () =>
+      (await page.locator('p:has-text("File Size:")').allInnerTexts()).map(sizeToMB)
+
+    const [descResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/files/list_files') && r.url().includes('sort_by=size') && r.url().includes('order=desc'),
+      ),
+      sortSelect.selectOption('size_bytes:desc'),
+    ])
+    expect(descResp.ok()).toBeTruthy()
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    let sizes = await cardSizes()
+    test.skip(sizes.length < 2, '后端数据不足 2 条，无法验证排序顺序')
+    for (let i = 1; i < sizes.length; i++) {
+      expect(sizes[i]!, `row ${i} should be <= row ${i - 1} (desc)`).toBeLessThanOrEqual(sizes[i - 1]!)
+    }
+
+    const [ascResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/files/list_files') && r.url().includes('sort_by=size') && r.url().includes('order=asc'),
+      ),
+      sortSelect.selectOption('size_bytes:asc'),
+    ])
+    expect(ascResp.ok()).toBeTruthy()
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    sizes = await cardSizes()
+    for (let i = 1; i < sizes.length; i++) {
+      expect(sizes[i]!, `row ${i} should be >= row ${i - 1} (asc)`).toBeGreaterThanOrEqual(sizes[i - 1]!)
+    }
   })
 
-  test('clicking a card navigates to dataset overview', async ({ page }) => {
+  /**
+   * 随机选一张 <300MB 的卡：第一次点击真实下载，限流窗口内的第二次点击被拦截
+   * （与 My Datasets 侧的合并逻辑一致，详见那边的注释）。
+   */
+  test('download — downloads a random <300MB card, then rate limit blocks the next', async ({ page }) => {
+    test.setTimeout(60_000)  // WebKit 下载偶发较慢
+    await page.goto('/datasets')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    const downloadBtns = page.locator('button').filter({ hasText: /Download/ })
+    await downloadBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
+    const count = await downloadBtns.count()
+
+    const eligible: number[] = []
+    for (let i = 0; i < count; i++) {
+      const card = downloadBtns.nth(i).locator('..').locator('..')
+      const sizeText = await card.locator('p:has-text("File Size:")').innerText()
+      if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
+    }
+    test.skip(eligible.length === 0, `No card under ${MAX_DOWNLOAD_MB}MB on this backend`)
+
+    const pick = eligible[Math.floor(Math.random() * eligible.length)]!
+    const card = downloadBtns.nth(pick).locator('..').locator('..')
+    const cardName = await card.locator('h3').innerText()
+    await expect(card.locator('h3')).not.toBeEmpty()
+    console.log(`[download/datasets] random pick: ${cardName}`) // 随机选卡留痕，flake 时可复现
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      downloadBtns.nth(pick).click(),
+    ])
+    const filename = download.suggestedFilename()
+    expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
+    await expect(page.locator('.toast')).toContainText('Download started')
+
+    // 清理下载文件（WebKit 偶发超时，忽略）
+    try { await download.delete() } catch { /* ok */ }
+
+    // 等第一次下载登记进限流窗口，再点第二张（另一张符合条件的卡；没有就重复同一张）
+    await page.waitForTimeout(2000)
+    const others = eligible.filter((i) => i !== pick)
+    const second = others.length > 0
+      ? others[Math.floor(Math.random() * others.length)]!
+      : pick
+    await downloadBtns.nth(second).click()
+    await expect(page.locator('.toast')).toContainText(/Download is limited/)
+  })
+
+  /**
+   * 随机进一张卡的 Overview：验证内容，再 Back 返回。
+   * （原为两个独立测试——"navigates" 和 "back button"——各完整走一遍
+   * /datasets 加载 + Overview 加载，合并后省一个页面周期 × 3 浏览器。
+   * My Datasets 侧的同名测试早已是这种合并形态。）
+   */
+  test('overview — navigates to a random card, shows content, then back', async ({ page }) => {
     await page.goto('/datasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
@@ -488,19 +610,6 @@ test.describe('Public Datasets', () => {
       await expect(page.getByText(/Sample Info/)).toBeVisible()
       await expect(page.getByText('File Information')).toBeVisible()
     }
-  })
-
-  test('overview back button — returns to Public Datasets', async ({ page }) => {
-    await page.goto('/datasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    const overviewBtns = page.getByRole('button', { name: 'Overview' })
-    await overviewBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
-    const count = await overviewBtns.count()
-    const pick = count > 1 ? Math.floor(Math.random() * count) : 0
-    await overviewBtns.nth(pick).click()
-    await expect(page).toHaveURL(/\/overview/)
-    await expect(page.locator('.skeleton')).toHaveCount(0, { timeout: 15_000 })
 
     const backBtn = page.getByRole('button', { name: 'Back to Public Datasets' })
     await expect(backBtn).toBeVisible()
@@ -517,63 +626,5 @@ test.describe('Public Datasets', () => {
 
     await expect(page.getByRole('button', { name: 'Apply' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Reset' })).toBeVisible()
-  })
-
-  test('download — triggers download on a random card', async ({ page }) => {
-    test.setTimeout(60_000)  // WebKit 下载偶发较慢
-    await page.goto('/datasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    const downloadBtns = page.locator('button').filter({ hasText: /Download/ })
-    await downloadBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
-    const count = await downloadBtns.count()
-
-    const eligible: number[] = []
-    for (let i = 0; i < count; i++) {
-      const card = downloadBtns.nth(i).locator('..').locator('..')
-      const sizeText = await card.locator('p:has-text("File Size:")').innerText()
-      if (sizeToMB(sizeText) < MAX_DOWNLOAD_MB) eligible.push(i)
-    }
-    const pick = eligible.length > 0
-      ? eligible[Math.floor(Math.random() * eligible.length)]
-      : 0
-
-    const cardName = await downloadBtns.nth(pick).locator('..').locator('..')
-      .locator('h3').innerText()
-    await expect(downloadBtns.nth(pick).locator('..').locator('..').locator('h3')).not.toBeEmpty()
-
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      downloadBtns.nth(pick).click(),
-    ])
-
-    const filename = download.suggestedFilename()
-    expect(filename).toContain(cardName!.replace('Dataset name: ', ''))
-
-    // 清理下载文件（WebKit 偶发超时，忽略）
-    try { await download.delete() } catch { /* ok */ }
-  })
-
-  test('download rate limit — second download is blocked', async ({ page }) => {
-    await page.goto('/datasets')
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    const btns = page.locator('button').filter({ hasText: /Download/ })
-    const count = await btns.count()
-    const idx1 = Math.floor(Math.random() * count)
-    let idx2: number
-    if (count > 1) {
-      do { idx2 = Math.floor(Math.random() * count) } while (idx2 === idx1)
-    } else {
-      idx2 = idx1
-    }
-
-    await btns.nth(idx1).click()
-    await expect(page.locator('.toast')).toContainText('Download started')
-    await page.waitForTimeout(2000)
-
-    await btns.nth(idx2).click()
-    await expect(page.locator('.toast')).toContainText(/Download is limited/)
-    await page.waitForTimeout(1000)
   })
 })

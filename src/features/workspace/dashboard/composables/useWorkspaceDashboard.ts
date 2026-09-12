@@ -1,5 +1,5 @@
 import { computed, onMounted, reactive, ref } from 'vue'
-import { listMyProcesses, deleteProcess, getProcessingStats } from '@/features/datasets/api/datasetApi'
+import { listMyProcesses, deleteProcess, getProcessingStats, type ProcessRunFilter } from '@/features/datasets/api/datasetApi'
 import { parseAlgorithms } from '@/shared/utils/methodsNormalize'
 import { buildPageList } from '@/shared/utils/pagination'
 import { parseUtcDate } from '@/shared/utils/date'
@@ -95,12 +95,24 @@ export function useWorkspaceDashboard() {
     }
   }
 
+  // 已提交的模糊筛选。只按源文件名（filename）匹配，与 PublicDatasets 搜索一致；
+  // params 字段暂空置——RunFilter 是 AND 语义，同时发 filename+params 会互相收窄
+  // 导致几乎搜不到，所以一次只发一个字段。
+  const filter = ref<ProcessRunFilter>({})
+
+  /** 提交搜索：非空则按文件名模糊匹配并回到第 1 页，空串清空筛选 */
+  function applySearch(query: string) {
+    const q = query.trim()
+    filter.value = q ? { filename: q } : {}
+    fetchProcesses({ page: 1, size: size.value })
+  }
+
   async function fetchProcesses(opts?: { page?: number; size?: number }) {
     loading.value = true
     const p = opts?.page ?? page.value
     const s = opts?.size ?? size.value
     try {
-      const result = await listMyProcesses(p, s)
+      const result = await listMyProcesses(p, s, filter.value)
       processes.value = Array.isArray(result?.data) ? result.data : []
 
       if (result?.meta) {
@@ -178,5 +190,6 @@ export function useWorkspaceDashboard() {
     goToPage,
     changeSize,
     deleteResult,
+    applySearch,
   }
 }

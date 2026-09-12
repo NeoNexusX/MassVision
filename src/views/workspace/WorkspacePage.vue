@@ -44,24 +44,25 @@
 
     <!-- Main content -->
     <section class="bg-base-100 rounded-lg border border-base-200 shadow-sm p-3 sm:p-4 lg:p-6">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3 sm:mb-4">
+      <div
+        class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3 sm:mb-4"
+      >
         <h2 class="text-xl sm:text-2xl font-medium">Recent Results</h2>
-        <!-- 可见搜索框：按名称/数据集/方法过滤当前页结果 -->
-        <div class="relative w-full sm:w-72">
-          <svg-icon
-            type="search"
-            class="w-4 h-4 text-base-content/40 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-          />
-          <input
+        <!-- 搜索：只按源文件名模糊匹配（服务端 RunFilter.filename），与数据集页一致。
+             回车或点 Search 提交；清空输入框立即取消筛选。 -->
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <SearchInput
             v-model="searchQuery"
-            type="text"
-            placeholder="Search name / dataset / method"
-            class="input input-bordered input-md w-full pl-8"
+            placeholder="Search dataset"
+            class="flex-1 sm:w-72 sm:flex-none"
+            @update:model-value="onQueryInput"
+            @search="onSearch"
           />
+          <button class="btn btn-primary shrink-0 text-[1em]" @click="onSearch">Search</button>
         </div>
       </div>
       <ResultTable
-        :results="filteredResults"
+        :results="recentResults"
         :loading="loading"
         @delete="onDeleteClick"
         @view-error="showErrorModal"
@@ -111,13 +112,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import ResultTable from '@/features/workspace/dashboard/components/ResultTable.vue'
 import CreateTaskModal from '@/features/workspace/dashboard/components/CreateTaskModal.vue'
 import SummaryCard from '@/features/workspace/dashboard/components/SummaryCard.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import PaginationFooter from '@/shared/components/PaginationFooter.vue'
-import { useWorkspaceDashboard, type TaskRow } from '@/features/workspace/dashboard/composables/useWorkspaceDashboard'
+import SearchInput from '@/shared/components/SearchInput.vue'
+import { useWorkspaceDashboard } from '@/features/workspace/dashboard/composables/useWorkspaceDashboard'
 import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 
 const {
@@ -132,20 +134,22 @@ const {
   goToPage,
   changeSize,
   deleteResult,
+  applySearch,
 } = useWorkspaceDashboard()
 
-// ---- 结果列表搜索（可见输入框，按任务名 / 数据集 / 方法过滤） ----
+// ---- 结果列表搜索（服务端按源文件名模糊匹配） ----
+// 输入框内容先落在 searchQuery，回车或点 Search 才提交给 composable，
+// 因此只在提交后触发请求；清空输入框（✕）立即取消筛选。
 const searchQuery = ref('')
-const filteredResults = computed<TaskRow[]>(() => {
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return recentResults.value
-  return recentResults.value.filter(
-    (r) =>
-      r.name.toLowerCase().includes(q) ||
-      r.dataset.toLowerCase().includes(q) ||
-      r.methods.some((m) => m.toLowerCase().includes(q)),
-  )
-})
+
+function onSearch() {
+  applySearch(searchQuery.value)
+}
+
+function onQueryInput(v: string) {
+  searchQuery.value = v
+  if (!v) applySearch('')
+}
 
 // Delete — shared composable
 const deleteConfirm = useConfirmDelete({

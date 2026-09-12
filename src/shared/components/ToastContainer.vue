@@ -15,7 +15,7 @@ const { toasts, removeToast } = useToast()
       <div
         v-for="toast in toasts"
         :key="toast.id"
-        class="alert shadow-lg pointer-events-auto flex items-center justify-between min-w-[300px] py-3 px-4 rounded-lg border backdrop-blur-md"
+        class="alert shadow-lg pointer-events-auto flex items-center justify-between w-full sm:w-auto sm:min-w-[300px] py-3 px-4 rounded-lg border backdrop-blur-md"
         :class="{
           'alert-info text-blue-700 bg-blue-50/95 border-blue-200 dark:bg-blue-900/90 dark:text-blue-100 dark:border-blue-700':
             toast.type === 'info',

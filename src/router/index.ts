@@ -25,6 +25,38 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    // 数据集合：把相关 dataset 组织成策展集合。设计阶段数据为前端 mock。
+    path: '/collections',
+    name: 'Collections',
+    component: () => import('../views/CollectionsView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    // 新建集合页：从公共数据集中挑选成员、排序并填写元信息（Edit 在 overview 内嵌）
+    path: '/collections/new',
+    name: 'CreateCollection',
+    component: () => import('../views/CreateCollectionView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    // 集合详情页（Overview）：元数据展示 + 内嵌编辑 + 成员管理。
+    // 无路径参数：集合 id 由 router.push 的 state 携带（与数据集 /overview 同方案），
+    // 直刷/书签进入时 state 为空 → 页面显示 Session lost 引导回列表。
+    path: '/collections/overview',
+    name: 'CollectionOverview',
+    component: () => import('../views/CollectionOverviewView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    // 集合公开分享页（免登录）：用 public_id 访问，只读展示。
+    // 路径不带 public 段——分享链接直接是 /collections/{public_id}。
+    // 静态段（/collections/overview、/collections/new）优先级本就高于参数段，
+    // 且 public_id 是 16 位 base62，不会与它们撞名。
+    path: '/collections/:publicId',
+    name: 'PublicCollection',
+    component: () => import('../views/PublicCollectionView.vue'),
+  },
+  {
     path: '/overview',
     name: 'DatasetOverview',
     component: () => import('../views/DatasetOverviewView.vue'),

@@ -1,4 +1,4 @@
-import { getDownloadMetadata, getDownloadRaw } from '@/features/datasets/api/datasetApi'
+import { getDownloadMetadata, getDownloadRaw, getDownloadRawNoauth } from '@/features/datasets/api/datasetApi'
 
 async function pollDownloadUrl(
   fileId: string,
@@ -85,6 +85,22 @@ export async function ossDownloadRaw(
   options?: { getFallbackFilename?: () => string | undefined, isPublic?: boolean },
 ) {
   const { files } = await getDownloadRaw(fileId, options?.isPublic ?? false)
+
+  if (!files || !files.length) {
+    throw new Error('No download URLs returned')
+  }
+
+  for (const entry of files) {
+    triggerIframeDownload(entry.url)
+  }
+}
+
+/**
+ * RAW pre-signed download via the no-auth endpoint (public collection page).
+ * Same iframe strategy; backend only serves is_public files.
+ */
+export async function ossDownloadRawNoauth(fileId: string) {
+  const { files } = await getDownloadRawNoauth(fileId)
 
   if (!files || !files.length) {
     throw new Error('No download URLs returned')

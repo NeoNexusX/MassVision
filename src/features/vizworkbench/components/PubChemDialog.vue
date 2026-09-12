@@ -123,10 +123,10 @@ async function copyText(text: string) {
 
       <!-- Result -->
       <div v-else-if="result" class="space-y-4">
-        <!-- Structure image + basic info -->
-        <div class="flex gap-5">
+        <!-- Structure image + basic info：手机端上下堆叠，避免 240px 固定宽的图挤爆信息列 -->
+        <div class="flex flex-col sm:flex-row gap-5">
           <!-- 2D structure -->
-          <div class="shrink-0 w-60 h-60 rounded-lg border border-base-300 bg-white flex items-center justify-center overflow-hidden">
+          <div class="w-full h-44 sm:shrink-0 sm:w-60 sm:h-60 rounded-lg border border-base-300 bg-white flex items-center justify-center overflow-hidden">
             <img
               v-if="!imageError"
               :src="result.structureImageUrl"

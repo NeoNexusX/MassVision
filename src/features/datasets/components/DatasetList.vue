@@ -21,6 +21,7 @@ const emit = defineEmits<{
   (e: 'download', id: string): void
   (e: 'delete', id: string): void
   (e: 'explore', id: string): void
+  (e: 'edit', id: string): void
   (e: 'change-size', size: number): void
   (e: 'go-to-page', page: number): void
 }>()
@@ -69,6 +70,7 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
           @download="$emit('download', $event)"
           @delete="$emit('delete', $event)"
           @explore="$emit('explore', $event)"
+          @edit="$emit('edit', $event)"
         />
       </div>
     </div>

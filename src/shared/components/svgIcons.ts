@@ -11,6 +11,7 @@ export const ICON_MAP = {
   'user-circle': 'heroicons:user-circle',
   signin: 'heroicons:arrow-right-end-on-rectangle',
   link: 'heroicons:link',
+  'document-text': 'heroicons:document-text',
   home: 'heroicons:home',
   research: 'heroicons:academic-cap',
   institution: 'heroicons:building-library',
