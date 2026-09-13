@@ -113,14 +113,14 @@ const cancelModeChange = () => {
           v-model="form.is_public"
           class="checkbox checkbox-sm"
         />
-        <label for="is_public" class="text-lg">Make dataset public (visible to others)</label>
+        <label for="is_public" class="kawaru-text-112">Make dataset public (visible to others)</label>
       </div>
 
-      <div class="divider text-lg text-base-content/50">Acquisition Information</div>
+      <div class="divider kawaru-text-112 text-base-content/50">Acquisition Information</div>
 
       <div
         v-if="parsingMetadata"
-        class="flex items-center gap-2 text-lg text-base-content/60 bg-base-200/50 rounded-lg px-3 py-2 mb-2"
+        class="flex items-center gap-2 kawaru-text-112 text-base-content/60 bg-base-200/50 rounded-lg px-3 py-2 mb-2"
       >
         <span
           class="inline-block w-3.5 h-3.5 border-2 border-base-content/30 border-t-base-content/60 rounded-full animate-spin"
@@ -130,7 +130,7 @@ const cancelModeChange = () => {
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >Polarity <span class="text-error">*</span></span
           ></label
         >
@@ -144,7 +144,7 @@ const cancelModeChange = () => {
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >Ionisation Source <span class="text-error">*</span></span
           ></label
         >
@@ -158,7 +158,7 @@ const cancelModeChange = () => {
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >Analyzer <span class="text-error">*</span></span
           ></label
         >
@@ -173,7 +173,7 @@ const cancelModeChange = () => {
       <div class="grid grid-cols-2 gap-3">
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-xl"
+            ><span class="label-text font-medium text-base-content kawaru-text-125"
               >Pixel Size X (μm) <span class="text-error">*</span></span
             ></label
           >
@@ -181,16 +181,16 @@ const cancelModeChange = () => {
             v-model="form.pixel_size_horizontal"
             type="text"
             inputmode="numeric"
-            class="input input-bordered w-full text-base"
+            class="input input-bordered w-full kawaru-text-100"
             :class="{ 'input-error': pixelSizeXError }"
             placeholder="e.g. 50"
             @blur="validatePixelSize(form.pixel_size_horizontal, 'horizontal')"
           />
-          <span v-if="pixelSizeXError" class="text-xs text-error mt-0.5">{{ pixelSizeXError }}</span>
+          <span v-if="pixelSizeXError" class="kawaru-text-75 text-error mt-0.5">{{ pixelSizeXError }}</span>
         </div>
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-xl"
+            ><span class="label-text font-medium text-base-content kawaru-text-125"
               >Pixel Size Y (μm) <span class="text-error">*</span></span
             ></label
           >
@@ -198,19 +198,19 @@ const cancelModeChange = () => {
             v-model="form.pixel_size_vertical"
             type="text"
             inputmode="numeric"
-            class="input input-bordered w-full text-base"
+            class="input input-bordered w-full kawaru-text-100"
             :class="{ 'input-error': pixelSizeYError }"
             placeholder="e.g. 50"
             @blur="validatePixelSize(form.pixel_size_vertical, 'vertical')"
           />
-          <span v-if="pixelSizeYError" class="text-xs text-error mt-0.5">{{ pixelSizeYError }}</span>
+          <span v-if="pixelSizeYError" class="kawaru-text-75 text-error mt-0.5">{{ pixelSizeYError }}</span>
         </div>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-xl"
+            ><span class="label-text font-medium text-base-content kawaru-text-125"
               >Spectrum Mode <span class="text-error">*</span></span
             ></label
           >
@@ -224,7 +224,7 @@ const cancelModeChange = () => {
         </div>
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-xl"
+            ><span class="label-text font-medium text-base-content kawaru-text-125"
               >Storage Mode <span class="text-error">*</span></span
             ></label
           >
@@ -241,7 +241,7 @@ const cancelModeChange = () => {
       <!-- Solvent: always visible, required state depends on ion source -->
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >{{ ionRules.solvent.label }}
             <span v-if="ionRules.solvent.required" class="text-error">*</span>
           </span></label
@@ -254,7 +254,7 @@ const cancelModeChange = () => {
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >{{ ionRules.maldiMatrix.label }}
             <span v-if="ionRules.maldiMatrix.required" class="text-error">*</span>
           </span></label
@@ -269,7 +269,7 @@ const cancelModeChange = () => {
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >{{ ionRules.maldiMatrixApplication.label }}
             <span v-if="ionRules.maldiMatrixApplication.required" class="text-error">*</span>
           </span></label
@@ -283,26 +283,26 @@ const cancelModeChange = () => {
       </div>
 
       <label class="label"
-        ><span class="label-text font-medium text-base-content text-xl"
+        ><span class="label-text font-medium text-base-content kawaru-text-125"
           >Detector resolving power</span
         ></label
       >
       <div class="grid grid-cols-2 gap-3">
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-xl"><i>m/z</i></span></label
+            ><span class="label-text font-medium text-base-content kawaru-text-125"><i>m/z</i></span></label
           >
           <input
             v-model="form.mz"
             type="text"
             inputmode="numeric"
-            class="input input-bordered w-full text-base"
+            class="input input-bordered w-full kawaru-text-100"
             placeholder="e.g. 200"
           />
         </div>
         <div class="flex flex-col">
           <label class="label"
-            ><span class="label-text font-medium text-base-content text-xl"
+            ><span class="label-text font-medium text-base-content kawaru-text-125"
               >Resolving Power</span
             ></label
           >
@@ -310,17 +310,17 @@ const cancelModeChange = () => {
             v-model="form.resolving_power"
             type="text"
             inputmode="numeric"
-            class="input input-bordered w-full text-base"
+            class="input input-bordered w-full kawaru-text-100"
             placeholder="e.g. 140000"
           />
         </div>
       </div>
 
-      <div class="divider text-lg text-base-content/50">Sample Metadata</div>
+      <div class="divider kawaru-text-112 text-base-content/50">Sample Metadata</div>
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >Organism <span class="text-error">*</span></span
           ></label
         >
@@ -334,7 +334,7 @@ const cancelModeChange = () => {
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >Organism Part <span class="text-error">*</span></span
           ></label
         >
@@ -348,7 +348,7 @@ const cancelModeChange = () => {
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >Condition <span class="text-error">*</span></span
           ></label
         >
@@ -362,7 +362,7 @@ const cancelModeChange = () => {
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >Sample Stabilization <span class="text-error">*</span></span
           ></label
         >
@@ -376,7 +376,7 @@ const cancelModeChange = () => {
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >Sample Growth Conditions</span
           ></label
         >
@@ -390,7 +390,7 @@ const cancelModeChange = () => {
 
       <div class="flex flex-col">
         <label class="label"
-          ><span class="label-text font-medium text-base-content text-xl"
+          ><span class="label-text font-medium text-base-content kawaru-text-125"
             >Tissue Modification</span
           ></label
         >

@@ -1,20 +1,20 @@
 <template>
   <div
-    class="container mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 box-border overflow-x-hidden page-type"
+    class="container mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 box-border overflow-x-hidden kawaru-text-100"
   >
     <!-- Header: Title + actions -->
     <div class="flex flex-col sm:flex-row items-start justify-between mb-6 gap-4">
       <div>
-        <h1 class="page-title font-semibold">Workspace</h1>
-        <p class="page-subtitle text-base-content/60 mt-1">
+        <h1 class="kawaru-text-page-title leading-[1.15] font-semibold">Workspace</h1>
+        <p class="kawaru-text-100 text-base-content/60 mt-1">
           Monitor preprocessing tasks and review recent MSI results.
         </p>
       </div>
       <div class="flex flex-col sm:flex-row items-center gap-3 flex-shrink-0 w-full sm:w-auto">
-        <router-link to="/mydatasets" class="btn btn-ghost btn-md sm:btn-lg w-full sm:w-auto"
+        <router-link to="/mydatasets" class="btn btn-ghost btn-md sm:btn-lg w-full sm:w-auto kawaru-text-87"
           >Go to MyDatasets</router-link
         >
-        <router-link to="/workspace/new" class="btn btn-primary btn-md sm:btn-lg w-full sm:w-auto"
+        <router-link to="/workspace/new" class="btn btn-primary btn-md sm:btn-lg w-full sm:w-auto kawaru-text-87"
           >New Task</router-link
         >
       </div>
@@ -47,7 +47,7 @@
       <div
         class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3 sm:mb-4"
       >
-        <h2 class="text-xl sm:text-2xl font-medium">Recent Results</h2>
+        <h2 class="kawaru-text-125 sm:kawaru-text-150 font-medium">Recent Results</h2>
         <!-- 搜索：只按源文件名模糊匹配（服务端 RunFilter.filename），与数据集页一致。
              回车或点 Search 提交；清空输入框立即取消筛选。 -->
         <div class="flex items-center gap-2 w-full sm:w-auto">
@@ -58,7 +58,7 @@
             @update:model-value="onQueryInput"
             @search="onSearch"
           />
-          <button class="btn btn-primary shrink-0 text-[1em]" @click="onSearch">Search</button>
+          <button class="btn btn-primary shrink-0 kawaru-text-100" @click="onSearch">Search</button>
         </div>
       </div>
       <ResultTable
@@ -103,7 +103,7 @@
     >
       <div>
         <p class="font-medium">Error details:</p>
-        <p class="mt-2 text-sm text-base-content/70 whitespace-pre-wrap break-all">
+        <p class="mt-2 kawaru-text-87 text-base-content/70 whitespace-pre-wrap break-all">
           {{ errorModalMessage }}
         </p>
       </div>

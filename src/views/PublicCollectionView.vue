@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-base-200">
-    <div class="max-w-[1680px] mx-auto p-4 md:p-8 page-type">
+    <div class="max-w-[1680px] mx-auto p-4 md:p-8 kawaru-text-100">
       <!-- Loading -->
       <div v-if="loading" class="animate-pulse flex flex-col gap-6">
         <div class="h-16 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
@@ -14,11 +14,11 @@
         class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
       >
         <SvgIcon type="circle_stack" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-        <h3 class="text-[1.15em] font-bold text-base-content">Collection not found</h3>
+        <h3 class="kawaru-text-112 font-bold text-base-content">Collection not found</h3>
         <p class="mt-2 text-base-content/60">
           This collection does not exist or is no longer public.
         </p>
-        <router-link to="/" class="btn btn-primary mt-6 text-[1em]">Back to Home</router-link>
+        <router-link to="/" class="btn btn-primary mt-6 kawaru-text-100">Back to Home</router-link>
       </div>
 
       <template v-else-if="detail">
@@ -26,12 +26,12 @@
         <div class="mb-6">
           <span
             class="inline-flex items-center gap-1.5 badge badge-sm font-medium
-              border border-success/30 bg-success/10 text-success mb-2"
+              border border-success/30 bg-success/10 text-success mb-2 kawaru-text-75"
           >
             <SvgIcon type="region" class="w-[0.9em] h-[0.9em]" />
             Public Collection
           </span>
-          <h1 class="page-title font-bold text-base-content truncate" :title="detail.name">
+          <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content truncate" :title="detail.name">
             {{ detail.name }}
           </h1>
           <p v-if="detail.title" class="text-base-content/70 mt-0.5 truncate">
@@ -43,7 +43,7 @@
         <div
           class="flex flex-wrap items-center gap-x-6 gap-y-2 bg-base-100 dark:bg-slate-800
             rounded-xl shadow-sm border border-base-300 px-4 py-3 mb-6
-            text-[0.9em] text-base-content/70"
+            kawaru-text-87 text-base-content/70"
         >
           <span class="inline-flex items-center gap-1.5">
             <SvgIcon type="queue_list" class="w-[1.1em] h-[1.1em]" />
@@ -85,7 +85,7 @@ import CollectionMemberList from '@/features/collections/components/CollectionMe
 import { collectionErrorMessage, getPublicCollection } from '@/features/collections/api/collectionApi'
 import type { CollectionMember, PublicCollectionDetail } from '@/features/collections/types/collection'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
-import { formatBytes } from '@/shared/utils/format'
+import { formatBytes, formatDate } from '@/shared/utils/format'
 
 const route = useRoute()
 
@@ -108,9 +108,7 @@ async function fetch() {
   }
 }
 
-const updatedDate = computed(() =>
-  detail.value?.updatedAt ? new Date(detail.value.updatedAt).toLocaleDateString() : '',
-)
+const updatedDate = computed(() => formatDate(detail.value?.updatedAt))
 
 // 公开页下载走 noauth 端点（后端仅对 is_public 文件放行）
 const { handleDownloadPublicRaw } = useDownloadProgress()

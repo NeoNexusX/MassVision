@@ -19,12 +19,12 @@
         :value="otherText"
         @input="onOtherInput"
         @blur="onOtherBlur"
-        class="input input-bordered input-md w-full"
+        class="input input-bordered input-md w-full kawaru-text-87"
         :class="{ 'input-error': otherError }"
         :placeholder="otherPlaceholder"
         maxlength="50"
       />
-      <span v-if="otherError" class="text-base text-error mt-1 block">{{ otherError }}</span>
+      <span v-if="otherError" class="kawaru-text-87 text-error mt-1 block">{{ otherError }}</span>
     </div>
   </IconSelect>
 </template>

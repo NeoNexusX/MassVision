@@ -3,7 +3,7 @@
   <div
     v-if="isOpen && !isMinimized"
     ref="panelRef"
-    class="fixed z-[10000] flex flex-col rounded-2xl shadow-2xl bg-base-100 border border-base-200 overflow-hidden select-none"
+    class="fixed z-[10000] flex flex-col rounded-2xl shadow-2xl bg-base-100 border border-base-200 overflow-hidden select-none kawaru-text-87"
     :style="panelStyle"
   >
     <!-- Header -->
@@ -17,21 +17,21 @@
         >
           <svg-icon type="sparkles" class="w-4 h-4 text-white" />
         </div>
-        <span class="font-semibold text-sm text-base-content">AI Assistant</span>
-        <span class="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400">
+        <span class="font-semibold kawaru-text-87 text-base-content">AI Assistant</span>
+        <span class="flex items-center gap-1 kawaru-text-62 text-green-600 dark:text-green-400">
           <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
           Online
         </span>
       </div>
       <div class="flex items-center gap-1">
         <button
-          class="btn btn-xs btn-ghost btn-square"
+          class="btn btn-xs btn-ghost btn-square kawaru-text-68"
           @click="isMinimized = true"
           title="Minimize"
         >
-          <span class="text-sm font-bold">—</span>
+          <span class="kawaru-text-87 font-bold">—</span>
         </button>
-        <button class="btn btn-xs btn-ghost btn-square" @click="close" title="Close">
+        <button class="btn btn-xs btn-ghost btn-square kawaru-text-68" @click="close" title="Close">
           <svg-icon type="close" class="w-3 h-3" />
         </button>
       </div>
@@ -47,7 +47,7 @@
           <svg-icon type="sparkles" class="w-3 h-3 text-white" />
         </div>
         <div
-          class="bg-base-200 rounded-2xl rounded-tl-sm px-3 py-2 text-sm text-base-content max-w-[85%] leading-relaxed"
+          class="bg-base-200 rounded-2xl rounded-tl-sm px-3 py-2 kawaru-text-87 text-base-content max-w-[85%] leading-relaxed"
         >
           {{ welcomeMsg }}
         </div>
@@ -58,7 +58,7 @@
         <button
           v-for="p in quickPrompts"
           :key="p"
-          class="btn btn-xs bg-base-200 hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-base-300 text-xs rounded-full"
+          class="btn btn-xs bg-base-200 hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-base-300 kawaru-text-75 rounded-full"
           @click="askQuick(p)"
         >
           {{ p }}
@@ -69,7 +69,7 @@
       <div v-for="m in messages" :key="m.id">
         <div v-if="m.role === 'user'" class="flex justify-end">
           <div
-            class="bg-indigo-500 text-white rounded-2xl rounded-tr-sm px-3 py-2 text-sm max-w-[80%]"
+            class="bg-indigo-500 text-white rounded-2xl rounded-tr-sm px-3 py-2 kawaru-text-87 max-w-[80%]"
           >
             {{ m.content }}
           </div>
@@ -81,7 +81,7 @@
             <svg-icon type="sparkles" class="w-3 h-3 text-white" />
           </div>
           <div
-            class="bg-base-200 rounded-2xl rounded-tl-sm px-3 py-2 text-sm text-base-content max-w-[85%]"
+            class="bg-base-200 rounded-2xl rounded-tl-sm px-3 py-2 kawaru-text-87 text-base-content max-w-[85%]"
           >
             {{ m.content }}
           </div>
@@ -115,17 +115,17 @@
     <!-- Input area -->
     <div class="border-t border-base-200 px-3 py-2 shrink-0">
       <div class="flex items-center gap-2">
-        <button class="btn btn-sm btn-ghost btn-circle" title="Attach file">
+        <button class="btn btn-sm btn-ghost btn-circle kawaru-text-75" title="Attach file">
           <svg-icon type="paper-clip" class="w-4 h-4 text-base-content/50" />
         </button>
         <input
           v-model="inputValue"
-          class="input input-sm input-bordered flex-1 text-sm rounded-full"
+          class="input input-sm input-bordered flex-1 kawaru-text-87 rounded-full"
           placeholder="Ask AI anything…"
           @keydown.enter="send"
         />
         <button
-          class="btn btn-sm btn-circle bg-indigo-500 hover:bg-indigo-600 border-none text-white"
+          class="btn btn-sm btn-circle bg-indigo-500 hover:bg-indigo-600 border-none text-white kawaru-text-75"
           :disabled="!inputValue.trim()"
           @click="send"
           title="Send"

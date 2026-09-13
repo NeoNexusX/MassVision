@@ -6,7 +6,7 @@
     >
       <div class="join">
         <button
-          class="join-item btn hover:bg-secondary/80 bg-base-100 border-base-content/20 h-[2em] min-h-[2em] px-[1em] text-[1em] text-base-content/70"
+          class="join-item btn hover:bg-secondary/80 bg-base-100 border-base-content/20 h-[2em] min-h-[2em] px-[1em] kawaru-text-100 text-base-content/70"
           :class="{ 'pointer-events-none opacity-50': currentPage === 1 }"
           @click="$emit('prev-page')"
         >
@@ -15,7 +15,7 @@
         <template v-for="(p, idx) in pageRange" :key="`pg-${idx}`">
           <button
             v-if="p !== '...'"
-            class="join-item btn h-[2em] min-h-[2em] font-medium text-[1em] bg-base-100 tabular-nums border-base-content/20"
+            class="join-item btn h-[2em] min-h-[2em] font-medium kawaru-text-100 bg-base-100 tabular-nums border-base-content/20"
             :class="
               currentPage === p
                 ? 'bg-primary text-primary-content border-primary z-10'
@@ -25,10 +25,10 @@
           >
             {{ p }}
           </button>
-          <span v-else class="join-item btn btn-disabled h-[2em] min-h-[2em] text-[1em]">...</span>
+          <span v-else class="join-item btn btn-disabled h-[2em] min-h-[2em] kawaru-text-100">...</span>
         </template>
         <button
-          class="join-item btn hover:bg-secondary/80 bg-base-100 border-base-content/20 text-base-content/70 h-[2em] min-h-[2em] px-[1em] text-[1em]"
+          class="join-item btn hover:bg-secondary/80 bg-base-100 border-base-content/20 text-base-content/70 h-[2em] min-h-[2em] px-[1em] kawaru-text-100"
           :class="{ 'pointer-events-none opacity-50': currentPage === totalPages }"
           @click="$emit('next-page')"
         >
@@ -42,13 +42,13 @@
           type="number"
           min="1"
           :max="totalPages"
-          class="join-item input bg-base-100 border-base-content/20 h-[2em] min-h-[2em] w-[4em] text-center text-[1em] text-base-content"
+          class="join-item input bg-base-100 border-base-content/20 h-[2em] min-h-[2em] w-[4em] text-center kawaru-text-100 text-base-content"
           :placeholder="`${currentPage}`"
           @keydown.enter="handleJump"
         />
         <div class="join-item h-[2em] w-px bg-base-200/80"></div>
         <button
-          class="join-item btn hover:bg-primary h-[2em] min-h-[2em] px-[1em] text-[1em] text-base-content/70"
+          class="join-item btn hover:bg-primary h-[2em] min-h-[2em] px-[1em] kawaru-text-100 text-base-content/70"
           @click="handleJump"
         >
           Go

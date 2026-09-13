@@ -6,18 +6,18 @@
     class="bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6"
   >
     <div class="flex items-center justify-between gap-3 mb-4">
-      <h2 class="text-[1.25em] font-bold text-base-content flex items-center gap-2">
+      <h2 class="kawaru-text-125 font-bold text-base-content flex items-center gap-2">
         Step 2: Arrange Order
         <span
           v-if="selected.length"
-          class="badge badge-sm font-medium border border-base-300 bg-base-200 text-base-content/70"
+          class="badge badge-sm font-medium border border-base-300 bg-base-200 text-base-content/70 kawaru-text-75"
         >
           {{ selected.length }} {{ selected.length === 1 ? 'dataset' : 'datasets' }}
         </span>
       </h2>
       <button
         v-if="selected.length"
-        class="btn btn-ghost btn-sm text-[0.95em] text-error"
+        class="btn btn-ghost btn-sm kawaru-text-95 text-error"
         @click="emit('clear-all')"
       >
         <SvgIcon type="trash" class="w-[1em] h-[1em]" />
@@ -29,7 +29,7 @@
       v-if="selected.length"
       class="flex flex-col gap-1 border border-base-200 dark:border-slate-700 rounded-md p-2"
     >
-      <div
+      <div class="kawaru-text-87"
         v-for="(dataset, i) in selected"
         :key="dataset.id"
         :draggable="armed"
@@ -44,7 +44,7 @@
         @dragend="resetDrag"
       >
         <!-- 序号 -->
-        <span class="w-6 text-center tabular-nums text-base-content/50 text-[0.95em] shrink-0">
+        <span class="w-6 text-center tabular-nums text-base-content/50 kawaru-text-95 shrink-0">
           {{ i + 1 }}
         </span>
 
@@ -66,7 +66,7 @@
           <div class="font-medium truncate text-base-content" :title="dataset.name">
             {{ dataset.name }}
           </div>
-          <div class="text-[0.85em] text-base-content/60 truncate">
+          <div class="kawaru-text-87 text-base-content/60 truncate">
             {{ [dataset.organism, dataset.submitter].filter(Boolean).join(' · ') || '–' }}
           </div>
         </div>
@@ -74,7 +74,7 @@
         <!-- 上移/下移：触屏与键盘可用的排序通道，边界禁用 -->
         <div class="flex items-center gap-1 shrink-0">
           <button
-            class="btn btn-ghost btn-sm btn-square text-[1em]"
+            class="btn btn-ghost btn-sm btn-square kawaru-text-100"
             title="Move up"
             :disabled="i === 0"
             :aria-label="`Move ${dataset.name} up`"
@@ -83,7 +83,7 @@
             <SvgIcon type="chevron_up" class="w-[1em] h-[1em]" />
           </button>
           <button
-            class="btn btn-ghost btn-sm btn-square text-[1em]"
+            class="btn btn-ghost btn-sm btn-square kawaru-text-100"
             title="Move down"
             :disabled="i === selected.length - 1"
             :aria-label="`Move ${dataset.name} down`"
@@ -92,7 +92,7 @@
             <SvgIcon type="chevron_down" class="w-[1em] h-[1em]" />
           </button>
           <button
-            class="btn btn-ghost btn-sm btn-square text-[1em] text-error"
+            class="btn btn-ghost btn-sm btn-square kawaru-text-100 text-error"
             title="Remove from collection"
             :aria-label="`Remove ${dataset.name}`"
             @click="emit('remove', dataset.id)"

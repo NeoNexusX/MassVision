@@ -41,7 +41,7 @@ defineEmits<{
 
       <select
         v-model="filters.status"
-        class="select select-bordered rounded-lg bg-base-100 font-normal text-base w-full sm:w-36"
+        class="select select-bordered rounded-lg bg-base-100 font-normal kawaru-text-100 w-full sm:w-36"
       >
         <option value="">All Status</option>
         <option value="Active">Active</option>
@@ -53,7 +53,7 @@ defineEmits<{
         @keyup.enter="$emit('search')"
         type="text"
         placeholder="Institution..."
-        class="input input-bordered rounded-lg bg-base-100 font-normal text-base w-full sm:w-44 focus:outline-none focus:border-primary/50"
+        class="input input-bordered rounded-lg bg-base-100 font-normal kawaru-text-100 w-full sm:w-44 focus:outline-none focus:border-primary/50"
       />
 
       <input
@@ -61,21 +61,21 @@ defineEmits<{
         @keyup.enter="$emit('search')"
         type="text"
         placeholder="Region..."
-        class="input input-bordered rounded-lg bg-base-100 font-normal text-base w-full sm:w-36 focus:outline-none focus:border-primary/50"
+        class="input input-bordered rounded-lg bg-base-100 font-normal kawaru-text-100 w-full sm:w-36 focus:outline-none focus:border-primary/50"
       />
 
       <div class="flex-1"></div>
 
       <button
         @click="$emit('search')"
-        class="btn btn-primary rounded-lg font-medium shadow-sm flex-1 sm:flex-none"
+        class="btn btn-primary rounded-lg font-medium shadow-sm flex-1 sm:flex-none kawaru-text-87"
       >
         Search
       </button>
 
       <button
         @click="$emit('reset-filters')"
-        class="btn btn-outline border border-base-300 text-base-content/70 hover:bg-base-200 font-medium flex-1 sm:flex-none"
+        class="btn btn-outline border border-base-300 text-base-content/70 hover:bg-base-200 font-medium flex-1 sm:flex-none kawaru-text-87"
       >
         Reset Filters
       </button>
@@ -93,7 +93,7 @@ defineEmits<{
           <col style="width: 12%" />
         </colgroup>
         <thead>
-          <tr class="bg-base-200 text-base-content/60 border-b border-base-200 text-lg">
+          <tr class="bg-base-200 text-base-content/60 border-b border-base-200 kawaru-text-112">
             <th class="font-medium py-3 px-4 text-center">Username</th>
             <th class="font-medium py-3 px-4 text-center">Identity</th>
             <th class="font-medium py-3 px-4 text-center">Status</th>
@@ -104,7 +104,7 @@ defineEmits<{
         </thead>
         <tbody>
           <tr v-if="!loading && users.length === 0">
-            <td colspan="6" class="py-20 text-center text-base-content/40 text-lg">
+            <td colspan="6" class="py-20 text-center text-base-content/40 kawaru-text-112">
               <div class="flex flex-col items-center justify-center">
                 <SvgIcon type="duplicate" class="h-10 w-10 mb-3 opacity-30" />
                 <span>No users match your filters.</span>
@@ -129,12 +129,12 @@ defineEmits<{
             <tr
               v-for="user in users"
               :key="user.username"
-              class="hover:bg-base-200/40 group transition-colors duration-150 border-b border-base-200/50 last:border-0 text-lg"
+              class="hover:bg-base-200/40 group transition-colors duration-150 border-b border-base-200/50 last:border-0 kawaru-text-112"
             >
               <td class="font-medium text-base-content py-4 px-4 text-center">{{ user.username }}</td>
               <td class="px-4 text-center">
                 <span
-                  class="badge badge-sm uppercase text-[10px] font-medium border-0"
+                  class="badge badge-sm uppercase kawaru-text-62 font-medium border-0"
                   :class="
                     user.identity === 'admin'
                       ? 'bg-info/15 text-info'
@@ -145,14 +145,14 @@ defineEmits<{
                 </span>
               </td>
               <td class="px-4 text-center">
-                <StatusBadge :status="user.active ? 'active' : 'inactive'" />
+                <StatusBadge :status="user.active ? 'active' : 'inactive'" class="kawaru-text-100" />
               </td>
               <td class="text-base-content/80 px-4 text-center">{{ user.institution || '—' }}</td>
               <td class="text-base-content/80 px-4 text-center">{{ getRegionName(user.region) || '—' }}</td>
               <td class="px-4 text-center">
                 <button
                   @click="$emit('open-drawer', user)"
-                  class="btn btn-ghost border border-base-200/60 rounded-lg hover:bg-base-100 hover:border-base-300 bg-transparent text-base font-medium h-8 min-h-8
+                  class="btn btn-ghost border border-base-200/60 rounded-lg hover:bg-base-100 hover:border-base-300 bg-transparent kawaru-text-100 font-medium h-8 min-h-8
                     max-sm:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                 >
                   View

@@ -256,20 +256,20 @@ watch(
     :class="expanded ? 'h-full' : 'h-auto self-start'">
     <!-- Collapsible header bar -->
     <div
-      class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-200/60 select-none"
+      class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-200/60 select-none kawaru-text-87"
       @click.stop="toggle"
     >
       <SvgIcon
         :type="expanded ? 'chevron_down' : 'chevron_right'"
         class="text-base-content/60"
       />
-      <span class="font-semibold text-base-content whitespace-nowrap shrink-0 text-[1.2em]">
+      <span class="font-semibold text-base-content whitespace-nowrap shrink-0 kawaru-text-87">
          Comparison results
       </span>
-      <span class="text-[1.125em] text-base-content whitespace-nowrap shrink-0">
+      <span class="kawaru-text-81 text-base-content whitespace-nowrap shrink-0">
         {{ results.length }} ions
       </span>
-      <span v-if="filterStats.filtered > 0" class="text-[1.125em] text-base-content whitespace-nowrap overflow-hidden text-ellipsis min-w-0" :title="`(${filterStats.filtered} filtered from ${filterStats.total})`">
+      <span v-if="filterStats.filtered > 0" class="kawaru-text-81 text-base-content whitespace-nowrap overflow-hidden text-ellipsis min-w-0" :title="`(${filterStats.filtered} filtered from ${filterStats.total})`">
         ({{ filterStats.filtered }} filtered from {{ filterStats.total }})
       </span>
     </div>
@@ -284,7 +284,7 @@ watch(
           <span class="text-base-content">Filter</span>
           <select
             :value="categoryFilter"
-            class="select select-bordered select-sm text-[1em]"
+            class="select select-bordered select-sm kawaru-text-75"
             @change="onFilterChange"
           >
             <option v-for="opt in FILTER_OPTIONS" :key="opt.value" :value="opt.value">
@@ -299,9 +299,9 @@ watch(
 
         <!-- Pagination -->
         <div v-if="totalPages > 1" class="ml-auto flex items-center gap-1">
-          <button class="btn btn-sm btn-square btn-ghost" :disabled="page === 0" @click="prevPage"><SvgIcon type="chevron_left" /></button>
-          <span class="text-[1.125em] text-base-content font-mono">{{ page + 1 }}/{{ totalPages }}</span>
-          <button class="btn btn-sm btn-square btn-ghost" :disabled="page >= totalPages - 1" @click="nextPage"><SvgIcon type="chevron_right" /></button>
+          <button class="btn btn-sm btn-square btn-ghost kawaru-text-75" :disabled="page === 0" @click="prevPage"><SvgIcon type="chevron_left" /></button>
+          <span class="kawaru-text-81 text-base-content font-mono">{{ page + 1 }}/{{ totalPages }}</span>
+          <button class="btn btn-sm btn-square btn-ghost kawaru-text-75" :disabled="page >= totalPages - 1" @click="nextPage"><SvgIcon type="chevron_right" /></button>
         </div>
       </div>
 
@@ -310,7 +310,7 @@ watch(
         <table class="table table-sm text-center">
            <!-- Table  head part -->
           <thead class="sticky top-0 z-10 bg-base-200 text-base-content/70">
-            <tr class="text-[1.2em]">
+            <tr class="kawaru-text-87">
               <th :class="TH_SORT" @click="setSort('mz')">
                 <i>m/z</i><SvgIcon v-if="sortIcon('mz')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
@@ -340,7 +340,7 @@ watch(
               v-for="row in pagedResults"
               :key="row.ionIndex"
               :data-ion-index="row.ionIndex"
-              class="hover:bg-base-200/70 cursor-pointer text-[1.2em]"
+              class="hover:bg-base-200/70 cursor-pointer kawaru-text-87"
               :class="{ 'bg-primary/15': row.ionIndex === selectedMzIndex }"
               @click="emit('select-mz', row.ionIndex)"
             >
@@ -348,19 +348,19 @@ watch(
               <td :class="TD_NUM">{{ formatDet(row.detA) }}</td>
               <td :class="TD_NUM">{{ formatDet(row.detB) }}</td>
               <td :class="TD_NUM" :style="{ color: row.detRatio >= 1 ? (regionAColor ?? undefined) : (regionBColor ?? undefined) }">
-                <span v-if="orientedValue(row.detRatio) === Infinity" class="text-[1.2em] font-bold leading-none align-middle">∞</span>
+                <span v-if="orientedValue(row.detRatio) === Infinity" class="kawaru-text-112 font-bold leading-none align-middle">∞</span>
                 <template v-else>{{ formatRatio(orientedValue(row.detRatio)) }}</template>
-                <span class="ml-1 text-[0.75em] text-base-content/50">{{ orientedLabel(row.detRatio) }}</span>
+                <span class="ml-1 kawaru-text-68 text-base-content/50">{{ orientedLabel(row.detRatio) }}</span>
               </td>
               <td :class="TD_NUM">{{ formatMean(row.meanA) }}</td>
               <td :class="TD_NUM">{{ formatMean(row.meanB) }}</td>
               <td :class="TD_NUM" :style="{ color: row.ratio >= 1 ? (regionAColor ?? undefined) : (regionBColor ?? undefined) }">
-                <span v-if="orientedValue(row.ratio) === Infinity" class="text-[1.2em] font-bold leading-none align-middle">∞</span>
+                <span v-if="orientedValue(row.ratio) === Infinity" class="kawaru-text-112 font-bold leading-none align-middle">∞</span>
                 <template v-else>{{ formatRatio(orientedValue(row.ratio)) }}</template>
-                <span class="ml-1 text-[0.75em] text-base-content/50">{{ orientedLabel(row.ratio) }}</span>
+                <span class="ml-1 kawaru-text-68 text-base-content/50">{{ orientedLabel(row.ratio) }}</span>
               </td>
               <td class="text-center whitespace-nowrap">
-                <span class="badge badge-sm whitespace-nowrap text-[1em]" :class="CATEGORY_META[row.category].badge" :style="categoryStyle(row.category)">
+                <span class="badge badge-sm whitespace-nowrap kawaru-text-87" :class="CATEGORY_META[row.category].badge" :style="categoryStyle(row.category)">
                   {{ CATEGORY_META[row.category].label }}
                 </span>
               </td>

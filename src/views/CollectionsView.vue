@@ -1,12 +1,12 @@
 <template>
-  <!-- 页面外壳与 MyDatasets / PublicDatasets 完全一致：bg-base-200 + max-w-[1680px] + page-type -->
+  <!-- 页面外壳与 MyDatasets / PublicDatasets 完全一致：bg-base-200 + max-w-[1680px] + kawaru-text-100 -->
   <div class="min-h-screen bg-base-200">
-    <div class="max-w-[1680px] mx-auto p-4 md:p-8 page-type">
+    <div class="max-w-[1680px] mx-auto p-4 md:p-8 kawaru-text-100">
       <!-- 页头：标题/说明 + Create Collection。与 Public Datasets 等顶级页面同级，不带面包屑 -->
       <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6 px-3">
         <div class="min-w-0">
-          <h1 class="page-title font-bold text-base-content">Collections</h1>
-          <p class="page-subtitle text-base-content/70 mt-1">
+          <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content">Collections</h1>
+          <p class="kawaru-text-100 text-base-content/70 mt-1">
             Organize related datasets into curated collections.
           </p>
         </div>
@@ -14,20 +14,20 @@
         <div class="flex flex-wrap items-center gap-2 shrink-0">
           <router-link
             to="/datasets"
-            class="btn btn-outline border-base-300 text-[1em] h-[2.6em] min-h-[2.6em] px-[1.2em]"
+            class="btn btn-outline border-base-300 kawaru-text-100 h-[2.6em] min-h-[2.6em] px-[1.2em]"
           >
             <SvgIcon type="folder" class="w-[1em] h-[1em]" />
             Public Datasets
           </router-link>
           <router-link
             to="/mydatasets"
-            class="btn btn-outline border-base-300 text-[1em] h-[2.6em] min-h-[2.6em] px-[1.2em]"
+            class="btn btn-outline border-base-300 kawaru-text-100 h-[2.6em] min-h-[2.6em] px-[1.2em]"
           >
             <SvgIcon type="folder" class="w-[1em] h-[1em]" />
             My Datasets
           </router-link>
           <button
-            class="btn btn-primary text-[1em] h-[2.6em] min-h-[2.6em] px-[1.2em]"
+            class="btn btn-primary kawaru-text-100 h-[2.6em] min-h-[2.6em] px-[1.2em]"
             @click="openCreate"
           >
             <SvgIcon type="plus" class="w-[1em] h-[1em]" />

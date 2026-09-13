@@ -78,13 +78,13 @@ function onNoiseFloor(e: Event) {
   <div class="rounded-xl border-2 border-base-content/30 bg-base-100 overflow-hidden flex flex-col">
     <!-- Collapsible header bar: the whole strip is the toggle (side panel, collapsed state) -->
     <div
-      class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-200/60 select-none"
+      class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-200/60 select-none kawaru-text-87"
       @click.stop="toggle"
     >
       <!-- Expand / collapse chevron -->
       <SvgIcon :type="expanded ? 'chevron_down' : 'chevron_right'" class="text-base-content/60" />
       <!-- Title -->
-      <span class="text-[1.2em] font-semibold text-base-content">Compare regions</span>
+      <span class="kawaru-text-87 font-semibold text-base-content">Compare regions</span>
       <!-- Show a compact status when collapsed -->
       <span v-if="!expanded && comparing" class="ml-auto flex items-center gap-1 text-base-content/50">
         <span class="loading loading-spinner loading-xs"></span>
@@ -94,11 +94,11 @@ function onNoiseFloor(e: Event) {
 
     <!-- Expanded content (side panel, expanded state) -->
     <div v-if="expanded" class="px-3 pb-2.5 space-y-2">
-      <div v-if="!isComparisonAvailable" class="text-base-content/60 leading-relaxed text-[1.2em]">
+      <div v-if="!isComparisonAvailable" class="text-base-content/60 leading-relaxed kawaru-text-87">
         Region comparison is only available for centroid data
       </div>
       <!-- No regions hint -->
-      <div v-else-if="noRegions" class="text-base-content/50 leading-relaxed text-[1.2em]">
+      <div v-else-if="noRegions" class="text-base-content/50 leading-relaxed kawaru-text-87">
         Run KMeans or create ROIs first to compare regions.
       </div>
 
@@ -111,7 +111,7 @@ function onNoiseFloor(e: Event) {
             class="flex items-center gap-2"
           >
             <span
-              class="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[1.125em] text-white font-bold"
+              class="w-7 h-7 rounded-full shrink-0 flex items-center justify-center kawaru-text-81 text-white font-bold"
               :style="{ backgroundColor: side === 'a' ? colorACss : colorBCss }"
               >{{ side.toUpperCase() }}</span
             >
@@ -204,7 +204,7 @@ function onNoiseFloor(e: Event) {
         <div class="flex gap-2">
           <button
             v-if="!comparing"
-            class="btn btn-sm btn-primary flex-1 gap-1.5 text-[1em]"
+            class="btn btn-sm btn-primary flex-1 gap-1.5 kawaru-text-75"
             :disabled="!canCompare"
             @click="emit('compare')"
           >
@@ -213,7 +213,7 @@ function onNoiseFloor(e: Event) {
           </button>
           <button
             v-else
-            class="btn btn-sm btn-outline flex-1 gap-1.5 text-[1em]"
+            class="btn btn-sm btn-outline flex-1 gap-1.5 kawaru-text-75"
             @click="emit('cancel')"
           >
             <SvgIcon type="close" />

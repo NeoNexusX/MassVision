@@ -29,11 +29,11 @@ const { toasts, removeToast } = useToast()
       >
         <div class="flex items-center gap-3">
           <SvgIcon :type="toast.type" class="stroke-current shrink-0 w-6 h-6" />
-          <span class="text-sm font-medium">{{ toast.message }}</span>
+          <span class="kawaru-text-87 font-medium">{{ toast.message }}</span>
         </div>
         <button
           @click="removeToast(toast.id)"
-          class="btn btn-xs btn-ghost btn-circle opacity-50 hover:opacity-100"
+          class="btn btn-xs btn-ghost btn-circle opacity-50 hover:opacity-100 kawaru-text-68"
         >
           <SvgIcon type="close" class="h-4 w-4" />
         </button>

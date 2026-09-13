@@ -60,7 +60,7 @@ const vertical = computed(() =>
     class="heatmap-card card w-full border border-base-300 bg-base-100 shadow-sm"
     :class="{ 'heatmap-card--vertical': vertical }"
   >
-    <div class="card-body gap-[1em] p-[1.4em] text-[clamp(0.82rem,0.72rem+0.28vw,1.2rem)]">
+    <div class="card-body gap-[1em] p-[1.4em] kawaru-text-75">
       <!-- Header：有 repoUrl 时渲染成可点击的外链 <a>，否则退化为纯 <div> -->
       <component
         :is="repoUrl ? 'a' : 'div'"
@@ -72,7 +72,7 @@ const vertical = computed(() =>
       >
         <Icon icon="simple-icons:github" class="h-[1.35em] w-[1.35em] text-primary shrink-0" />
         <h3
-          class="truncate text-[1.2em] font-semibold text-base-content transition-colors"
+          class="truncate kawaru-text-95 font-semibold text-base-content transition-colors"
           :class="{ 'group-hover:text-primary': repoUrl }"
         >
           {{ displayTitle }}
@@ -90,14 +90,14 @@ const vertical = computed(() =>
         class="flex items-center justify-center gap-[0.5em] text-base-content/40 py-[2.2em]"
       >
         <span class="loading loading-spinner h-[1.35em] w-[1.35em]" />
-        <span class="text-[0.95em]">Loading…</span>
+        <span class="kawaru-text-75">Loading…</span>
       </div>
 
       <!-- Error -->
       <div
         v-else-if="error"
         role="alert"
-        class="alert alert-error text-[0.95em] gap-[0.5em] p-[0.9em]"
+        class="alert alert-error kawaru-text-75 gap-[0.5em] p-[0.9em]"
       >
         <Icon icon="heroicons:exclamation-triangle" class="h-[1.35em] w-[1.35em] shrink-0" />
         <span>{{ error }}</span>
@@ -142,7 +142,7 @@ const vertical = computed(() =>
               </div>
               <div class="heatmap-metric">
                 <span>Branch:</span>
-                <span class="badge badge-primary h-[1.7em] px-[0.7em] font-mono text-[1.1em]">
+                <span class="badge badge-primary h-[1.7em] px-[0.7em] font-mono kawaru-text-81">
                   {{ branch }}
                 </span>
               </div>
@@ -190,11 +190,11 @@ const vertical = computed(() =>
   display: none;
 }
 
-/* 横向模式：复用库原生底部图例，缩小字号并贴合卡片配色（只设外层，避免 em 嵌套叠乘）。 */
+/* 横向模式：复用库原生底部图例，缩小字号并贴合卡片配色。 */
 .heatmap-frame--horizontal :deep(.vch__container > .vch__legend) {
   margin-top: 0.4em;
   color: color-mix(in oklch, var(--color-base-content) 58%, transparent);
-  font-size: 0.72em;
+  font-size: calc(var(--kawaru-fs) * 0.5);
 }
 
 /* 网格在小屏会横向溢出滚动；把图例钉在滚动视口右侧，避免要滚到最右才看得到。 */
@@ -239,11 +239,12 @@ const vertical = computed(() =>
   overflow: visible;
 }
 
+/* summary / metric / strong 三级字号各自独立取档，改一处不影响另两处。 */
 .heatmap-summary {
   border-top: 1px solid var(--color-base-300);
   padding-top: 1em;
   color: color-mix(in oklch, var(--color-base-content) 62%, transparent);
-  font-size: 0.8em;
+  font-size: calc(var(--kawaru-fs) * 0.625);
 }
 
 .heatmap-metrics {
@@ -256,7 +257,7 @@ const vertical = computed(() =>
   display: flex;
   align-items: baseline;
   gap: 0.4em;
-  font-size: 1.1em;
+  font-size: calc(var(--kawaru-fs) * 0.6875);
   white-space: normal;
 }
 
@@ -267,7 +268,7 @@ const vertical = computed(() =>
 
 .heatmap-metric strong {
   color: var(--color-base-content);
-  font-size: 1.15em;
+  font-size: calc(var(--kawaru-fs) * 0.75);
   font-weight: 650;
 }
 

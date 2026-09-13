@@ -44,18 +44,18 @@ const statusBadge = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-base-200 p-4 md:p-8 font-sans page-type">
+  <div class="min-h-screen bg-base-200 p-4 md:p-8 font-sans kawaru-text-100">
     <div class="max-w-4xl mx-auto flex flex-col gap-6">
       <!-- 1. Top Navigation Area -->
       <div class="flex flex-col gap-2 mb-2">
         <button
           @click="goBack"
-          class="btn btn-ghost btn-md sm:btn-lg text-[1em] text-base-content/70 hover:bg-base-300 rounded-lg shrink-0 self-start"
+          class="btn btn-ghost btn-md sm:btn-lg kawaru-text-100 text-base-content/70 hover:bg-base-300 rounded-lg shrink-0 self-start"
         >
           <svg-icon type="back" class="w-4 h-4 mr-1" />
           Back to {{ source === 'public' ? 'Public Datasets' : 'My Datasets' }}
         </button>
-        <h1 class="page-title font-bold text-base-content tracking-tight">Dataset Overview</h1>
+        <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content tracking-tight">Dataset Overview</h1>
       </div>
 
       <!-- Skeleton Loading State -->
@@ -96,7 +96,7 @@ const statusBadge = computed(() => {
       <template v-else-if="!dataset">
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200 p-12 text-center">
           <svg-icon type="duplicate" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-          <h3 class="text-lg font-bold text-base-content">
+          <h3 class="kawaru-text-112 font-bold text-base-content">
             {{ isShareView && isStale ? 'Invalid share link' : isStale ? 'Session lost' : 'No data available' }}
           </h3>
           <p class="text-base-content/60 mt-1">
@@ -125,21 +125,21 @@ const statusBadge = computed(() => {
           </div>
 
           <div class="flex-1 w-full min-w-0 flex flex-col justify-center gap-2">
-            <h2 class="text-xl md:text-2xl font-bold text-base-content truncate" :title="dataset.filename">
+            <h2 class="kawaru-text-125 md:kawaru-text-150 font-bold text-base-content truncate" :title="dataset.filename">
               {{ dataset.filename }}
             </h2>
             <div class="flex flex-wrap items-center gap-2">
               <button
                 v-if="source === 'my' && !dataset.isPublic"
                 @click="openPublicConfirm"
-                class="btn btn-sm h-8 min-h-8 btn-outline btn-warning"
+                class="btn btn-sm h-8 min-h-8 btn-outline btn-warning kawaru-text-75"
               >
                 <svg-icon type="region" class="w-4 h-4" />
                 Make Public
               </button>
               <button
                 @click="downloadCurrent"
-                class="btn btn-sm h-8 min-h-8 btn-primary"
+                class="btn btn-sm h-8 min-h-8 btn-primary kawaru-text-75"
                 :disabled="isPacking(String(dataset?.id ?? ''))"
               >
                 <span v-if="isPacking(String(dataset?.id ?? ''))" class="loading loading-spinner loading-xs"></span>
@@ -149,7 +149,7 @@ const statusBadge = computed(() => {
               <button
                 v-if="dataset.isPublic"
                 @click="shareCurrent"
-                class="btn btn-sm h-8 min-h-8 border shadow-sm transition-shadow hover:shadow-md"
+                class="btn btn-sm h-8 min-h-8 border shadow-sm transition-shadow hover:shadow-md kawaru-text-75"
                 :class="
                   isShareCopied
                     ? 'border-success/30 bg-success/10 text-success hover:border-success/40 hover:bg-success/20'
@@ -160,7 +160,7 @@ const statusBadge = computed(() => {
                 {{ isShareCopied ? 'Link Copied' : 'Share' }}
               </button>
               <div
-                class="badge badge-soft h-8 min-h-8 shrink-0 inline-flex items-center justify-center border-0 px-3 py-0 font-medium"
+                class="badge badge-soft h-8 min-h-8 shrink-0 inline-flex items-center justify-center border-0 px-3 py-0 font-medium kawaru-text-87"
                 :class="statusBadge.class"
               >
                 {{ statusBadge.label }}
@@ -172,7 +172,7 @@ const statusBadge = computed(() => {
 
         <!-- 3. Biological & Sample Info -->
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
-          <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
+          <h3 class="kawaru-text-112 font-bold text-base-content mb-4 flex items-center gap-2">
             Biological &amp; Sample Info
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -193,7 +193,7 @@ const statusBadge = computed(() => {
 
         <!-- 5. MSI Analysis Settings -->
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
-          <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
+          <h3 class="kawaru-text-112 font-bold text-base-content mb-4 flex items-center gap-2">
             MSI Analysis Settings
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -225,7 +225,7 @@ const statusBadge = computed(() => {
 
         <!-- 6. File Information -->
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
-          <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
+          <h3 class="kawaru-text-112 font-bold text-base-content mb-4 flex items-center gap-2">
             File Information
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -235,12 +235,12 @@ const statusBadge = computed(() => {
             <InfoField label="Spectrum Mode">{{ dataset?.spectrumMode || '—' }}</InfoField>
             <InfoField label="Storage Mode">{{ dataset?.storageMode || '—' }}</InfoField>
             <div class="flex flex-col">
-              <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1"
+              <span class="kawaru-text-81 font-semibold tracking-wider text-base-content/40 mb-1"
                 >MD5 Hash</span
               >
               <div class="flex items-center gap-2">
                 <span
-                  class="text-base-content bg-base-200/50 px-2 py-1 rounded font-mono text-sm truncate max-w-[200px]"
+                  class="text-base-content bg-base-200/50 px-2 py-1 rounded font-mono kawaru-text-87 truncate max-w-[200px]"
                   >{{ dataset?.hashMd5 || '—' }}</span
                 >
                 <div
@@ -250,7 +250,7 @@ const statusBadge = computed(() => {
                 >
                   <button
                     @click="copyHash(dataset.hashMd5)"
-                    class="btn btn-sm btn-ghost btn-square rounded-md hover:bg-base-200 shrink-0"
+                    class="btn btn-sm btn-ghost btn-square rounded-md hover:bg-base-200 shrink-0 kawaru-text-75"
                   >
                     <svg-icon v-if="!isCopied" type="duplicate" class="w-4 h-4" />
                     <svg-icon v-else type="check" class="w-4 h-4 text-success" />

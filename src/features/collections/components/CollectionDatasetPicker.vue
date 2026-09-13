@@ -6,8 +6,8 @@
     class="bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6"
   >
     <div class="flex items-center justify-between gap-3 mb-4">
-      <h2 class="text-[1.25em] font-bold text-base-content">{{ title }}</h2>
-      <span class="badge badge-primary badge-sm gap-1 font-medium whitespace-nowrap">
+      <h2 class="kawaru-text-125 font-bold text-base-content">{{ title }}</h2>
+      <span class="badge badge-primary badge-sm gap-1 font-medium whitespace-nowrap kawaru-text-75">
         <SvgIcon type="check" class="w-[0.9em] h-[0.9em]" />
         {{ selectedCount }} selected
       </span>
@@ -59,18 +59,18 @@
               <div class="font-medium truncate text-base-content" :title="dataset.name">
                 {{ dataset.name }}
               </div>
-              <div class="text-[0.85em] text-base-content/60 truncate">
+              <div class="kawaru-text-87 text-base-content/60 truncate">
                 {{ [dataset.organism, dataset.submitter].filter(Boolean).join(' · ') || '–' }}
               </div>
             </div>
             <!-- 已是集合成员：禁选并标注 -->
             <span
               v-if="isExcluded(dataset.id)"
-              class="badge badge-sm border border-base-300 bg-base-200 text-base-content/60 whitespace-nowrap shrink-0"
+              class="badge badge-sm border border-base-300 bg-base-200 text-base-content/60 whitespace-nowrap shrink-0 kawaru-text-75"
             >
               Already in collection
             </span>
-            <div v-else class="text-[0.85em] text-base-content/60 whitespace-nowrap tabular-nums shrink-0">
+            <div v-else class="kawaru-text-87 text-base-content/60 whitespace-nowrap tabular-nums shrink-0">
               {{ formatBytes(dataset.sizeBytes) }}
             </div>
           </li>

@@ -235,7 +235,7 @@ function cancelEnable() {
     <!-- UMAP / KMeans: only available for continuous storage -->
     <div v-if="isContinuous" class="mt-2">
       <label
-        class="flex items-center justify-between mb-2 cursor-pointer select-none"
+        class="flex items-center justify-between mb-2 cursor-pointer select-none kawaru-text-87"
         :class="{ 'opacity-60 pointer-events-none': clusteringCreating }"
       >
         <span class="text-base-content">Enable UMAP / KMeans</span>
@@ -260,7 +260,7 @@ function cancelEnable() {
         <span class="loading loading-spinner loading-xs"></span>
         <span class="flex-1">UMAP is computing…</span>
         <button
-          class="btn btn-ghost btn-xs text-[0.875em]"
+          class="btn btn-ghost btn-xs kawaru-text-68"
           :disabled="clusteringRefreshing"
           @click="emit('refresh-clustering')"
         >
@@ -271,7 +271,7 @@ function cancelEnable() {
 
       <div class="flex gap-2">
         <button
-          class="btn btn-sm flex-1 text-[1.125em] rounded-lg transition-colors"
+          class="btn btn-sm flex-1 kawaru-text-81 rounded-lg transition-colors"
           :class="
             !computationEnabled || !clusteringReady
               ? 'bg-base-200 dark:bg-base-300 text-base-content/40 border-base-300 dark:border-base-400 cursor-not-allowed'
@@ -287,7 +287,7 @@ function cancelEnable() {
           UMAP
         </button>
         <button
-          class="btn btn-sm flex-1 text-[1.125em] rounded-lg transition-colors"
+          class="btn btn-sm flex-1 kawaru-text-81 rounded-lg transition-colors"
           :class="
             !computationEnabled || !clusteringReady
               ? 'bg-base-200 dark:bg-base-300 text-base-content/40 border-base-300 dark:border-base-400 cursor-not-allowed'
@@ -319,7 +319,7 @@ function cancelEnable() {
       <div v-if="overlayError" class="text-error mt-1.5 flex items-center gap-2">
         <span class="flex-1">UMAP/KMeans unavailable: {{ overlayError }}</span>
         <button
-          class="btn btn-ghost btn-sm text-error text-[1em]"
+          class="btn btn-ghost btn-sm text-error kawaru-text-75"
           @click="emit('retry-clustering')"
         >
           Retry
@@ -342,7 +342,7 @@ function cancelEnable() {
         @input="emit('update:umapAlpha', +($event.target as HTMLInputElement).value)"
       />
       <button
-        class="btn btn-sm btn-ghost gap-1 mt-1.5 w-full text-[1em]"
+        class="btn btn-sm btn-ghost gap-1 mt-1.5 w-full kawaru-text-75"
         title="Export UMAP image as PNG"
         @click="emit('export-umap')"
       >
@@ -369,7 +369,7 @@ function cancelEnable() {
         @input="emit('update:kmeansAlpha', +($event.target as HTMLInputElement).value)"
       />
       <button
-        class="btn btn-sm btn-ghost gap-1 mt-1.5 w-full text-[1em]"
+        class="btn btn-sm btn-ghost gap-1 mt-1.5 w-full kawaru-text-75"
         title="Export KMeans image as PNG"
         @click="emit('export-kmeans')"
       >
@@ -389,7 +389,7 @@ function cancelEnable() {
           <label
             v-for="c in kmeansClusters"
             :key="c.id"
-            class="flex items-center gap-1.5 py-1 cursor-pointer select-none"
+            class="flex items-center gap-1.5 py-1 cursor-pointer select-none kawaru-text-87"
           >
             <input
               type="checkbox"
@@ -409,16 +409,16 @@ function cancelEnable() {
         </div>
         <div class="flex gap-1 mt-2">
           <button
-            class="btn btn-ghost btn-sm text-[1em]"
+            class="btn btn-ghost btn-sm kawaru-text-75"
             title="Re-run with a different k"
             @click="openKmeansDialog"
           >
             Re-run
           </button>
-          <button class="btn btn-ghost btn-sm text-[1em]" @click="emit('kmeans-select-all')">
+          <button class="btn btn-ghost btn-sm kawaru-text-75" @click="emit('kmeans-select-all')">
             All
           </button>
-          <button class="btn btn-ghost btn-sm text-[1em]" @click="emit('kmeans-clear-all')">
+          <button class="btn btn-ghost btn-sm kawaru-text-75" @click="emit('kmeans-clear-all')">
             Clear
           </button>
         </div>
@@ -448,17 +448,23 @@ function cancelEnable() {
   </CollapsibleSection>
 
   <CollapsibleSection title="Export" class="mt-5">
-    <MaskExportPanel
-      :rois="confirmedRois"
-      :kmeans-clusters="kmeansClusters"
-      :kmeans-labels-available="kmeansLabelsAvailable"
-      :kmeans-k="kmeansK"
-      :selected-kmeans-ids="selectedKmeansIds"
-      @export-masks="(payload) => emit('export-masks', payload)"
-      @toggle-kmeans-cluster="emit('toggle-kmeans-cluster', $event)"
-      @kmeans-select-all="emit('kmeans-select-all')"
-      @kmeans-clear-all="emit('kmeans-clear-all')"
-    />
+    <!-- One group per export kind; today only the ROI/cluster mask export -->
+    <div>
+      <div class="kawaru-text-81 font-semibold text-base-content mb-2 tracking-wide">
+        ROI region export
+      </div>
+      <MaskExportPanel
+        :rois="confirmedRois"
+        :kmeans-clusters="kmeansClusters"
+        :kmeans-labels-available="kmeansLabelsAvailable"
+        :kmeans-k="kmeansK"
+        :selected-kmeans-ids="selectedKmeansIds"
+        @export-masks="(payload) => emit('export-masks', payload)"
+        @toggle-kmeans-cluster="emit('toggle-kmeans-cluster', $event)"
+        @kmeans-select-all="emit('kmeans-select-all')"
+        @kmeans-clear-all="emit('kmeans-clear-all')"
+      />
+    </div>
   </CollapsibleSection>
 
   <!-- Opt-in confirmation: first-time enable starts a backend clustering task -->
@@ -487,7 +493,7 @@ function cancelEnable() {
         type="number"
         :min="K_MIN"
         :max="K_MAX"
-        class="input input-sm input-bordered w-20 text-[1em]"
+        class="input input-sm input-bordered w-20 kawaru-text-75"
       />
     </div>
     <p class="text-base-content/60 mt-2">

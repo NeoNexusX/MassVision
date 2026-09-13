@@ -5,24 +5,24 @@
       <!-- Percentage text input -->
       <div class="flex flex-col flex-1">
         <label class="label py-1">
-          <span class="label-text text-base">Percentage (%)</span>
+          <span class="label-text kawaru-text-100">Percentage (%)</span>
         </label>
         <input
           v-model="percentageStr"
           type="text"
           inputmode="decimal"
-          class="input input-bordered w-full text-base"
+          class="input input-bordered w-full kawaru-text-100"
           :class="{ 'input-error': percentageError }"
           placeholder="e.g. 50"
           @keyup.enter="addSolvent"
         />
-        <span v-if="percentageError" class="text-xs text-error mt-0.5">{{ percentageError }}</span>
+        <span v-if="percentageError" class="kawaru-text-75 text-error mt-0.5">{{ percentageError }}</span>
       </div>
 
       <!-- Solvent select -->
       <div class="flex flex-col flex-[2]">
         <div class="label py-1 invisible" aria-hidden="true">
-          <span class="label-text text-base">&nbsp;</span>
+          <span class="label-text kawaru-text-100">&nbsp;</span>
         </div>
         <SelectWithOther
           v-model="selectedSolvent"
@@ -36,10 +36,10 @@
       <!-- Add button -->
       <div class="flex flex-col shrink-0">
         <div class="label py-1 invisible" aria-hidden="true">
-          <span class="label-text text-base">&nbsp;</span>
+          <span class="label-text kawaru-text-100">&nbsp;</span>
         </div>
         <button
-          class="btn btn-primary btn-square"
+          class="btn btn-primary btn-square kawaru-text-87"
           @click="addSolvent"
           :disabled="!canAdd"
           title="Add solvent"
@@ -50,7 +50,7 @@
     </div>
 
     <!-- Error -->
-    <span v-if="error" class="text-sm text-error">{{ error }}</span>
+    <span v-if="error" class="kawaru-text-87 text-error">{{ error }}</span>
 
     <!-- Solvent list -->
     <div v-if="solventEntries.length > 0" class="flex flex-col gap-1">
@@ -59,9 +59,9 @@
         :key="index"
         class="flex items-center justify-between bg-base-200 rounded-lg px-3 py-1.5"
       >
-        <span class="text-sm">{{ entry }}</span>
+        <span class="kawaru-text-87">{{ entry }}</span>
         <button
-          class="btn btn-ghost btn-xs text-error"
+          class="btn btn-ghost btn-xs text-error kawaru-text-68"
           @click="removeSolvent(index)"
           title="Remove"
         >
@@ -72,7 +72,7 @@
 
     <!-- Clear all -->
     <div v-if="solventEntries.length > 0" class="flex justify-end">
-      <button class="btn btn-ghost btn-sm text-error" @click="clearAll">
+      <button class="btn btn-ghost btn-sm text-error kawaru-text-75" @click="clearAll">
         Clear All
       </button>
     </div>

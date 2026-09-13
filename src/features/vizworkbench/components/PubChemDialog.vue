@@ -99,12 +99,12 @@ async function copyText(text: string) {
       <!-- Header -->
       <div class="flex items-start justify-between gap-2 mb-3">
         <div class="min-w-0">
-          <h3 class="text-[1.25em] font-bold flex items-center gap-2">
+          <h3 class="kawaru-text-95 font-bold flex items-center gap-2">
             <SvgIcon type="search" class="w-6 h-6 text-primary" />
             PubChem Lookup
           </h3>
         </div>
-        <button class="btn btn-ghost btn-sm btn-square" @click="emit('close')">
+        <button class="btn btn-ghost btn-sm btn-square kawaru-text-75" @click="emit('close')">
           <SvgIcon type="close" class="w-6 h-6" />
         </button>
       </div>
@@ -112,13 +112,13 @@ async function copyText(text: string) {
       <!-- Loading -->
       <div v-if="loading" class="py-12 flex flex-col items-center gap-3">
         <span class="loading loading-spinner loading-lg text-primary"></span>
-        <p class="text-[1.125em] text-base-content/60">Searching PubChem...</p>
+        <p class="kawaru-text-81 text-base-content/60">Searching PubChem...</p>
       </div>
 
       <!-- Error / no results -->
       <div v-else-if="error" class="py-8 text-center">
         <SvgIcon type="warning" class="w-10 h-10 text-warning mx-auto mb-2" />
-        <p class="text-[1.125em] text-base-content/70">{{ error }}</p>
+        <p class="kawaru-text-81 text-base-content/70">{{ error }}</p>
       </div>
 
       <!-- Result -->
@@ -134,7 +134,7 @@ async function copyText(text: string) {
               class="w-full h-full object-contain"
               @error="imageError = true"
             />
-            <div v-else class="text-[1.25em] text-base-content/40 text-center px-2">
+            <div v-else class="kawaru-text-95 text-base-content/40 text-center px-2">
               Structure image unavailable
             </div>
           </div>
@@ -143,16 +143,16 @@ async function copyText(text: string) {
           <div class="flex-1 min-w-0 space-y-3">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <p class="text-[1.125em] text-base-content/60">Name</p>
-                <p class="font-semibold text-[1.25em] text-base-content break-words">{{ result.title || '-' }}</p>
+                <p class="kawaru-text-81 text-base-content/60">Name</p>
+                <p class="font-semibold kawaru-text-95 text-base-content break-words">{{ result.title || '-' }}</p>
               </div>
               <div class="shrink-0 flex items-center gap-2 pt-0.5">
-                <span class="badge badge-primary text-[1em]">CID {{ result.cid }}</span>
+                <span class="badge badge-primary kawaru-text-75">CID {{ result.cid }}</span>
                 <a
                   :href="result.pubchemUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="btn btn-ghost btn-sm gap-1 text-primary text-[1em]"
+                  class="btn btn-ghost btn-sm gap-1 text-primary kawaru-text-75"
                 >
                   <SvgIcon type="share" />
                   PubChem
@@ -160,16 +160,16 @@ async function copyText(text: string) {
               </div>
             </div>
             <div>
-              <p class="text-[1.125em] text-base-content/60">Molecular Formula</p>
-              <p class="font-mono text-[1.25em] break-words">{{ result.molecularFormula || '-' }}</p>
+              <p class="kawaru-text-81 text-base-content/60">Molecular Formula</p>
+              <p class="font-mono kawaru-text-95 break-words">{{ result.molecularFormula || '-' }}</p>
             </div>
             <div>
-              <p class="text-[1.25em] text-base-content/60">Molecular Weight</p>
-              <p class="font-mono text-[1.25em]">{{ result.molecularWeight ? result.molecularWeight.toFixed(2) : '-' }}</p>
+              <p class="kawaru-text-95 text-base-content/60">Molecular Weight</p>
+              <p class="font-mono kawaru-text-95">{{ result.molecularWeight ? result.molecularWeight.toFixed(2) : '-' }}</p>
             </div>
             <div>
-              <p class="text-[1.25em] text-base-content/60">Query</p>
-              <p class="font-mono font-semibold text-[1.25em] text-base-content break-words">{{ query }}</p>
+              <p class="kawaru-text-95 text-base-content/60">Query</p>
+              <p class="font-mono font-semibold kawaru-text-95 text-base-content break-words">{{ query }}</p>
             </div>
           </div>
         </div>
@@ -179,12 +179,12 @@ async function copyText(text: string) {
           <table class="table table-sm">
             <tbody>
               <tr>
-                <td class="font-medium text-[1.125em] text-base-content/70 w-32 align-top">IUPAC Name</td>
-                <td class="text-[1.125em] break-words">{{ result.iupacName || '-' }}</td>
+                <td class="font-medium kawaru-text-81 text-base-content/70 w-32 align-top">IUPAC Name</td>
+                <td class="kawaru-text-81 break-words">{{ result.iupacName || '-' }}</td>
                 <td class="text-right">
                   <button
                     v-if="result.iupacName"
-                    class="btn btn-ghost btn-xs btn-square"
+                    class="btn btn-ghost btn-xs btn-square kawaru-text-68"
                     title="Copy"
                     @click="copyText(result.iupacName)"
                   >
@@ -193,12 +193,12 @@ async function copyText(text: string) {
                 </td>
               </tr>
               <tr>
-                <td class="font-medium text-[1.125em] text-base-content/70 align-top">SMILES</td>
-                <td class="text-[1.125em] break-all select-text">{{ result.smiles || '-' }}</td>
+                <td class="font-medium kawaru-text-81 text-base-content/70 align-top">SMILES</td>
+                <td class="kawaru-text-81 break-all select-text">{{ result.smiles || '-' }}</td>
                 <td class="text-right">
                   <button
                     v-if="result.smiles"
-                    class="btn btn-ghost btn-xs btn-square"
+                    class="btn btn-ghost btn-xs btn-square kawaru-text-68"
                     title="Copy"
                     @click="copyText(result.smiles)"
                   >
@@ -207,12 +207,12 @@ async function copyText(text: string) {
                 </td>
               </tr>
               <tr>
-                <td class="font-medium text-[1.125em] text-base-content/70 align-top">InChIKey</td>
-                <td class="text-[1.125em] break-all select-text">{{ result.inchiKey || '-' }}</td>
+                <td class="font-medium kawaru-text-81 text-base-content/70 align-top">InChIKey</td>
+                <td class="kawaru-text-81 break-all select-text">{{ result.inchiKey || '-' }}</td>
                 <td class="text-right">
                   <button
                     v-if="result.inchiKey"
-                    class="btn btn-ghost btn-xs btn-square"
+                    class="btn btn-ghost btn-xs btn-square kawaru-text-68"
                     title="Copy"
                     @click="copyText(result.inchiKey)"
                   >
@@ -221,12 +221,12 @@ async function copyText(text: string) {
                 </td>
               </tr>
               <tr>
-                <td class="font-medium text-[1.125em] text-base-content/70 align-top">InChI</td>
-                <td class="text-[1.125em] break-all select-text">{{ result.inchi || '-' }}</td>
+                <td class="font-medium kawaru-text-81 text-base-content/70 align-top">InChI</td>
+                <td class="kawaru-text-81 break-all select-text">{{ result.inchi || '-' }}</td>
                 <td class="text-right">
                   <button
                     v-if="result.inchi"
-                    class="btn btn-ghost btn-xs btn-square"
+                    class="btn btn-ghost btn-xs btn-square kawaru-text-68"
                     title="Copy"
                     @click="copyText(result.inchi)"
                   >
@@ -246,7 +246,7 @@ async function copyText(text: string) {
 
       <!-- Footer -->
       <div class="modal-action">
-        <button class="btn btn-sm text-[1em]" @click="emit('close')">Close</button>
+        <button class="btn btn-sm kawaru-text-75" @click="emit('close')">Close</button>
       </div>
     </div>
     <form method="dialog" class="modal-backdrop" @click="emit('close')">

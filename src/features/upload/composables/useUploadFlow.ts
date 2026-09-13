@@ -12,7 +12,7 @@ import {
   type ImzmlFilePair,
   type UnifiedUploadProgress,
 } from '@/features/upload/services/imzmlUploadService'
-import type { PartRetryInfo } from '@/features/upload/utils/imzmlHelper'
+import type { PartRetryInfo, ImzmlMilestone } from '@/features/upload/utils/imzmlHelper'
 import { useUploadMetadataForm } from '@/features/upload/composables/useUploadMetadataForm'
 import { useUploadResume } from '@/features/upload/composables/useUploadResume'
 import { isAbortLike, makeAbortReason } from '@/features/upload/utils/uploadAbort'
@@ -47,8 +47,16 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   const retryInfo = ref<PartRetryInfo | null>(null) // 分片重试中，非致命
   const stage = ref<UploadStage>('select')
   const parsingMetadata = ref(false)
-  const speed = ref('')
+  const speed = ref('') // 端到端
   const eta = ref('')
+  // 端到端速度的两个拆解项，只在上传阶段有值
+  const compressSpeed = ref('')
+  const uploadSpeed = ref('')
+  const bottleneck = ref<'upload' | 'compress' | null>(null)
+  /** imzML 段完成的一次性结算，触发后常驻到本轮上传结束 */
+  const imzmlMilestone = ref<ImzmlMilestone | null>(null)
+  const doneSourceBytes = ref(0)
+  const totalSourceBytes = ref(0)
   const pickerResetKey = ref(0)
   /** 已发出中止、正在等在途分片收尾。见 abortUpload 的注释 */
   const aborting = ref(false)
@@ -91,21 +99,47 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     uploadMessage.value = progressInfo.message || `Stage: ${progressInfo.stage}`
     speed.value = progressInfo.speedStr || ''
     eta.value = progressInfo.etaStr || ''
+    compressSpeed.value = progressInfo.compressSpeedStr || ''
+    uploadSpeed.value = progressInfo.uploadSpeedStr || ''
+    bottleneck.value = progressInfo.bottleneck ?? null
+    // 里程碑是一次性事件但要常驻：不带这个字段的阶段（syncing/completed）
+    // 不该把它抹掉，所以只在拿到非空值时覆盖
+    if (progressInfo.imzmlMilestone) imzmlMilestone.value = progressInfo.imzmlMilestone
+    doneSourceBytes.value = progressInfo.doneSourceBytes ?? 0
+    totalSourceBytes.value = progressInfo.totalSourceBytes ?? 0
     // undefined 表示这条消息不携带重试状态，保持现状；只有显式的 null 才清除告警。
     // 重试期间压缩进度照常流动，若无差别覆盖会把刚亮起的告警立刻抹掉。
     if (progressInfo.retry !== undefined) retryInfo.value = progressInfo.retry
   }
 
-  const resetAll = () => {
-    selectedPair.value = null
-    uploading.value = false
+  /**
+   * 清空所有进度读数。`resetAll` 和每轮上传开始时都要调。
+   *
+   * 漏掉任何一项都会把上一轮的数字带进下一轮 —— `imzmlMilestone` 尤其明显：
+   * 它是刻意常驻的（handleProgress 只在拿到非空值时才覆盖），而上传失败后
+   * 模态框并不关闭，所以不在开传时清掉的话，上一轮的「✓ imzML transferred」
+   * 会一直挂到新一轮自己的里程碑触发为止。
+   */
+  const clearProgress = () => {
     progress.value = 0
+    uploadMessage.value = ''
     speed.value = ''
     eta.value = ''
-    uploadMessage.value = ''
+    compressSpeed.value = ''
+    uploadSpeed.value = ''
+    bottleneck.value = null
+    imzmlMilestone.value = null
+    doneSourceBytes.value = 0
+    totalSourceBytes.value = 0
+    retryInfo.value = null
+  }
+
+  const resetAll = () => {
+    clearProgress()
+    selectedPair.value = null
+    uploading.value = false
     pickerError.value = ''
     uploadError.value = ''
-    retryInfo.value = null
     aborting.value = false
     stage.value = 'select'
     abortController = null
@@ -151,12 +185,11 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   }
 
   const startUploading = (message: string) => {
+    clearProgress()
     uploading.value = true
     stage.value = 'uploading'
-    progress.value = 0
     uploadMessage.value = message
     uploadError.value = ''
-    retryInfo.value = null
     aborting.value = false
     abortController = new AbortController()
   }
@@ -314,6 +347,12 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     parsingMetadata,
     speed,
     eta,
+    compressSpeed,
+    uploadSpeed,
+    bottleneck,
+    imzmlMilestone,
+    doneSourceBytes,
+    totalSourceBytes,
     pickerResetKey,
     formattedSize,
     resumeReady,

@@ -1,5 +1,5 @@
 <template>
-  <div class="text-[1.125em]">
+  <div class="kawaru-text-81">
     <!-- Format -->
     <div class="flex items-center gap-2 mb-2">
       <span class="text-base-content">Format</span>
@@ -7,7 +7,7 @@
         <button
           v-for="f in FORMATS"
           :key="f.value"
-          class="btn btn-xs join-item text-[1em]"
+          class="btn btn-xs join-item kawaru-text-81"
           :class="format === f.value ? 'btn-primary' : 'btn-ghost'"
           @click="format = f.value"
         >
@@ -32,7 +32,7 @@
           <label
             v-for="roi in rois"
             :key="roi.id"
-            class="flex items-center gap-1.5 py-0.5 cursor-pointer select-none"
+            class="flex items-center gap-1.5 py-0.5 cursor-pointer select-none kawaru-text-87"
           >
             <input
               type="checkbox"
@@ -61,7 +61,7 @@
           <label
             v-for="c in kmeansClusters"
             :key="c.id"
-            class="flex items-center gap-1.5 py-0.5 cursor-pointer select-none"
+            class="flex items-center gap-1.5 py-0.5 cursor-pointer select-none kawaru-text-87"
           >
             <input
               type="checkbox"
@@ -84,7 +84,7 @@
       <!-- Actions -->
       <div class="flex items-center gap-1">
         <button
-          class="btn btn-sm btn-primary flex-1 text-[1em]"
+          class="btn btn-sm btn-primary flex-1 kawaru-text-81"
           :disabled="selectedCount === 0"
           title="Downloads one mask file"
           @click="onExport"
@@ -92,8 +92,8 @@
           <SvgIcon type="download" />
           Export mask
         </button>
-        <button class="btn btn-ghost btn-sm text-[1em]" @click="selectAll">All</button>
-        <button class="btn btn-ghost btn-sm text-[1em]" @click="clearAll">Clear</button>
+        <button class="btn btn-ghost btn-sm kawaru-text-81" @click="selectAll">All</button>
+        <button class="btn btn-ghost btn-sm kawaru-text-81" @click="clearAll">Clear</button>
       </div>
     </template>
   </div>

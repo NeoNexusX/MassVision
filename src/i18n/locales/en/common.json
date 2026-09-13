@@ -1,0 +1,23 @@
+{
+  "common": {
+    "language": {
+      "switch": "Switch language"
+    },
+    "action": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "delete": "Delete",
+      "edit": "Edit",
+      "search": "Search",
+      "reset": "Reset",
+      "close": "Close",
+      "retry": "Retry"
+    },
+    "state": {
+      "loading": "Loading…",
+      "empty": "No data",
+      "error": "Something went wrong"
+    }
+  }
+}

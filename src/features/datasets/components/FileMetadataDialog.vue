@@ -5,9 +5,9 @@
        差量提交只发变化的键；枚举字段空值（后端不接受的 ''）不发送。
        保存成功后把返回的 FilePublic 交回父级。 -->
   <dialog class="modal" :class="{ 'modal-open': open }">
-    <div class="modal-box w-11/12 max-w-2xl page-type">
-      <h3 class="text-[1.15em] font-bold text-base-content mb-1">Edit Metadata</h3>
-      <p class="text-[0.8em] text-base-content/50 mb-4 truncate" :title="dataset?.filename">
+    <div class="modal-box w-11/12 max-w-2xl kawaru-text-100">
+      <h3 class="kawaru-text-112 font-bold text-base-content mb-1">Edit Metadata</h3>
+      <p class="kawaru-text-81 text-base-content/50 mb-4 truncate" :title="dataset?.filename">
         {{ dataset?.filename }}
       </p>
 
@@ -22,7 +22,7 @@
             :key="field.key"
             class="flex flex-col gap-1 min-w-0"
           >
-            <span class="text-[0.8em] font-medium text-base-content/70">{{ field.label }}</span>
+            <span class="kawaru-text-81 font-medium text-base-content/70">{{ field.label }}</span>
             <SelectWithOther
               v-model="draft![field.key]"
               :options="field.suggestions"
@@ -34,14 +34,14 @@
           <!-- 溶剂：与上传页同款复合控件（"N% 名称" 逗号分隔，可增删条目）。
                整行占满：百分比输入 + 溶剂下拉 + 条目列表在窄栏里会挤成一团。 -->
           <div class="flex flex-col gap-1 min-w-0 col-span-full">
-            <span class="text-[0.8em] font-medium text-base-content/70">Solvent</span>
+            <span class="kawaru-text-81 font-medium text-base-content/70">Solvent</span>
             <SolventPicker v-model="draft!.solvent" :solvent-options="SOLVENTS" />
           </div>
 
           <!-- 枚举：IconSelect 下拉。placeholder="" 让 IconSelect 不渲染占位项，
                下拉里只有真实取值；未设置的字段显示为空（选中态 = 不修改该字段） -->
           <label class="flex flex-col gap-1 min-w-0">
-            <span class="text-[0.8em] font-medium text-base-content/70">Spectrum Mode</span>
+            <span class="kawaru-text-81 font-medium text-base-content/70">Spectrum Mode</span>
             <IconSelect
               v-model="draft!.spectrum_mode"
               :options="SPECTRUM_MODES"
@@ -50,7 +50,7 @@
             />
           </label>
           <label class="flex flex-col gap-1 min-w-0">
-            <span class="text-[0.8em] font-medium text-base-content/70">Storage Mode</span>
+            <span class="kawaru-text-81 font-medium text-base-content/70">Storage Mode</span>
             <IconSelect
               v-model="draft!.storage_mode"
               :options="STORAGE_MODES"
@@ -62,8 +62,8 @@
       </div>
 
       <div class="modal-action">
-        <button class="btn text-[1em]" :disabled="saving" @click="close">Cancel</button>
-        <button class="btn btn-primary text-[1em]" :disabled="saving || !dirty" @click="save">
+        <button class="btn kawaru-text-100" :disabled="saving" @click="close">Cancel</button>
+        <button class="btn btn-primary kawaru-text-100" :disabled="saving || !dirty" @click="save">
           <span v-if="saving" class="loading loading-spinner loading-sm"></span>
           Save Changes
         </button>

@@ -1,10 +1,11 @@
 <template>
   <!-- relative z-40：让下拉菜单盖过页面内容自建的 stacking context（仍低于 drawer/fab 的 9998/9999）。
-       字号体系与 Hero 一致：根节点定一个流体基准字号，内部一律用 em 相对尺寸，
-       调这里的 clamp 即可整体缩放 navbar（按钮用 [--size:…em] + text-[1em] 跟随基准，
-       因为 daisyui 的 .btn 自带固定 font-size，会切断 em 继承链）。 -->
+
+       字号一律挂档位，逐处独立。daisyUI 的 .btn / .menu-title 自带固定 font-size，
+       所以每处都要显式覆盖。尺寸（[--size:…em]、w-[16em]）继续用 em，
+       读所在元素字号，换档时自动跟着缩放。 -->
   <div
-    class="navbar relative z-40 bg-base-100 shadow-sm px-2 md:px-6 text-[clamp(1rem,0.92rem+0.4vw,1.25rem)]"
+    class="navbar relative z-40 bg-base-100 shadow-sm px-2 md:px-6 kawaru-text-100"
   >
     <!-- start: 品牌 + 移动端汉堡菜单（小屏合并展示全部分组与用户菜单） -->
     <div class="navbar-start">
@@ -12,21 +13,21 @@
         <div
           tabindex="0"
           role="button"
-          class="btn btn-ghost lg:hidden text-[1em] [--size:2.6em]"
+          class="btn btn-ghost lg:hidden kawaru-text-100 [--size:2.6em]"
           aria-label="Open menu"
         >
           <SvgIcon type="bars3" class="w-[1.4em] h-[1.4em]" />
         </div>
         <ul
           tabindex="0"
-          class="menu dropdown-content bg-base-100 rounded-box z-[1] mt-5 w-[16em] p-2 shadow-lg text-[0.95em]"
+          class="menu dropdown-content bg-base-100 rounded-box z-[1] mt-5 w-[16em] p-2 shadow-lg kawaru-text-95"
         >
           <!-- 只放导航分组：Profile / Sign in 等入口由右侧头像下拉承担，这里不重复。
                分段大标题比内容字号大一档；独立链接（如 Documentation）按同级大标题样式渲染 -->
           <template v-for="(item, i) in items" :key="item.label">
             <template v-if="item.kind === 'group'">
               <li
-                class="menu-title text-[1.05em] font-semibold text-base-content/80"
+                class="menu-title kawaru-text-100 font-semibold text-base-content/80"
                 :class="i > 0 ? 'mt-3' : ''"
               >
                 {{ item.label }}
@@ -57,14 +58,14 @@
                 :href="item.to"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="rounded-lg text-[1.05em] font-semibold transition-colors"
+                class="rounded-lg kawaru-text-100 font-semibold transition-colors"
                 @click="closeDropdown"
                 >{{ item.label }}</a
               >
               <router-link
                 v-else
                 :to="item.to"
-                class="rounded-lg text-[1.05em] font-semibold transition-colors"
+                class="rounded-lg kawaru-text-100 font-semibold transition-colors"
                 active-class="!bg-primary/10 !text-primary"
                 @click="closeDropdown"
                 >{{ item.label }}</router-link
@@ -74,8 +75,10 @@
         </ul>
       </div>
 
-      <!-- 品牌名必须包在单个 span 里：.btn 是带 gap 的 flex 容器，裸文本节点会被拆成多个 flex item 出现空隙 -->
-      <router-link to="/" class="btn btn-ghost h-auto min-h-0 px-2 py-[0.2em] text-[1.4em]">
+      <!-- 品牌名必须包在单个 span 里：.btn 是带 gap 的 flex 容器，裸文本节点会被拆成多个 flex item 出现空隙。
+           X 保留 text-[1.2em]：这是字标内部「X 比其余字母大 1.2 倍」的排版比例，
+           父级已是绝对档位，所以整条链确定（1.5 × 1.2 = 基准的 1.8 倍），不是叠乘隐患。 -->
+      <router-link to="/" class="btn btn-ghost h-auto min-h-0 px-2 py-[0.2em] kawaru-text-150">
         <span class="font-medium leading-none">
           {{ namePre
           }}<span
@@ -89,7 +92,7 @@
 
     <!-- center: 大屏水平菜单（details/summary 原生下拉；数据全部来自 config.json 的 navbar 块） -->
     <div class="navbar-center hidden lg:flex">
-      <ul class="menu menu-horizontal gap-[0.25em] px-1 text-[1em]">
+      <ul class="menu menu-horizontal gap-[0.25em] px-1 kawaru-text-100">
         <li v-for="item in items" :key="item.label">
           <details v-if="item.kind === 'group'">
             <summary
@@ -97,7 +100,7 @@
             >
               {{ item.label }}
             </summary>
-            <ul class="z-[1] mt-2 w-[13em] whitespace-nowrap rounded-box bg-base-100 p-2 shadow-lg text-[0.9em]">
+            <ul class="z-[1] mt-2 w-[13em] whitespace-nowrap rounded-box bg-base-100 p-2 shadow-lg kawaru-text-87">
               <li v-for="child in item.children" :key="child.to">
                 <a
                   v-if="child.external"
@@ -142,7 +145,7 @@
     <div class="navbar-end gap-[0.4em]">
       <button
         v-if="navbar.themeToggle !== false"
-        class="btn btn-ghost btn-circle text-[1em] [--size:2.6em]"
+        class="btn btn-ghost btn-circle kawaru-text-100 [--size:2.6em]"
         aria-label="Toggle theme"
         @click="toggleTheme"
       >
@@ -156,19 +159,19 @@
           <div
             tabindex="0"
             role="button"
-            class="btn btn-ghost btn-circle avatar avatar-placeholder text-[1em] [--size:2.6em]"
+            class="btn btn-ghost btn-circle avatar avatar-placeholder kawaru-text-100 [--size:2.6em]"
           >
             <div
               class="w-[2.2em] rounded-full bg-gradient-to-br from-[var(--brand-accent)] to-primary text-primary-content"
             >
-              <span class="text-[0.9em] font-medium">{{ initials }}</span>
+              <span class="kawaru-text-87 font-medium">{{ initials }}</span>
             </div>
           </div>
           <ul
             tabindex="0"
-            class="menu dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-[14em] p-2 shadow-lg text-[0.95em]"
+            class="menu dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-[14em] p-2 shadow-lg kawaru-text-95"
           >
-            <li class="menu-title text-[0.8em]">{{ user?.username }}</li>
+            <li class="menu-title kawaru-text-75">{{ user?.username }}</li>
             <template v-for="item in userItems" :key="item.label">
               <li v-if="item.kind === 'link'">
                 <router-link :to="item.to" class="rounded-lg transition-colors" @click="closeDropdown">
@@ -188,7 +191,7 @@
           <div
             tabindex="0"
             role="button"
-            class="btn btn-ghost btn-circle avatar avatar-placeholder tooltip tooltip-bottom text-[1em] [--size:2.6em]"
+            class="btn btn-ghost btn-circle avatar avatar-placeholder tooltip tooltip-bottom kawaru-text-100 [--size:2.6em]"
             :data-tip="guestHint"
             :aria-label="guestHint"
           >
@@ -198,9 +201,9 @@
           </div>
           <ul
             tabindex="0"
-            class="menu dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-[14em] p-2 shadow-lg text-[0.95em]"
+            class="menu dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-[14em] p-2 shadow-lg kawaru-text-95"
           >
-            <li class="menu-title text-[0.8em]">Not signed in</li>
+            <li class="menu-title kawaru-text-75">Not signed in</li>
             <li v-for="link in guestLinks" :key="link.to">
               <router-link
                 :to="link.to"

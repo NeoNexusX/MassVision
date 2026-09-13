@@ -86,8 +86,8 @@ const handleUploadSuccess = (_datasetName: string) => {
 
 <template>
   <div class="min-h-screen bg-base-200">
-    <div class="max-w-[1680px] mx-auto p-4 md:p-8 page-type">
-      <h1 class="page-title font-bold text-base-content mb-6">Public Datasets</h1>
+    <div class="max-w-[1680px] mx-auto p-4 md:p-8 kawaru-text-100">
+      <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mb-6">Public Datasets</h1>
 
       <DatasetFilterBar
         :show-add-filter="true"

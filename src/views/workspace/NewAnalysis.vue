@@ -48,16 +48,16 @@ const {
 </script>
 
 <template>
-  <div class="p-4 sm:p-6 max-w-screen-2xl mx-auto page-type">
+  <div class="p-4 sm:p-6 max-w-screen-2xl mx-auto kawaru-text-100">
     <div class="flex flex-col sm:flex-row items-start justify-between mb-6 gap-4">
       <div>
-        <h1 class="page-title font-semibold">Create New Analysis</h1>
-        <p class="page-subtitle text-base-content/60 mt-1">
+        <h1 class="kawaru-text-page-title leading-[1.15] font-semibold">Create New Analysis</h1>
+        <p class="kawaru-text-100 text-base-content/60 mt-1">
           Configure preprocessing pipeline for MSI datasets
         </p>
       </div>
       <button
-        class="btn btn-primary shrink-0 w-full sm:w-auto"
+        class="btn btn-primary shrink-0 w-full sm:w-auto kawaru-text-87"
         @click="goToUploadDataset"
         title="Go to My Datasets to upload a new dataset"
       >

@@ -28,11 +28,11 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
   >
     <div class="min-h-[72px] mb-4">
       <h2
-        class="page-title font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
+        class="kawaru-text-page-title leading-[1.15] font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
       >
       Create Account
      </h2>
-      <p class="page-subtitle text-base-content/70 mt-5 mb-5">Join {{ getAppName() }} for scientific data analysis</p>
+      <p class="kawaru-text-100 text-base-content/70 mt-5 mb-5">Join {{ getAppName() }} for scientific data analysis</p>
     </div>
 
     <div class="flex flex-col gap-5">
@@ -86,7 +86,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
             :class="progressBarClass"
             max="5"
           ></progress>
-          <div class="flex justify-between text-xs mb-2 opacity-70">
+          <div class="flex justify-between kawaru-text-75 mb-2 opacity-70">
             <span>Strength</span>
             <span>{{ strengthLabel }}</span>
           </div>
@@ -126,7 +126,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
             <button
               type="button"
               @click="sendVerificationCode"
-              class="btn btn-neutral w-full sm:w-auto sm:min-w-[100px]"
+              class="btn btn-neutral w-full sm:w-auto sm:min-w-[100px] kawaru-text-87"
               :disabled="isCountdownActive || loading.sendCode || isExhausted"
               :class="{ 'opacity-50 cursor-not-allowed': isExhausted }"
               :title="isExhausted ? 'Too many requests for now' : ''"
@@ -141,7 +141,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
       </div>
     </div>
 
-    <div class="mt-auto pt-6 flex items-center justify-center text-sm">
+    <div class="mt-auto pt-6 flex items-center justify-center kawaru-text-87">
       <span class="opacity-70">Already have an account?</span>
       <router-link
         to="/login"

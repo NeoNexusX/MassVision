@@ -1,18 +1,20 @@
 <template>
   <dialog class="modal" :class="{ 'modal-open': open }">
+    <!-- 12 个调用方，有的外壳设了字号有的没有，弹窗还可能脱离文档流，
+         所以三处字号全部显式挂档位、不靠继承。 -->
     <div class="modal-box">
-      <h3 class="text-lg font-bold flex items-center gap-2">
+      <h3 class="kawaru-text-112 font-bold flex items-center gap-2">
         <slot name="icon" />
         {{ title }}
       </h3>
-      <p class="py-4">
+      <p class="py-4 kawaru-text-100">
         <slot>{{ message }}</slot>
       </p>
       <div class="modal-action">
-        <button v-if="!hideCancel" class="btn" @click="$emit('cancel')" :disabled="loading">Cancel</button>
+        <button v-if="!hideCancel" class="btn kawaru-text-87" @click="$emit('cancel')" :disabled="loading">Cancel</button>
         <button
           v-if="!hideConfirm"
-          :class="['btn', danger ? 'btn-error text-white' : 'btn-primary']"
+          :class="['btn kawaru-text-87', danger ? 'btn-error text-white' : 'btn-primary']"
           @click="$emit('confirm')"
           :disabled="loading"
         >

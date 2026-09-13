@@ -22,7 +22,7 @@ const emit = defineEmits<{
 <template>
   <div v-if="isOpen" class="modal modal-open" @click.self="emit('close')">
     <div class="modal-box max-w-md" @click.stop>
-      <h3 class="font-bold text-lg">Change Email</h3>
+      <h3 class="font-bold kawaru-text-112">Change Email</h3>
       <p class="py-2">Enter new email and the verification code sent to it.</p>
 
       <div class="form-control">
@@ -32,7 +32,7 @@ const emit = defineEmits<{
           :value="newEmail"
           @input="emit('update:newEmail', ($event.target as HTMLInputElement).value)"
           placeholder="you@example.com"
-          class="input input-bordered w-full"
+          class="input input-bordered w-full kawaru-text-87"
         />
       </div>
 
@@ -44,10 +44,10 @@ const emit = defineEmits<{
             :value="emailCode"
             @input="emit('update:emailCode', ($event.target as HTMLInputElement).value)"
             placeholder="123456"
-            class="input input-bordered flex-1"
+            class="input input-bordered flex-1 kawaru-text-87"
           />
           <button
-            class="btn btn-outline btn-neutral border-base-300 shadow-none"
+            class="btn btn-outline btn-neutral border-base-300 shadow-none kawaru-text-87"
             :disabled="sendingCode || isCooldownActive || isExhausted"
             :title="isExhausted ? 'Maximum attempts reached for this session' : ''"
             @click="emit('send-code')"
@@ -60,8 +60,8 @@ const emit = defineEmits<{
       </div>
 
       <div class="modal-action">
-        <button class="btn" type="button" @click="emit('close')">Cancel</button>
-        <button class="btn btn-primary" type="button" @click="emit('confirm')" :disabled="loading">
+        <button class="btn kawaru-text-87" type="button" @click="emit('close')">Cancel</button>
+        <button class="btn btn-primary kawaru-text-87" type="button" @click="emit('confirm')" :disabled="loading">
           Confirm
         </button>
       </div>

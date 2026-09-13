@@ -400,7 +400,7 @@ watch(
       title="Expand annotation panel"
       @click="expand"
     >
-      <span class="text-[1.2em] font-semibold">Annotations</span>
+      <span class="kawaru-text-87 font-semibold">Annotations</span>
       <SvgIcon type="chevron_down" />
     </button>
 
@@ -412,7 +412,7 @@ watch(
       @click="expand"
     >
       <SvgIcon type="chevron_right" />
-      <span class="[writing-mode:vertical-rl] text-[1.1em] font-medium tracking-wide">
+      <span class="[writing-mode:vertical-rl] kawaru-text-81 font-medium tracking-wide">
         Annotations
       </span>
     </div>
@@ -429,15 +429,15 @@ watch(
       <!-- Header -->
       <div class="flex items-center justify-between gap-2 shrink-0">
         <div class="min-w-0">
-          <h3 class="text-[1.125em] font-semibold text-base-content leading-tight">Annotations</h3>
-          <p v-if="fileName" class="text-[0.875em] text-base-content/50 truncate" :title="fileName">
+          <h3 class="kawaru-text-81 font-semibold text-base-content leading-tight">Annotations</h3>
+          <p v-if="fileName" class="kawaru-text-68 text-base-content/50 truncate" :title="fileName">
             {{ fileName }}
           </p>
         </div>
         <div class="flex items-center gap-1 shrink-0">
           <button
             v-if="hasData"
-            class="btn btn-ghost btn-xs btn-square"
+            class="btn btn-ghost btn-xs btn-square kawaru-text-68"
             :class="{ 'btn-disabled opacity-40': !counts.matched }"
             title="Export matched annotations (name, target m/z, matched m/z, mass difference) as CSV"
             :disabled="!counts.matched"
@@ -447,13 +447,13 @@ watch(
           </button>
           <button
             v-if="hasData"
-            class="btn btn-ghost btn-xs btn-square"
+            class="btn btn-ghost btn-xs btn-square kawaru-text-68"
             title="Clear imported annotations"
             @click="clear"
           >
             <SvgIcon type="trash" />
           </button>
-          <button class="btn btn-ghost btn-xs btn-square" title="Collapse" @click="collapse">
+          <button class="btn btn-ghost btn-xs btn-square kawaru-text-68" title="Collapse" @click="collapse">
             <SvgIcon type="chevron_right" class="rotate-180" />
           </button>
         </div>
@@ -470,7 +470,7 @@ watch(
         />
         <!-- Import button -->
         <button
-          class="btn btn-sm btn-primary w-full gap-2 text-[1em]"
+          class="btn btn-sm btn-primary w-full gap-2 kawaru-text-75"
           :disabled="isImporting"
           @click="fileInput?.click()"
         >
@@ -498,15 +498,15 @@ watch(
 
         <!-- Tolerance controls -->
         <div class="flex items-center gap-2">
-          <span class="shrink-0 text-[1em]">Tolerance</span>
+          <span class="shrink-0 kawaru-text-75">Tolerance</span>
           <input
             v-model.number="tolValue"
             type="number"
             min="0"
             :step="tolStep"
-            class="input input-bordered input-sm w-24 text-[1em]"
+            class="input input-bordered input-sm w-24 kawaru-text-75"
           />
-          <select v-model="tolMode" class="select select-bordered select-sm ml-auto text-[1em]">
+          <select v-model="tolMode" class="select select-bordered select-sm ml-auto kawaru-text-75">
             <option value="ppm">ppm</option>
             <option value="Da">Da</option>
           </select>
@@ -514,10 +514,10 @@ watch(
 
         <!-- Sort by -->
         <div class="flex items-center gap-2">
-          <span class="shrink-0 text-[1em]">Sort by</span>
+          <span class="shrink-0 kawaru-text-75">Sort by</span>
           <select
             :value="sortKey"
-            class="select select-bordered select-sm flex-1 text-[1em]"
+            class="select select-bordered select-sm flex-1 kawaru-text-75"
             @change="onSortKeyChange"
           >
             <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">
@@ -525,7 +525,7 @@ watch(
             </option>
           </select>
           <button
-            class="btn btn-outline btn-sm btn-square"
+            class="btn btn-outline btn-sm btn-square kawaru-text-75"
             :title="
               sortDir === 'asc'
                 ? 'Ascending (click for descending)'
@@ -551,21 +551,21 @@ watch(
       <!-- Counts + filter chips -->
       <div v-if="hasData" class="flex items-center justify-center gap-1.5 flex-wrap shrink-0">
         <button
-          class="badge badge-sm text-[0.875em] cursor-pointer transition-colors"
+          class="badge badge-sm kawaru-text-68 cursor-pointer transition-colors"
           :class="filter === 'all' ? 'badge-primary' : 'badge-ghost'"
           @click="filter = 'all'"
         >
           All {{ counts.total }}
         </button>
         <button
-          class="badge badge-sm text-[0.875em] cursor-pointer transition-colors"
+          class="badge badge-sm kawaru-text-68 cursor-pointer transition-colors"
           :class="filter === 'matched' ? 'badge-success badge-outline' : 'badge-ghost'"
           @click="filter = 'matched'"
         >
           Matched {{ counts.matched }}
         </button>
         <button
-          class="badge badge-sm text-[0.875em] cursor-pointer transition-colors"
+          class="badge badge-sm kawaru-text-68 cursor-pointer transition-colors"
           :class="filter === 'unmatched' ? 'badge-warning badge-outline' : 'badge-ghost'"
           @click="filter = 'unmatched'"
         >
@@ -579,16 +579,16 @@ watch(
       <!-- Adduct + formula dropdown filters (one row); coarse-filter note below -->
       <div v-if="hasData" class="shrink-0 space-y-1">
         <div class="grid grid-cols-2 gap-2">
-          <label class="flex flex-col gap-0.5 text-[1em] min-w-0">
+          <label class="flex flex-col gap-0.5 kawaru-text-75 min-w-0">
             <span class="text-base-content/60">Adduct</span>
-            <select v-model="filterAdduct" class="select select-bordered select-sm w-full text-[1em]">
+            <select v-model="filterAdduct" class="select select-bordered select-sm w-full kawaru-text-75">
               <option value="">All</option>
               <option v-for="opt in adductOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>
           </label>
-          <label class="flex flex-col gap-0.5 text-[1em] min-w-0">
+          <label class="flex flex-col gap-0.5 kawaru-text-75 min-w-0">
             <span class="text-base-content/60">Formula</span>
-            <select v-model="filterFormula" class="select select-bordered select-sm w-full text-[1em]">
+            <select v-model="filterFormula" class="select select-bordered select-sm w-full kawaru-text-75">
               <option value="">All</option>
               <option v-for="opt in formulaOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>
@@ -597,7 +597,7 @@ watch(
         <!-- 匹配后粗筛掉的（极性 / m/z 范围），放到下拉筛选下方 -->
         <span
           v-if="coarseFiltered > 0"
-          class="text-[0.875em] text-base-content/50"
+          class="kawaru-text-68 text-base-content/50"
           title="Rows dropped before matching because their adduct/formula implies the opposite polarity, or their m/z lies outside the spectrum's range"
         >
           {{ coarseFiltered }} filtered by polarity / <i>m/z</i> range
@@ -614,7 +614,7 @@ watch(
           class="inline-block size-9 animate-spin rounded-full border-4 border-current border-t-transparent text-primary will-change-transform"
           aria-hidden="true"
         ></span>
-        <p class="text-[0.875em] text-base-content/50">Parsing and matching annotations…</p>
+        <p class="kawaru-text-68 text-base-content/50">Parsing and matching annotations…</p>
       </div>
 
       <!-- Table: only Annotation + Exp. m/z (details on hover card).
@@ -661,12 +661,12 @@ watch(
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
-                <div class="font-medium text-[1.25em] text-base-content truncate">{{ row.name }}</div>
+                <div class="font-medium kawaru-text-95 text-base-content truncate">{{ row.name }}</div>
                 <!-- min-h-4 keeps one line box even when all three spans are
                      v-if'd out: the virtual scroll assumes a uniform row
                      height, and an empty subtitle would make this row ~20px
                      shorter than the measured rowH. -->
-                <div class="min-h-4 text-[1.125em] text-base-content/50 truncate">
+                <div class="min-h-4 kawaru-text-81 text-base-content/50 truncate">
                   <span v-if="row.formulaIon" class="font-mono">{{ row.formulaIon }}</span>
                   <span v-if="row.ionType" class="text-base-content/40">&nbsp;{{ row.ionType }}</span>
                   <span v-if="row.candidates.length > 1" class="text-primary/50">
@@ -675,7 +675,7 @@ watch(
                 </div>
               </td>
               <td
-                class="text-right font-mono whitespace-nowrap text-[1.25em]"
+                class="text-right font-mono whitespace-nowrap kawaru-text-95"
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
@@ -690,7 +690,7 @@ watch(
             </tr>
           </tbody>
         </table>
-        <div v-if="!filteredRows.length" class="p-4 text-center text-[0.875em] text-base-content/50">
+        <div v-if="!filteredRows.length" class="p-4 text-center kawaru-text-68 text-base-content/50">
           <!-- counts.total === 0 means the coarse polarity / m/z-range
                pre-filter discarded the whole file at import, not the user's
                filter/search - say so instead of blaming the wrong control. -->
@@ -710,7 +710,7 @@ watch(
         <p class="text-base-content/60">
           Import an annotation CSV to match against the average spectrum.
         </p>
-        <p class="text-[0.875em] text-base-content/40">
+        <p class="kawaru-text-68 text-base-content/40">
           Columns: <span class="font-mono">Exp. m/z</span>,
           <span class="font-mono">Candidate_1..5</span>, <span class="font-mono">formula_ion</span>,
           <span class="font-mono">Ion type</span>
@@ -725,7 +725,7 @@ watch(
                rounded-lg border-2 border-dashed border-primary bg-primary/15"
       >
         <SvgIcon type="upload" class="w-8 h-8 text-primary" />
-        <p class="text-[1.125em] font-medium text-primary">Drop CSV to import annotations</p>
+        <p class="kawaru-text-81 font-medium text-primary">Drop CSV to import annotations</p>
       </div>
     </div>
   </aside>
@@ -734,7 +734,7 @@ watch(
        Fixed so not clipped by table overflow; placed to the right of the panel. -->
   <div
     v-if="tooltipRow"
-    class="fixed z-[60] overflow-auto rounded-lg border border-base-300 bg-base-100 shadow-xl p-3 select-text text-[1em]"
+    class="fixed z-[60] overflow-auto rounded-lg border border-base-300 bg-base-100 shadow-xl p-3 select-text kawaru-text-75"
     :style="{
       left: tooltipX + 'px',
       top: tooltipY + 'px',
@@ -767,7 +767,7 @@ watch(
         {{ tooltipRow.formulaIon }}
       </div>
       <button
-        class="btn btn-sm btn-outline btn-primary gap-1 w-full justify-center mt-1.5 text-[1em]"
+        class="btn btn-sm btn-outline btn-primary gap-1 w-full justify-center mt-1.5 kawaru-text-75"
         title="Search PubChem"
         @click.stop="searchPubChem(tooltipRow.name)"
       >
@@ -824,9 +824,9 @@ watch(
           :key="i"
           class="text-base-content flex items-center justify-between gap-1"
         >
-          <span class="truncate select-text">{{ c }}</span>
+          <span class="truncate select-text kawaru-text-87">{{ c }}</span>
           <button
-            class="btn btn-ghost btn-xs shrink-0 btn-square text-base-content/40 hover:text-primary hover:bg-primary/10"
+            class="btn btn-ghost btn-xs shrink-0 btn-square text-base-content/40 hover:text-primary hover:bg-primary/10 kawaru-text-68"
             title="Search PubChem"
             @click.stop="searchPubChem(c)"
           >

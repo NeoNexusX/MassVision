@@ -20,8 +20,9 @@ const activeItem = computed(() => props.items[active.value] ?? { word: '', image
 </script>
 
 <template>
-  <!-- 基准字号随屏宽变化（与右侧 timeline 同一套 clamp）；内部字号全用 em 从此派生，整块等比缩放 -->
-  <div class="w-full text-[clamp(0.8rem,1.1vw,2rem)]" @mouseleave="active = 0">
+  <!-- kawaru-text-home-gallery 在这里只当「缩放单位」：给悬停词
+       text-[min(20.5cqw,2.5em)] 当 em 参照，那处要跟容器宽度(cqw)走。 -->
+  <div class="w-full kawaru-text-home-gallery" @mouseleave="active = 0">
     <!-- 上部：画廊 -->
     <div class="relative w-full">
         <!-- 图片栈：第一张在文档流撑高，其余绝对定位叠加 -->
@@ -67,10 +68,10 @@ const activeItem = computed(() => props.items[active.value] ?? { word: '', image
       <Transition name="card-fade" mode="out-in">
         <div :key="active">
           <h3
-            class="brand-text break-words bg-gradient-to-br from-primary to-[var(--brand-accent)] text-[3em] font-black leading-[1.1] tracking-[-0.02em]"
+            class="brand-text break-words bg-gradient-to-br from-primary to-[var(--brand-accent)] kawaru-text-240 font-black leading-[1.1] tracking-[-0.02em]"
           >{{ activeItem.word }}</h3>
-          <p v-if="activeItem.title" class="mt-4 text-[1.5em] font-semibold text-base-content">{{ activeItem.title }}</p>
-          <p v-if="activeItem.desc" class="mt-4 text-justify text-[1.3em] leading-[1.5] text-base-content/60">{{ activeItem.desc }}</p>
+          <p v-if="activeItem.title" class="mt-4 kawaru-text-112 font-semibold text-base-content">{{ activeItem.title }}</p>
+          <p v-if="activeItem.desc" class="mt-4 text-justify kawaru-text-95 leading-[1.5] text-base-content/60">{{ activeItem.desc }}</p>
         </div>
       </Transition>
     </div>

@@ -1,8 +1,8 @@
 <template>
-  <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto scrollbar-thin overflow-x-hidden pr-4 lg:pr-[1em]">
+  <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto scrollbar-thin overflow-x-hidden pr-4 lg:pr-[1em] kawaru-text-87">
     <!-- ─── Info ─── -->
     <CollapsibleSection title="Info">
-      <div class="space-y-1.5 text-[1.1em] text-base-content">
+      <div class="space-y-1.5 kawaru-text-81 text-base-content">
         <div v-for="row in infoRows" :key="row.label" class="flex justify-between">
           <span>{{ row.label }}</span>
           <span class="font-mono text-base-content">{{ row.value }}</span>
@@ -13,35 +13,35 @@
     <!-- ─── Display Range ─── -->
     <CollapsibleSection title="Display range" class="mt-5">
       <!-- The two fixed columns keep their width on the wrapper, which sits at the
-           section's base font size: an em width on the same element as text-[1.125em]
+           section's base font size: an em width on the same element as kawaru-text-81
            would resolve against that larger size instead (1.75em -> 1.97em). -->
       <div class="space-y-2">
         <div class="flex items-center gap-2">
           <div class="w-[2em] text-right">
-            <span class="text-[1.125em] text-base-content">Max</span>
+            <span class="kawaru-text-81 text-base-content">Max</span>
           </div>
           <input
             type="text"
-            class="input input-sm input-bordered flex-1 text-[1.125em] font-mono"
+            class="input input-sm input-bordered flex-1 kawaru-text-81 font-mono"
             :value="formatValue(localMax)"
             @change="onMaxInput($event)"
           />
           <div class="w-[4em] text-right">
-            <span class="text-[1.125em] text-base-content font-bold">{{ pctLabel(displayMax) }}</span>
+            <span class="kawaru-text-81 text-base-content font-bold">{{ pctLabel(displayMax) }}</span>
           </div>
         </div>
         <div class="flex items-center gap-2">
           <div class="w-[2em] text-right">
-            <span class="text-[1.125em] text-base-content">Min</span>
+            <span class="kawaru-text-81 text-base-content">Min</span>
           </div>
           <input
             type="text"
-            class="input input-sm input-bordered flex-1 text-[1.125em] font-mono"
+            class="input input-sm input-bordered flex-1 kawaru-text-81 font-mono"
             :value="formatValue(localMin)"
             @change="onMinInput($event)"
           />
           <div class="w-[4em] text-right">
-            <span class="text-[1.125em] text-base-content font-bold">{{ pctLabel(displayMin) }}</span>
+            <span class="kawaru-text-81 text-base-content font-bold">{{ pctLabel(displayMin) }}</span>
           </div>
         </div>
       </div>
@@ -61,7 +61,7 @@
             :style="{ left: markerLeft(displayMax) + '%' }"
           />
         </div>
-        <div class="space-y-1.5 text-[1.2em] text-base-content">
+        <div class="space-y-1.5 kawaru-text-87 text-base-content">
           <div v-for="row in statisticRows" :key="row.label" class="flex justify-between">
             <span>{{ row.label }}</span>
             <span class="font-mono text-base-content">{{ row.value }}</span>
@@ -77,7 +77,7 @@
           v-for="m in methods"
           :key="m"
           :title="m"
-          class="text-[1em] text-base-content flex items-center gap-1.5 min-w-0"
+          class="kawaru-text-75 text-base-content flex items-center gap-1.5 min-w-0"
         >
           <span class="shrink-0 w-[0.25em] h-[0.25em] rounded-full bg-blue-400"></span>
           <span class="truncate">{{ m }}</span>

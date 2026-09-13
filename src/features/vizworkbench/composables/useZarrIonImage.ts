@@ -24,6 +24,7 @@ import { ZarrOssStore } from '@/services/zarr/zarrOssStore'
 import type { MetadataAttrs, DataMode } from '@/services/zarr/types/zarr'
 import { ZARR_STORE } from '@/shared/config/defaults'
 import { getConfig } from '@/shared/config'
+import { formatNumber } from '@/shared/utils/format'
 
 // ---- Module-level shared state ----
 
@@ -404,7 +405,7 @@ export function useZarrIonImage() {
   const ionCols = computed(() => ionDims.value?.width ?? 0)
   const ionRows = computed(() => ionDims.value?.height ?? 0)
   const totalPeaks = computed(() =>
-    mzAxisRef.value ? mzAxisRef.value.length.toLocaleString() : '--',
+    mzAxisRef.value ? formatNumber(mzAxisRef.value.length) : '--',
   )
 
   const isContinuous = computed(() => dataModeRef.value === 'continuous')

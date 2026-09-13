@@ -11,7 +11,7 @@ const hm = getContent().githubHeatmap
   <BaseScene id="stats" class="bg-base-200">
     <!-- Section 标题 -->
     <h2
-      class="mt-6 mb-2 bg-gradient-to-br from-primary via-primary/70 to-primary/30 bg-clip-text text-transparent font-bold text-[clamp(1.8rem,1rem+4vw,3.5rem)] leading-tight"
+      class="mt-6 mb-2 bg-gradient-to-br from-primary via-primary/70 to-primary/30 bg-clip-text text-transparent font-bold kawaru-text-home-scene leading-tight"
     >
       Stats
     </h2>

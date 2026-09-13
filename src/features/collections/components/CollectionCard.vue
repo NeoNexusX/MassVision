@@ -55,7 +55,7 @@
         <template v-if="slideCount > 1">
           <button
             type="button"
-            class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800"
+            class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800 kawaru-text-68"
             aria-label="Previous dataset"
             @click.stop="goPrev"
           >
@@ -63,14 +63,14 @@
           </button>
           <button
             type="button"
-            class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800"
+            class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800 kawaru-text-68"
             aria-label="Next dataset"
             @click.stop="goNext"
           >
             <SvgIcon type="chevron_right" class="w-[1em] h-[1em]" />
           </button>
           <span
-            class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-[0.7em] font-medium bg-base-100/85 dark:bg-slate-800/85 text-base-content/70 border border-base-300"
+            class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded kawaru-text-68 font-medium bg-base-100/85 dark:bg-slate-800/85 text-base-content/70 border border-base-300"
           >
             {{ scrollIndex + 1 }}/{{ slideCount }}
           </span>
@@ -88,7 +88,7 @@
           <SvgIcon type="circle_stack" class="w-4.5 h-4.5" />
         </div>
         <h3
-          class="flex-1 min-w-0 truncate font-bold text-[1.1em] leading-snug text-base-content"
+          class="flex-1 min-w-0 truncate font-bold kawaru-text-112 leading-snug text-base-content"
           :title="collection.name"
         >
           {{ collection.name }}
@@ -99,19 +99,19 @@
         <!-- 左列：Title / DOI / Access / Journal（无值统一显示 —，卡片高度对齐） -->
         <div class="flex flex-col gap-2.5 min-w-0">
           <div class="min-w-0">
-            <div class="text-[0.78em] font-medium text-base-content/45">Title</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">Title</div>
             <p
               v-if="collection.title"
-              class="mt-1 text-[0.95em] font-medium text-base-content/85 leading-snug line-clamp-2"
+              class="mt-1 kawaru-text-95 font-medium text-base-content/85 leading-snug line-clamp-2"
               :title="collection.title"
             >
               {{ collection.title }}
             </p>
-            <p v-else class="mt-1 text-[0.95em] text-base-content/40">—</p>
+            <p v-else class="mt-1 kawaru-text-95 text-base-content/40">—</p>
           </div>
 
           <div class="min-w-0">
-            <div class="text-[0.78em] font-medium text-base-content/45">DOI</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">DOI</div>
             <div v-if="collection.doi.length" class="mt-1 flex flex-col gap-0.5">
               <a
                 v-for="doi in collection.doi"
@@ -119,7 +119,7 @@
                 :href="doiHref(doi)"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center gap-1.5 min-w-0 text-[0.9em] text-primary hover:underline"
+                class="flex items-center gap-1.5 min-w-0 kawaru-text-87 text-primary hover:underline"
                 :title="doi"
                 @click.stop
               >
@@ -127,12 +127,12 @@
                 <span class="truncate">{{ doi }}</span>
               </a>
             </div>
-            <p v-else class="mt-1 text-[0.95em] text-base-content/40">—</p>
+            <p v-else class="mt-1 kawaru-text-95 text-base-content/40">—</p>
           </div>
 
           <!-- 后端 access 字段原样透传，可能是 URL 也可能是标签文本 -->
           <div class="min-w-0">
-            <div class="text-[0.78em] font-medium text-base-content/45">Access</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">Access</div>
             <div v-if="collection.access.length" class="mt-1 flex flex-col gap-0.5">
               <a
                 v-for="entry in collection.access"
@@ -140,7 +140,7 @@
                 :href="isUrl(entry) ? entry : undefined"
                 :target="isUrl(entry) ? '_blank' : undefined"
                 :rel="isUrl(entry) ? 'noopener noreferrer' : undefined"
-                class="flex items-center gap-1.5 min-w-0 text-[0.9em]"
+                class="flex items-center gap-1.5 min-w-0 kawaru-text-87"
                 :class="
                   isUrl(entry)
                     ? 'text-primary hover:underline'
@@ -153,19 +153,19 @@
                 <span class="truncate">{{ entry }}</span>
               </a>
             </div>
-            <p v-else class="mt-1 text-[0.95em] text-base-content/40">—</p>
+            <p v-else class="mt-1 kawaru-text-95 text-base-content/40">—</p>
           </div>
 
           <div class="min-w-0">
-            <div class="text-[0.78em] font-medium text-base-content/45">Journal</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">Journal</div>
             <p
               v-if="collection.journalName"
-              class="mt-1 text-[0.95em] text-base-content/80 italic truncate"
+              class="mt-1 kawaru-text-95 text-base-content/80 italic truncate"
               :title="collection.journalName"
             >
               {{ collection.journalName }}
             </p>
-            <p v-else class="mt-1 text-[0.95em] text-base-content/40">—</p>
+            <p v-else class="mt-1 kawaru-text-95 text-base-content/40">—</p>
           </div>
         </div>
 
@@ -174,17 +174,17 @@
              （卡片高度不随展开变化） -->
         <div class="flex flex-col gap-2.5 min-w-0">
           <div v-for="field in basicFields" :key="field.label" class="min-w-0">
-            <div class="text-[0.78em] font-medium text-base-content/45">{{ field.label }}</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">{{ field.label }}</div>
             <div v-if="field.values.length" class="flex flex-wrap gap-1.5 mt-1">
               <span
                 v-for="value in field.visibleValues"
                 :key="value"
-                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.78em] font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-75 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
               >
                 {{ value }}
               </span>
             </div>
-            <div v-else class="text-[0.9em] text-base-content/40 mt-1">—</div>
+            <div v-else class="kawaru-text-87 text-base-content/40 mt-1">—</div>
           </div>
 
           <!-- More：daisyUI 5 的 popover 形态，内容进 top layer，点外部 / Esc 关闭；
@@ -194,7 +194,7 @@
               type="button"
               :popovertarget="morePopoverId"
               :style="{ anchorName: moreAnchorName }"
-              class="inline-flex items-center gap-1 text-[0.82em] font-medium rounded text-primary hover:underline"
+              class="inline-flex items-center gap-1 kawaru-text-81 font-medium rounded text-primary hover:underline"
               :aria-label="`More metadata for ${collection.name}`"
               @click.stop
             >
@@ -210,12 +210,12 @@
               @click.stop
             >
               <div v-for="field in overflowFields" :key="field.label" class="min-w-0 [&+&]:mt-3">
-                <div class="text-[0.78em] font-medium text-base-content/45">{{ field.label }}</div>
+                <div class="kawaru-text-75 font-medium text-base-content/45">{{ field.label }}</div>
                 <div class="flex flex-wrap gap-1.5 mt-1">
                   <span
                     v-for="value in field.hiddenValues"
                     :key="value"
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.78em] font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                    class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-75 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
                   >
                     {{ value }}
                   </span>
@@ -228,7 +228,7 @@
 
       <!-- Owner / 更新时间 -->
       <div
-        class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8em] text-base-content/60"
+        class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 kawaru-text-81 text-base-content/60"
       >
         <span
           class="inline-flex items-center gap-1 min-w-0"
@@ -242,15 +242,16 @@
     </div>
 
     <!-- 右：操作列（Access 已移入中栏左列，这里不再重复）。
-         lg 固定 200px：最宽条目 "View Collection"
-         需要单行放下（比原来再窄 10px 就会折行），下面各项加 nowrap 兜底。 -->
+         列宽 10em 而非死宽 200px：本容器自挂 kawaru-text-100 钉住字号，
+         10em 恒等于「档位 × 10」，换档时同步跟上。最宽条目 "View Collection"
+         需单行放下，各项另加 nowrap 兜底。 -->
     <div
-      class="cursor-default flex flex-row flex-wrap gap-2 items-center justify-evenly w-full border-t border-base-300 pt-3 lg:w-[200px] lg:flex-col lg:items-start lg:self-stretch lg:border-l lg:border-t-0 lg:pt-0 lg:pl-4"
+      class="cursor-default kawaru-text-100 flex flex-row flex-wrap gap-2 items-center justify-evenly w-full border-t border-base-300 pt-3 lg:w-[10em] lg:flex-col lg:items-start lg:self-stretch lg:border-l lg:border-t-0 lg:pt-0 lg:pl-4"
       @click.stop
     >
       <!-- 成员总数 -->
       <div
-        class="flex items-center gap-2 text-[1.0em] font-medium p-1 rounded text-base-content/80"
+        class="flex items-center gap-2 kawaru-text-100 font-medium p-1 rounded text-base-content/80"
         :title="`${collection.memberCount} datasets in this collection`"
       >
         <SvgIcon type="queue_list" class="w-[1.1em] h-[1.1em]" />
@@ -260,7 +261,7 @@
       </div>
 
       <button
-        class="flex items-center gap-2 text-[1.0em] font-medium p-1 rounded text-primary hover:text-primary-focus transition-colors"
+        class="flex items-center gap-2 kawaru-text-100 font-medium p-1 rounded text-primary hover:text-primary-focus transition-colors"
         @click.stop="$emit('view', collection.id)"
       >
         <SvgIcon type="circle_stack" class="w-[1.1em] h-[1.1em] shrink-0" />
@@ -270,7 +271,7 @@
       <!-- 列表含他人集合：仅 owner/admin 可删除 -->
       <button
         v-if="canEdit"
-        class="flex items-center gap-2 text-[1.0em] font-medium p-1 rounded text-base-content/80 hover:text-error transition-colors"
+        class="flex items-center gap-2 kawaru-text-100 font-medium p-1 rounded text-base-content/80 hover:text-error transition-colors"
         title="Delete collection"
         @click.stop="$emit('delete', collection.id)"
       >
@@ -286,6 +287,7 @@ import { computed, ref, watch } from 'vue'
 import type { CollectionSummary } from '@/features/collections/types/collection'
 import DatasetThumb from '@/features/collections/components/DatasetThumb.vue'
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
+import { formatDate } from '@/shared/utils/format'
 
 const props = defineProps<{
   collection: CollectionSummary
@@ -400,7 +402,5 @@ function doiHref(doi: string): string {
 
 const unitLabel = computed(() => (props.collection.memberCount === 1 ? 'dataset' : 'datasets'))
 
-const formattedDate = computed(() =>
-  props.collection.updatedAt ? new Date(props.collection.updatedAt).toLocaleDateString() : '',
-)
+const formattedDate = computed(() => formatDate(props.collection.updatedAt))
 </script>

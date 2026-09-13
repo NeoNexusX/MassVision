@@ -63,15 +63,6 @@
         "App-wide UI polish and bug-fix batch",
         "Annotation CSV worker reliability fixes"
       ]
-    },
-    {
-      "date": "August 16",
-      "version": "0.6.1",
-      "features": [
-        "UMAP and KMeans clustering overlays with PNG export",
-        "Annotation CSV import with m/z matching and PubChem lookup",
-        "Region comparison with statistical analysis and category filtering"
-      ]
     }
   ],
   "team": [

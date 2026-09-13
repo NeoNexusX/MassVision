@@ -19,12 +19,12 @@ defineProps<{
 
 <template>
   <details open class="bg-base-100 rounded-lg border border-base-200 p-6 shadow-sm">
-    <summary class="text-3xl font-medium mb-4 list-none">Step 2: Preprocessing Pipeline</summary>
+    <summary class="kawaru-text-187 font-medium mb-4 list-none">Step 2: Preprocessing Pipeline</summary>
 
     <div class="space-y-4 mt-2">
       <div
         v-if="modeNotice"
-        class="flex items-start gap-2 p-3 rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-lg text-blue-700 dark:text-blue-300"
+        class="flex items-start gap-2 p-3 rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 kawaru-text-112 text-blue-700 dark:text-blue-300"
       >
         <span class="mt-0.5">ℹ</span>
         <span><MzText :text="modeNotice" /></span>
@@ -34,15 +34,15 @@ defineProps<{
         :key="group.key"
         class="border border-base-200 rounded-md p-4"
       >
-        <div class="font-medium text-xl">{{ group.title }}</div>
-        <div v-if="group.hint" class="text-base text-base-content/60 mt-1">
+        <div class="font-medium kawaru-text-125">{{ group.title }}</div>
+        <div v-if="group.hint" class="kawaru-text-100 text-base-content/60 mt-1">
           {{ group.hint }}
         </div>
         <div class="mt-3 flex flex-wrap gap-3">
           <div v-for="method in group.methods" :key="method.id" class="flex flex-col">
             <label
               :class="[
-                'flex items-center gap-2 h-10 px-4 rounded-md text-lg transition-colors cursor-pointer select-none',
+                'flex items-center gap-2 h-10 px-4 rounded-md kawaru-text-112 transition-colors cursor-pointer select-none',
                 isSelected(group.key, method.id)
                   ? 'bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300'
                   : 'bg-base-100 border border-base-300 text-base-content hover:bg-base-200',
@@ -60,7 +60,7 @@ defineProps<{
                 >✔</span
               >
               <span class="truncate">{{ method.label }}</span>
-              <span v-if="method.note" class="ml-2 text-base text-base-content/50">{{
+              <span v-if="method.note" class="ml-2 kawaru-text-100 text-base-content/50">{{
                 method.note
               }}</span>
             </label>
@@ -71,7 +71,7 @@ defineProps<{
             >
               <div v-for="param in method.params" :key="param.key" class="flex items-center gap-2">
                 <span
-                  class="text-lg text-base-content/60 w-32 shrink-0 whitespace-nowrap"
+                  class="kawaru-text-112 text-base-content/60 w-32 shrink-0 whitespace-nowrap"
                   :title="param.hint"
                   ><MzText :text="param.label"
                 /></span>
@@ -91,7 +91,7 @@ defineProps<{
                 </template>
                 <template v-else-if="param.type === 'text'">
                   <input
-                    class="input input-sm input-bordered flex-1 max-w-28 text-lg font-mono"
+                    class="input input-sm input-bordered flex-1 max-w-28 kawaru-text-112 font-mono"
                     type="text"
                     :placeholder="param.hint || String(param.default ?? '')"
                     :value="getParam(group.key, method.id, param.key)"
@@ -104,7 +104,7 @@ defineProps<{
                 </template>
                 <template v-else-if="param.type === 'number'">
                   <input
-                    class="input input-sm input-bordered flex-1 max-w-28 text-lg font-mono"
+                    class="input input-sm input-bordered flex-1 max-w-28 kawaru-text-112 font-mono"
                     type="text"
                     inputmode="numeric"
                     :placeholder="param.hint || String(param.default ?? '')"
@@ -115,7 +115,7 @@ defineProps<{
                 </template>
                 <template v-else-if="param.type === 'float'">
                   <input
-                    class="input input-sm input-bordered flex-1 max-w-28 text-lg font-mono"
+                    class="input input-sm input-bordered flex-1 max-w-28 kawaru-text-112 font-mono"
                     type="text"
                     inputmode="decimal"
                     :placeholder="param.hint || String(param.default ?? '')"

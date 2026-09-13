@@ -1,18 +1,18 @@
 <template>
-  <div class="flex flex-col gap-3 text-[1.125em]">
+  <div class="flex flex-col gap-3 kawaru-text-81">
     <!-- ROI Tools -->
     <div>
       <div class="font-semibold text-base-content mb-2 tracking-wide">ROI Tools</div>
       <div class="flex gap-1.5">
         <button
-          class="btn btn-sm flex-1 text-[1em]"
+          class="btn btn-sm flex-1 kawaru-text-81"
           :class="selectedTool === 'rectangle' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'rectangle' ? null : 'rectangle')"
         >
           <SvgIcon type="square" /> Rect
         </button>
         <button
-          class="btn btn-sm flex-1 text-[1em]"
+          class="btn btn-sm flex-1 kawaru-text-81"
           :class="selectedTool === 'freehand' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'freehand' ? null : 'freehand')"
         >
@@ -20,11 +20,11 @@
         </button>
       </div>
       <div v-if="draftReady" class="flex gap-1.5 mt-1.5">
-        <button class="btn btn-sm btn-success flex-1 text-[1em]" @click="$emit('confirm')">
+        <button class="btn btn-sm btn-success flex-1 kawaru-text-81" @click="$emit('confirm')">
           <SvgIcon type="check" /> Confirm
         </button>
         <button
-          class="btn btn-sm btn-ghost flex-1 text-error text-[1em]"
+          class="btn btn-sm btn-ghost flex-1 text-error kawaru-text-81"
           @click="$emit('cancel')"
         >
           <SvgIcon type="close" /> Cancel
@@ -32,7 +32,7 @@
       </div>
       <button
         v-if="rois.length"
-        class="btn btn-sm w-full mt-1.5 text-[1em]"
+        class="btn btn-sm w-full mt-1.5 kawaru-text-81"
         :class="viewingRoi ? 'btn-primary' : 'btn-ghost'"
         :title="viewingRoi ? '当前：仅显示 ROI 区域内' : '当前：显示完整离子图'"
         @click="$emit('update:viewingRoi', !viewingRoi)"

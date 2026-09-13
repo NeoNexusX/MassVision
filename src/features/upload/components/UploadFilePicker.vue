@@ -72,9 +72,9 @@ const onFileChange = (event: Event) => {
         title="Select files"
       />
       <div class="flex items-center gap-3 w-full pointer-events-none">
-        <div class="btn btn-sm btn-neutral no-animation shrink-0">Choose Files</div>
+        <div class="btn btn-sm btn-neutral no-animation shrink-0 kawaru-text-75">Choose Files</div>
         <span
-          class="text-lg min-w-0 flex-1 opacity-80 pointer-events-auto"
+          class="kawaru-text-112 min-w-0 flex-1 opacity-80 pointer-events-auto"
           :class="{ 'opacity-50': !selectedPair }"
           :title="selectedPair ? `${selectedPair.imzml.name}, ${selectedPair.ibd.name}` : ''"
           >{{
@@ -87,7 +87,7 @@ const onFileChange = (event: Event) => {
         >
       </div>
     </div>
-    <div class="mt-1 text-lg">
+    <div class="mt-1 kawaru-text-112">
       <!--
         续传时「是否就绪」由上方横幅判定（要和待续传的那对文件一致），
         这里只报「选到了一对合法的 imzML+ibd」，不能抢着说 Ready，
@@ -107,7 +107,7 @@ const onFileChange = (event: Event) => {
     </div>
     <div
       v-if="error"
-      class="border border-error/30 bg-error/5 text-error rounded-lg px-4 py-3 mt-3 text-base break-all"
+      class="border border-error/30 bg-error/5 text-error rounded-lg px-4 py-3 mt-3 kawaru-text-100 break-all"
     >
       <span>{{ error }}</span>
     </div>

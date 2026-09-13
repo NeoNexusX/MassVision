@@ -30,11 +30,11 @@ defineEmits<{
 
       <!-- min-w-0 让长文件名在这里换行，而不是把整个卡片撑开 -->
       <div class="flex min-w-0 flex-1 flex-col gap-2">
-        <p class="text-base font-semibold text-blue-800 dark:text-blue-300">
+        <p class="kawaru-text-100 font-semibold text-blue-800 dark:text-blue-300">
           Incomplete upload detected
         </p>
 
-        <p class="text-base leading-relaxed text-blue-700 dark:text-blue-300">
+        <p class="kawaru-text-100 leading-relaxed text-blue-700 dark:text-blue-300">
           <span class="font-semibold break-all">{{ datasetName }}</span> was only partially
           uploaded. Re-select the same file pair below — the archive is rebuilt locally and the
           parts already uploaded are not sent again.
@@ -44,27 +44,27 @@ defineEmits<{
           v-if="expectedFiles"
           class="rounded border border-blue-200/70 bg-blue-100/50 px-2.5 py-1.5 dark:border-blue-800/70 dark:bg-blue-900/40"
         >
-          <p class="mb-1 text-sm font-medium text-blue-700/70 dark:text-blue-300/70">
+          <p class="mb-1 kawaru-text-87 font-medium text-blue-700/70 dark:text-blue-300/70">
             Required files
           </p>
-          <ul class="flex flex-col gap-0.5 font-mono text-sm text-blue-800 dark:text-blue-200">
+          <ul class="flex flex-col gap-0.5 font-mono kawaru-text-87 text-blue-800 dark:text-blue-200">
             <li class="break-all">{{ expectedFiles.imzmlName }}</li>
             <li class="break-all">{{ expectedFiles.ibdName }}</li>
           </ul>
         </div>
 
-        <p v-if="hint" class="text-sm text-amber-700 dark:text-amber-400">{{ hint }}</p>
+        <p v-if="hint" class="kawaru-text-87 text-amber-700 dark:text-amber-400">{{ hint }}</p>
 
         <div class="mt-1 flex flex-wrap gap-2">
           <button
-            class="btn btn-sm border-none bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300 disabled:text-white/70 dark:disabled:bg-blue-900"
+            class="btn btn-sm border-none bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300 disabled:text-white/70 dark:disabled:bg-blue-900 kawaru-text-75"
             :disabled="!canResume"
             @click="$emit('resume')"
           >
             Resume
           </button>
           <button
-            class="btn btn-sm btn-ghost text-blue-600 dark:text-blue-400"
+            class="btn btn-sm btn-ghost text-blue-600 dark:text-blue-400 kawaru-text-75"
             @click="$emit('discard')"
           >
             Discard

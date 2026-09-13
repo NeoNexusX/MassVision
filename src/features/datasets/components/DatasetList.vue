@@ -31,7 +31,7 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
 </script>
 
 <template>
-  <div class="text-[clamp(1.0rem,2.5vw,1.3rem)]">
+  <div>
     <!-- Loading state -->
     <div v-if="loading" class="animate-pulse flex flex-col gap-4">
       <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
@@ -41,7 +41,7 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
     <!-- Error state -->
     <div
       v-else-if="error"
-      class="p-4 bg-error/10 dark:bg-error/10/30 rounded mb-4 border border-error/20 text-error"
+      class="p-4 bg-error/10 dark:bg-error/10/30 rounded mb-4 border border-error/20 text-error kawaru-text-100"
     >
       {{ error }}
     </div>
@@ -49,7 +49,7 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
     <!-- Empty state -->
     <div
       v-else-if="!datasets.length"
-      class="p-6 bg-base-100 dark:bg-slate-800 rounded-xl text-base-content mb-4"
+      class="p-6 bg-base-100 dark:bg-slate-800 rounded-xl text-base-content mb-4 kawaru-text-100"
     >
       <slot name="empty">No datasets found matching your filters.</slot>
     </div>

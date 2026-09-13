@@ -7,7 +7,7 @@
     <div
       tabindex="0"
       role="button"
-      class="btn btn-circle btn-primary"
+      class="btn btn-circle btn-primary kawaru-text-87"
       aria-label="Open menu"
       @mousedown="open = true"
     >
@@ -17,7 +17,7 @@
     <!-- 展开态主按钮：显示 iconOpen，点击收起 drawer。
          点击后需要主动 blur，否则该按钮仍持有焦点、:focus-within 仍为真，视觉不会收起。 -->
     <button
-      class="fab-main-action btn btn-circle btn-primary"
+      class="fab-main-action btn btn-circle btn-primary kawaru-text-87"
       aria-label="Close menu"
       @click="closeMenu"
     >
@@ -29,14 +29,14 @@
       <router-link
         v-if="item.kind === 'link'"
         :to="item.to"
-        class="btn btn-circle child-btn tooltip tooltip-left"
+        class="btn btn-circle child-btn tooltip tooltip-left kawaru-text-87"
         :data-tip="item.label"
       >
         <SvgIcon :type="(item.icon as IconType)" />
       </router-link>
 
       <!-- action：触发事件；toggle-theme 的图标随 isDark 切换，其余按配置图标渲染 -->
-      <button
+      <button class="kawaru-text-87"
         v-else
         :class="[
           'btn btn-circle child-btn tooltip tooltip-left',

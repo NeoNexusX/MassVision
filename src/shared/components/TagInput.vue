@@ -12,7 +12,7 @@
     <span
       v-for="(tag, i) in modelValue"
       :key="`${tag}-${i}`"
-      class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.85em] font-medium
+      class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 kawaru-text-87 font-medium
         bg-base-200/80 text-base-content/80 border border-base-300
         dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
     >
@@ -31,7 +31,7 @@
       v-model="input"
       type="text"
       class="flex-1 min-w-[6em] bg-transparent border-none outline-none
-        text-[0.95em] text-base-content placeholder:text-base-content/40 py-0.5"
+        kawaru-text-95 text-base-content placeholder:text-base-content/40 py-0.5"
       :placeholder="modelValue.length ? '' : placeholder"
       :aria-label="name ? `Add ${name}` : 'Add tag'"
       @keydown.enter.prevent="commit"

@@ -3,6 +3,7 @@ import { listMyProcesses, deleteProcess, getProcessingStats, type ProcessRunFilt
 import { parseAlgorithms } from '@/shared/utils/methodsNormalize'
 import { buildPageList } from '@/shared/utils/pagination'
 import { parseUtcDate } from '@/shared/utils/date'
+import { formatDate, formatDateTime, formatTime } from '@/shared/utils/format'
 import { getConfig } from '@/shared/config/runtimeConfig'
 
 export interface ProcessItem {
@@ -61,12 +62,12 @@ export function useWorkspaceDashboard() {
       fileId: p.source_file_id,
       methods: parseAlgorithms(p.params_json),
       status: p.status,
-      created: createdDate?.toLocaleString() ?? '',
-      createdDate: createdDate?.toLocaleDateString() ?? '',
-      createdTime: createdDate?.toLocaleTimeString() ?? '',
+      created: formatDateTime(createdDate),
+      createdDate: formatDate(createdDate),
+      createdTime: formatTime(createdDate),
       createdAt: p.created_at,
-      finishedDate: finishedDate?.toLocaleDateString() ?? '',
-      finishedTime: finishedDate?.toLocaleTimeString() ?? '',
+      finishedDate: formatDate(finishedDate),
+      finishedTime: formatTime(finishedDate),
       finishedAt: p.finished_at,
       errorMessage: p.error_message || null,
     }

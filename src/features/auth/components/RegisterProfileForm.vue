@@ -22,10 +22,10 @@ defineProps<{
     class="w-full lg:w-1/2 p-5 sm:p-8 md:p-10 pb-8 flex flex-col flex-1 min-h-0 bg-base-200/50 dark:bg-base-200/20"
   >
     <div class="min-h-[72px] mb-4">
-      <h3 class="text-[1.5em] font-bold flex items-center gap-2">
+      <h3 class="kawaru-text-150 font-bold flex items-center gap-2">
         Researcher Profile
       </h3>
-      <p class="text-base-content/60 text-base mt-3">Complete your professional details</p>
+      <p class="text-base-content/60 kawaru-text-100 mt-3">Complete your professional details</p>
     </div>
 
     <div class="flex flex-col gap-5">
@@ -111,11 +111,11 @@ defineProps<{
     <div class="mt-auto pt-6">
       <button
         type="submit"
-        class="btn btn-primary w-full btn-lg shadow-xl hover:scale-[1.01] transition-transform"
+        class="btn btn-primary w-full btn-lg shadow-xl hover:scale-[1.01] transition-transform kawaru-text-112"
         :disabled="loading.register"
       >
         <span v-if="loading.register" class="loading loading-spinner loading-md"></span>
-        <span v-else class="text-lg">Complete Registration</span>
+        <span v-else class="kawaru-text-112">Complete Registration</span>
       </button>
     </div>
   </div>

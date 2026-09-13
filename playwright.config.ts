@@ -41,6 +41,20 @@ export default defineConfig({
 
     /* Only on CI systems run the tests headless */
     headless: !!process.env.CI,
+
+    /**
+     * 固定浏览器语言，保证 e2e 的确定性。
+     *
+     * 应用首访没有保存过的偏好时会按 navigator.language 探测语言（见 useLocale.ts），
+     * 不锁的话，跑在中文系统的开发机 / CI 上会整站渲染成中文，而现有断言全是英文文案
+     * （getByText('Sign out') 之类），会集体误报。
+     *
+     * 这里锁的是 navigator.language 而不是往 localStorage 里塞值：后者对未登录组
+     * （storageState 被清空）和 setup project 都不生效。
+     *
+     * 将来要加中文冒烟用例时，单独开一个 project 覆盖 locale: 'zh-CN'，不要动这里。
+     */
+    locale: 'en-US',
   },
 
   /* Configure projects for major browsers */

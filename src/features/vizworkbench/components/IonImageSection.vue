@@ -124,19 +124,19 @@ onBeforeUnmount(() => {
         v-if="isStale"
         class="flex-1 flex flex-col items-center justify-center text-base-content/40 gap-1"
       >
-        <p class="text-[1.25em]">No result selected</p>
-        <p class="text-[1.25em]"> Navigate from the Workspace dashboard to view a result.</p>
+        <p class="kawaru-text-95">No result selected</p>
+        <p class="kawaru-text-95"> Navigate from the Workspace dashboard to view a result.</p>
       </div>
       <div
         v-else-if="ionError && !ionMatrix"
         class="flex-1 flex flex-col items-center justify-center gap-2 px-6 text-center"
       >
-        <p class="text-[1.5em] font-semibold text-error">Failed to load ion image</p>
-        <p class="text-[0.875em] text-base-content/60 break-words">{{ ionError }}</p>
+        <p class="kawaru-text-112 font-semibold text-error">Failed to load ion image</p>
+        <p class="kawaru-text-68 text-base-content/60 break-words">{{ ionError }}</p>
       </div>
       <div
         v-else-if="!ionMatrix"
-        class="flex-1 flex items-center justify-center text-base-content/40 text-[1.25em]"
+        class="flex-1 flex items-center justify-center text-base-content/40 kawaru-text-95"
       >
         {{ processedPlaceholder }}
       </div>
@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
         >
           <div class="flex flex-col items-center gap-3">
             <span class="loading loading-spinner loading-lg text-primary"></span>
-            <span class="text-base-content/70 text-[1.25em]">Updating ion image…</span>
+            <span class="text-base-content/70 kawaru-text-95">Updating ion image…</span>
           </div>
         </div>
         <ROIOverlay
@@ -195,7 +195,7 @@ onBeforeUnmount(() => {
         />
         <div
           v-if="ionError"
-          class="absolute left-3 right-3 top-3 z-30 rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-[0.875em] text-error shadow-sm backdrop-blur-sm"
+          class="absolute left-3 right-3 top-3 z-30 rounded-lg border border-error/30 bg-error/10 px-3 py-2 kawaru-text-68 text-error shadow-sm backdrop-blur-sm"
         >
           Failed to update ion image: {{ ionError }}
         </div>
@@ -204,7 +204,7 @@ onBeforeUnmount(() => {
 
     <!-- 强度条：多离子叠加模式下每通道各自归一化，此条不适用 → 置灰但保留 DOM -->
     <div
-      class="shrink-0 flex flex-col items-center gap-2 w-[3em] text-[1.2em]"
+      class="shrink-0 flex flex-col items-center gap-2 w-[3em] kawaru-text-87"
       :class="{ 'opacity-40 pointer-events-none': channelsMode }"
       :title="channelsMode ? 'Not used in multi-ion overlay mode' : undefined"
     >

@@ -1,6 +1,26 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
 import { useAuthStore } from '@/shared/auth/authStore'
 import { loadContent } from '@/features/home/config/contentConfig'
+import { loadFeatureMessages, type FeatureNs } from '@/i18n'
+
+/**
+ * 视图 chunk 与它用到的语言包**并行**加载，两者都就绪后路由才 resolve。
+ *
+ * 沿用首页 `Promise.all([import(view), loadContent()])` 的既有模式：这样组件渲染时
+ * 消息必然已经就位，组件内不必处理「翻译还没到」的中间态，也不会先闪一帧英文。
+ * 语言包尚不存在的命名空间（迁移中的 feature）会被静默跳过，见 i18n/index.ts 的 loadNs。
+ *
+ * 只列**该路由自己会渲染到**的命名空间；core（common/auth）已在启动时加载，不用重复列。
+ */
+function view<T>(loader: () => Promise<T>, ...namespaces: FeatureNs[]): () => Promise<T> {
+  return async () => {
+    const [module] = await Promise.all([
+      loader(),
+      Promise.all(namespaces.map((ns) => loadFeatureMessages(ns))),
+    ] as const)
+    return module
+  }
+}
 
 const routes = [
   {
@@ -11,31 +31,37 @@ const routes = [
     path: '/',
     name: 'Home',
     component: () =>
-      Promise.all([import('../views/HomeView.vue'), loadContent()]).then(([m]) => m.default),
+      Promise.all([
+        import('../views/HomeView.vue'),
+        loadContent(),
+        loadFeatureMessages('home'),
+      ]).then(([m]) => m.default),
   },
   {
     path: '/datasets',
     name: 'PublicDatasets',
-    component: () => import('../views/PublicDatasets.vue'),
+    // 列表页内嵌上传入口与元数据对话框，故一并带上 upload
+    component: view(() => import('../views/PublicDatasets.vue'), 'datasets', 'upload'),
   },
   {
     path: '/mydatasets',
     name: 'MyDatasets',
-    component: () => import('../views/MyDatasets.vue'),
+    component: view(() => import('../views/MyDatasets.vue'), 'datasets', 'upload'),
     meta: { requiresAuth: true },
   },
   {
     // 数据集合：把相关 dataset 组织成策展集合。设计阶段数据为前端 mock。
     path: '/collections',
     name: 'Collections',
-    component: () => import('../views/CollectionsView.vue'),
+    component: view(() => import('../views/CollectionsView.vue'), 'collections'),
     meta: { requiresAuth: true },
   },
   {
     // 新建集合页：从公共数据集中挑选成员、排序并填写元信息（Edit 在 overview 内嵌）
     path: '/collections/new',
     name: 'CreateCollection',
-    component: () => import('../views/CreateCollectionView.vue'),
+    // 新建集合要从公共数据集里挑成员，会渲染 datasets 的卡片文案
+    component: view(() => import('../views/CreateCollectionView.vue'), 'collections', 'datasets'),
     meta: { requiresAuth: true },
   },
   {
@@ -44,7 +70,7 @@ const routes = [
     // 直刷/书签进入时 state 为空 → 页面显示 Session lost 引导回列表。
     path: '/collections/overview',
     name: 'CollectionOverview',
-    component: () => import('../views/CollectionOverviewView.vue'),
+    component: view(() => import('../views/CollectionOverviewView.vue'), 'collections', 'datasets'),
     meta: { requiresAuth: true },
   },
   {
@@ -54,17 +80,17 @@ const routes = [
     // 且 public_id 是 16 位 base62，不会与它们撞名。
     path: '/collections/:publicId',
     name: 'PublicCollection',
-    component: () => import('../views/PublicCollectionView.vue'),
+    component: view(() => import('../views/PublicCollectionView.vue'), 'collections', 'datasets'),
   },
   {
     path: '/overview',
     name: 'DatasetOverview',
-    component: () => import('../views/DatasetOverviewView.vue'),
+    component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
   },
   {
     path: '/s/:encodedId',
     name: 'SharedDatasetOverview',
-    component: () => import('../views/DatasetOverviewView.vue'),
+    component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
   },
   {
     path: '/login',
@@ -84,32 +110,33 @@ const routes = [
   {
     path: '/users',
     name: 'UserManagement',
-    component: () => import('../views/UserManagementView.vue'),
+    component: view(() => import('../views/UserManagementView.vue'), 'users'),
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
     path: '/profile',
     name: 'Profile',
-    component: () => import('../views/UserProfileView.vue'),
+    component: view(() => import('../views/UserProfileView.vue'), 'users'),
     meta: { requiresAuth: true },
   },
   {
     path: '/workspace',
     name: 'Workspace',
-    component: () => import('../views/workspace/WorkspacePage.vue'),
+    component: view(() => import('../views/workspace/WorkspacePage.vue'), 'workspace'),
     meta: { requiresAuth: true },
   },
   {
     path: '/workspace/new',
     name: 'NewAnalysis',
-    component: () => import('../views/workspace/NewAnalysis.vue'),
+    // 新建分析要选源数据集，会渲染 datasets 的文案
+    component: view(() => import('../views/workspace/NewAnalysis.vue'), 'workspace', 'datasets'),
     meta: { requiresAuth: true },
   },
   {
     // 可视化工作台：分析结果的离子图/光谱/标注可视化页。
     path: '/vizworkbench',
     name: 'VizWorkbench',
-    component: () => import('../views/VizWorkbench.vue'),
+    component: view(() => import('../views/VizWorkbench.vue'), 'vizworkbench'),
     meta: { requiresAuth: true },
   },
   // 裸 /docs 转发后由 nginx 的 `location = /docs` 301 补斜杠，这里无需特殊处理。

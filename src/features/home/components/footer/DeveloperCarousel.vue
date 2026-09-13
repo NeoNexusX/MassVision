@@ -35,7 +35,7 @@ const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage }
     <!-- 翻页按钮：仅中大屏显示，触摸端用手势；紧贴边缘，浮于两侧虚空槽内 -->
     <button
       type="button"
-      class="btn btn-circle btn-sm absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 shadow-md transition-opacity duration-300 md:inline-flex"
+      class="btn btn-circle btn-sm absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 shadow-md transition-opacity duration-300 md:inline-flex kawaru-text-75"
       :class="atStart ? 'pointer-events-none opacity-0' : 'opacity-100'"
       :aria-hidden="atStart"
       :tabindex="atStart ? -1 : 0"
@@ -46,7 +46,7 @@ const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage }
     </button>
     <button
       type="button"
-      class="btn btn-circle btn-sm absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 shadow-md transition-opacity duration-300 md:inline-flex"
+      class="btn btn-circle btn-sm absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 shadow-md transition-opacity duration-300 md:inline-flex kawaru-text-75"
       :class="atEnd ? 'pointer-events-none opacity-0' : 'opacity-100'"
       :aria-hidden="atEnd"
       :tabindex="atEnd ? -1 : 0"

@@ -1,12 +1,12 @@
 <template>
   <dialog class="modal" :open="open">
     <div class="modal-box w-11/12 max-w-2xl">
-      <h3 class="font-bold text-lg">Create New Task</h3>
+      <h3 class="font-bold kawaru-text-112">Create New Task</h3>
 
       <div class="mt-4 space-y-4">
         <label class="block">
           <span class="label">Select Dataset</span>
-          <select class="select select-bordered w-full" v-model="selectedDataset">
+          <select class="select select-bordered w-full kawaru-text-87" v-model="selectedDataset">
             <option v-for="d in datasets" :key="d.id" :value="d.id">{{ d.name }}</option>
           </select>
         </label>
@@ -25,9 +25,9 @@
           <span class="label">Method Parameters</span>
           <div class="mt-2">
             <div v-for="m of selectedMethods" :key="m" class="mb-2">
-              <div class="text-sm font-medium"><MzText :text="m" /></div>
+              <div class="kawaru-text-87 font-medium"><MzText :text="m" /></div>
               <input
-                class="input input-bordered w-full mt-1"
+                class="input input-bordered w-full mt-1 kawaru-text-87"
                 v-model="params[m]"
                 placeholder="parameter JSON or value"
               />
@@ -37,8 +37,8 @@
       </div>
 
       <div class="modal-action">
-        <button class="btn" @click="$emit('update:open', false)">Cancel</button>
-        <button class="btn btn-primary" @click="start">Start Processing</button>
+        <button class="btn kawaru-text-87" @click="$emit('update:open', false)">Cancel</button>
+        <button class="btn btn-primary kawaru-text-87" @click="start">Start Processing</button>
       </div>
     </div>
   </dialog>

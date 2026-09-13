@@ -13,7 +13,10 @@ defineProps<{
 </script>
 
 <template>
-  <ul v-if="items.length" class="timeline timeline-vertical timeline-snap-icon">
+  <ul
+    v-if="items.length"
+    class="timeline timeline-vertical timeline-snap-icon kawaru-text-home-timeline"
+  >
     <!-- 顶部延伸：流内实体，撑高列盒子并向上渐隐 -->
     <li class="tl-tail tl-tail--top" aria-hidden="true" />
     <li v-for="(item, i) in items" :key="i">
@@ -25,7 +28,7 @@ defineProps<{
       <template v-if="i % 2 === 0">
         <div class="timeline-start">
           <span class="tl-date">{{ item.date }}</span>
-          <span class="badge badge-primary tl-badge">v{{ item.version }}</span>
+          <span class="badge badge-primary tl-badge kawaru-text-87">v{{ item.version }}</span>
         </div>
         <div class="timeline-end">
           <div class="timeline-box">
@@ -45,7 +48,7 @@ defineProps<{
         </div>
         <div class="timeline-end">
           <span class="tl-date">{{ item.date }}</span>
-          <span class="badge badge-primary tl-badge">v{{ item.version }}</span>
+          <span class="badge badge-primary tl-badge kawaru-text-87">v{{ item.version }}</span>
         </div>
       </template>
       <hr />
@@ -56,15 +59,15 @@ defineProps<{
 </template>
 
 <style scoped>
-/* 基础字号随屏宽变化（对齐左侧 clamp+vw 体系）；
-   内部字体 / 图标 / 徽章 / 间距全部用 em 从此派生，整块等比缩放 */
+/* 模板上的 kawaru-text-home-timeline 只给布局 em 当参照——.tl-icon 的 2em、
+   hr 的 min-height:4em、.timeline-start 的 gap/padding/min-width。
+   文字字号一律 calc(var(--kawaru-fs) * k)，各自独立。 */
 .timeline {
   height: 100%;
-  font-size: clamp(0.8rem, 1.1vw, 3rem);
 }
 
 .tl-date {
-  font-size: 1.5em;
+  font-size: calc(var(--kawaru-fs) * 1.125);
   font-weight: 600;
   color: oklch(var(--color-base-content) / 0.5);
   white-space: nowrap;
@@ -80,7 +83,7 @@ defineProps<{
   text-align: left;
 }
 .timeline-box {
-  font-size: 1em;
+  font-size: calc(var(--kawaru-fs) * 0.75);
   line-height: 1.6;
 }
 .tl-features {
@@ -98,10 +101,11 @@ defineProps<{
   height: 2em;
 }
 
-/* 版本徽章：覆盖 daisyUI 固定尺寸，按基础字号等比缩放 */
+/* 版本徽章：daisyUI 的 .badge 自带固定 font-size，这里显式挂档位覆盖它。
+   padding 用 em，跟随本元素字号等比缩放。 */
 .tl-badge {
   height: auto;
-  font-size: 1.25em;
+  font-size: calc(var(--kawaru-fs) * 0.95);
   font-weight: 600;
   line-height: 1.3;
   padding: 0.15em 0.55em;

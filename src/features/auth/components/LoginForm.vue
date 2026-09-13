@@ -21,7 +21,7 @@ const emit = defineEmits<{
     @submit.prevent="emit('submit')"
   >
     <div class="text-center">
-      <h2 class="text-[1.5em] font-bold">Sign In</h2>
+      <h2 class="kawaru-text-150 font-bold">Sign In</h2>
     </div>
 
     <IconInput
@@ -45,21 +45,21 @@ const emit = defineEmits<{
     />
 
     <div class="form-control w-full mt-2">
-      <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
+      <button type="submit" class="btn btn-primary w-full kawaru-text-87" :disabled="isLoading">
         <span v-if="isLoading" class="loading loading-spinner"></span>
         {{ isLoading ? 'Signing In...' : 'Sign In' }}
       </button>
     </div>
 
     <div class="text-center">
-      <span class="text-[1rem]">New to {{ getAppName() }} ?</span>
-      <router-link to="/register" class="link link-hover text-secondary text-[1rem] font-semibold">
+      <span class="kawaru-text-100">New to {{ getAppName() }} ?</span>
+      <router-link to="/register" class="link link-hover text-secondary kawaru-text-100 font-semibold">
         Create an account
       </router-link>
       <br />
       <router-link
         to="/forgotpassword"
-        class="link link-hover text-[1rem] text-base-content/70"
+        class="link link-hover kawaru-text-100 text-base-content/70"
       >
         Forgot Password?
       </router-link>

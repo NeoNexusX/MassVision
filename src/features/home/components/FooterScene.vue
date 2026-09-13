@@ -28,7 +28,8 @@ const poweredBy = [
 
 <template>
   <BaseScene as="footer" align="center" class="footer-scene bg-base-300">
-    <div v-reveal class="flex w-full flex-none flex-col text-[clamp(3rem,12vw,9rem)]">
+    <!-- 巨型展示字 48→144px，斜率远陡于全局基准，等比档位复刻不了，故保留 clamp + em。 -->
+    <div v-reveal class="flex w-full flex-none flex-col kawaru-text-home-team">
       <p class="pl-[0.4em] font-['Outfit',sans-serif] font-semibold uppercase tracking-[0.4em] text-secondary text-center">
       The Team
       </p>
@@ -40,7 +41,7 @@ const poweredBy = [
       </div>
     </div>
 
-    <footer class="footer footer-horizontal footer-center text-base-content rounded p-10 sm:p-6 text-[clamp(1.2rem,1.5vw,1.25rem)]">
+    <footer class="footer footer-horizontal footer-center text-base-content rounded p-10 sm:p-6 kawaru-text-100">
       <nav class="flex flex-wrap justify-center gap-[2em]">
         <a v-for="link in socialLinks" :key="link.href" :href="link.href"
           :aria-label="link.label" :data-tip="link.label" target="_blank" rel="noopener noreferrer"
@@ -49,7 +50,7 @@ const poweredBy = [
         </a>
       </nav>
       <span>Powered by</span>
-      <nav class="flex items-center gap-x-[1.2em] opacity-80 text-[0.85em]">
+      <nav class="flex items-center gap-x-[1.2em] opacity-80 kawaru-text-87">
         <template v-for="(item, i) in poweredBy" :key="item.href">
           <span v-if="i > 0" class="opacity-40">·</span>
           <a :href="item.href" :aria-label="item.label" :data-tip="item.label" target="_blank" rel="noopener noreferrer"
@@ -60,7 +61,7 @@ const poweredBy = [
       </nav>
       <p class="flex flex-col items-center justify-center gap-2">
         <span>Copyright © {{ year }} - All rights reserved by Bionet</span>
-        <span v-if="config.version" class=" mt-[1em] badge badge-outline badge-lg border-base-content/30 text-base-content/60">v{{ config.version }}</span>
+        <span v-if="config.version" class=" mt-[1em] badge badge-outline badge-lg kawaru-text-81 border-base-content/30 text-base-content/60">v{{ config.version }}</span>
       </p>
     </footer>
   </BaseScene>

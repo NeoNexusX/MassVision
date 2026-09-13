@@ -34,8 +34,8 @@ const strengthLabel = computed(() => passwordStrengthLabel(passwordScore.value))
 <template>
   <div v-if="isOpen" class="modal modal-open" @click.self="emit('close')">
     <div class="modal-box max-w-md" @click.stop>
-      <h3 class="font-bold text-lg">Change Password</h3>
-      <p class="py-2 text-sm opacity-70">Enter your new password. You will be asked to log in again after the change.</p>
+      <h3 class="font-bold kawaru-text-112">Change Password</h3>
+      <p class="py-2 kawaru-text-87 opacity-70">Enter your new password. You will be asked to log in again after the change.</p>
 
       <div class="form-control mt-2">
         <label class="label"><span class="label-text">New Password</span></label>
@@ -45,7 +45,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(passwordScore.value))
           @input="emit('update:newPassword', ($event.target as HTMLInputElement).value)"
           autocomplete="new-password"
           placeholder="Enter new password"
-          class="input input-bordered w-full"
+          class="input input-bordered w-full kawaru-text-87"
         />
         <progress
           v-if="newPassword"
@@ -54,7 +54,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(passwordScore.value))
           :class="progressBarClass"
           max="5"
         ></progress>
-        <div v-if="newPassword" class="flex justify-between text-xs opacity-60 mt-0.5">
+        <div v-if="newPassword" class="flex justify-between kawaru-text-75 opacity-60 mt-0.5">
           <span>Strength</span>
           <span>{{ strengthLabel }}</span>
         </div>
@@ -68,7 +68,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(passwordScore.value))
           @input="emit('update:confirmPassword', ($event.target as HTMLInputElement).value)"
           autocomplete="new-password"
           placeholder="Re-enter new password"
-          class="input input-bordered w-full"
+          class="input input-bordered w-full kawaru-text-87"
           :class="{ 'input-error': mismatch }"
         />
         <label v-if="mismatch" class="label">
@@ -77,9 +77,9 @@ const strengthLabel = computed(() => passwordStrengthLabel(passwordScore.value))
       </div>
 
       <div class="modal-action">
-        <button class="btn" type="button" @click="emit('close')">Cancel</button>
+        <button class="btn kawaru-text-87" type="button" @click="emit('close')">Cancel</button>
         <button
-          class="btn btn-primary"
+          class="btn btn-primary kawaru-text-87"
           type="button"
           @click="emit('confirm')"
           :disabled="loading || !newPassword || !confirmPassword || mismatch"

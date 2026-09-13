@@ -4,10 +4,10 @@
     <div v-if="rows.length === 0" class="text-center py-8">
       <template v-if="loading">
         <span class="loading loading-spinner loading-md text-primary"></span>
-        <span class="text-base-content/50 text-base ml-2">Loading...</span>
+        <span class="text-base-content/50 kawaru-text-100 ml-2">Loading...</span>
       </template>
       <template v-else>
-        <span class="text-base-content/40 text-base">No data available</span>
+        <span class="text-base-content/40 kawaru-text-100">No data available</span>
       </template>
     </div>
 
@@ -26,7 +26,7 @@
             <col style="width: 6%" />
           </colgroup>
           <thead>
-            <tr class="text-sm lg:text-lg text-base-content/70">
+            <tr class="kawaru-text-87 text-base-content/70">
               <th class="text-center py-3 px-2">Process</th>
               <th class="text-center py-3 px-2">Dataset</th>
               <th class="text-center py-3 px-2">Methods</th>
@@ -41,7 +41,7 @@
             <tr
               v-for="r in rows"
               :key="r.id"
-              class="hover:bg-base-300 transition-colors text-sm lg:text-lg"
+              class="hover:bg-base-300 transition-colors kawaru-text-87"
               :style="{ cursor: rowCursor }"
             >
               <td class="font-medium truncate text-center py-3 px-2" :title="r.name">{{ r.name }}</td>
@@ -51,47 +51,47 @@
                   <span
                     v-for="m in r.methods"
                     :key="m"
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs lg:text-sm font-medium"
+                    class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-75 font-medium"
                     :class="methodBadgeClass(m)"
                   >{{ m }}</span>
                 </div>
               </td>
               <td class="text-center py-3 px-2">
-                <div class="text-xs lg:text-sm text-base-content/60">
+                <div class="kawaru-text-75 text-base-content/60">
                   <div>{{ r.createdDate || '' }}</div>
                   <div>{{ r.createdTime || '' }}</div>
                 </div>
               </td>
               <td class="text-center py-3 px-2">
-                <div class="text-xs lg:text-sm text-base-content/60">
+                <div class="kawaru-text-75 text-base-content/60">
                   <div>{{ r.finishedDate || '' }}</div>
                   <div>{{ r.finishedTime || '' }}</div>
                 </div>
               </td>
               <td class="text-center py-3 px-2">
-                <StatusBadge :status="normalizeStatus(r)" compact class="text-xs lg:text-base" />
+                <StatusBadge :status="normalizeStatus(r)" compact class="kawaru-text-81" />
               </td>
               <td class="text-center py-3 px-1">
                 <button
                   v-if="r.status !== 'processing'"
                   @click="openRow(r)"
-                  class="btn btn-ghost btn-sm btn-circle hover:bg-base-200"
+                  class="btn btn-ghost btn-sm btn-circle hover:bg-base-200 kawaru-text-75"
                   aria-label="View"
                 >
                   <svg-icon type="chevron_right" class="w-6 h-6 text-base-content/60" />
                 </button>
-                <span v-else class="text-base-content/30 text-sm">—</span>
+                <span v-else class="text-base-content/30 kawaru-text-87">—</span>
               </td>
               <td class="text-center py-3 px-1">
                 <button
                   v-if="type === 'results' && (['completed', 'failed'].includes(r.status) || isStaleRunning(r))"
                   @click.stop="$emit('delete', r.id)"
-                  class="btn btn-ghost btn-sm btn-circle hover:bg-error/10 hover:text-error"
+                  class="btn btn-ghost btn-sm btn-circle hover:bg-error/10 hover:text-error kawaru-text-75"
                   aria-label="Delete"
                 >
                   <svg-icon type="trash" class="w-5 h-5 text-base-content/50" />
                 </button>
-                <span v-else class="text-base-content/30 text-sm">—</span>
+                <span v-else class="text-base-content/30 kawaru-text-87">—</span>
               </td>
             </tr>
           </tbody>
@@ -107,12 +107,12 @@
         >
           <!-- Top: Process name -->
           <div class="flex items-center justify-between gap-2">
-            <h3 class="font-semibold text-base truncate flex-1 min-w-0" :title="r.name">{{ r.name }}</h3>
-            <StatusBadge :status="normalizeStatus(r)" compact class="flex-shrink-0" />
+            <h3 class="font-semibold kawaru-text-100 truncate flex-1 min-w-0" :title="r.name">{{ r.name }}</h3>
+            <StatusBadge :status="normalizeStatus(r)" compact class="flex-shrink-0 kawaru-text-100" />
           </div>
 
           <!-- Middle: Dataset, Methods, Created, Finished -->
-          <div class="flex flex-col gap-1 text-sm text-base-content/70 pl-0.5">
+          <div class="flex flex-col gap-1 kawaru-text-87 text-base-content/70 pl-0.5">
             <div class="flex items-center gap-2">
               <span class="text-base-content/40 w-16 flex-shrink-0">Dataset</span>
               <span class="truncate" :title="r.dataset">{{ r.dataset }}</span>
@@ -123,7 +123,7 @@
                 <span
                   v-for="m in r.methods"
                   :key="m"
-                  class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs lg:text-sm font-medium"
+                  class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-75 font-medium"
                   :class="methodBadgeClass(m)"
                 >{{ m }}</span>
               </div>
@@ -143,17 +143,17 @@
             <button
               v-if="r.status !== 'processing'"
               @click="openRow(r)"
-              class="btn btn-ghost btn-sm"
+              class="btn btn-ghost btn-sm kawaru-text-75"
               aria-label="View"
             >
               <svg-icon type="chevron_right" class="w-5 h-5" />
               <span>View</span>
             </button>
-            <span v-else class="text-base-content/30 text-sm px-2">Processing</span>
+            <span v-else class="text-base-content/30 kawaru-text-87 px-2">Processing</span>
             <button
               v-if="type === 'results' && (['completed', 'failed'].includes(r.status) || isStaleRunning(r))"
               @click.stop="$emit('delete', r.id)"
-              class="btn btn-ghost btn-sm text-error/70 hover:text-error hover:bg-error/10"
+              class="btn btn-ghost btn-sm text-error/70 hover:text-error hover:bg-error/10 kawaru-text-75"
               aria-label="Delete"
             >
               <svg-icon type="trash" class="w-4 h-4" />

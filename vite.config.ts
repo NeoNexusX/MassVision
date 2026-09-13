@@ -7,6 +7,7 @@ import { defineConfig, loadEnv, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite';
+import vueI18n from '@intlify/unplugin-vue-i18n/vite'
 
 /**
  * 构建期预压缩：为产物额外写出 .gz / .br，配合 nginx 的 gzip_static / brotli_static。
@@ -69,6 +70,18 @@ export default defineConfig(({ mode }) => {
       vue(),
       vueDevTools(),
       tailwindcss(),
+      vueI18n({
+        include: [fileURLToPath(new URL('./src/i18n/locales/**', import.meta.url))],
+        /**
+         * 构建期把 json 消息预编译成函数，运行时就不必再带 message compiler（产物小一截）。
+         *
+         * 但 test 模式下必须关掉：单测里若直接用内联字符串消息造 i18n 实例，没有编译器会在
+         * 运行时抛错。测试产物体积无所谓，这里换稳定性。
+         */
+        runtimeOnly: mode !== 'test',
+        compositionOnly: true,   // 本项目只用 Composition API，不生成 legacy 兼容层
+        fullInstall: false,      // 不注册用不到的 <i18n-d> / <i18n-n> 组件
+      }),
       precompressAssets(),
     ],
     server: {
@@ -104,6 +117,11 @@ export default defineConfig(({ mode }) => {
           // 须与入口同 chunk 保证 loadConfig 求值时序（提前求值会抛错白屏）。
           // 重型库（echarts/ali-oss/zip）独立懒加载；其余业务代码按路由默认分包。
           manualChunks(id) {
+            // 语言包保持随动态 import 独立成 chunk：只下载当前语言、当前路由需要的那一份。
+            // 必须排在下面 shared 规则之前 —— 语言包一旦被并进那个 eager chunk，
+            // 两种语言、所有 feature 的文案都会压进首屏，懒加载就白做了。
+            if (id.includes('/src/i18n/locales/')) return
+
             // src/shared 目录合并为一个 chunk（排除 config）
             if (
               id.includes('/src/shared/') &&

@@ -7,11 +7,11 @@
     class="bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6"
   >
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-      <h2 class="text-[1.25em] font-bold text-base-content flex items-center gap-2">
+      <h2 class="kawaru-text-125 font-bold text-base-content flex items-center gap-2">
         Members
         <span
           v-if="members.length"
-          class="badge badge-sm font-medium border border-base-300 bg-base-200 text-base-content/70"
+          class="badge badge-sm font-medium border border-base-300 bg-base-200 text-base-content/70 kawaru-text-75"
         >
           {{ members.length }}/{{ limit }} datasets
         </span>
@@ -20,7 +20,7 @@
       <!-- 管理工具条 -->
       <div v-if="manageMode" class="flex flex-wrap items-center gap-2">
         <button
-          class="btn btn-sm btn-primary text-[0.95em]"
+          class="btn btn-sm btn-primary kawaru-text-95"
           :disabled="adding"
           @click="emit('add')"
         >
@@ -29,7 +29,7 @@
           Add Members
         </button>
         <button
-          class="btn btn-sm btn-outline border-base-300 text-error text-[0.95em]"
+          class="btn btn-sm btn-outline border-base-300 text-error kawaru-text-95"
           :disabled="!selectedIds.size || removing"
           @click="confirmRemove"
         >
@@ -40,7 +40,7 @@
     </div>
 
     <div v-if="members.length" class="flex flex-col gap-1 border border-base-200 dark:border-slate-700 rounded-md p-2">
-      <div
+      <div class="kawaru-text-87"
         v-for="(member, i) in members"
         :key="member.id"
         :draggable="manageMode && armed"
@@ -66,7 +66,7 @@
         />
 
         <!-- 序号 + 拖拽手柄（管理模式） -->
-        <span class="w-6 text-center tabular-nums text-base-content/50 text-[0.95em] shrink-0">
+        <span class="w-6 text-center tabular-nums text-base-content/50 kawaru-text-95 shrink-0">
           {{ i + 1 }}
         </span>
         <div
@@ -87,12 +87,12 @@
           <div class="font-medium truncate text-base-content" :title="member.filename">
             {{ member.filename }}
           </div>
-          <div class="text-[0.85em] text-base-content/60 truncate">
+          <div class="kawaru-text-87 text-base-content/60 truncate">
             {{ [member.experimentType, member.status].filter(Boolean).join(' · ') || '–' }}
           </div>
         </div>
 
-        <div class="text-[0.85em] text-base-content/60 whitespace-nowrap tabular-nums shrink-0">
+        <div class="kawaru-text-87 text-base-content/60 whitespace-nowrap tabular-nums shrink-0">
           {{ formatBytes(member.size) }}
         </div>
 
@@ -100,7 +100,7 @@
           <!-- 上移/下移：触屏与键盘可用的排序通道，边界禁用（e2e 也走这里） -->
           <template v-if="manageMode">
             <button
-              class="btn btn-ghost btn-sm btn-square text-[1em]"
+              class="btn btn-ghost btn-sm btn-square kawaru-text-100"
               title="Move up"
               :disabled="i === 0 || reordering"
               :aria-label="`Move ${member.filename} up`"
@@ -109,7 +109,7 @@
               <SvgIcon type="chevron_up" class="w-[1em] h-[1em]" />
             </button>
             <button
-              class="btn btn-ghost btn-sm btn-square text-[1em]"
+              class="btn btn-ghost btn-sm btn-square kawaru-text-100"
               title="Move down"
               :disabled="i === members.length - 1 || reordering"
               :aria-label="`Move ${member.filename} down`"
@@ -120,7 +120,7 @@
           </template>
 
           <button
-            class="btn btn-ghost btn-sm text-[0.95em] text-primary hover:text-primary-focus"
+            class="btn btn-ghost btn-sm kawaru-text-95 text-primary hover:text-primary-focus"
             :title="`Download ${member.filename}`"
             :aria-label="`Download ${member.filename}`"
             @click="emit('download', member)"

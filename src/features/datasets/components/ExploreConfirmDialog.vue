@@ -27,7 +27,7 @@ const emit = defineEmits<{
       href="/docs/guide/view-data"
       target="_blank"
       rel="noopener noreferrer"
-      class="link link-primary text-sm"
+      class="link link-primary kawaru-text-87"
     >
       Learn more about viewing data
     </a>

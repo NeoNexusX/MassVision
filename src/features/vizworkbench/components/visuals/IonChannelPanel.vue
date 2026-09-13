@@ -1,7 +1,7 @@
 <template>
-  <div class="text-[1.125em]">
+  <div class="kawaru-text-81">
     <!-- Mode toggle -->
-    <label class="flex items-center justify-between mb-2 cursor-pointer select-none">
+    <label class="flex items-center justify-between mb-2 cursor-pointer select-none kawaru-text-87">
       <span class="text-base-content">Overlay mode</span>
       <input
         type="checkbox"
@@ -60,7 +60,7 @@
     <!-- Actions -->
     <div class="flex items-center gap-1">
       <button
-        class="btn btn-sm btn-primary flex-1 text-[1em]"
+        class="btn btn-sm btn-primary flex-1 kawaru-text-81"
         :disabled="!enabled || !canAdd"
         :title="addTitle"
         @click="emit('add-current')"
@@ -70,7 +70,7 @@
         Add m/z {{ currentMz.toFixed(6) }}
       </button>
       <button
-        class="btn btn-ghost btn-sm text-[1em]"
+        class="btn btn-ghost btn-sm kawaru-text-81"
         :disabled="!channels.length"
         @click="emit('clear')"
       >

@@ -14,6 +14,7 @@ import {
   loadPixelSpectrum,
 } from '@/features/vizworkbench/composables/useZarrIonImage'
 import type { DataMode } from '@/services/zarr/types/zarr'
+import { formatNumber } from '@/shared/utils/format'
 
 const props = defineProps<{
   isStale?: boolean
@@ -34,7 +35,7 @@ const emit = defineEmits<{
 // ---- continuous 模式数据 ----
 
 const totalPeaks = computed(() =>
-  mzAxisRef.value ? mzAxisRef.value.length.toLocaleString() : '--',
+  mzAxisRef.value ? formatNumber(mzAxisRef.value.length) : '--',
 )
 
 function onSelectMz(mz: number) {
@@ -102,7 +103,7 @@ const continuousStats = computed<{ label: string; value: string }[]>(() => [
 const processedStats = computed<{ label: string; value: string }[]>(() => {
   const spec = pixelSpectrum.value
   return [
-    { label: 'Peaks', value: pixelChartData.value.length.toLocaleString() },
+    { label: 'Peaks', value: formatNumber(pixelChartData.value.length) },
     {
       label: 'Pixel',
       value: spec ? `(${spec.x}, ${spec.y})` : '--',
@@ -123,13 +124,13 @@ const currentStats = computed(() =>
   >
     <div
       v-if="isStale"
-      class="flex-1 flex items-center justify-center text-base-content/40 text-[1.25em]"
+      class="flex-1 flex items-center justify-center text-base-content/40 kawaru-text-95"
     >
       No spectrum data available
     </div>
     <div
       v-else-if="dataMode === 'processed' && !pixelSpectrum"
-      class="flex-1 flex items-center justify-center text-base-content/40 text-[1.25em]"
+      class="flex-1 flex items-center justify-center text-base-content/40 kawaru-text-95"
     >
       <template v-if="pixelSpectrumLoading">
         <span class="loading loading-spinner loading-lg text-primary mr-3"></span>
@@ -155,7 +156,7 @@ const currentStats = computed(() =>
   </div>
 
   <!-- 底部统计信息 -->
-  <div class="shrink-0 flex flex-wrap gap-4 text-[1.25em] text-base-content/60 pl-4 pr-1">
+  <div class="shrink-0 flex flex-wrap gap-4 kawaru-text-95 text-base-content/60 pl-4 pr-1">
     <span v-for="stat in currentStats" :key="stat.label">
       {{ stat.label }}:
       <strong class="text-base-content font-mono">{{ stat.value }}</strong>

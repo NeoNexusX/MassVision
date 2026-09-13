@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex-1 w-full flex flex-col justify-center items-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8 bg-base-200 page-type"
+    class="flex-1 w-full flex flex-col justify-center items-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8 bg-base-200 kawaru-text-100"
   >
     <!-- Main Content -->
     <div class="w-full max-w-7xl">
@@ -10,7 +10,7 @@
           class="max-h-36 shrink-0 bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center px-4 sm:px-8 py-6 sm:py-8"
         >
           <h1
-            class="page-title font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
+            class="kawaru-text-page-title leading-[1.15] font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
           >
             Profile
           </h1>
@@ -21,7 +21,7 @@
           <div class="flex flex-col sm:flex-row gap-6 items-center mb-6">
             <div class="avatar placeholder ring ring-base-100 ring-offset-2 rounded-full">
               <div
-                class="bg-primary text-primary-content rounded-full w-24 h-24 flex items-center justify-center text-3xl"
+                class="bg-primary text-primary-content rounded-full w-24 h-24 flex items-center justify-center kawaru-text-187"
               >
                 <span>{{ (formData.username || 'U').charAt(0).toUpperCase() }}</span>
               </div>
@@ -44,7 +44,7 @@
                     readonly
                   />
                   <button
-                    class="sm:flex-[2] btn whitespace-nowrap w-full sm:w-auto"
+                    class="sm:flex-[2] btn whitespace-nowrap w-full sm:w-auto kawaru-text-87"
                     type="button"
                     @click="openEmailModal"
                   >
@@ -56,7 +56,7 @@
                 <div class="flex flex-col sm:flex-row sm:items-end gap-3">
                   <IconInput class="flex-[3]" label="Password" model-value="••••••••" readonly />
                   <button
-                    class="sm:flex-[2] btn whitespace-nowrap w-full sm:w-auto"
+                    class="sm:flex-[2] btn whitespace-nowrap w-full sm:w-auto kawaru-text-87"
                     type="button"
                     @click="openPasswordModal"
                   >
@@ -67,11 +67,11 @@
             </div>
           </div>
 
-          <div class="divider text-xl">Quota Usage</div>
+          <div class="divider kawaru-text-125">Quota Usage</div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="text-[1em] lg:text-[1.1em] text-base-content/60 mb-1">Storage Upload</div>
-              <div class="text-[1em] font-semibold">
+              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">Storage Upload</div>
+              <div class="kawaru-text-100 font-semibold">
                 {{ quota.uploadUsed }} / {{ quota.uploadMax }}
               </div>
               <progress
@@ -81,8 +81,8 @@
               ></progress>
             </div>
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="text-[1em] lg:text-[1.1em] text-base-content/60 mb-1">Files</div>
-              <div class="text-[1em] font-semibold">
+              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">Files</div>
+              <div class="kawaru-text-100 font-semibold">
                 {{ quota.fileCount }} / {{ quota.maxFiles }}
               </div>
               <progress
@@ -92,8 +92,8 @@
               ></progress>
             </div>
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="text-[1em] lg:text-[1.1em] text-base-content/60 mb-1">Processing</div>
-              <div class="text-[1em] font-semibold">{{ quota.procUsed }} / {{ quota.procMax }}</div>
+              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">Processing</div>
+              <div class="kawaru-text-100 font-semibold">{{ quota.procUsed }} / {{ quota.procMax }}</div>
               <progress
                 class="progress progress-accent w-full mt-2"
                 :value="quota.procPercent"
@@ -101,8 +101,8 @@
               ></progress>
             </div>
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="text-[1em] lg:text-[1.1em] text-base-content/60 mb-1">Downloads</div>
-              <div class="text-[1em] font-semibold">
+              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">Downloads</div>
+              <div class="kawaru-text-100 font-semibold">
                 {{ quota.downloadUsed }} / {{ quota.downloadMax }}
               </div>
               <progress
@@ -113,7 +113,7 @@
             </div>
           </div>
 
-          <div class="divider text-xl">Academic Profile</div>
+          <div class="divider kawaru-text-125">Academic Profile</div>
 
           <!-- Edit Form -->
           <form @submit.prevent="handleSave" class="space-y-4">
@@ -160,7 +160,7 @@
             </div>
 
             <div class="flex justify-end pt-4 border-t border-base-200 mt-6">
-              <button class="btn btn-primary" type="submit" :disabled="loading">
+              <button class="btn btn-primary kawaru-text-87" type="submit" :disabled="loading">
                 <span v-if="loading" class="loading loading-spinner"></span>
                 Save All Changes
               </button>

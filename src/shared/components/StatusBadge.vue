@@ -1,5 +1,7 @@
 <template>
-  <span class="badge font-medium text-base rounded-md border-2 px-2 py-0.5 align-middle" :class="badgeClass">
+  <!-- 根节点不写死字号，否则会盖掉调用方传进来的档位（同为工具类，只看源码顺序）。
+       每个调用点必须显式传 kawaru-text-*，否则落回 daisyUI .badge 的 .875rem。 -->
+  <span class="badge font-medium rounded-md border-2 px-2 py-0.5 align-middle kawaru-text-87" :class="badgeClass">
     {{ label }}
   </span>
 </template>
