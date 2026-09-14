@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SpatialX · VizWorkbench",
+    "subtitle": "Ion image, spectrum, and clustering visualization",
+    "quality_profile": "showcase",
+    "viewBox": [900, 400]
+  },
+  "components": [
+    { "id": "ion", "type": "frontend", "label": "IonImage", "sublabel": "canvas heatmap", "pos": [40, 40], "size": [130, 60] },
+    { "id": "zarr", "type": "frontend", "label": "useZarr", "sublabel": "Zarr v3 reader", "pos": [250, 40], "size": [130, 60] },
+    { "id": "oss", "type": "cloud", "label": "OSS", "sublabel": "Zarr chunks", "pos": [460, 40], "size": [110, 60] },
+    { "id": "controls", "type": "frontend", "label": "Controls", "sublabel": "UMAP · KMeans · ROI", "pos": [40, 200], "size": [140, 60] },
+    { "id": "overlay", "type": "frontend", "label": "useOverlay", "sublabel": "UMAP + KMeans", "pos": [250, 200], "size": [130, 60] },
+    { "id": "api", "type": "backend", "label": "FastAPI", "sublabel": "clustering", "pos": [460, 200], "size": [110, 60] },
+    { "id": "spectrum", "type": "frontend", "label": "Spectrum", "sublabel": "ECharts line", "pos": [40, 320], "size": [130, 60] },
+    { "id": "compare", "type": "frontend", "label": "CompareRegions", "sublabel": "A/B comparison", "pos": [250, 320], "size": [140, 60] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "ion", "to": "zarr", "label": "load matrix", "variant": "emphasis" },
+    { "id": "c2", "from": "zarr", "to": "oss", "label": "chunk reads", "variant": "emphasis" },
+    { "id": "c3", "from": "controls", "to": "overlay", "label": "UMAP/KMeans" },
+    { "id": "c4", "from": "overlay", "to": "api", "label": "create task", "variant": "emphasis" },
+    { "id": "c5", "from": "controls", "to": "compare", "label": "regions", "variant": "dashed" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Visualization",
+      "items": [
+        "Zarr v3 chunked reads → Float32Array ion matrix",
+        "Canvas heatmap with colormap + display range slider",
+        "Multi-ion overlay: up to 4 channels blended in Worker",
+        "Processed mode: TIC image + pixel spectrum on click"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Analysis",
+      "items": [
+        "UMAP dimensionality reduction (backend compute)",
+        "KMeans clustering with interactive cluster selection",
+        "Region comparison: A/B groups with volcano plot",
+        "ROI drawing: freehand/polygon/rectangle + mask export"
+      ]
+    }
+  ]
+}

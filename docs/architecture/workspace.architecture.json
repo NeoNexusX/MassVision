@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SpatialX · Workspace",
+    "subtitle": "Analysis pipeline and task management",
+    "quality_profile": "showcase",
+    "viewBox": [900, 400]
+  },
+  "components": [
+    { "id": "dashboard", "type": "frontend", "label": "Dashboard", "sublabel": "task list + summary", "pos": [40, 40], "size": [130, 60] },
+    { "id": "newtask", "type": "frontend", "label": "NewAnalysis", "sublabel": "2-step wizard", "pos": [40, 180], "size": [130, 60] },
+    { "id": "datasets", "type": "frontend", "label": "useDatasets", "sublabel": "dataset picker", "pos": [250, 180], "size": [130, 60] },
+    { "id": "builder", "type": "frontend", "label": "useBuilder", "sublabel": "pipeline config", "pos": [460, 180], "size": [130, 60] },
+    { "id": "api", "type": "backend", "label": "FastAPI", "sublabel": "POST /processes", "pos": [460, 320], "size": [120, 60] },
+    { "id": "backend", "type": "cloud", "label": "Pipeline Runner", "sublabel": "preprocessing", "pos": [250, 320], "size": [140, 60] },
+    { "id": "oss", "type": "cloud", "label": "OSS", "sublabel": "Zarr results", "pos": [40, 320], "size": [110, 60] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "newtask", "to": "datasets", "label": "select" },
+    { "id": "c2", "from": "datasets", "to": "builder", "label": "configure" },
+    { "id": "c3", "from": "builder", "to": "api", "label": "submit", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "c4", "from": "api", "to": "backend", "label": "execute", "fromSide": "left", "toSide": "right" },
+    { "id": "c5", "from": "backend", "to": "oss", "label": "store Zarr", "fromSide": "left", "toSide": "right" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Analysis Pipeline",
+      "items": [
+        "User selects dataset from MyDatasets or uploads new",
+        "Configure preprocessing: peak picking, normalization, filtering",
+        "Backend runs pipeline asynchronously with progress tracking",
+        "Results stored as Zarr v3 for efficient browser-side visualization"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Task Management",
+      "items": [
+        "Dashboard shows Running/Completed/Failed summary cards",
+        "Search and filter results by dataset name",
+        "Delete results with confirmation dialog",
+        "View error details for failed preprocessing tasks"
+      ]
+    }
+  ]
+}

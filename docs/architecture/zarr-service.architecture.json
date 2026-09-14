@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Zarr Service Architecture",
+    "output": "docs/architecture/zarr-service.architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1100, 600],
+    "views": [
+      {
+        "id": "chunk-read",
+        "label": "Chunk Read Pipeline",
+        "focus": ["consumer", "store", "reader", "decode", "transport", "oss"],
+        "note": "useZarrIonImage → ZarrOssStore → fetch chunk → decompress → typed array → image mapping"
+      },
+      {
+        "id": "sts-lifecycle",
+        "label": "STS Credential Lifecycle",
+        "focus": ["consumer", "api", "transport", "oss", "backend"],
+        "note": "Backend STS endpoint → proactive refresh → reactive retry → ali-oss → OSS"
+      },
+      {
+        "id": "layout-detection",
+        "label": "Layout & Mode Detection",
+        "focus": ["store", "metadata", "reader", "oss"],
+        "note": "Probe data/ion_image/spectra groups → detect v1.0/v1.1 → continuous/processed mode"
+      }
+    ]
+  },
+  "components": [
+    { "id": "consumer", "type": "frontend", "label": "useZarrIonImage", "sublabel": "VizWorkbench composable", "pos": [40, 40], "size": [160, 60] },
+    { "id": "store", "type": "backend", "label": "ZarrOssStore", "sublabel": "Init · Layout · Cache · Dedup", "pos": [340, 40], "size": [170, 60], "tag": "1566 lines · orchestrator" },
+    { "id": "reader", "type": "backend", "label": "zarrReader", "sublabel": "N-D array reassembly", "pos": [620, 40], "size": [150, 60], "tag": "padded/unpadded edge chunks" },
+    { "id": "decode", "type": "backend", "label": "zarrDecode", "sublabel": "gzip · zlib · deflate · zstd", "pos": [880, 40], "size": [140, 60] },
+    { "id": "metadata", "type": "backend", "label": "zarrMetadata", "sublabel": "v3 validation · chunk keys", "pos": [340, 200], "size": [150, 56] },
+    { "id": "transport", "type": "cloud", "label": "ossClient", "sublabel": "ali-oss · STS refresh", "pos": [620, 200], "size": [150, 60], "tag": "proactive + reactive" },
+    { "id": "dtype", "type": "backend", "label": "zarrDtype", "sublabel": "TypedArray construction", "pos": [880, 200], "size": [140, 56] },
+    { "id": "api", "type": "frontend", "label": "zarrAccessApi", "sublabel": "GET /processes/{id}/zarr", "pos": [40, 380], "size": [160, 56] },
+    { "id": "oss", "type": "cloud", "label": "Alibaba Cloud OSS", "sublabel": "Zarr v3 chunk storage", "pos": [620, 380], "size": [170, 60], "tag": "STS temp credentials" },
+    { "id": "backend", "type": "external", "label": "FastAPI Backend", "sublabel": "STS credential endpoint", "pos": [40, 520], "size": [160, 56] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "consumer", "to": "store", "label": "new ZarrOssStore(access)", "variant": "emphasis", "labelDy": -20 },
+    { "id": "c2", "from": "consumer", "to": "api", "label": "getZarrAccess(runId)", "fromSide": "bottom", "toSide": "top", "labelDy": 24 },
+    { "id": "c3", "from": "api", "to": "backend", "label": "GET /processes/{id}/zarr", "variant": "emphasis", "labelDy": 20 },
+    { "id": "c4", "from": "store", "to": "reader", "label": "readFullArray", "labelDy": -20 },
+    { "id": "c5", "from": "store", "to": "metadata", "label": "v3 validate", "fromSide": "bottom", "toSide": "top" },
+    { "id": "c6", "from": "reader", "to": "decode", "label": "decodePayload", "labelDy": 20 },
+    { "id": "c7", "from": "decode", "to": "dtype", "label": "makeTypedArray", "fromSide": "bottom", "toSide": "top", "labelDy": 24 },
+    { "id": "c8", "from": "store", "to": "transport", "label": "fetch chunk", "labelDy": 20 },
+    { "id": "c9", "from": "transport", "to": "oss", "label": "STS token → OSS read", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "c10", "from": "transport", "to": "backend", "label": "refresh STS credentials", "variant": "dashed", "fromSide": "left", "toSide": "right", "labelDy": 80 }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Dual Layout Support",
+      "items": [
+        "v1.0: single data/ group (ion-major or pixel-major)",
+        "v1.1: ion_image/ (continuous) + spectra/ (processed) dual groups",
+        "Probes candidates in order: data → ion_image → spectra",
+        "Each layout determines row_axis, encoding, and read strategy"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Cache & Concurrency",
+      "items": [
+        "3 independent LRU caches: intensity (20), mz (5), spectra (100)",
+        "In-flight dedup maps: concurrent chunk reads share one promise",
+        "Batch size 6 for 1D reads, 12 for full scans (browser connection limit)",
+        "Producer-consumer pool (16 workers) for spectra streaming"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Error Resilience",
+      "items": [
+        "404 chunk → fill-value reconstruction (sparse export, not error)",
+        "STS expiry → proactive margin (60s) + reactive retry on 403/token_expired",
+        "STS refresh dedup: concurrent callers share one backend round-trip",
+        "Corrupt/oversized chunks → throw/truncate; disposed store returns empty"
+      ]
+    }
+  ]
+}

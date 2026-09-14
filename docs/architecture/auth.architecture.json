@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SpatialX · Auth System",
+    "subtitle": "Login, token management, and route guards",
+    "quality_profile": "showcase",
+    "viewBox": [1100, 550]
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "User", "sublabel": "", "pos": [50, 180], "size": [110, 60] },
+    { "id": "form", "type": "frontend", "label": "LoginForm", "sublabel": "username / password", "pos": [220, 180], "size": [140, 70] },
+    { "id": "composable", "type": "frontend", "label": "useLoginForm", "sublabel": "login logic", "pos": [420, 80], "size": [140, 60] },
+    { "id": "store", "type": "frontend", "label": "authStore", "sublabel": "Pinia store · state", "pos": [620, 80], "size": [140, 70] },
+    { "id": "storage", "type": "database", "label": "authStorage", "sublabel": "localStorage", "pos": [820, 80], "size": [140, 60] },
+    { "id": "guard", "type": "frontend", "label": "Router Guard", "sublabel": "beforeEach", "pos": [420, 320], "size": [140, 60] },
+    { "id": "views", "type": "frontend", "label": "Protected Views", "sublabel": "requiresAuth / requiresAdmin", "pos": [220, 320], "size": [150, 60] },
+    { "id": "api", "type": "backend", "label": "authApi", "sublabel": "login · logout · profile", "pos": [620, 320], "size": [150, 60] },
+    { "id": "http", "type": "frontend", "label": "httpClient", "sublabel": "Authorization header", "pos": [820, 320], "size": [150, 60] },
+    { "id": "backend", "type": "external", "label": "FastAPI", "sublabel": "auth endpoints", "pos": [820, 440], "size": [150, 60] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "user", "to": "form", "label": "input" },
+    { "id": "c2", "from": "form", "to": "composable", "label": "submit" },
+    { "id": "c3", "from": "composable", "to": "store", "label": "login(token)", "labelDy": -24 },
+    { "id": "c4", "from": "store", "to": "storage", "label": "persist", "variant": "dashed" },
+    { "id": "c5", "from": "guard", "to": "store", "label": "check token", "variant": "dashed", "fromSide": "top", "toSide": "bottom", "labelDy": -24 },
+    { "id": "c6", "from": "store", "to": "api", "label": "fetchUser", "fromSide": "bottom", "toSide": "top", "labelDy": -64 },
+    { "id": "c7", "from": "api", "to": "http", "label": "request", "labelDy": -24 },
+    { "id": "c8", "from": "http", "to": "backend", "label": "Bearer token", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelDx": 40, "labelDy": 24 },
+    { "id": "c9", "from": "guard", "to": "views", "label": "allow / deny", "fromSide": "left", "toSide": "right", "labelDy": -24 }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Client-Side (Browser)",
+      "wraps": ["form", "composable", "store", "storage", "guard", "http", "views"],
+      "pad": 16
+    },
+    {
+      "kind": "region",
+      "label": "Server-Side",
+      "wraps": ["api", "backend"],
+      "pad": 16
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Auth Flow",
+      "items": [
+        "User submits credentials → useLoginForm calls authApi.login()",
+        "Backend returns JWT access_token → authStore stores in localStorage",
+        "httpClient attaches Bearer token to all API requests",
+        "Router guard checks token + fetches user profile on protected routes"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Security Features",
+      "items": [
+        "Cross-tab logout sync via storage event listener",
+        "401 responses auto-clear token and redirect to /login",
+        "Admin routes require isAdmin check after profile fetch",
+        "In-flight fetchUser dedup prevents concurrent GET /user calls"
+      ]
+    }
+  ]
+}
