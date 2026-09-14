@@ -10,7 +10,7 @@
           :class="{ 'pointer-events-none opacity-50': currentPage === 1 }"
           @click="$emit('prev-page')"
         >
-          Prev
+          {{ $t('common.action.prev') }}
         </button>
         <template v-for="(p, idx) in pageRange" :key="`pg-${idx}`">
           <button
@@ -32,7 +32,7 @@
           :class="{ 'pointer-events-none opacity-50': currentPage === totalPages }"
           @click="$emit('next-page')"
         >
-          Next
+          {{ $t('common.action.next') }}
         </button>
       </div>
 
@@ -51,7 +51,7 @@
           class="join-item btn hover:bg-primary h-[2em] min-h-[2em] px-[1em] kawaru-text-100 text-base-content/70"
           @click="handleJump"
         >
-          Go
+          {{ $t('common.action.go') }}
         </button>
       </div>
     </div>

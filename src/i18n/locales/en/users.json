@@ -1,0 +1,81 @@
+{
+  "users": {
+    "identity": {
+      "admin": "admin",
+      "user": "user"
+    },
+    "field": {
+      "id": "ID",
+      "identity": "Identity",
+      "status": "Status",
+      "institution": "Institution",
+      "orcid": "ORCID",
+      "homepage": "Homepage"
+    },
+    "changePassword": {
+      "title": "Change Password",
+      "hint": "Enter your new password. You will be asked to log in again after the change.",
+      "newPlaceholder": "Enter new password",
+      "confirmPlaceholder": "Re-enter new password",
+      "submit": "Change Password"
+    },
+    "changeEmail": {
+      "title": "Change Email",
+      "hint": "Enter new email and the verification code sent to it.",
+      "newEmail": "New Email",
+      "exhausted": "Maximum attempts reached for this session",
+      "resend": "Resend ({seconds}s)"
+    },
+    "drawer": {
+      "title": "User Details",
+      "currentUsage": "Current Usage",
+      "storageUsed": "Storage Used",
+      "quotaLimits": "Quota Limits",
+      "maxFileCount": "Max File Count",
+      "maxStorage": "Max Storage (GB)",
+      "maxProcessing": "Max Processing (GB)",
+      "maxDownloads": "Max Downloads",
+      "saveQuota": "Save Quota",
+      "mustBeNumber": "Must be a number ≥ 1",
+      "mustBeInteger": "Must be an integer ≥ 1"
+    },
+    "table": {
+      "searchPlaceholder": "Search username...",
+      "allStatus": "All Status",
+      "institutionPlaceholder": "Institution...",
+      "regionPlaceholder": "Region...",
+      "resetFilters": "Reset Filters",
+      "empty": "No users match your filters."
+    },
+    "stats": {
+      "admin": "Admin",
+      "users": "Users",
+      "institutions": "Institutions"
+    },
+    "management": {
+      "title": "User Management",
+      "subtitle": "View and manage registered users across regions.",
+      "target": "users",
+      "deleteTitle": "Confirm Deletion",
+      "deleteMessage": "Are you sure you want to permanently delete user {name}? This action cannot be undone.",
+      "deleteConfirm": "Yes, Delete"
+    },
+    "profile": {
+      "title": "Profile",
+      "quotaUsage": "Quota Usage",
+      "storageUpload": "Storage Upload",
+      "academicProfile": "Academic Profile",
+      "institutionPlaceholder": "University Name",
+      "positionPlaceholder": "Select Position",
+      "researchFieldPlaceholder": "e.g. Computer Vision",
+      "regionPlaceholder": "Select Region",
+      "saveAll": "Save All Changes"
+    },
+    "toast": {
+      "enterEmailAndCode": "Please enter new email and verification code",
+      "fillBothPasswords": "Please fill in both password fields",
+      "passwordRule": "Password must be 8-25 characters with at least one letter and one number",
+      "passwordChanged": "Password changed. Please sign in again."
+    }
+  }
+}

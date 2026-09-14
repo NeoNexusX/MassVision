@@ -14,11 +14,11 @@
         class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
       >
         <SvgIcon type="circle_stack" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-        <h3 class="kawaru-text-112 font-bold text-base-content">Collection not found</h3>
+        <h3 class="kawaru-text-112 font-bold text-base-content">{{ $t('collections.overview.notFound') }}</h3>
         <p class="mt-2 text-base-content/60">
-          This collection does not exist or is no longer public.
+          {{ $t('collections.public.notFoundDesc') }}
         </p>
-        <router-link to="/" class="btn btn-primary mt-6 kawaru-text-100">Back to Home</router-link>
+        <router-link to="/" class="btn btn-primary mt-6 kawaru-text-100">{{ $t('collections.public.backHome') }}</router-link>
       </div>
 
       <template v-else-if="detail">
@@ -29,7 +29,7 @@
               border border-success/30 bg-success/10 text-success mb-2 kawaru-text-75"
           >
             <SvgIcon type="region" class="w-[0.9em] h-[0.9em]" />
-            Public Collection
+            {{ $t('collections.public.badge') }}
           </span>
           <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content truncate" :title="detail.name">
             {{ detail.name }}
@@ -48,18 +48,18 @@
           <span class="inline-flex items-center gap-1.5">
             <SvgIcon type="queue_list" class="w-[1.1em] h-[1.1em]" />
             <span class="font-semibold text-base-content">{{ detail.memberCount }}</span>
-            {{ detail.memberCount === 1 ? 'dataset' : 'datasets' }}
+            {{ $t('collections.unit.dataset', detail.memberCount) }}
           </span>
           <span class="inline-flex items-center gap-1.5">
             <SvgIcon type="folder" class="w-[1.1em] h-[1.1em]" />
             {{ formatBytes(detail.totalSize) }}
           </span>
-          <span class="inline-flex items-center gap-1.5" :title="`Owner: ${detail.ownerUsername}`">
+          <span class="inline-flex items-center gap-1.5" :title="$t('collections.card.owner', { name: detail.ownerUsername })">
             <SvgIcon type="user" class="w-[1.1em] h-[1.1em]" />
             {{ detail.ownerUsername }}
           </span>
           <span v-if="updatedDate" class="ml-auto whitespace-nowrap">
-            Updated {{ updatedDate }}
+            {{ $t('collections.card.updated', { date: updatedDate }) }}
           </span>
         </div>
 
@@ -86,6 +86,7 @@ import { collectionErrorMessage, getPublicCollection } from '@/features/collecti
 import type { CollectionMember, PublicCollectionDetail } from '@/features/collections/types/collection'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
 import { formatBytes, formatDate } from '@/shared/utils/format'
+import { t } from '@/i18n'
 
 const route = useRoute()
 
@@ -102,7 +103,7 @@ async function fetch() {
   try {
     detail.value = await getPublicCollection(publicId.value)
   } catch (err: any) {
-    error.value = collectionErrorMessage(err, 'Collection not found')
+    error.value = collectionErrorMessage(err, t('collections.overview.notFound'))
   } finally {
     loading.value = false
   }

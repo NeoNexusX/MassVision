@@ -1,13 +1,18 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import CollectionMetadataForm from '../CollectionMetadataForm.vue'
 import { toMetadataDraft } from '../../utils/metadataPatch'
+import { i18n, loadCoreMessages, loadFeatureMessages } from '@/i18n'
 
 const draft = () => reactive(toMetadataDraft({ name: 'Mouse kidney MSI' }))
 
 const mountForm = (props: Record<string, unknown> = {}) =>
-  mount(CollectionMetadataForm, { props: { draft: draft(), ...props } })
+  mount(CollectionMetadataForm, { props: { draft: draft(), ...props }, global: { plugins: [i18n] } })
+
+
+// 组件模板用 $t：挂载时装上 i18n 实例，并预先加载英文语言包（断言保持英文原文）
+beforeAll(() => Promise.all([loadCoreMessages('en'), loadFeatureMessages('collections')]))
 
 describe('CollectionMetadataForm', () => {
   it('renders every metadata group by default', () => {

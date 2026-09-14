@@ -31,6 +31,8 @@ import {
 import PubChemDialog from '@/features/vizworkbench/components/PubChemDialog.vue'
 import { scrollIntoContainer } from '@/features/vizworkbench/utils/scrollIntoContainer'
 import { useToast } from '@/shared/composables/useToast'
+import MzText from '@/shared/components/MzText.vue'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   /** Panel expanded state (v-model:expanded). */
@@ -97,9 +99,6 @@ watch(adductOptions, (opts) => {
 watch(formulaOptions, (opts) => {
   if (filterFormula.value && !opts.includes(filterFormula.value)) filterFormula.value = ''
 })
-const isAnnotationAvailable = computed(
-  () => props.spectrumMode === 'centroid' && spectrumAvailable.value,
-)
 
 function isActive(row: { matchedIndex: number | null }): boolean {
   return row.matchedIndex != null && row.matchedIndex === props.selectedMzIndex
@@ -119,11 +118,15 @@ const tolStep = computed(() => (tolMode.value === 'ppm' ? 0.1 : 0.0001))
 
 // ---- Sort control (moved from table headers into the toolbar) ----
 
-const SORT_OPTIONS: { value: AnnotationSortKey; label: string }[] = [
-  { value: 'name', label: 'Name' },
-  { value: 'expMz', label: 'Target m/z' },
-  { value: 'massError', label: 'Mass Difference' },
-  { value: 'avgIntensity', label: 'Intensity' },
+/** CSV 列名是文件格式约定，各语言下都照原样显示 */
+const CSV_COLUMNS = ['Exp. m/z', 'Candidate_1..5', 'formula_ion', 'Ion type']
+
+// label 写成 getter：常量表只求值一次，模板里调用才会随语言切换刷新
+const SORT_OPTIONS: { value: AnnotationSortKey; label: () => string }[] = [
+  { value: 'name', label: () => t('common.field.name') },
+  { value: 'expMz', label: () => t('vizworkbench.annotation.target') },
+  { value: 'massError', label: () => t('vizworkbench.annotation.massDifference') },
+  { value: 'avgIntensity', label: () => t('vizworkbench.spectrum.intensity') },
 ]
 
 function onSortKeyChange(e: Event) {
@@ -177,7 +180,7 @@ async function onDrop(e: DragEvent) {
   if (file) {
     await importFile(file)
   } else {
-    showToast('Please drop a .csv annotation file.', 'error')
+    showToast(t('vizworkbench.annotation.dropCsvOnly'), 'error')
   }
 }
 
@@ -397,10 +400,10 @@ watch(
     <button
       v-show="!expanded"
       class="flex w-full items-center justify-between gap-3 px-4 py-3 hover:bg-base-200/60 lg:hidden"
-      title="Expand annotation panel"
+      :title="$t('vizworkbench.annotation.expand')"
       @click="expand"
     >
-      <span class="kawaru-text-87 font-semibold">Annotations</span>
+      <span class="kawaru-text-87 font-semibold">{{ $t('vizworkbench.annotation.title') }}</span>
       <SvgIcon type="chevron_down" />
     </button>
 
@@ -408,12 +411,12 @@ watch(
     <div
       v-show="!expanded"
       class="hidden h-full w-full cursor-pointer flex-col items-center justify-center gap-2 py-3 hover:bg-base-200/60 lg:flex"
-      title="Expand annotation panel"
+      :title="$t('vizworkbench.annotation.expand')"
       @click="expand"
     >
       <SvgIcon type="chevron_right" />
       <span class="[writing-mode:vertical-rl] kawaru-text-81 font-medium tracking-wide">
-        Annotations
+        {{ $t('vizworkbench.annotation.title') }}
       </span>
     </div>
 
@@ -429,7 +432,7 @@ watch(
       <!-- Header -->
       <div class="flex items-center justify-between gap-2 shrink-0">
         <div class="min-w-0">
-          <h3 class="kawaru-text-81 font-semibold text-base-content leading-tight">Annotations</h3>
+          <h3 class="kawaru-text-81 font-semibold text-base-content leading-tight">{{ $t('vizworkbench.annotation.title') }}</h3>
           <p v-if="fileName" class="kawaru-text-68 text-base-content/50 truncate" :title="fileName">
             {{ fileName }}
           </p>
@@ -439,7 +442,7 @@ watch(
             v-if="hasData"
             class="btn btn-ghost btn-xs btn-square kawaru-text-68"
             :class="{ 'btn-disabled opacity-40': !counts.matched }"
-            title="Export matched annotations (name, target m/z, matched m/z, mass difference) as CSV"
+            :title="$t('vizworkbench.annotation.exportHint')"
             :disabled="!counts.matched"
             @click="exportMatchedCsv"
           >
@@ -448,12 +451,12 @@ watch(
           <button
             v-if="hasData"
             class="btn btn-ghost btn-xs btn-square kawaru-text-68"
-            title="Clear imported annotations"
+            :title="$t('vizworkbench.annotation.clearHint')"
             @click="clear"
           >
             <SvgIcon type="trash" />
           </button>
-          <button class="btn btn-ghost btn-xs btn-square kawaru-text-68" title="Collapse" @click="collapse">
+          <button class="btn btn-ghost btn-xs btn-square kawaru-text-68" :title="$t('vizworkbench.annotation.collapse')" @click="collapse">
             <SvgIcon type="chevron_right" class="rotate-180" />
           </button>
         </div>
@@ -480,16 +483,16 @@ watch(
             aria-hidden="true"
           ></span>
           <SvgIcon v-else type="upload" class="w-4 h-4" />
-          {{ isImporting ? 'Importing…' : 'Import CSV' }}
+          {{ isImporting ? $t('vizworkbench.annotation.importing') : $t('vizworkbench.annotation.import') }}
         </button>
 
         <div v-if="spectrumMode !== 'centroid'" class="text-warning flex items-start gap-1.5">
           <SvgIcon type="warning" class="shrink-0 mt-0.5" />
-          <span>Annotation is only available for continuous centroid data.</span>
+          <span>{{ $t('vizworkbench.annotation.centroidOnly') }}</span>
         </div>
         <div v-else-if="!spectrumAvailable" class="text-warning flex items-start gap-1.5">
           <SvgIcon type="warning" class="shrink-0 mt-0.5" />
-          <span>Average spectrum not loaded - <i>m/z</i> matching unavailable for this result.</span>
+          <MzText :text="$t('vizworkbench.annotation.spectrumNotLoaded')" />
         </div>
         <div v-if="parseError" class="text-error flex items-start gap-1.5">
           <SvgIcon type="error" class="shrink-0 mt-0.5" />
@@ -498,7 +501,7 @@ watch(
 
         <!-- Tolerance controls -->
         <div class="flex items-center gap-2">
-          <span class="shrink-0 kawaru-text-75">Tolerance</span>
+          <span class="shrink-0 kawaru-text-75">{{ $t('vizworkbench.spectrum.tolerance') }}</span>
           <input
             v-model.number="tolValue"
             type="number"
@@ -514,22 +517,22 @@ watch(
 
         <!-- Sort by -->
         <div class="flex items-center gap-2">
-          <span class="shrink-0 kawaru-text-75">Sort by</span>
+          <span class="shrink-0 kawaru-text-75">{{ $t('vizworkbench.annotation.sortBy') }}</span>
           <select
             :value="sortKey"
             class="select select-bordered select-sm flex-1 kawaru-text-75"
             @change="onSortKeyChange"
           >
             <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
+              {{ opt.label() }}
             </option>
           </select>
           <button
             class="btn btn-outline btn-sm btn-square kawaru-text-75"
             :title="
               sortDir === 'asc'
-                ? 'Ascending (click for descending)'
-                : 'Descending (click for ascending)'
+                ? $t('vizworkbench.annotation.ascending')
+                : $t('vizworkbench.annotation.descending')
             "
             @click="toggleSortDir"
           >
@@ -544,7 +547,7 @@ watch(
           v-model="search"
           size="sm"
           :fluid="false"
-          placeholder="Search name / formula / m/z"
+          :placeholder="$t('vizworkbench.annotation.searchPlaceholder')"
         />
       </div>
 
@@ -555,21 +558,21 @@ watch(
           :class="filter === 'all' ? 'badge-primary' : 'badge-ghost'"
           @click="filter = 'all'"
         >
-          All {{ counts.total }}
+          {{ $t('vizworkbench.annotation.countAll', { count: counts.total }) }}
         </button>
         <button
           class="badge badge-sm kawaru-text-68 cursor-pointer transition-colors"
           :class="filter === 'matched' ? 'badge-success badge-outline' : 'badge-ghost'"
           @click="filter = 'matched'"
         >
-          Matched {{ counts.matched }}
+          {{ $t('vizworkbench.annotation.countMatched', { count: counts.matched }) }}
         </button>
         <button
           class="badge badge-sm kawaru-text-68 cursor-pointer transition-colors"
           :class="filter === 'unmatched' ? 'badge-warning badge-outline' : 'badge-ghost'"
           @click="filter = 'unmatched'"
         >
-          Unmatched {{ counts.unmatched + counts.invalid }}
+          {{ $t('vizworkbench.annotation.countUnmatched', { count: counts.unmatched + counts.invalid }) }}
         </button>
       </div>
 
@@ -580,16 +583,16 @@ watch(
       <div v-if="hasData" class="shrink-0 space-y-1">
         <div class="grid grid-cols-2 gap-2">
           <label class="flex flex-col gap-0.5 kawaru-text-75 min-w-0">
-            <span class="text-base-content/60">Adduct</span>
+            <span class="text-base-content/60">{{ $t('vizworkbench.annotation.adduct') }}</span>
             <select v-model="filterAdduct" class="select select-bordered select-sm w-full kawaru-text-75">
-              <option value="">All</option>
+              <option value="">{{ $t('vizworkbench.annotation.all') }}</option>
               <option v-for="opt in adductOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>
           </label>
           <label class="flex flex-col gap-0.5 kawaru-text-75 min-w-0">
-            <span class="text-base-content/60">Formula</span>
+            <span class="text-base-content/60">{{ $t('vizworkbench.annotation.formula') }}</span>
             <select v-model="filterFormula" class="select select-bordered select-sm w-full kawaru-text-75">
-              <option value="">All</option>
+              <option value="">{{ $t('vizworkbench.annotation.all') }}</option>
               <option v-for="opt in formulaOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>
           </label>
@@ -598,9 +601,9 @@ watch(
         <span
           v-if="coarseFiltered > 0"
           class="kawaru-text-68 text-base-content/50"
-          title="Rows dropped before matching because their adduct/formula implies the opposite polarity, or their m/z lies outside the spectrum's range"
+          :title="$t('vizworkbench.annotation.coarseHint')"
         >
-          {{ coarseFiltered }} filtered by polarity / <i>m/z</i> range
+          <MzText :text="$t('vizworkbench.annotation.coarseFiltered', { count: coarseFiltered })" />
         </span>
       </div>
 
@@ -614,7 +617,7 @@ watch(
           class="inline-block size-9 animate-spin rounded-full border-4 border-current border-t-transparent text-primary will-change-transform"
           aria-hidden="true"
         ></span>
-        <p class="kawaru-text-68 text-base-content/50">Parsing and matching annotations…</p>
+        <p class="kawaru-text-68 text-base-content/50">{{ $t('vizworkbench.annotation.parsing') }}</p>
       </div>
 
       <!-- Table: only Annotation + Exp. m/z (details on hover card).
@@ -635,8 +638,10 @@ watch(
         <table class="table table-sm w-full table-fixed">
           <thead class="sticky top-0 z-10 bg-base-200 text-base-content/70">
             <tr>
-              <th>Annotation</th>
-              <th class="text-right w-[120px]" title="Target m/z from the CSV">Target <i>m/z</i></th>
+              <th>{{ $t('vizworkbench.annotation.annotation') }}</th>
+              <th class="text-right w-[120px]" :title="$t('vizworkbench.annotation.targetHint')">
+                <MzText :text="$t('vizworkbench.annotation.target')" />
+              </th>
             </tr>
           </thead>
           <tbody ref="tableBodyRef">
@@ -695,9 +700,9 @@ watch(
                pre-filter discarded the whole file at import, not the user's
                filter/search - say so instead of blaming the wrong control. -->
           <template v-if="counts.total === 0">
-            No usable rows: every row was filtered out by the result's polarity / <i>m/z</i> range.
+            <MzText :text="$t('vizworkbench.annotation.noUsableRows')" />
           </template>
-          <template v-else>No rows match the current filter / search.</template>
+          <template v-else>{{ $t('vizworkbench.annotation.noRowsMatch') }}</template>
         </div>
       </div>
 
@@ -708,12 +713,13 @@ watch(
       >
         <SvgIcon type="upload" class="w-8 h-8 text-base-content/30" />
         <p class="text-base-content/60">
-          Import an annotation CSV to match against the average spectrum.
+          {{ $t('vizworkbench.annotation.emptyHint') }}
         </p>
         <p class="kawaru-text-68 text-base-content/40">
-          Columns: <span class="font-mono">Exp. m/z</span>,
-          <span class="font-mono">Candidate_1..5</span>, <span class="font-mono">formula_ion</span>,
-          <span class="font-mono">Ion type</span>
+          {{ $t('vizworkbench.annotation.columns') }}
+          <template v-for="(col, i) in CSV_COLUMNS" :key="col"
+            >{{ i ? ', ' : ' ' }}<span class="font-mono">{{ col }}</span></template
+          >
         </p>
       </div>
 
@@ -725,7 +731,7 @@ watch(
                rounded-lg border-2 border-dashed border-primary bg-primary/15"
       >
         <SvgIcon type="upload" class="w-8 h-8 text-primary" />
-        <p class="kawaru-text-81 font-medium text-primary">Drop CSV to import annotations</p>
+        <p class="kawaru-text-81 font-medium text-primary">{{ $t('vizworkbench.annotation.dropHint') }}</p>
       </div>
     </div>
   </aside>
@@ -753,7 +759,7 @@ watch(
         </div>
         <button
           class="shrink-0 p-0.5 text-base-content/40 hover:text-primary transition-colors"
-          title="Copy name"
+          :title="$t('vizworkbench.annotation.copyName')"
           @click.stop="copyName(tooltipRow.name)"
         >
           <SvgIcon type="duplicate" />
@@ -768,7 +774,7 @@ watch(
       </div>
       <button
         class="btn btn-sm btn-outline btn-primary gap-1 w-full justify-center mt-1.5 kawaru-text-75"
-        title="Search PubChem"
+        :title="$t('vizworkbench.annotation.searchPubchem')"
         @click.stop="searchPubChem(tooltipRow.name)"
       >
         <SvgIcon type="search" />
@@ -779,7 +785,7 @@ watch(
     <!-- Detail fields moved from the table -->
     <div class="border-t border-base-content/15 pt-1.5 mt-1.5 space-y-1">
       <div class="flex items-center justify-between">
-        <span class="text-base-content/50">Matched <i>m/z</i></span>
+        <MzText class="text-base-content/50" :text="$t('vizworkbench.annotation.matched')" />
         <span class="flex items-center gap-1.5">
           <span
             class="inline-block w-2 h-2 rounded-full"
@@ -799,7 +805,7 @@ watch(
         </span>
       </div>
       <div class="flex items-center justify-between gap-2">
-        <span class="text-base-content/50 shrink-0">Mass Difference</span>
+        <span class="text-base-content/50 shrink-0">{{ $t('vizworkbench.annotation.massDifference') }}</span>
         <span
           class="font-mono truncate min-w-0 text-right"
           :title="`${formatMassError(tooltipRow.massError, tolMode)} ${tooltipRow.massError != null ? tolMode : ''}`"
@@ -808,7 +814,7 @@ watch(
         >
       </div>
       <div class="flex items-center justify-between">
-        <span class="text-base-content/50">Intensity</span>
+        <span class="text-base-content/50">{{ $t('vizworkbench.spectrum.intensity') }}</span>
         <span class="font-mono">{{ formatIntensity(tooltipRow.avgIntensity) }}</span>
       </div>
     </div>
@@ -816,7 +822,7 @@ watch(
     <!-- Candidates list with per-candidate PubChem lookup -->
     <div v-if="tooltipRow.candidates.length" class="border-t border-base-content/15 pt-1.5 mt-1.5">
       <div class="text-base-content/50 mb-1">
-        Candidates ({{ tooltipRow.candidates.length }})
+        {{ $t('vizworkbench.annotation.candidates', { count: tooltipRow.candidates.length }) }}
       </div>
       <ul class="space-y-0.5">
         <li
@@ -827,7 +833,7 @@ watch(
           <span class="truncate select-text kawaru-text-87">{{ c }}</span>
           <button
             class="btn btn-ghost btn-xs shrink-0 btn-square text-base-content/40 hover:text-primary hover:bg-primary/10 kawaru-text-68"
-            title="Search PubChem"
+            :title="$t('vizworkbench.annotation.searchPubchem')"
             @click.stop="searchPubChem(c)"
           >
             <SvgIcon type="search" class="text-primary" />

@@ -8,12 +8,12 @@
   >
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <h2 class="kawaru-text-125 font-bold text-base-content flex items-center gap-2">
-        Members
+        {{ $t('collections.members.title') }}
         <span
           v-if="members.length"
           class="badge badge-sm font-medium border border-base-300 bg-base-200 text-base-content/70 kawaru-text-75"
         >
-          {{ members.length }}/{{ limit }} datasets
+          {{ $t('collections.members.countBadge', { count: members.length, limit }) }}
         </span>
       </h2>
 
@@ -26,7 +26,7 @@
         >
           <SvgIcon v-if="!adding" type="plus" class="w-[1em] h-[1em]" />
           <span v-else class="loading loading-spinner loading-xs"></span>
-          Add Members
+          {{ $t('collections.members.add') }}
         </button>
         <button
           class="btn btn-sm btn-outline border-base-300 text-error kawaru-text-95"
@@ -34,7 +34,11 @@
           @click="confirmRemove"
         >
           <SvgIcon type="trash" class="w-[1em] h-[1em]" />
-          Remove Selected{{ selectedIds.size ? ` (${selectedIds.size})` : '' }}
+          {{
+            selectedIds.size
+              ? $t('collections.members.removeSelectedCount', { count: selectedIds.size })
+              : $t('collections.members.removeSelected')
+          }}
         </button>
       </div>
     </div>
@@ -61,7 +65,7 @@
           type="checkbox"
           class="checkbox checkbox-sm checkbox-primary shrink-0"
           :checked="selectedIds.has(member.id)"
-          :aria-label="`Select ${member.filename}`"
+          :aria-label="$t('collections.picker.selectAria', { name: member.filename })"
           @change="toggleSelect(member.id)"
         />
 
@@ -72,7 +76,7 @@
         <div
           v-if="manageMode"
           class="shrink-0 cursor-grab active:cursor-grabbing text-base-content/40 hover:text-base-content/70 p-1"
-          title="Drag to reorder"
+:title="$t('collections.selected.dragHint')"
           aria-hidden="true"
           @pointerdown="arm"
         >
@@ -80,7 +84,7 @@
         </div>
 
         <div class="w-10 h-10 shrink-0">
-          <DatasetThumb :file-id="String(member.id)" :alt="`Preview of ${member.filename}`" />
+          <DatasetThumb :file-id="String(member.id)" :alt="$t('collections.picker.previewAlt', { name: member.filename })" />
         </div>
 
         <div class="flex-1 min-w-0">
@@ -88,7 +92,7 @@
             {{ member.filename }}
           </div>
           <div class="kawaru-text-87 text-base-content/60 truncate">
-            {{ [member.experimentType, member.status].filter(Boolean).join(' · ') || '–' }}
+            {{ [member.experimentType, statusLabel(member.status)].filter(Boolean).join(' · ') || '–' }}
           </div>
         </div>
 
@@ -101,18 +105,18 @@
           <template v-if="manageMode">
             <button
               class="btn btn-ghost btn-sm btn-square kawaru-text-100"
-              title="Move up"
+:title="$t('collections.selected.moveUp')"
               :disabled="i === 0 || reordering"
-              :aria-label="`Move ${member.filename} up`"
+              :aria-label="$t('collections.selected.moveUpAria', { name: member.filename })"
               @click="emit('reorder', i, i - 1)"
             >
               <SvgIcon type="chevron_up" class="w-[1em] h-[1em]" />
             </button>
             <button
               class="btn btn-ghost btn-sm btn-square kawaru-text-100"
-              title="Move down"
+:title="$t('collections.selected.moveDown')"
               :disabled="i === members.length - 1 || reordering"
-              :aria-label="`Move ${member.filename} down`"
+              :aria-label="$t('collections.selected.moveDownAria', { name: member.filename })"
               @click="emit('reorder', i, i + 1)"
             >
               <SvgIcon type="chevron_down" class="w-[1em] h-[1em]" />
@@ -121,8 +125,8 @@
 
           <button
             class="btn btn-ghost btn-sm kawaru-text-95 text-primary hover:text-primary-focus"
-            :title="`Download ${member.filename}`"
-            :aria-label="`Download ${member.filename}`"
+            :title="$t('collections.members.downloadAria', { name: member.filename })"
+            :aria-label="$t('collections.members.downloadAria', { name: member.filename })"
             @click="emit('download', member)"
           >
             <SvgIcon type="download" class="w-[1em] h-[1em]" />
@@ -137,8 +141,8 @@
       class="border-2 border-dashed border-base-300 dark:border-slate-600 rounded-lg p-8 text-center text-base-content/50"
     >
       <SvgIcon type="queue_list" class="h-10 w-10 mx-auto mb-3 text-base-content/30" />
-      <p v-if="manageMode">No members yet — add public imzML datasets to this collection.</p>
-      <p v-else>This collection has no members.</p>
+      <p v-if="manageMode">{{ $t('collections.members.emptyManage') }}</p>
+      <p v-else>{{ $t('collections.members.empty') }}</p>
     </div>
   </section>
 </template>
@@ -149,6 +153,7 @@ import type { PropType } from 'vue'
 import DatasetThumb from '@/features/collections/components/DatasetThumb.vue'
 import { useDragReorder } from '@/features/collections/composables/useDragReorder'
 import { formatBytes } from '@/shared/utils/format'
+import { t } from '@/i18n'
 import type { CollectionMember } from '../types/collection'
 
 const props = defineProps({
@@ -169,6 +174,14 @@ const emit = defineEmits<{
   (e: 'reorder', from: number, to: number): void
   (e: 'download', member: CollectionMember): void
 }>()
+
+/** 成员文件的上传状态（后端取值）→ 显示文字；未知取值原样显示 */
+function statusLabel(status: string | null | undefined): string {
+  if (status === 'completed') return t('common.status.completed')
+  if (status === 'uploading') return t('common.status.processing')
+  if (status === 'failed') return t('common.status.failed')
+  return status ?? ''
+}
 
 // ---- 多选（仅管理模式）----
 const selectedIds = reactive(new Set<number>())

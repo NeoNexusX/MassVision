@@ -4,6 +4,7 @@ import UploadFilePicker from '@/features/upload/components/UploadFilePicker.vue'
 import UploadMetadataForm from '@/features/upload/components/UploadMetadataForm.vue'
 import UploadProgressPanel from '@/features/upload/components/UploadProgressPanel.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
+import { I18nT } from 'vue-i18n'
 import { useUploadFlow } from '@/features/upload/composables/useUploadFlow'
 
 defineProps<{ isOpen: boolean }>()
@@ -79,7 +80,7 @@ const {
     <div
       class="modal-box rounded-2xl w-11/12 max-w-2xl max-h-[90vh] flex flex-col text-base-content"
     >
-      <h3 class="font-bold kawaru-text-150 mb-4 shrink-0">Upload New Dataset (imzML + ibd)</h3>
+      <h3 class="font-bold kawaru-text-150 mb-4 shrink-0">{{ $t('upload.modal.title') }}</h3>
 
       <div v-if="stage === 'select'" class="flex flex-col flex-1 min-h-0">
         <div
@@ -133,9 +134,9 @@ const {
             @click="confirmAndUpload"
             :disabled="!selectedPair || uploading || pendingResume"
           >
-            Confirm & Upload
+            {{ $t('upload.modal.confirmUpload') }}
           </button>
-          <button class="btn btn-ghost kawaru-text-87" @click="closeModal" :disabled="uploading">Cancel</button>
+          <button class="btn btn-ghost kawaru-text-87" @click="closeModal" :disabled="uploading">{{ $t('common.action.cancel') }}</button>
         </div>
       </div>
 
@@ -158,21 +159,22 @@ const {
     </div>
 
     <form method="dialog" class="modal-backdrop">
-      <button @click="closeModal" :disabled="stage === 'uploading'">close</button>
+      <button @click="closeModal" :disabled="stage === 'uploading'">{{ $t('common.action.close') }}</button>
     </form>
   </dialog>
 
   <ConfirmDialog
     :open="showPublicConfirm"
-    title="Upload as Public Dataset"
-    confirm-label="Upload Publicly"
+:title="$t('upload.publicConfirm.title')"
+    :confirm-label="$t('upload.publicConfirm.confirm')"
     danger
     @confirm="proceedPublicUpload"
     @cancel="cancelPublicUpload"
   >
-    <span>
-      This dataset will be uploaded as <strong>public</strong> and visible to all users. Are you
-      sure you want to continue?
-    </span>
+    <I18nT keypath="upload.publicConfirm.body" tag="span" scope="global">
+      <template #publicWord>
+        <strong>{{ $t('upload.publicConfirm.publicWord') }}</strong>
+      </template>
+    </I18nT>
   </ConfirmDialog>
 </template>

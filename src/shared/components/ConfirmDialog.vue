@@ -11,7 +11,7 @@
         <slot>{{ message }}</slot>
       </p>
       <div class="modal-action">
-        <button v-if="!hideCancel" class="btn kawaru-text-87" @click="$emit('cancel')" :disabled="loading">Cancel</button>
+        <button v-if="!hideCancel" class="btn kawaru-text-87" @click="$emit('cancel')" :disabled="loading">{{ $t('common.action.cancel') }}</button>
         <button
           v-if="!hideConfirm"
           :class="['btn kawaru-text-87', danger ? 'btn-error text-white' : 'btn-primary']"
@@ -19,12 +19,12 @@
           :disabled="loading"
         >
           <span v-if="loading" class="loading loading-spinner loading-sm"></span>
-          {{ confirmLabel }}
+          {{ confirmLabel ?? $t('common.action.confirm') }}
         </button>
       </div>
     </div>
     <form method="dialog" class="modal-backdrop" @click="$emit('cancel')">
-      <button @click="$emit('cancel')">close</button>
+      <button @click="$emit('cancel')">{{ $t('common.action.close') }}</button>
     </form>
   </dialog>
 </template>
@@ -43,7 +43,8 @@ withDefaults(
   }>(),
   {
     message: '',
-    confirmLabel: 'Confirm',
+    // 缺省时模板里取当前语言的「确认」；withDefaults 在模块求值时就定死，不能在这里调 t()
+    confirmLabel: undefined,
     danger: false,
     loading: false,
     hideCancel: false,

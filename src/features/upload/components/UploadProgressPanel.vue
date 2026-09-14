@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { formatBytes } from '@/shared/utils/format'
-import type { PartRetryInfo, ImzmlMilestone } from '@/features/upload/utils/imzmlHelper'
+import { ETA_CALCULATING, type PartRetryInfo, type ImzmlMilestone } from '@/features/upload/utils/imzmlHelper'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   message: string
@@ -35,10 +36,15 @@ defineEmits<{
 
 const bottleneckLabel = computed(() =>
   props.bottleneck === 'upload'
-    ? 'upload-bound'
+    ? t('upload.progress.uploadBound')
     : props.bottleneck === 'compress'
-      ? 'compression-bound'
+      ? t('upload.progress.compressBound')
       : '',
+)
+
+// formatETA 在压缩 worker 里也会跑，拿不到 i18n，只能返回固定的英文哨兵值，在这里换成译文
+const etaText = computed(() =>
+  props.eta === ETA_CALCULATING ? t('upload.progress.calculating') : props.eta,
 )
 
 /** 拆解行：两个速度都还没有样本时整行不显示，避免半空的一行 */
@@ -58,10 +64,10 @@ const milestoneSpeeds = computed(() => {
   const m = props.imzmlMilestone
   if (!m) return ''
   const parts = [
-    m.compressSpeedStr && `compressed at ${m.compressSpeedStr}`,
-    m.uploadSpeedStr && `uploaded at ${m.uploadSpeedStr}`,
+    m.compressSpeedStr && t('upload.progress.compressedAt', { speed: m.compressSpeedStr }),
+    m.uploadSpeedStr && t('upload.progress.uploadedAt', { speed: m.uploadSpeedStr }),
   ].filter(Boolean)
-  return parts.join(', ')
+  return parts.join(t('upload.progress.separator'))
 })
 </script>
 
@@ -78,7 +84,7 @@ const milestoneSpeeds = computed(() => {
         class="flex justify-between items-center w-full mt-2 kawaru-text-100 text-base-content/60 bg-base-200/50 py-1.5 px-3 rounded"
       >
         <div v-if="speed" class="flex items-center">⚡ {{ speed }}</div>
-        <div v-if="eta" class="flex items-center">⏱️ ETA: {{ eta }}</div>
+        <div v-if="eta" class="flex items-center">⏱️ {{ $t('upload.progress.eta', { eta: etaText }) }}</div>
       </div>
 
       <!--
@@ -89,8 +95,8 @@ const milestoneSpeeds = computed(() => {
         v-if="showBreakdown"
         class="flex flex-wrap items-center gap-x-4 gap-y-1 w-full mt-1.5 px-3 kawaru-text-87 text-base-content/50"
       >
-        <span v-if="compressSpeed">Compress {{ compressSpeed }}</span>
-        <span v-if="uploadSpeed">Upload {{ uploadSpeed }}</span>
+        <span v-if="compressSpeed">{{ $t('upload.progress.compress', { speed: compressSpeed }) }}</span>
+        <span v-if="uploadSpeed">{{ $t('upload.progress.upload', { speed: uploadSpeed }) }}</span>
         <span v-if="bottleneckLabel" class="text-base-content/40">({{ bottleneckLabel }})</span>
         <span v-if="transferred" class="ml-auto">{{ transferred }}</span>
       </div>
@@ -106,7 +112,7 @@ const milestoneSpeeds = computed(() => {
         v-if="imzmlMilestone"
         class="mt-2 w-full rounded border border-success/40 bg-success/10 px-3 py-2 kawaru-text-87 text-success"
       >
-        <p class="font-medium">✓ imzML transferred — continuing with .ibd</p>
+        <p class="font-medium">{{ $t('upload.progress.milestone') }}</p>
         <p v-if="milestoneSpeeds" class="mt-0.5 opacity-75">{{ milestoneSpeeds }}</p>
       </div>
 
@@ -119,8 +125,14 @@ const milestoneSpeeds = computed(() => {
         class="mt-2 w-full rounded border border-warning/40 bg-warning/10 px-3 py-2 kawaru-text-87 text-warning"
       >
         <p class="font-medium">
-          Part {{ retry.partNo }} failed — retrying {{ retry.attempt }}/{{ retry.maxAttempts }} in
-          {{ Math.round(retry.nextRetryInMs / 1000) }}s
+          {{
+            $t('upload.progress.retry', {
+              part: retry.partNo,
+              attempt: retry.attempt,
+              max: retry.maxAttempts,
+              seconds: Math.round(retry.nextRetryInMs / 1000),
+            })
+          }}
         </p>
         <p class="mt-0.5 break-all opacity-75">{{ retry.reason }}</p>
       </div>
@@ -128,7 +140,7 @@ const milestoneSpeeds = computed(() => {
 
     <div class="w-full flex justify-end mt-4">
       <button class="btn btn-outline btn-error btn-sm kawaru-text-75" :disabled="aborting" @click="$emit('abort')">
-        {{ aborting ? 'Aborting…' : 'Abort Upload' }}
+        {{ aborting ? $t('upload.progress.aborting') : $t('upload.progress.abort') }}
       </button>
     </div>
   </div>

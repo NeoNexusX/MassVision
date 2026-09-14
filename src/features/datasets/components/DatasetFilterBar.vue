@@ -9,11 +9,11 @@
       <div class="flex flex-1 items-center gap-2 min-w-0">
         <SearchInput
           v-model="searchQuery"
-          :placeholder="searchPlaceholder"
+          :placeholder="searchPlaceholder ?? $t('common.input.searchDatasets')"
           class="flex-1 min-w-0"
           @search="onSearchClick"
         />
-        <button @click="onSearchClick" class="btn btn-primary shrink-0 kawaru-text-100">Search</button>
+        <button @click="onSearchClick" class="btn btn-primary shrink-0 kawaru-text-100">{{ $t('common.action.search') }}</button>
       </div>
 
       <div v-if="showAddFilter" class="flex relative group w-full sm:w-auto">
@@ -23,7 +23,7 @@
           class="flex w-full sm:w-auto items-center justify-center gap-2 bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content h-10 px-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors kawaru-text-100 font-medium"
         >
           <SvgIcon type="plus" class="w-[1.1em] h-[1.1em]" />
-          Add filter
+          {{ $t('datasets.filter.addFilter') }}
         </button>
         <teleport to="body">
           <div
@@ -48,7 +48,7 @@
         class="flex w-full sm:w-auto items-center justify-center gap-2 bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content h-10 px-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors kawaru-text-100 font-medium"
       >
         <SvgIcon type="circle_stack" class="w-[1.1em] h-[1.1em] shrink-0" />
-        <span class="truncate">Collections</span>
+        <span class="truncate">{{ $t('datasets.filter.collections') }}</span>
       </router-link>
     </div>
 
@@ -59,7 +59,7 @@
         class="flex w-full sm:w-auto items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-none rounded-lg shadow-sm transition-all transform active:scale-95 kawaru-text-100 font-medium h-10 px-4 min-w-0 overflow-hidden"
       >
         <SvgIcon type="upload" class="w-[1.1em] h-[1.1em] shrink-0" />
-        <span class="truncate">Upload New Dataset</span>
+        <span class="truncate">{{ $t('datasets.filter.upload') }}</span>
       </button>
 
       <div class="relative flex-1 w-full min-w-0">
@@ -81,10 +81,11 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import DatasetFilterPanel from '@/features/datasets/components/DatasetFilterPanel.vue'
 import SearchInput from '@/shared/components/SearchInput.vue'
 import { useClickOutside } from '@/shared/composables/useClickOutside'
+import { t } from '@/i18n'
 
 interface SortOption {
   label: string
@@ -103,7 +104,7 @@ withDefaults(
     showUpload: false,
     showAddFilter: false,
     showCollectionsLink: false,
-    searchPlaceholder: 'Search datasets',
+    searchPlaceholder: undefined,
   },
 )
 
@@ -119,12 +120,12 @@ const searchQuery = ref('')
 // 映射到后端 sort_by/order query 参数（uploaded_at / size × asc / desc）
 const sortValue = ref('submission_time:desc')
 
-const sortOptions: SortOption[] = [
-  { label: 'Submission time (newest first)', value: 'submission_time:desc' },
-  { label: 'Submission time (oldest first)', value: 'submission_time:asc' },
-  { label: 'File size (largest first)', value: 'size_bytes:desc' },
-  { label: 'File size (smallest first)', value: 'size_bytes:asc' },
-]
+const sortOptions = computed<SortOption[]>(() => [
+  { label: t('datasets.filter.sortNewest'), value: 'submission_time:desc' },
+  { label: t('datasets.filter.sortOldest'), value: 'submission_time:asc' },
+  { label: t('datasets.filter.sortLargest'), value: 'size_bytes:desc' },
+  { label: t('datasets.filter.sortSmallest'), value: 'size_bytes:asc' },
+])
 
 const showFilterPanel = ref(false)
 const filterBtn = ref<HTMLElement | null>(null)

@@ -2,6 +2,7 @@ import { computed, ref, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { File } from '@/features/datasets/types/dataset'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 import {
   buildOverviewShareUrl,
   decodeOverviewFileId,
@@ -27,20 +28,20 @@ export function useOverviewShare(dataset: Ref<File | null>) {
 
     const shareUrl = buildOverviewShareUrl(router, current.id, window.location.origin)
     if (!shareUrl) {
-      showToast('Unable to create a share link for this dataset.', 'error')
+      showToast(t('datasets.overview.shareUnavailable'), 'error')
       return
     }
 
     try {
       await navigator.clipboard.writeText(shareUrl)
       isShareCopied.value = true
-      showToast('Public overview link copied.', 'success')
+      showToast(t('common.feedback.copied'), 'success')
       setTimeout(() => {
         isShareCopied.value = false
       }, 2000)
     } catch (error) {
       console.error('Failed to copy share link:', error)
-      showToast('Failed to copy the share link.', 'error')
+      showToast(t('common.feedback.copyFailed'), 'error')
     }
   }
 

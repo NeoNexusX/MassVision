@@ -2,7 +2,7 @@
   <div class="kawaru-text-81">
     <!-- Format -->
     <div class="flex items-center gap-2 mb-2">
-      <span class="text-base-content">Format</span>
+      <span class="text-base-content">{{ $t('vizworkbench.mask.format') }}</span>
       <div class="join">
         <button
           v-for="f in FORMATS"
@@ -17,17 +17,17 @@
     </div>
 
     <div v-if="!hasItems" class="text-base-content/60">
-      Draw a ROI or run KMeans to get a mask to export.
+      {{ $t('vizworkbench.mask.empty') }}
     </div>
 
     <template v-else>
       <div class="text-base-content/60 mb-2">
-        Checked regions are merged into a single binary mask.
+        {{ $t('vizworkbench.mask.mergeHint') }}
       </div>
 
       <!-- ROI regions -->
       <div v-if="rois.length" class="mb-2">
-        <div class="font-semibold text-base-content mb-1">ROI masks</div>
+        <div class="font-semibold text-base-content mb-1">{{ $t('vizworkbench.mask.roiMasks') }}</div>
         <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 max-h-40 overflow-y-auto">
           <label
             v-for="roi in rois"
@@ -52,7 +52,7 @@
       <!-- KMeans clusters (shared selection with the ion-image overlay) -->
       <div v-if="kmeansClusters.length" class="mb-2">
         <div class="font-semibold text-base-content mb-1">
-          KMeans clusters
+          {{ $t('vizworkbench.mask.kmeansClusters') }}
           <span v-if="kmeansK !== null" class="font-mono font-normal text-base-content/60"
             >(k={{ kmeansK }})</span
           >
@@ -73,12 +73,12 @@
               class="w-3 h-3 rounded-sm border border-base-content/30 shrink-0"
               :style="{ backgroundColor: `rgb(${c.color[0]},${c.color[1]},${c.color[2]})` }"
             ></span>
-            <span class="text-base-content truncate">Cluster {{ c.id }}</span>
+            <span class="text-base-content truncate">{{ $t('vizworkbench.kmeans.cluster', { id: c.id }) }}</span>
           </label>
         </div>
       </div>
       <div v-else-if="!kmeansLabelsAvailable" class="text-base-content/60 mb-2">
-        Run KMeans to also include clusters in the mask.
+        {{ $t('vizworkbench.mask.runKmeansHint') }}
       </div>
 
       <!-- Actions -->
@@ -86,14 +86,14 @@
         <button
           class="btn btn-sm btn-primary flex-1 kawaru-text-81"
           :disabled="selectedCount === 0"
-          title="Downloads one mask file"
+          :title="$t('vizworkbench.mask.exportHint')"
           @click="onExport"
         >
           <SvgIcon type="download" />
-          Export mask
+          {{ $t('vizworkbench.mask.export') }}
         </button>
-        <button class="btn btn-ghost btn-sm kawaru-text-81" @click="selectAll">All</button>
-        <button class="btn btn-ghost btn-sm kawaru-text-81" @click="clearAll">Clear</button>
+        <button class="btn btn-ghost btn-sm kawaru-text-81" @click="selectAll">{{ $t('vizworkbench.mask.all') }}</button>
+        <button class="btn btn-ghost btn-sm kawaru-text-81" @click="clearAll">{{ $t('common.action.clear') }}</button>
       </div>
     </template>
   </div>

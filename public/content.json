@@ -1,10 +1,22 @@
 {
   "hero": {
     "taglines": [
-      "OPEN ↗",
-      "FAST ▶︎▶︎",
-      "UNIFIED ≡",
-      "INTELLIGENT ✧"
+      {
+        "en": "OPEN ↗",
+        "zh-CN": "OPEN ↗"
+      },
+      {
+        "en": "FAST ▶︎▶︎",
+        "zh-CN": "FAST ▶︎▶︎"
+      },
+      {
+        "en": "UNIFIED ≡",
+        "zh-CN": "UNIFIED ≡"
+      },
+      {
+        "en": "INTELLIGENT ✧",
+        "zh-CN": "INTELLIGENT ✧"
+      }
     ],
     "gallery": [
       "https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260826173023933.png",
@@ -15,118 +27,259 @@
   "features": {
     "items": [
       {
-        "word": "OPEN",
-        "title": "Open & Interoperable",
-        "desc": "Designed with an open-source spirit from the ground up, we break down data silos, enable open knowledge sharing, and collectively advance the spatial omics community.",
+        "word": {
+          "en": "OPEN",
+          "zh-CN": "OPEN"
+        },
+        "title": {
+          "en": "Open & Interoperable",
+          "zh-CN": "开放与互通"
+        },
+        "desc": {
+          "en": "Designed with an open-source spirit from the ground up, we break down data silos, enable open knowledge sharing, and collectively advance the spatial omics community.",
+          "zh-CN": "秉持开源精神打造，打破数据孤岛，促进知识共享，共同推动空间组学领域发展。"
+        },
         "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mz726.539885.png"
       },
       {
-        "word": "SMART",
-        "title": "SMART Analysis",
-        "desc": "Powered by cloud-native infrastructure and AI, every analysis becomes faster, smarter, and more accessible to researchers at any scale.",
+        "word": {
+          "en": "SMART",
+          "zh-CN": "SMART"
+        },
+        "title": {
+          "en": "SMART Analysis",
+          "zh-CN": "智能分析"
+        },
+        "desc": {
+          "en": "Powered by cloud-native infrastructure and AI, every analysis becomes faster, smarter, and more accessible to researchers at any scale.",
+          "zh-CN": "依托云原生基础设施与人工智能，让每一次分析更快、更智能，也让不同规模的研究者都能轻松使用。"
+        },
         "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/kmeans_image2.png"
       },
       {
-        "word": "FAST",
-        "title": "Fast at Scale",
-        "desc": "Backed by a homegrown computing framework and cloud-native infrastructure, SpatialXomics delivers high-performance computation that scales effortlessly with your data.",
+        "word": {
+          "en": "FAST",
+          "zh-CN": "FAST"
+        },
+        "title": {
+          "en": "Fast at Scale",
+          "zh-CN": "规模化高速处理"
+        },
+        "desc": {
+          "en": "Backed by a homegrown computing framework and cloud-native infrastructure, SpatialXomics delivers high-performance computation that scales effortlessly with your data.",
+          "zh-CN": "基于自主研发的计算框架和云原生基础设施，SpatialXomics 提供可随数据规模灵活扩展的高性能计算能力。"
+        },
         "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/umap_image2.png"
       }
     ]
   },
   "timeline": [
     {
-      "date": "September 11",
+      "date": {
+        "en": "September 11",
+        "zh-CN": "9月11日"
+      },
       "version": "0.7.1",
       "features": [
-        "Collections hub: curate public imzML datasets into shareable collections",
-        "Collection overview with academic metadata editing, member management and drag-to-reorder",
-        "Public collection share links accessible without sign-in",
-        "Multi-ion channel overlay and ROI/KMeans mask export (.npy / .csv)",
-        "Dataset metadata editing with solvent support and server-side list sorting",
-        "Streaming multipart upload with abort handling and verified resume"
+        {
+          "en": "Collections hub: curate and share public imzML datasets",
+          "zh-CN": "合集中心：整理并分享公开 imzML 数据集"
+        },
+        {
+          "en": "Collection editing: metadata, members and drag-to-reorder",
+          "zh-CN": "合集编辑：元数据、成员管理与拖拽排序"
+        },
+        {
+          "en": "Share public collections without sign-in",
+          "zh-CN": "公开合集免登录分享"
+        },
+        {
+          "en": "Multi-ion overlay and ROI/KMeans mask export (.npy / .csv)",
+          "zh-CN": "多离子叠加与 ROI/KMeans 掩膜导出（.npy / .csv）"
+        },
+        {
+          "en": "Dataset metadata editing (incl. solvent) with server-side sorting",
+          "zh-CN": "数据集元数据编辑（含溶剂）与服务端排序"
+        },
+        {
+          "en": "Streaming multipart upload with abort and resume",
+          "zh-CN": "流式分片上传，支持中止与续传"
+        }
       ]
     },
     {
-      "date": "August 30",
+      "date": {
+        "en": "August 30",
+        "zh-CN": "8月30日"
+      },
       "version": "0.6.3",
       "features": [
-        "Dataset cards with hover-gallery preview (TIC + ion images)",
-        "Runtime configuration split with faster first paint",
-        "Visualization workbench refactor with results panel improvements"
+        {
+          "en": "Dataset cards with hover-gallery preview (TIC + ion images)",
+          "zh-CN": "支持悬停画廊预览的数据集卡片（TIC + 离子图像）"
+        },
+        {
+          "en": "Runtime configuration split with faster first paint",
+          "zh-CN": "运行时配置拆分，加快首次渲染"
+        },
+        {
+          "en": "Visualization workbench refactor with results panel improvements",
+          "zh-CN": "可视化工作台重构及结果面板改进"
+        }
       ]
     },
     {
-      "date": "August 18",
+      "date": {
+        "en": "August 18",
+        "zh-CN": "8月18日"
+      },
       "version": "0.6.2",
       "features": [
-        "App-wide UI polish and bug-fix batch",
-        "Annotation CSV worker reliability fixes"
+        {
+          "en": "App-wide UI polish and bug-fix batch",
+          "zh-CN": "全站界面优化与问题修复"
+        },
+        {
+          "en": "Annotation CSV worker reliability fixes",
+          "zh-CN": "注释 CSV 工作线程可靠性修复"
+        }
       ]
     }
   ],
   "team": [
     {
       "name": "Jiyang Dong",
-      "role": "Project Sponsor",
-      "degree": "Professor",
-      "school": "Xiamen University",
+      "role": {
+        "en": "Project Sponsor",
+        "zh-CN": "项目发起人"
+      },
+      "degree": {
+        "en": "Professor",
+        "zh-CN": "教授"
+      },
+      "school": {
+        "en": "Xiamen University",
+        "zh-CN": "厦门大学"
+      },
       "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780303224964.jpg",
       "homepage": "https://ese.xmu.edu.cn/info/1071/1735.htm"
     },
     {
       "name": "Lei Guo",
-      "role": "Project Sponsor",
-      "degree": "Associate Professor",
-      "school": "Fuzhou University",
+      "role": {
+        "en": "Project Sponsor",
+        "zh-CN": "项目发起人"
+      },
+      "degree": {
+        "en": "Associate Professor",
+        "zh-CN": "副教授"
+      },
+      "school": {
+        "en": "Fuzhou University",
+        "zh-CN": "福州大学"
+      },
       "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780300337455.jpg",
       "homepage": "https://iime.fzu.edu.cn/info/1038/1481.htm"
     },
     {
       "name": "Zeyu Zhu",
-      "role": "Project Lead",
-      "degree": "Ph.D. Student",
-      "school": "Xiamen University",
+      "role": {
+        "en": "Project Lead",
+        "zh-CN": "项目负责人"
+      },
+      "degree": {
+        "en": "Ph.D. Student",
+        "zh-CN": "博士生"
+      },
+      "school": {
+        "en": "Xiamen University",
+        "zh-CN": "厦门大学"
+      },
       "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Asuka.jpg",
       "homepage": "https://neonexusx.github.io/"
     },
     {
       "name": "Yongkun Lin",
-      "role": "Frontend Engineer",
-      "degree": "M.Sc. Student",
-      "school": "Xiamen University",
+      "role": {
+        "en": "Frontend Engineer",
+        "zh-CN": "前端工程师"
+      },
+      "degree": {
+        "en": "M.Sc. Student",
+        "zh-CN": "硕士生"
+      },
+      "school": {
+        "en": "Xiamen University",
+        "zh-CN": "厦门大学"
+      },
       "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780209856433_888.jpg",
       "homepage": "https://bionet.xmu.edu.cn/info/1073/2600.htm"
     },
     {
       "name": "Qiurong Xiong",
-      "role": "Backend Engineer",
-      "degree": "M.Sc. Student",
-      "school": "ECUT",
+      "role": {
+        "en": "Backend Engineer",
+        "zh-CN": "后端工程师"
+      },
+      "degree": {
+        "en": "M.Sc. Student",
+        "zh-CN": "硕士生"
+      },
+      "school": {
+        "en": "ECUT",
+        "zh-CN": "东华理工大学"
+      },
       "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780299201986_41.jpeg",
       "homepage": "https://bionet.xmu.edu.cn/info/1073/2630.htm"
     },
     {
       "name": "Leqiang Dong",
-      "role": "Algorithm Engineer",
-      "degree": "M.Sc. Student",
-      "school": "Xiamen University",
+      "role": {
+        "en": "Algorithm Engineer",
+        "zh-CN": "算法工程师"
+      },
+      "degree": {
+        "en": "M.Sc. Student",
+        "zh-CN": "硕士生"
+      },
+      "school": {
+        "en": "Xiamen University",
+        "zh-CN": "厦门大学"
+      },
       "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/Image_1780299557207_374.jpg",
       "homepage": "https://dil666555.github.io/"
     },
     {
       "name": "Xun Zhong",
-      "role": "Backend Engineer",
-      "degree": "B.Sc.",
-      "school": "Xiamen University",
+      "role": {
+        "en": "Backend Engineer",
+        "zh-CN": "后端工程师"
+      },
+      "degree": {
+        "en": "B.Sc.",
+        "zh-CN": "学士"
+      },
+      "school": {
+        "en": "Xiamen University",
+        "zh-CN": "厦门大学"
+      },
       "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1780299787497.jpg",
       "homepage": "https://b23.tv/ih7QjCW"
     },
     {
       "name": "🐱Zai zai🐱",
-      "role": "Trouble Maker",
-      "degree": "Cat B.Sc.",
-      "school": "Cat University",
+      "role": {
+        "en": "Trouble Maker",
+        "zh-CN": "捣蛋鬼"
+      },
+      "degree": {
+        "en": "Cat B.Sc.",
+        "zh-CN": "猫咪学士"
+      },
+      "school": {
+        "en": "Cat University",
+        "zh-CN": "猫咪大学"
+      },
       "avatar": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1781240570533.jpg",
       "homepage": "https://neonexusx.github.io/2026/06/17/zaizai/"
     }
@@ -143,7 +296,10 @@
     "repo": "MassVision",
     "branch": "dev",
     "days": 365,
-    "title": "SpatialXomics · Activity",
+    "title": {
+      "en": "SpatialXomics · Activity",
+      "zh-CN": "SpatialXomics · 开发动态"
+    },
     "repoUrl": "https://github.com/NeoNexusX/MassFlow",
     "orientation": "auto"
   }

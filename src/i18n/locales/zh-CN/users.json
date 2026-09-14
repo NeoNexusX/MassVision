@@ -1,0 +1,81 @@
+{
+  "users": {
+    "identity": {
+      "admin": "管理员",
+      "user": "普通用户"
+    },
+    "field": {
+      "id": "ID",
+      "identity": "身份",
+      "status": "状态",
+      "institution": "机构",
+      "orcid": "ORCID",
+      "homepage": "个人主页"
+    },
+    "changePassword": {
+      "title": "修改密码",
+      "hint": "请输入新密码。修改后需要重新登录。",
+      "newPlaceholder": "输入新密码",
+      "confirmPlaceholder": "再次输入新密码",
+      "submit": "修改密码"
+    },
+    "changeEmail": {
+      "title": "修改邮箱",
+      "hint": "请输入新邮箱，以及发送到该邮箱的验证码。",
+      "newEmail": "新邮箱",
+      "exhausted": "本次会话的发送次数已达上限",
+      "resend": "重新发送（{seconds} 秒）"
+    },
+    "drawer": {
+      "title": "用户详情",
+      "currentUsage": "当前用量",
+      "storageUsed": "已用存储",
+      "quotaLimits": "配额上限",
+      "maxFileCount": "最大文件数",
+      "maxStorage": "最大存储（GB）",
+      "maxProcessing": "最大处理量（GB）",
+      "maxDownloads": "最大下载次数",
+      "saveQuota": "保存配额",
+      "mustBeNumber": "须为 ≥ 1 的数字",
+      "mustBeInteger": "须为 ≥ 1 的整数"
+    },
+    "table": {
+      "searchPlaceholder": "搜索用户名...",
+      "allStatus": "全部状态",
+      "institutionPlaceholder": "机构...",
+      "regionPlaceholder": "国家 / 地区...",
+      "resetFilters": "重置筛选",
+      "empty": "没有符合筛选条件的用户。"
+    },
+    "stats": {
+      "admin": "管理员",
+      "users": "普通用户",
+      "institutions": "机构数"
+    },
+    "management": {
+      "title": "用户管理",
+      "subtitle": "查看和管理各地区的注册用户。",
+      "target": "用户列表",
+      "deleteTitle": "确认删除",
+      "deleteMessage": "确定要永久删除用户 {name} 吗？此操作无法撤销。",
+      "deleteConfirm": "确认删除"
+    },
+    "profile": {
+      "title": "个人资料",
+      "quotaUsage": "配额使用",
+      "storageUpload": "上传存储",
+      "academicProfile": "学术信息",
+      "institutionPlaceholder": "大学名称",
+      "positionPlaceholder": "选择职位",
+      "researchFieldPlaceholder": "例如：计算机视觉",
+      "regionPlaceholder": "选择国家 / 地区",
+      "saveAll": "保存全部修改"
+    },
+    "toast": {
+      "enterEmailAndCode": "请输入新邮箱和验证码",
+      "fillBothPasswords": "请填写两次密码",
+      "passwordRule": "密码须为 8-25 位，且至少包含一个字母和一个数字",
+      "passwordChanged": "密码已修改，请重新登录。"
+    }
+  }
+}

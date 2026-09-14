@@ -37,7 +37,7 @@
           ref="carouselEl"
           class="carousel overscroll-x-contain w-full h-full"
           role="group"
-          :aria-label="`${collection.name} covers`"
+          :aria-label="$t('collections.card.coversAria', { name: collection.name })"
           @scroll.passive="onCoverScroll"
         >
           <div v-for="fileId in slides" :key="fileId" class="carousel-item w-full h-full">
@@ -56,7 +56,7 @@
           <button
             type="button"
             class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800 kawaru-text-68"
-            aria-label="Previous dataset"
+:aria-label="$t('collections.card.prev')"
             @click.stop="goPrev"
           >
             <SvgIcon type="chevron_left" class="w-[1em] h-[1em]" />
@@ -64,7 +64,7 @@
           <button
             type="button"
             class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800 kawaru-text-68"
-            aria-label="Next dataset"
+:aria-label="$t('collections.card.next')"
             @click.stop="goNext"
           >
             <SvgIcon type="chevron_right" class="w-[1em] h-[1em]" />
@@ -99,7 +99,7 @@
         <!-- 左列：Title / DOI / Access / Journal（无值统一显示 —，卡片高度对齐） -->
         <div class="flex flex-col gap-2.5 min-w-0">
           <div class="min-w-0">
-            <div class="kawaru-text-75 font-medium text-base-content/45">Title</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">{{ $t('collections.meta.title') }}</div>
             <p
               v-if="collection.title"
               class="mt-1 kawaru-text-95 font-medium text-base-content/85 leading-snug line-clamp-2"
@@ -111,7 +111,7 @@
           </div>
 
           <div class="min-w-0">
-            <div class="kawaru-text-75 font-medium text-base-content/45">DOI</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">{{ $t('collections.meta.doi') }}</div>
             <div v-if="collection.doi.length" class="mt-1 flex flex-col gap-0.5">
               <a
                 v-for="doi in collection.doi"
@@ -132,7 +132,7 @@
 
           <!-- 后端 access 字段原样透传，可能是 URL 也可能是标签文本 -->
           <div class="min-w-0">
-            <div class="kawaru-text-75 font-medium text-base-content/45">Access</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">{{ $t('collections.meta.access') }}</div>
             <div v-if="collection.access.length" class="mt-1 flex flex-col gap-0.5">
               <a
                 v-for="entry in collection.access"
@@ -157,7 +157,7 @@
           </div>
 
           <div class="min-w-0">
-            <div class="kawaru-text-75 font-medium text-base-content/45">Journal</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">{{ $t('collections.meta.journal') }}</div>
             <p
               v-if="collection.journalName"
               class="mt-1 kawaru-text-95 text-base-content/80 italic truncate"
@@ -181,7 +181,7 @@
                 :key="value"
                 class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-75 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
               >
-                {{ value }}
+                {{ vocabLabel(value) }}
               </span>
             </div>
             <div v-else class="kawaru-text-87 text-base-content/40 mt-1">—</div>
@@ -195,10 +195,10 @@
               :popovertarget="morePopoverId"
               :style="{ anchorName: moreAnchorName }"
               class="inline-flex items-center gap-1 kawaru-text-81 font-medium rounded text-primary hover:underline"
-              :aria-label="`More metadata for ${collection.name}`"
+              :aria-label="$t('collections.card.moreAria', { name: collection.name })"
               @click.stop
             >
-              More (+{{ hiddenValueCount }})
+              {{ $t('collections.card.more', { count: hiddenValueCount }) }}
               <SvgIcon type="chevron_down" class="w-[0.9em] h-[0.9em] shrink-0" />
             </button>
             <div
@@ -217,7 +217,7 @@
                     :key="value"
                     class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-75 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
                   >
-                    {{ value }}
+                    {{ vocabLabel(value) }}
                   </span>
                 </div>
               </div>
@@ -232,12 +232,12 @@
       >
         <span
           class="inline-flex items-center gap-1 min-w-0"
-          :title="`Owner: ${collection.ownerUsername}`"
+          :title="$t('collections.card.owner', { name: collection.ownerUsername })"
         >
           <SvgIcon type="user" class="w-[1.05em] h-[1.05em] shrink-0" />
           <span class="truncate">{{ collection.ownerUsername }}</span>
         </span>
-        <span class="whitespace-nowrap">Updated {{ formattedDate }}</span>
+        <span class="whitespace-nowrap">{{ $t('collections.card.updated', { date: formattedDate }) }}</span>
       </div>
     </div>
 
@@ -252,7 +252,7 @@
       <!-- 成员总数 -->
       <div
         class="flex items-center gap-2 kawaru-text-100 font-medium p-1 rounded text-base-content/80"
-        :title="`${collection.memberCount} datasets in this collection`"
+        :title="$t('collections.card.memberCountTitle', collection.memberCount)"
       >
         <SvgIcon type="queue_list" class="w-[1.1em] h-[1.1em]" />
         <span
@@ -265,18 +265,18 @@
         @click.stop="$emit('view', collection.id)"
       >
         <SvgIcon type="circle_stack" class="w-[1.1em] h-[1.1em] shrink-0" />
-        <span class="whitespace-nowrap">View Collection</span>
+        <span class="whitespace-nowrap">{{ $t('collections.card.viewCollection') }}</span>
       </button>
 
       <!-- 列表含他人集合：仅 owner/admin 可删除 -->
       <button
         v-if="canEdit"
         class="flex items-center gap-2 kawaru-text-100 font-medium p-1 rounded text-base-content/80 hover:text-error transition-colors"
-        title="Delete collection"
+:title="$t('collections.card.deleteTitle')"
         @click.stop="$emit('delete', collection.id)"
       >
         <SvgIcon type="trash" class="w-[1.1em] h-[1.1em] shrink-0" />
-        <span class="whitespace-nowrap">Delete</span>
+        <span class="whitespace-nowrap">{{ $t('common.action.delete') }}</span>
       </button>
     </div>
   </div>
@@ -288,6 +288,8 @@ import type { CollectionSummary } from '@/features/collections/types/collection'
 import DatasetThumb from '@/features/collections/components/DatasetThumb.vue'
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
 import { formatDate } from '@/shared/utils/format'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   collection: CollectionSummary
@@ -358,9 +360,9 @@ const VISIBLE_VALUE_COUNT = 2
 
 const basicFields = computed(() =>
   [
-    { label: 'Organism', values: props.collection.organism },
-    { label: 'Organism Part', values: props.collection.organismPart },
-    { label: 'Ionisation Source', values: props.collection.ionisationSource },
+    { label: t('common.meta.organism'), values: props.collection.organism },
+    { label: t('common.meta.organismPart'), values: props.collection.organismPart },
+    { label: t('common.meta.ionisationSource'), values: props.collection.ionisationSource },
   ].map((field) => ({
     label: field.label,
     values: field.values,
@@ -400,7 +402,7 @@ function doiHref(doi: string): string {
   return isUrl(doi) ? doi : `https://doi.org/${doi}`
 }
 
-const unitLabel = computed(() => (props.collection.memberCount === 1 ? 'dataset' : 'datasets'))
+const unitLabel = computed(() => t('collections.unit.dataset', props.collection.memberCount))
 
 const formattedDate = computed(() => formatDate(props.collection.updatedAt))
 </script>

@@ -4,7 +4,7 @@
     ref="rootRef"
     class="home-scroll bg-base-100 text-base-content"
     tabindex="0"
-    aria-label="MassVision home scenes"
+    :aria-label="t('home.scenes.ariaLabel')"
   >
     <HeroScene :class="{ 'is-active': activeSceneIndex === 0 }" />
     <FeatureScene :class="{ 'is-active': activeSceneIndex === 1 }" />
@@ -18,7 +18,9 @@ import HeroScene from '@/features/home/components/HeroScene.vue'
 import FeatureScene from '@/features/home/components/FeatureScene.vue'
 import StatsScene from '@/features/home/components/StatsScene.vue'
 import FooterScene from '@/features/home/components/FooterScene.vue'
+import { useI18n } from 'vue-i18n'
 import { useSceneScroll } from '@/features/home/composables/useSceneScroll'
+const { t } = useI18n()
 
 const { rootRef, activeSceneIndex } = useSceneScroll()
 </script>

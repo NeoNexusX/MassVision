@@ -76,8 +76,18 @@ export async function setLocale(locale: Locale): Promise<void> {
   localStorage.setItem(STORAGE_KEYS.locale, locale)
 }
 
+/** 「切换语言」按钮要切到的那门语言（目前只有两门，即当前语言之外的另一门） */
+const nextLocale = computed(
+  () => LOCALES.find((l) => l.value !== i18n.global.locale.value) ?? LOCALES[0]!,
+)
+
+/** 在两门语言之间切换，与 useTheme 的 toggleTheme 对称 */
+export function toggleLocale(): Promise<void> {
+  return setLocale(nextLocale.value.value)
+}
+
 export function useLocale() {
   const locale = computed(() => i18n.global.locale.value)
   const isZh = computed(() => locale.value === 'zh-CN')
-  return { locale, isZh, setLocale, LOCALES }
+  return { locale, isZh, nextLocale, setLocale, toggleLocale, LOCALES }
 }

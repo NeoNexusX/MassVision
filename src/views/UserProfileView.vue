@@ -12,7 +12,7 @@
           <h1
             class="kawaru-text-page-title leading-[1.15] font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
           >
-            Profile
+            {{ $t('users.profile.title') }}
           </h1>
         </div>
 
@@ -30,16 +30,20 @@
             <div class="flex-1 w-full">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Username (Read Only) -->
-                <IconInput label="Username" :model-value="formData.username" readonly />
+                <IconInput :label="$t('common.field.username')" :model-value="formData.username" readonly />
 
                 <!-- Identity (Read Only) -->
-                <IconInput label="Identity" :model-value="formData.identity" readonly />
+                <IconInput
+                  :label="$t('users.field.identity')"
+                  :model-value="identityLabel(formData.identity)"
+                  readonly
+                />
 
                 <!-- Email (read-only, changed via modal) -->
                 <div class="flex flex-col sm:flex-row sm:items-end gap-3">
                   <IconInput
                     class="flex-[3]"
-                    label="Email"
+                    :label="$t('common.field.email')"
                     :model-value="formData.email"
                     readonly
                   />
@@ -48,29 +52,34 @@
                     type="button"
                     @click="openEmailModal"
                   >
-                    Change Email
+                    {{ $t('users.changeEmail.title') }}
                   </button>
                 </div>
 
                 <!-- Password (via modal) -->
                 <div class="flex flex-col sm:flex-row sm:items-end gap-3">
-                  <IconInput class="flex-[3]" label="Password" model-value="••••••••" readonly />
+                  <IconInput
+                    class="flex-[3]"
+                    :label="$t('common.field.password')"
+                    model-value="••••••••"
+                    readonly
+                  />
                   <button
                     class="sm:flex-[2] btn whitespace-nowrap w-full sm:w-auto kawaru-text-87"
                     type="button"
                     @click="openPasswordModal"
                   >
-                    Change Password
+                    {{ $t('users.changePassword.title') }}
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="divider kawaru-text-125">Quota Usage</div>
+          <div class="divider kawaru-text-125">{{ $t('users.profile.quotaUsage') }}</div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">Storage Upload</div>
+              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">{{ $t('users.profile.storageUpload') }}</div>
               <div class="kawaru-text-100 font-semibold">
                 {{ quota.uploadUsed }} / {{ quota.uploadMax }}
               </div>
@@ -81,7 +90,7 @@
               ></progress>
             </div>
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">Files</div>
+              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">{{ $t('common.stat.files') }}</div>
               <div class="kawaru-text-100 font-semibold">
                 {{ quota.fileCount }} / {{ quota.maxFiles }}
               </div>
@@ -92,7 +101,7 @@
               ></progress>
             </div>
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">Processing</div>
+              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">{{ $t('common.stat.processing') }}</div>
               <div class="kawaru-text-100 font-semibold">{{ quota.procUsed }} / {{ quota.procMax }}</div>
               <progress
                 class="progress progress-accent w-full mt-2"
@@ -101,7 +110,7 @@
               ></progress>
             </div>
             <div class="bg-base-200 rounded-lg p-4">
-              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">Downloads</div>
+              <div class="kawaru-text-100 lg:kawaru-text-112 text-base-content/60 mb-1">{{ $t('common.stat.downloads') }}</div>
               <div class="kawaru-text-100 font-semibold">
                 {{ quota.downloadUsed }} / {{ quota.downloadMax }}
               </div>
@@ -113,47 +122,51 @@
             </div>
           </div>
 
-          <div class="divider kawaru-text-125">Academic Profile</div>
+          <div class="divider kawaru-text-125">{{ $t('users.profile.academicProfile') }}</div>
 
           <!-- Edit Form -->
           <form @submit.prevent="handleSave" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Institution -->
               <IconInput
-                label="Institution"
+                :label="$t('users.field.institution')"
                 v-model="formData.institution"
-                placeholder="University Name"
+                :placeholder="$t('users.profile.institutionPlaceholder')"
               />
 
               <!-- Position -->
               <IconSelect
-                label="Position"
+                :label="$t('common.field.position')"
                 v-model="formData.position"
-                :options="positionOptions"
-                placeholder="Select Position"
+                :options="profileOptionMap(positionOptions)"
+                :placeholder="$t('users.profile.positionPlaceholder')"
               />
 
               <!-- Research Field -->
               <IconInput
-                label="Research Field"
+                :label="$t('common.field.researchField')"
                 v-model="formData.research_field"
-                placeholder="e.g. Computer Vision"
+                :placeholder="$t('users.profile.researchFieldPlaceholder')"
               />
 
               <!-- Region -->
               <IconSelect
-                label="Region"
+                :label="$t('common.field.region')"
                 v-model="formData.region"
                 :options="regionOptions"
-                placeholder="Select Region"
+                :placeholder="$t('users.profile.regionPlaceholder')"
               />
 
               <!-- ORCID -->
-              <IconInput label="ORCID" v-model="formData.orcid" placeholder="0000-0000-0000-0000" />
+              <IconInput
+                :label="$t('users.field.orcid')"
+                v-model="formData.orcid"
+                placeholder="0000-0000-0000-0000"
+              />
 
               <!-- Homepage -->
               <IconInput
-                label="Homepage"
+                :label="$t('users.field.homepage')"
                 v-model="formData.homepage"
                 placeholder="https://example.com"
               />
@@ -162,7 +175,7 @@
             <div class="flex justify-end pt-4 border-t border-base-200 mt-6">
               <button class="btn btn-primary kawaru-text-87" type="submit" :disabled="loading">
                 <span v-if="loading" class="loading loading-spinner"></span>
-                Save All Changes
+                {{ $t('users.profile.saveAll') }}
               </button>
             </div>
           </form>
@@ -201,6 +214,8 @@ import IconSelect from '@/shared/components/IconSelect.vue'
 import EmailChangeModal from '@/features/users/components/EmailChangeModal.vue'
 import ChangePasswordModal from '@/features/users/components/ChangePasswordModal.vue'
 import { useUserProfileForm } from '@/features/users/composables/useUserProfileForm'
+import { identityLabel } from '@/features/users/utils/identityLabel'
+import { profileOptionMap } from '@/shared/constants/profileOptions'
 
 const {
   loading,

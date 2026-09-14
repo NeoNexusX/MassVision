@@ -30,7 +30,7 @@ defineProps({
   },
 })
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'view', id: number): void
   (e: 'delete', id: number): void
   (e: 'create'): void
@@ -65,13 +65,13 @@ const emit = defineEmits<{
       class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
     >
       <SvgIcon type="circle_stack" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-      <h3 class="kawaru-text-112 font-bold text-base-content">No collections yet</h3>
+      <h3 class="kawaru-text-112 font-bold text-base-content">{{ $t('collections.list.emptyTitle') }}</h3>
       <p class="mt-2 text-base-content/60">
-        Organize related datasets into curated collections to share and revisit them.
+        {{ $t('collections.list.emptyDesc') }}
       </p>
       <button class="btn btn-primary mt-6 kawaru-text-95" @click="$emit('create')">
         <SvgIcon type="plus" class="w-[1em] h-[1em]" />
-        Create Collection
+        {{ $t('collections.list.create') }}
       </button>
     </div>
 
@@ -81,15 +81,15 @@ const emit = defineEmits<{
       class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
     >
       <SvgIcon type="search" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-      <h3 class="kawaru-text-112 font-bold text-base-content">No collections found</h3>
+      <h3 class="kawaru-text-112 font-bold text-base-content">{{ $t('collections.list.noResultsTitle') }}</h3>
       <p class="mt-2 text-base-content/60">
-        No collections match “{{ searchApplied }}”. Try a different keyword.
+        {{ $t('collections.list.noResultsDesc', { query: searchApplied }) }}
       </p>
       <button
         class="btn btn-outline border-base-300 hover:bg-base-300 mt-6 kawaru-text-95"
         @click="$emit('clear-search')"
       >
-        Clear Search
+        {{ $t('collections.list.clearSearch') }}
       </button>
     </div>
 

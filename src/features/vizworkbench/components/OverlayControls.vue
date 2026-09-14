@@ -192,7 +192,7 @@ function cancelEnable() {
 
 <template>
   <!-- Multi-ion overlay：仅 continuous 数据可用（processed 整块不渲染） -->
-  <CollapsibleSection v-if="isContinuous" title="Multi-ion overlay" class="mt-5">
+  <CollapsibleSection v-if="isContinuous" :title="$t('vizworkbench.overlay.multiIon')" class="mt-5">
     <IonChannelPanel
       :enabled="channelsEnabled"
       :channels="ionChannels"
@@ -209,11 +209,11 @@ function cancelEnable() {
     />
   </CollapsibleSection>
 
-  <CollapsibleSection title="Visualization" class="mt-5">
+  <CollapsibleSection :title="$t('vizworkbench.overlay.visualization')" class="mt-5">
 
     <div class="mb-3">
       <div class="flex items-center justify-between mb-1">
-        <span class="text-base-content">Gamma</span>
+        <span class="text-base-content">{{ $t('vizworkbench.overlay.gamma') }}</span>
         <span class="font-mono text-base-content">{{ gamma.toFixed(1) }}</span>
       </div>
       <input
@@ -238,7 +238,7 @@ function cancelEnable() {
         class="flex items-center justify-between mb-2 cursor-pointer select-none kawaru-text-87"
         :class="{ 'opacity-60 pointer-events-none': clusteringCreating }"
       >
-        <span class="text-base-content">Enable UMAP / KMeans</span>
+        <span class="text-base-content">{{ $t('vizworkbench.overlay.enable') }}</span>
         <input
           ref="toggleRef"
           type="checkbox"
@@ -251,21 +251,21 @@ function cancelEnable() {
 
       <div v-if="clusteringCreating" class="text-base-content/60 mt-1.5 flex items-center gap-1">
         <span class="loading loading-spinner loading-xs"></span>
-        Creating UMAP/KMeans task…
+        {{ $t('vizworkbench.overlay.creating') }}
       </div>
       <div
         v-else-if="clusteringComputing && !clusteringReady"
         class="text-base-content/60 mt-1.5 flex items-center gap-2"
       >
         <span class="loading loading-spinner loading-xs"></span>
-        <span class="flex-1">UMAP is computing…</span>
+        <span class="flex-1">{{ $t('vizworkbench.overlay.computing') }}</span>
         <button
           class="btn btn-ghost btn-xs kawaru-text-68"
           :disabled="clusteringRefreshing"
           @click="emit('refresh-clustering')"
         >
           <span v-if="clusteringRefreshing" class="loading loading-spinner loading-xs"></span>
-          Refresh
+          {{ $t('common.action.refresh') }}
         </button>
       </div>
 
@@ -313,16 +313,16 @@ function cancelEnable() {
         class="text-base-content/60 mt-1.5 flex items-center gap-1"
       >
         <span class="loading loading-spinner loading-xs"></span>
-        Loading overlay…
+        {{ $t('vizworkbench.overlay.loading') }}
       </div>
 
       <div v-if="overlayError" class="text-error mt-1.5 flex items-center gap-2">
-        <span class="flex-1">UMAP/KMeans unavailable: {{ overlayError }}</span>
+        <span class="flex-1">{{ $t('vizworkbench.overlay.unavailable', { error: overlayError }) }}</span>
         <button
           class="btn btn-ghost btn-sm text-error kawaru-text-75"
           @click="emit('retry-clustering')"
         >
-          Retry
+          {{ $t('common.action.retry') }}
         </button>
       </div>
     </div>
@@ -330,7 +330,7 @@ function cancelEnable() {
     <!-- Overlay opacity: one slider per active overlay -->
     <div v-if="umapVisible" class="mt-3">
       <div class="flex items-center justify-between font-semibold text-base-content mb-1">
-        <span>UMAP opacity</span>
+        <span>{{ $t('vizworkbench.overlay.umapOpacity') }}</span>
         <span class="font-mono font-normal">{{ Math.round(umapAlpha / 2.55) }}%</span>
       </div>
       <input
@@ -343,17 +343,17 @@ function cancelEnable() {
       />
       <button
         class="btn btn-sm btn-ghost gap-1 mt-1.5 w-full kawaru-text-75"
-        title="Export UMAP image as PNG"
+        :title="$t('vizworkbench.overlay.exportUmapHint')"
         @click="emit('export-umap')"
       >
         <SvgIcon type="download" />
-        Export UMAP PNG
+        {{ $t('vizworkbench.overlay.exportUmap') }}
       </button>
     </div>
     <div v-if="kmeansVisible" class="mt-3">
       <div class="flex items-center justify-between font-semibold text-base-content mb-1">
         <span>
-          KMeans opacity
+          {{ $t('vizworkbench.overlay.kmeansOpacity') }}
           <span v-if="kmeansK !== null" class="ml-1.5 font-mono font-normal text-base-content/60"
             >(k={{ kmeansK }})</span
           >
@@ -370,17 +370,17 @@ function cancelEnable() {
       />
       <button
         class="btn btn-sm btn-ghost gap-1 mt-1.5 w-full kawaru-text-75"
-        title="Export KMeans image as PNG"
+        :title="$t('vizworkbench.overlay.exportKmeansHint')"
         @click="emit('export-kmeans')"
       >
         <SvgIcon type="download" />
-        Export KMeans PNG
+        {{ $t('vizworkbench.overlay.exportKmeans') }}
       </button>
 
       <!-- Cluster picker: also drives the export mask -->
       <div v-if="kmeansClusters.length" class="mt-2 pt-2 border-t border-base-content/15">
         <div class="font-semibold text-base-content mb-1">
-          Clusters
+          {{ $t('vizworkbench.overlay.clusters') }}
           <span class="font-mono font-normal text-base-content/60">
             {{ selectedClusterCount }}/{{ kmeansClusters.length }}
           </span>
@@ -401,25 +401,25 @@ function cancelEnable() {
               class="w-3 h-3 rounded-sm border border-base-content/30 shrink-0"
               :style="{ backgroundColor: `rgb(${c.color[0]},${c.color[1]},${c.color[2]})` }"
             ></span>
-            <span class="text-base-content truncate">Cluster {{ c.id }}</span>
+            <span class="text-base-content truncate">{{ $t('vizworkbench.kmeans.cluster', { id: c.id }) }}</span>
           </label>
         </div>
         <div v-if="selectedClusterCount === 0" class="text-base-content/50 mt-1">
-          No clusters selected - overlay hidden
+          {{ $t('vizworkbench.overlay.noClusters') }}
         </div>
         <div class="flex gap-1 mt-2">
           <button
             class="btn btn-ghost btn-sm kawaru-text-75"
-            title="Re-run with a different k"
+            :title="$t('vizworkbench.overlay.rerunHint')"
             @click="openKmeansDialog"
           >
-            Re-run
+            {{ $t('vizworkbench.overlay.rerun') }}
           </button>
           <button class="btn btn-ghost btn-sm kawaru-text-75" @click="emit('kmeans-select-all')">
-            All
+            {{ $t('vizworkbench.mask.all') }}
           </button>
           <button class="btn btn-ghost btn-sm kawaru-text-75" @click="emit('kmeans-clear-all')">
-            Clear
+            {{ $t('common.action.clear') }}
           </button>
         </div>
       </div>
@@ -427,12 +427,12 @@ function cancelEnable() {
         v-else-if="!kmeansLabelsAvailable"
         class="mt-2 pt-2 border-t border-base-content/15 text-base-content/50"
       >
-        Run KMeans to compute clusters locally.
+        {{ $t('vizworkbench.overlay.runHint') }}
       </div>
     </div>
   </CollapsibleSection>
 
-  <CollapsibleSection title="Region of interest" class="mt-5">
+  <CollapsibleSection :title="$t('vizworkbench.overlay.roi')" class="mt-5">
     <ROIPanel
       :selected-tool="roiTool"
       :draft-ready="draftReady"
@@ -447,11 +447,11 @@ function cancelEnable() {
     />
   </CollapsibleSection>
 
-  <CollapsibleSection title="Export" class="mt-5">
+  <CollapsibleSection :title="$t('vizworkbench.overlay.export')" class="mt-5">
     <!-- One group per export kind; today only the ROI/cluster mask export -->
     <div>
       <div class="kawaru-text-81 font-semibold text-base-content mb-2 tracking-wide">
-        ROI region export
+        {{ $t('vizworkbench.overlay.roiExport') }}
       </div>
       <MaskExportPanel
         :rois="confirmedRois"
@@ -470,9 +470,9 @@ function cancelEnable() {
   <!-- Opt-in confirmation: first-time enable starts a backend clustering task -->
   <ConfirmDialog
     :open="showConfirm"
-    title="Generate UMAP"
-    message="This starts a backend clustering task to compute the UMAP embedding, which may take a while. KMeans clustering itself runs locally in your browser. Continue?"
-    confirm-label="Continue"
+    :title="$t('vizworkbench.overlay.umapTitle')"
+    :message="$t('vizworkbench.overlay.umapMessage')"
+    :confirm-label="$t('vizworkbench.overlay.continue')"
     @confirm="confirmEnable"
     @cancel="cancelEnable"
   />
@@ -480,14 +480,14 @@ function cancelEnable() {
   <!-- KMeans: local clustering with a user-chosen k -->
   <ConfirmDialog
     :open="showKmeansDialog"
-    title="Run KMeans"
-    confirm-label="Compute"
+    :title="$t('vizworkbench.overlay.kmeansTitle')"
+    :confirm-label="$t('vizworkbench.overlay.compute')"
     :loading="kmeansComputing"
     @confirm="onKmeansConfirm"
     @cancel="showKmeansDialog = false"
   >
     <div class="flex items-center gap-3">
-      <span>Number of clusters (k):</span>
+      <span>{{ $t('vizworkbench.overlay.kLabel') }}</span>
       <input
         v-model.number="kInput"
         type="number"
@@ -497,7 +497,7 @@ function cancelEnable() {
       />
     </div>
     <p class="text-base-content/60 mt-2">
-      Computed locally from the UMAP embedding ({{ K_MIN }}–{{ K_MAX }}).
+      {{ $t('vizworkbench.overlay.kHint', { min: K_MIN, max: K_MAX }) }}
     </p>
   </ConfirmDialog>
 </template>

@@ -1,0 +1,58 @@
+{
+  "home": {
+    "actions": {
+      "join": "立即加入",
+      "datasets": "查看数据集"
+    },
+    "stats": {
+      "title": "统计",
+      "datasetsTotal": "共 {count} 个数据集",
+      "totalDatasets": "数据集总数",
+      "totalDownloads": "下载总数",
+      "websiteVisits": "网站访问量",
+      "organism": "生物体",
+      "organismParts": "器官部位",
+      "ionSourceTypes": "离子源类型",
+      "analyzer": "分析器",
+      "loadFailed": {
+        "organism": "生物体统计加载失败",
+        "category": "数据集分类统计加载失败",
+        "ionSource": "离子源统计加载失败",
+        "analyzer": "分析器统计加载失败",
+        "platform": "平台概览加载失败",
+        "visits": "访问量统计加载失败"
+      }
+    },
+    "heatmap": {
+      "summary": "提交活跃度概览",
+      "total": "总计：",
+      "activeDays": "活跃天数：",
+      "lastDays": "最近 {days} 天",
+      "branch": "分支：",
+      "commits": "次提交",
+      "rateLimited": "GitHub API 达到限流（剩余 {remaining} 次），将在 {time} 重置",
+      "unknownTime": "未知时间",
+      "loadFailed": "GitHub 活跃度加载失败",
+      "tooltip": "{date}：{count} 次提交"
+    },
+    "footer": {
+      "team": "团队介绍",
+      "tagline": "由热爱科学与工程的人共同打造。",
+      "poweredBy": "技术支持",
+      "copyright": "Copyright © {year} - Bionet 保留所有权利",
+      "website": "Bionet 实验室网站",
+      "email": "Bionet 实验室邮箱",
+      "wechat": "微信公众号",
+      "github": "通过 Github 加入我们",
+      "recruitment": "加入实验室",
+      "computingFramework": "计算框架",
+      "aliyun": "阿里云"
+    },
+    "scenes": {
+      "ariaLabel": "MassVision 首页场景"
+    },
+    "team": {
+      "carousel": "开发团队"
+    }
+  }
+}

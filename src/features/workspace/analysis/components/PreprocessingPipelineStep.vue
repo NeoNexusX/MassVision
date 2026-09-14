@@ -19,7 +19,7 @@ defineProps<{
 
 <template>
   <details open class="bg-base-100 rounded-lg border border-base-200 p-6 shadow-sm">
-    <summary class="kawaru-text-187 font-medium mb-4 list-none">Step 2: Preprocessing Pipeline</summary>
+    <summary class="kawaru-text-187 font-medium mb-4 list-none">{{ $t('workspace.pipeline.title') }}</summary>
 
     <div class="space-y-4 mt-2">
       <div
@@ -34,9 +34,9 @@ defineProps<{
         :key="group.key"
         class="border border-base-200 rounded-md p-4"
       >
-        <div class="font-medium kawaru-text-125">{{ group.title }}</div>
+        <div class="font-medium kawaru-text-125">{{ group.title() }}</div>
         <div v-if="group.hint" class="kawaru-text-100 text-base-content/60 mt-1">
-          {{ group.hint }}
+          {{ group.hint() }}
         </div>
         <div class="mt-3 flex flex-wrap gap-3">
           <div v-for="method in group.methods" :key="method.id" class="flex flex-col">
@@ -72,7 +72,7 @@ defineProps<{
               <div v-for="param in method.params" :key="param.key" class="flex items-center gap-2">
                 <span
                   class="kawaru-text-112 text-base-content/60 w-32 shrink-0 whitespace-nowrap"
-                  :title="param.hint"
+                  :title="param.hint?.()"
                   ><MzText :text="param.label"
                 /></span>
                 <template v-if="param.type === 'select'">
@@ -81,7 +81,7 @@ defineProps<{
                     size="sm"
                     :model-value="String(getParam(group.key, method.id, param.key) ?? '')"
                     :options="[...new Set(param.options!.map((o) => o.value))]"
-                    :placeholder="param.hint || 'Select...'"
+                    :placeholder="param.hint?.() || $t('datasets.metadata.selectPlaceholder')"
                     hide-label
                     required
                     @update:model-value="
@@ -93,7 +93,7 @@ defineProps<{
                   <input
                     class="input input-sm input-bordered flex-1 max-w-28 kawaru-text-112 font-mono"
                     type="text"
-                    :placeholder="param.hint || String(param.default ?? '')"
+                    :placeholder="param.hint?.() || String(param.default ?? '')"
                     :value="getParam(group.key, method.id, param.key)"
                     @input="
                       methodParams[buildParamKey(group.key, method.id, param.key)] = (
@@ -107,7 +107,7 @@ defineProps<{
                     class="input input-sm input-bordered flex-1 max-w-28 kawaru-text-112 font-mono"
                     type="text"
                     inputmode="numeric"
-                    :placeholder="param.hint || String(param.default ?? '')"
+                    :placeholder="param.hint?.() || String(param.default ?? '')"
                     :value="getParam(group.key, method.id, param.key)"
                     @input="onIntInput(group.key, method.id, param.key, $event)"
                     @blur="onNumBlur(group.key, method.id, param.key, 'int')"
@@ -118,7 +118,7 @@ defineProps<{
                     class="input input-sm input-bordered flex-1 max-w-28 kawaru-text-112 font-mono"
                     type="text"
                     inputmode="decimal"
-                    :placeholder="param.hint || String(param.default ?? '')"
+                    :placeholder="param.hint?.() || String(param.default ?? '')"
                     :value="getParam(group.key, method.id, param.key)"
                     @input="onFloatInput(group.key, method.id, param.key, $event)"
                     @blur="onNumBlur(group.key, method.id, param.key, 'float')"

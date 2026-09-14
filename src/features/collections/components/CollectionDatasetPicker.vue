@@ -6,17 +6,17 @@
     class="bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6"
   >
     <div class="flex items-center justify-between gap-3 mb-4">
-      <h2 class="kawaru-text-125 font-bold text-base-content">{{ title }}</h2>
+      <h2 class="kawaru-text-125 font-bold text-base-content">{{ title ?? $t('collections.picker.step1') }}</h2>
       <span class="badge badge-primary badge-sm gap-1 font-medium whitespace-nowrap kawaru-text-75">
         <SvgIcon type="check" class="w-[0.9em] h-[0.9em]" />
-        {{ selectedCount }} selected
+        {{ $t('collections.picker.selected', { count: selectedCount }) }}
       </span>
     </div>
 
     <!-- 搜索：实时防抖（300ms），由 composable 侧 watch 处理。 -->
     <SearchInput
       :model-value="query"
-      placeholder="Search public datasets"
+:placeholder="$t('collections.picker.searchPlaceholder')"
       class="mb-3"
       @update:model-value="emit('update:query', $event)"
     />
@@ -47,20 +47,20 @@
               class="checkbox checkbox-sm checkbox-primary shrink-0"
               :checked="isSelected(dataset.id)"
               :disabled="isExcluded(dataset.id)"
-              :aria-label="`Select ${dataset.name}`"
+              :aria-label="$t('collections.picker.selectAria', { name: dataset.name })"
               tabindex="-1"
               @click.stop
               @change="!isExcluded(dataset.id) && emit('toggle', dataset)"
             />
             <div class="w-10 h-10 shrink-0">
-              <DatasetThumb :file-id="dataset.id" :alt="`Preview of ${dataset.name}`" />
+              <DatasetThumb :file-id="dataset.id" :alt="$t('collections.picker.previewAlt', { name: dataset.name })" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="font-medium truncate text-base-content" :title="dataset.name">
                 {{ dataset.name }}
               </div>
               <div class="kawaru-text-87 text-base-content/60 truncate">
-                {{ [dataset.organism, dataset.submitter].filter(Boolean).join(' · ') || '–' }}
+                {{ [vocabLabel(dataset.organism), dataset.submitter].filter(Boolean).join(' · ') || '–' }}
               </div>
             </div>
             <!-- 已是集合成员：禁选并标注 -->
@@ -68,7 +68,7 @@
               v-if="isExcluded(dataset.id)"
               class="badge badge-sm border border-base-300 bg-base-200 text-base-content/60 whitespace-nowrap shrink-0 kawaru-text-75"
             >
-              Already in collection
+              {{ $t('collections.picker.alreadyIn') }}
             </span>
             <div v-else class="kawaru-text-87 text-base-content/60 whitespace-nowrap tabular-nums shrink-0">
               {{ formatBytes(dataset.sizeBytes) }}
@@ -76,7 +76,7 @@
           </li>
         </ul>
         <div v-else class="text-base-content/60 p-6 text-center">
-          No public datasets found.
+          {{ $t('collections.picker.empty') }}
         </div>
       </template>
     </div>
@@ -104,6 +104,7 @@ import DatasetThumb from '@/features/collections/components/DatasetThumb.vue'
 import SearchInput from '@/shared/components/SearchInput.vue'
 import PaginationFooter from '@/shared/components/PaginationFooter.vue'
 import { formatBytes } from '@/shared/utils/format'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
 import type { File } from '@/features/datasets/types/dataset'
 import type { CollectionListMeta } from '@/features/collections/types/collection'
 
@@ -119,7 +120,7 @@ const props = defineProps({
   isSelected: { type: Function as PropType<(id: string) => boolean>, required: true },
   selectedCount: { type: Number, required: true },
   /** 卡片标题（Create 流程为 Step 1，overview 加成员弹窗为 Add Members） */
-  title: { type: String, default: 'Step 1: Choose Datasets' },
+  title: { type: String, default: undefined },
   /** 已在集合中的文件 id（File.id 是 string，成员 number id 统一转 string 比较）。
    *  命中的行禁选并标注 "Already in collection"。 */
   excludeIds: { type: Array as PropType<(number | string)[]>, default: () => [] },

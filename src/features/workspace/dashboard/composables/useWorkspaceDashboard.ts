@@ -5,6 +5,7 @@ import { buildPageList } from '@/shared/utils/pagination'
 import { parseUtcDate } from '@/shared/utils/date'
 import { formatDate, formatDateTime, formatTime } from '@/shared/utils/format'
 import { getConfig } from '@/shared/config/runtimeConfig'
+import { t } from '@/i18n'
 
 export interface ProcessItem {
   id: number
@@ -56,7 +57,7 @@ export function useWorkspaceDashboard() {
     const finishedDate = parseUtcDate(p.finished_at)
     return {
       id: String(p.id),
-      name: `Process #${p.id}`,
+      name: t('workspace.table.processName', { id: p.id }),
       dataset: getFileName(p),
       filename: p.filename || '',
       fileId: p.source_file_id,
@@ -82,7 +83,7 @@ export function useWorkspaceDashboard() {
 
   // ── Methods ─────────────────────────────────────────────────────
   function getFileName(p: ProcessItem): string {
-    return (p.filename || 'Unknown').replace(/\.[^.]+$/, '')
+    return (p.filename || t('workspace.table.unknownFile')).replace(/\.[^.]+$/, '')
   }
 
   async function fetchStats() {

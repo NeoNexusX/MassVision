@@ -20,7 +20,7 @@
       <button
         type="button"
         class="text-base-content/40 hover:text-error transition-colors"
-        :aria-label="`Remove ${tag}`"
+        :aria-label="$t('common.input.removeTag', { tag })"
         @click="remove(i)"
       >
         <SvgIcon type="close" class="w-[0.9em] h-[0.9em]" />
@@ -32,8 +32,8 @@
       type="text"
       class="flex-1 min-w-[6em] bg-transparent border-none outline-none
         kawaru-text-95 text-base-content placeholder:text-base-content/40 py-0.5"
-      :placeholder="modelValue.length ? '' : placeholder"
-      :aria-label="name ? `Add ${name}` : 'Add tag'"
+      :placeholder="modelValue.length ? '' : (placeholder ?? $t('common.input.tagPlaceholder'))"
+      :aria-label="name ? $t('common.input.addNamedTag', { name }) : $t('common.input.addTag')"
       @keydown.enter.prevent="commit"
       @keydown.,.prevent="commit"
       @keydown.backspace="onBackspace"
@@ -53,7 +53,7 @@ const props = withDefaults(
     /** 可访问性标签（如字段名 "DOI"） */
     name?: string
   }>(),
-  { placeholder: 'Type and press Enter', name: '' },
+  { placeholder: undefined, name: '' },
 )
 
 const emit = defineEmits<{

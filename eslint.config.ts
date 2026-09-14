@@ -153,20 +153,24 @@ export default defineConfigWithVueTs(
     files: ['src/**/*.{ts,mts,tsx,vue}'],
     rules: {
       /**
-       * 迁移期（P1-P3）先设 warn：`lint:check` 带 --quiet 只报 error，这些规则此刻不卡 CI。
+       * 国际化文案已完成迁移，规则设为 error：`lint:check` 带 --quiet 只报 error，这些规则此刻不卡 CI。
        * 想看待迁移清单就跑 `npx eslint src`（不带 --quiet）。
        * 每个 feature 的文案清零后，把对应规则提到 error 锁住成果。
        */
       '@intlify/vue-i18n/no-raw-text': [
-        'warn',
+        'error',
         {
           ignoreNodes: ['i', 'code', 'pre'],
-          // 纯数字 / 标点 / 符号不是文案
-          ignorePattern: '^[\\d\\s\\p{P}\\p{S}]+$',
-          // 质谱与学术领域的固有缩写，各语言下写法相同，不该报成待翻译
+          attributes: { '.*': ['title', 'placeholder', 'aria-label', 'alt'] },
+          // 纯数字 / 标点 / 符号（含空串）不是文案（\p{M} 覆盖 ⏱️ 这类 emoji 自带的变体选择符）
+          ignorePattern: '^[\\d\\s\\p{P}\\p{S}\\p{M}]*$',
+          // 各语言下写法相同、不该报成待翻译的文字：
+          // 质谱与学术领域的固有缩写、化学标识符、单位，以及 ℹ / 1.0x / (k= 这类记号
           ignoreText: [
             'm/z', 'TIC', 'PNG', 'CSV', 'DOI', 'ORCID', 'imzML', 'ibd', 'zarr',
-            'MALDI', 'DESI', 'SIMS', 'ROI', 'PCA', 'UMAP', 'k-means', 'GitHub', 'ID',
+            'v', 'MALDI', 'DESI', 'SIMS', 'ROI', 'PCA', 'UMAP', 'KMeans', 'k-means', 'GitHub', 'ID',
+            'CID', 'SMILES', 'InChI', 'InChIKey', 'PubChem',
+            'μm', 'ppm', 'Da', 'ℹ', 'x', '(k=',
           ],
         },
       ],

@@ -1,7 +1,7 @@
 <template>
   <IconSelect
     :model-value="modelValue"
-    :options="options"
+    :options="selectOptions"
     :placeholder="placeholder"
     :placeholder-selectable="placeholderSelectable"
     :icon-type="iconType"
@@ -30,13 +30,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { t } from '@/i18n'
 import IconSelect from '@/shared/components/IconSelect.vue'
 import { normalizeOtherInput, toTitleCase, validateOtherInput } from '@/shared/utils/normalizeOtherInput'
 
 const props = defineProps<{
   modelValue: string
   options: readonly string[]
+  /**
+   * 选项的显示文字（如词表译文）。只影响显示：v-model 收发的始终是 options 里的原值，
+   * 提交给后端的仍是英文。缺省时原样显示选项值。
+   */
+  labelOf?: (value: string) => string
   placeholder?: string
   placeholderSelectable?: boolean
   otherPlaceholder?: string
@@ -54,6 +60,12 @@ const emit = defineEmits<{
   (e: 'focus'): void
   (e: 'blur'): void
 }>()
+
+const selectOptions = computed(() =>
+  props.labelOf
+    ? Object.fromEntries(props.options.map((v) => [props.labelOf!(v), v]))
+    : props.options,
+)
 
 const isOther = ref(false)
 const otherText = ref('')
@@ -94,7 +106,7 @@ function onOtherInput(e: Event) {
 
 function onOtherBlur() {
   if (!otherText.value.trim()) {
-    otherError.value = 'Please specify the value.'
+    otherError.value = t('common.input.otherRequired')
     return
   }
 

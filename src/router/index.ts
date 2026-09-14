@@ -134,9 +134,10 @@ const routes = [
   },
   {
     // 可视化工作台：分析结果的离子图/光谱/标注可视化页。
+    // 信息面板复用 datasets 的字段名与词表（极性等）文案，所以一并加载 datasets。
     path: '/vizworkbench',
     name: 'VizWorkbench',
-    component: view(() => import('../views/VizWorkbench.vue'), 'vizworkbench'),
+    component: view(() => import('../views/VizWorkbench.vue'), 'vizworkbench', 'datasets'),
     meta: { requiresAuth: true },
   },
   // 裸 /docs 转发后由 nginx 的 `location = /docs` 301 补斜杠，这里无需特殊处理。

@@ -15,12 +15,12 @@
         class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
       >
         <SvgIcon type="circle_stack" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-        <h3 class="kawaru-text-112 font-bold text-base-content">Session lost</h3>
+        <h3 class="kawaru-text-112 font-bold text-base-content">{{ $t('datasets.overview.sessionLost') }}</h3>
         <p class="mt-2 text-base-content/60">
-          Please navigate from Collections to view details.
+          {{ $t('collections.overview.sessionLostDesc') }}
         </p>
         <router-link to="/collections" class="btn btn-primary mt-6 kawaru-text-100">
-          Back to Collections
+          {{ $t('collections.overview.backToCollections') }}
         </router-link>
       </div>
 
@@ -31,13 +31,17 @@
       >
         <SvgIcon type="circle_stack" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
         <h3 class="kawaru-text-112 font-bold text-base-content">
-          {{ notFound ? 'Collection not found' : 'Failed to load collection' }}
+          {{
+            notFound
+              ? $t('collections.overview.notFound')
+              : $t('common.feedback.loadFailed', { target: $t('collections.overview.target') })
+          }}
         </h3>
         <p class="mt-2 text-base-content/60">{{ error }}</p>
         <div class="mt-6 flex justify-center gap-2">
-          <button v-if="!notFound" class="btn btn-outline kawaru-text-100" @click="fetch">Retry</button>
+          <button v-if="!notFound" class="btn btn-outline kawaru-text-100" @click="fetch">{{ $t('common.action.retry') }}</button>
           <router-link to="/collections" class="btn btn-primary kawaru-text-100">
-            Back to Collections
+            {{ $t('collections.overview.backToCollections') }}
           </router-link>
         </div>
       </div>
@@ -51,7 +55,7 @@
               class="inline-flex items-center gap-1 kawaru-text-87 text-base-content/60 hover:text-primary transition-colors"
             >
               <SvgIcon type="back" class="w-[0.9em] h-[0.9em]" />
-              Collections
+              {{ $t('collections.view.title') }}
             </router-link>
             <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mt-1 truncate" :title="headerName">
               {{ headerName }}
@@ -68,7 +72,7 @@
                 :disabled="saving"
                 @click="cancel"
               >
-                Cancel
+                {{ $t('common.action.cancel') }}
               </button>
               <button
                 class="btn btn-primary kawaru-text-95"
@@ -76,7 +80,7 @@
                 @click="save"
               >
                 <span v-if="saving" class="loading loading-spinner loading-sm"></span>
-                Save Changes
+                {{ $t('common.action.saveChanges') }}
               </button>
             </template>
             <template v-else>
@@ -86,18 +90,18 @@
                 @click="copyShareLink"
               >
                 <SvgIcon type="share" class="w-[1em] h-[1em]" />
-                Share
+                {{ $t('datasets.overview.share') }}
               </button>
               <button class="btn btn-outline border-base-300 kawaru-text-95" @click="start">
                 <SvgIcon type="pencil" class="w-[1em] h-[1em]" />
-                Edit
+                {{ $t('common.action.edit') }}
               </button>
               <button
                 class="btn btn-outline border-base-300 text-error kawaru-text-95"
                 @click="deleteConfirm.open(String(detail.id))"
               >
                 <SvgIcon type="trash" class="w-[1em] h-[1em]" />
-                Delete
+                {{ $t('common.action.delete') }}
               </button>
             </template>
           </div>
@@ -117,18 +121,18 @@
           <span class="inline-flex items-center gap-1.5">
             <SvgIcon type="queue_list" class="w-[1.1em] h-[1.1em]" />
             <span class="font-semibold text-base-content">{{ detail.memberCount }}</span>
-            {{ detail.memberCount === 1 ? 'dataset' : 'datasets' }}
+            {{ $t('collections.unit.dataset', detail.memberCount) }}
           </span>
           <span class="inline-flex items-center gap-1.5">
             <SvgIcon type="folder" class="w-[1.1em] h-[1.1em]" />
             {{ formatBytes(detail.totalSize) }}
           </span>
-          <span class="inline-flex items-center gap-1.5" :title="`Owner: ${detail.ownerUsername}`">
+          <span class="inline-flex items-center gap-1.5" :title="$t('collections.card.owner', { name: detail.ownerUsername })">
             <SvgIcon type="user" class="w-[1.1em] h-[1.1em]" />
             {{ detail.ownerUsername }}
           </span>
           <span v-if="updatedDate" class="ml-auto whitespace-nowrap">
-            Updated {{ updatedDate }}
+            {{ $t('collections.card.updated', { date: updatedDate }) }}
           </span>
         </div>
 
@@ -165,7 +169,7 @@
           :query="pickerQuery"
           :is-selected="pickerSelection.isSelected"
           :selected-count="pickerSelection.selected.value.length"
-          title="Add Members"
+:title="$t('collections.overview.addMembers')"
           :exclude-ids="memberIds"
           @update:query="pickerQuery = $event"
           @toggle="pickerSelection.toggle"
@@ -173,29 +177,28 @@
           @change-size="pickerChangeSize"
         />
         <div class="modal-action">
-          <button class="btn kawaru-text-100" :disabled="adding" @click="closeAddMembers">Cancel</button>
+          <button class="btn kawaru-text-100" :disabled="adding" @click="closeAddMembers">{{ $t('common.action.cancel') }}</button>
           <button
             class="btn btn-primary kawaru-text-100"
             :disabled="!pickerSelection.selected.value.length || adding"
             @click="confirmAddMembers"
           >
             <span v-if="adding" class="loading loading-spinner loading-sm"></span>
-            Add {{ pickerSelection.selected.value.length || '' }}
-            {{ pickerSelection.selected.value.length === 1 ? 'dataset' : 'datasets' }}
+            {{ $t('collections.overview.addButton', pickerSelection.selected.value.length) }}
           </button>
         </div>
       </div>
       <form method="dialog" class="modal-backdrop" @click="closeAddMembers">
-        <button @click.prevent="closeAddMembers">close</button>
+        <button @click.prevent="closeAddMembers">{{ $t('common.action.close') }}</button>
       </form>
     </dialog>
 
     <!-- 删除集合确认 -->
     <ConfirmDialog
       :open="deleteConfirm.isOpen"
-      title="Delete collection?"
-      message="The collection will be removed. Member datasets are not affected."
-      confirm-label="Delete"
+:title="$t('collections.view.deleteTitle')"
+      :message="$t('collections.view.deleteMessage')"
+      :confirm-label="$t('common.action.delete')"
       danger
       @confirm="deleteConfirm.confirm"
       @cancel="deleteConfirm.cancel"
@@ -222,6 +225,7 @@ import { useCollectionDetail } from '@/features/collections/composables/useColle
 import { useCollectionEdit } from '@/features/collections/composables/useCollectionEdit'
 import { useCollectionMembers } from '@/features/collections/composables/useCollectionMembers'
 import { useOrderedSelection } from '@/features/collections/composables/useOrderedSelection'
+import { t } from '@/i18n'
 
 const router = useRouter()
 const { showToast } = useToast()
@@ -272,7 +276,6 @@ const deleteConfirm = useConfirmDelete({
     await deleteCollection(Number(id))
     router.push('/collections')
   },
-  successMessage: 'Collection deleted',
 })
 
 // ---- 分享链接（publicId 后端未确认携带，无则按钮隐藏）----
@@ -281,9 +284,9 @@ async function copyShareLink() {
   const url = `${location.origin}/collections/${detail.value.publicId}`
   try {
     await navigator.clipboard.writeText(url)
-    showToast('Share link copied to clipboard', 'success')
+    showToast(t('common.feedback.copied'), 'success')
   } catch {
-    showToast(`Share link: ${url}`, 'info')
+    showToast(t('collections.overview.shareLink', { url }), 'info')
   }
 }
 

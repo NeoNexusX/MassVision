@@ -27,7 +27,7 @@ const profileFormProps = computed(() => ({
   patterns: registerForm.patterns,
   loading: registerForm.loading,
   positionOptions: registerForm.positionOptions,
-  regionOptions: registerForm.regionOptions,
+  regionOptions: registerForm.regionOptions.value,
   researchFieldOptions: registerForm.researchFieldOptions,
   validateField: registerForm.validateField,
   clearError: registerForm.clearError,

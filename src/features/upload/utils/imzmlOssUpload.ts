@@ -16,6 +16,7 @@ import { generateDatasetFilename } from './filenameGenerator'
 import { PartQueue } from './partQueue'
 import { UploadProgressMeter } from './zipSizeEstimator'
 import { ConcurrencyGovernor } from './concurrencyGovernor'
+import { t } from '@/i18n'
 
 // POST /files/upload 的返回
 export interface OssUploadResponse {
@@ -58,8 +59,8 @@ export function sourceMatches(a: UploadSourceIdentity, b: UploadSourceIdentity):
   )
 }
 
-const MISMATCHED_SOURCE =
-  'The selected files do not match the pending upload. Pick the same .imzML and .ibd pair, or discard the pending upload.'
+/** 用户可见文案，抛出时才按当前界面语言取（不参与任何字符串比较） */
+const mismatchedSource = () => t('upload.error.mismatchedSource')
 
 /**
  * 一次上传失败之后，会话和 OSS 分片该怎么处置。
@@ -84,10 +85,7 @@ export function dispositionFor(err: unknown, zipMismatch: boolean): FailureDispo
 /** 超限文案：UI 预检和管线兜底共用，避免两处措辞不一致 */
 export function tooLargeMessage(sourceBytes: number): string {
   const gb = (n: number) => `${(n / 1024 ** 3).toFixed(1)} GB`
-  return (
-    `Dataset is too large: ${gb(sourceBytes)} (imzML + ibd). ` +
-    `The maximum per upload is ${gb(OSS_UPLOAD.maxUploadBytes)}.`
-  )
+  return t('upload.error.tooLarge', { size: gb(sourceBytes), max: gb(OSS_UPLOAD.maxUploadBytes) })
 }
 
 /**
@@ -125,27 +123,27 @@ export async function uploadImzmlZipFileOSS({
   let session: UploadSession | null = null
   if (resume) {
     session = loadUploadSession()
-    if (!session) throw new Error('No pending upload session to resume')
+    if (!session) throw new Error(t('upload.error.noSession'))
     if (new Date(session.stsExpiration).getTime() <= Date.now()) {
       await cleanupResumable()
-      throw new Error('Upload session expired, please start a new upload')
+      throw new Error(t('upload.error.sessionExpired'))
     }
     if (!sourceMatches(session.source, sourceIdentityOf(files))) {
-      throw new Error(MISMATCHED_SOURCE)
+      throw new Error(mismatchedSource())
     }
   }
 
   // -----------------------------------------------------------
   // 阶段 1：Worker 算哈希（停在压缩之前）
   // -----------------------------------------------------------
-  onProgress?.({ stage: 'preflight', percent: 0, message: 'Preparing upload...' })
+  onProgress?.({ stage: 'preflight', percent: 0, message: t('upload.progress.preparing') })
   const prep = await prepareUpload(files, {
     signal,
     onProgress: (p) =>
       onProgress?.({
         stage: 'preflight',
         percent: p.percent,
-        message: 'Preparing upload...',
+        message: t('upload.progress.preparing'),
         speedStr: p.speedStr,
         etaStr: p.etaStr,
       }),
@@ -162,7 +160,7 @@ export async function uploadImzmlZipFileOSS({
   try {
     if (session) {
       // 哈希是「是不是同一对文件」的最终判据
-      if (fileHash !== session.fileHash) throw new Error(MISMATCHED_SOURCE)
+      if (fileHash !== session.fileHash) throw new Error(mismatchedSource())
       fileId = session.fileId
       normalizedFilename = session.datasetName || String(datasetName || 'mass_dataset')
       entryNames = session.entryNames
@@ -177,7 +175,7 @@ export async function uploadImzmlZipFileOSS({
         oss_path: session.ossPath,
         oss_region_id: session.ossRegion,
       }
-      onProgress?.({ stage: 'uploading', percent: 0, message: 'Resuming upload...' })
+      onProgress?.({ stage: 'uploading', percent: 0, message: t('upload.progress.resuming') })
     } else {
       // 文件名：{hash6}_{organism}_{part}_{source}_{pixelX}_{polarity}
       normalizedFilename = generateDatasetFilename(metadata, fileHash)
@@ -188,7 +186,7 @@ export async function uploadImzmlZipFileOSS({
       onProgress?.({
         stage: 'preflight',
         percent: 100,
-        message: 'Checking server for existing file...',
+        message: t('upload.progress.checkingServer'),
       })
 
       const preflightRes = await auth_api.post(
@@ -213,7 +211,7 @@ export async function uploadImzmlZipFileOSS({
         onProgress?.({
           stage: 'completed',
           percent: 100,
-          message: 'File already exists on server, reused.',
+          message: t('upload.progress.reusedOnServer'),
         })
         return {
           upload_id: String(fileId),
@@ -227,7 +225,7 @@ export async function uploadImzmlZipFileOSS({
       // -----------------------------------------------------------
       // 阶段 3：取 OSS 凭证（压缩之前 —— 压缩产物直接就要往上传）
       // -----------------------------------------------------------
-      onProgress?.({ stage: 'preflight', percent: 100, message: 'Fetching upload credentials...' })
+      onProgress?.({ stage: 'preflight', percent: 100, message: t('upload.progress.fetchingCredentials') })
       const uploadRes = await auth_api.post(
         '/files/upload',
         new URLSearchParams({ filename: normalizedFilename, pre_file_id: String(fileId) }),
@@ -301,7 +299,10 @@ export async function uploadImzmlZipFileOSS({
     onProgress?.({
       stage: 'uploading',
       percent: snap.percent,
-      message: `Compressing and uploading... (${meter.uploadedPartCount}/${meter.totalPartCount} parts)`,
+      message: t('upload.progress.compressing', {
+        done: meter.uploadedPartCount,
+        total: meter.totalPartCount,
+      }),
       speedStr: snap.speedStr,
       etaStr: snap.etaStr,
       compressSpeedStr: snap.compressSpeedStr,
@@ -496,10 +497,10 @@ export async function uploadImzmlZipFileOSS({
     while (consumers.size > 0) await Promise.all([...consumers])
     if (consumerError) throw consumerError
 
-    onProgress?.({ stage: 'syncing', percent: 100, message: 'Finalizing upload...' })
+    onProgress?.({ stage: 'syncing', percent: 100, message: t('upload.progress.finalizing') })
     await mp.complete()
 
-    onProgress?.({ stage: 'completed', percent: 100, message: 'Upload complete.' })
+    onProgress?.({ stage: 'completed', percent: 100, message: t('upload.progress.complete') })
     await cleanupResumable()
 
     return {
@@ -520,10 +521,7 @@ export async function uploadImzmlZipFileOSS({
       case 'discard-session':
         void mp.abort().catch(() => {})
         await cleanupResumable()
-        throw new Error(
-          'The archive could not be reproduced byte-for-byte (the browser or its compression ' +
-            'implementation likely changed), so the partial upload was discarded. Please upload again.',
-        )
+        throw new Error(t('upload.error.notReproducible'))
 
       case 'reset-parts':
         // abort 不 await：它只是提前释放 OSS 上的分片存储，bucket 的生命周期

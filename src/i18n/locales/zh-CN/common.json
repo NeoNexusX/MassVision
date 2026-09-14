@@ -3,8 +3,26 @@
     "language": {
       "switch": "切换语言"
     },
+    "nav": {
+      "openMenu": "打开菜单",
+      "closeMenu": "关闭菜单",
+      "closeSidebar": "关闭侧边栏",
+      "toggleTheme": "切换主题",
+      "notSignedIn": "未登录",
+      "signIn": "登录"
+    },
+    "field": {
+      "name": "名称",
+      "username": "用户名",
+      "email": "邮箱",
+      "password": "密码",
+      "position": "职位",
+      "region": "国家 / 地区",
+      "researchField": "研究领域"
+    },
     "action": {
       "save": "保存",
+      "saveChanges": "保存修改",
       "cancel": "取消",
       "confirm": "确认",
       "delete": "删除",
@@ -12,12 +30,107 @@
       "search": "搜索",
       "reset": "重置",
       "close": "关闭",
-      "retry": "重试"
+      "retry": "重试",
+      "refresh": "刷新",
+      "view": "查看",
+      "apply": "应用",
+      "clear": "清除",
+      "download": "下载",
+      "remove": "移除",
+      "prev": "上一页",
+      "next": "下一页",
+      "go": "跳转",
+      "clearAll": "全部清除",
+      "discard": "放弃"
     },
     "state": {
       "loading": "加载中…",
       "empty": "暂无数据",
       "error": "出错了"
+    },
+    "feedback": {
+      "updated": "已更新",
+      "updateFailed": "更新失败",
+      "created": "已创建",
+      "createFailed": "创建失败",
+      "deleted": "已删除",
+      "deleteFailed": "删除失败",
+      "added": "已添加",
+      "addFailed": "添加失败",
+      "removeFailed": "移除失败",
+      "copied": "已复制到剪贴板",
+      "copyFailed": "复制失败",
+      "exported": "已导出",
+      "exportFailed": "导出失败",
+      "loadFailed": "{target}加载失败",
+      "withDetail": "{message}：{detail}"
+    },
+    "status": {
+      "running": "运行中",
+      "completed": "已完成",
+      "failed": "失败",
+      "processing": "处理中",
+      "active": "已启用",
+      "inactive": "已停用"
+    },
+    "stat": {
+      "files": "文件数",
+      "processing": "处理量",
+      "downloads": "下载次数",
+      "totalUsers": "用户总数"
+    },
+    "preprocessing": {
+      "noiseReduction": "降噪 (Noise Reduction)",
+      "baselineCorrection": "基线校正 (Baseline Correction)",
+      "normalization": "归一化 (Normalization)",
+      "peakPicking": "峰提取 (Peak Picking)",
+      "peakAlignment": "峰对齐 (Peak Alignment)",
+      "rawConvert": "直接转换（无预处理）"
+    },
+    "meta": {
+      "organism": "物种",
+      "organismPart": "组织部位",
+      "sampleStabilization": "样本稳定化处理",
+      "growthConditions": "培养条件",
+      "tissueModification": "组织前处理",
+      "polarity": "极性",
+      "ionisationSource": "离子源",
+      "analyzer": "质量分析器"
+    },
+    "pagination": {
+      "summary": "第 {page} / {total} 页，共 {count} 条",
+      "perPage": "每页"
+    },
+    "format": {
+      "labelColon": "{label}："
+    },
+    "input": {
+      "selectPlaceholder": "请选择",
+      "tagPlaceholder": "输入后按回车添加",
+      "addTag": "添加标签",
+      "addNamedTag": "添加{name}",
+      "removeTag": "移除 {tag}",
+      "otherRequired": "请填写具体内容。",
+      "otherTooLong": "请控制在 {max} 个字符以内。",
+      "otherInvalidChars": "只能包含字母、数字、空格、连字符、下划线、斜杠、括号、逗号和句点。",
+      "searchDatasets": "搜索数据集"
+    },
+    "assistant": {
+      "title": "AI 助手",
+      "online": "在线",
+      "minimize": "最小化",
+      "welcome": "你好，我是你的 AI 科研助手。我可以帮助解释离子图像、总结数据集、建议预处理方法，并协助撰写报告。",
+      "quick": {
+        "summarize": "总结这个数据集",
+        "explain": "解释这张离子图像",
+        "preprocess": "建议预处理方法",
+        "report": "帮我写报告"
+      },
+      "placeholder": "向 AI 提问…",
+      "attach": "附加文件",
+      "send": "发送",
+      "replyPrompt": "这是对“{prompt}”的模拟回复。请连接 AI 后端以获取真实结果。",
+      "replyText": "谢谢你的消息！我收到了“{text}”。这是演示版本，请连接 AI 后端获取真实回答。"
     }
   }
 }

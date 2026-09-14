@@ -4,8 +4,14 @@ export function formatSpeed(bytesPerSec: number): string {
   return `${(bytesPerSec / 1048576).toFixed(1)} MB/s`
 }
 
+/**
+ * 「剩余时间尚无法估算」的哨兵值。本文件会被压缩 worker 引用，worker 里没有 i18n，
+ * 所以这里只返回固定英文，由 UploadProgressPanel 比对后换成当前语言的文案。
+ */
+export const ETA_CALCULATING = 'Calculating...'
+
 export function formatETA(seconds: number): string {
-  if (seconds <= 0 || !isFinite(seconds)) return 'Calculating...'
+  if (seconds <= 0 || !isFinite(seconds)) return ETA_CALCULATING
   if (seconds > 3600) return '>1h'
   const m = Math.floor(seconds / 60)
   const s = Math.round(seconds % 60)

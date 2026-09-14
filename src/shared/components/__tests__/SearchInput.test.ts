@@ -1,10 +1,15 @@
-import { describe, it, expect } from 'vitest'
+import { beforeAll, describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import SearchInput from '../SearchInput.vue'
+import { i18n, loadCoreMessages } from '@/i18n'
+
+
+// 组件模板用 $t：挂载时装上 i18n 实例，并预先加载英文语言包（断言保持英文原文）
+beforeAll(() => Promise.all([loadCoreMessages('en')]))
 
 describe('SearchInput', () => {
   it('emits update:modelValue on input and search on Enter', async () => {
-    const w = mount(SearchInput, { props: { modelValue: '' } })
+    const w = mount(SearchInput, { props: { modelValue: '' }, global: { plugins: [i18n] } })
     const input = w.find('input')
     await input.setValue('kidney')
     expect(w.emitted('update:modelValue')).toEqual([['kidney']])
@@ -13,7 +18,7 @@ describe('SearchInput', () => {
   })
 
   it('clear button emits an empty value', async () => {
-    const w = mount(SearchInput, { props: { modelValue: 'abc' } })
+    const w = mount(SearchInput, { props: { modelValue: 'abc' }, global: { plugins: [i18n] } })
     const btn = w.find('button')
     expect(btn.exists()).toBe(true)
     await btn.trigger('click')
@@ -21,7 +26,7 @@ describe('SearchInput', () => {
   })
 
   it('hides the clear button while empty', () => {
-    const w = mount(SearchInput, { props: { modelValue: '' } })
+    const w = mount(SearchInput, { props: { modelValue: '' }, global: { plugins: [i18n] } })
     expect(w.find('button').exists()).toBe(false)
   })
 })

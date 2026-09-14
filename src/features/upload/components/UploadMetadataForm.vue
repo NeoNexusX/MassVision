@@ -25,6 +25,8 @@ import {
   TISSUE_MODIFICATIONS,
 } from '@/features/datasets/constants/datasetMetadata'
 import { getIonSourceFieldRules } from '@/features/upload/utils/ionSourceRules'
+import { vocabLabel, vocabOptionMap } from '@/features/datasets/constants/vocabLabels'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   form: UploadMetadataFormState
@@ -39,7 +41,7 @@ const pixelSizeYError = ref('')
 function validatePixelSize(value: string, field: 'horizontal' | 'vertical') {
   const errorRef = field === 'horizontal' ? pixelSizeXError : pixelSizeYError
   if (!isValidPixelSize(value)) {
-    errorRef.value = 'Pixel size must be an integer between 1 and 200'
+    errorRef.value = t('upload.form.pixelSizeError')
     return false
   }
   errorRef.value = ''
@@ -69,7 +71,9 @@ const handleModeChange = (
     field === 'spectrum_mode'
       ? props.detectedSpectrumMode
       : props.detectedStorageMode
-  const label = field === 'spectrum_mode' ? 'Spectrum Mode' : 'Storage Mode'
+  const label = field === 'spectrum_mode' ? t('datasets.field.spectrumMode') : t('datasets.field.storageMode')
+  const labelLower =
+    field === 'spectrum_mode' ? t('upload.form.spectrumModeLower') : t('upload.form.storageModeLower')
 
   // 没有识别值或选择与识别值相同,直接应用
   if (!detected || !value || value === detected) {
@@ -80,10 +84,12 @@ const handleModeChange = (
   // 用户选择了与识别值不同的选项,弹窗确认
   pendingModeField = field
   pendingModeValue = value
-  modeConfirmTitle.value = `Change ${label}?`
-  modeConfirmMessage.value =
-    `The detected ${label.toLowerCase()} is "${detected}". ` +
-    `Are you sure you want to change it to "${value}"?`
+  modeConfirmTitle.value = t('upload.form.modeChangeTitle', { field: label })
+  modeConfirmMessage.value = t('upload.form.modeChangeMessage', {
+    field: labelLower,
+    detected,
+    value,
+  })
   modeConfirmOpen.value = true
 }
 
@@ -113,10 +119,10 @@ const cancelModeChange = () => {
           v-model="form.is_public"
           class="checkbox checkbox-sm"
         />
-        <label for="is_public" class="kawaru-text-112">Make dataset public (visible to others)</label>
+        <label for="is_public" class="kawaru-text-112">{{ $t('upload.form.makePublic') }}</label>
       </div>
 
-      <div class="divider kawaru-text-112 text-base-content/50">Acquisition Information</div>
+      <div class="divider kawaru-text-112 text-base-content/50">{{ $t('upload.form.acquisitionInfo') }}</div>
 
       <div
         v-if="parsingMetadata"
@@ -125,19 +131,19 @@ const cancelModeChange = () => {
         <span
           class="inline-block w-3.5 h-3.5 border-2 border-base-content/30 border-t-base-content/60 rounded-full animate-spin"
         ></span>
-        <span>Reading metadata from imzML...</span>
+        <span>{{ $t('upload.form.readingMetadata') }}</span>
       </div>
 
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >Polarity <span class="text-error">*</span></span
+            >{{ $t('common.meta.polarity') }} <span class="text-error">*</span></span
           ></label
         >
         <IconSelect
           v-model="form.polarity"
-          :options="POLARITIES"
-          placeholder="Select polarity..."
+          :options="vocabOptionMap(POLARITIES)"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
           hide-label
         />
       </div>
@@ -145,28 +151,30 @@ const cancelModeChange = () => {
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >Ionisation Source <span class="text-error">*</span></span
+            >{{ $t('common.meta.ionisationSource') }} <span class="text-error">*</span></span
           ></label
         >
         <SelectWithOther
           v-model="form.ionisation_source"
           :options="ION_SOURCES"
-          placeholder="Select source..."
-          other-placeholder="Please specify..."
+          :label-of="vocabLabel"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :other-placeholder="$t('datasets.filter.specifyOther')"
         />
       </div>
 
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >Analyzer <span class="text-error">*</span></span
+            >{{ $t('common.meta.analyzer') }} <span class="text-error">*</span></span
           ></label
         >
         <SelectWithOther
           v-model="form.analyzer"
           :options="ANALYZERS"
-          placeholder="Select analyzer..."
-          other-placeholder="Please specify..."
+          :label-of="vocabLabel"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :other-placeholder="$t('datasets.filter.specifyOther')"
         />
       </div>
 
@@ -174,7 +182,7 @@ const cancelModeChange = () => {
         <div class="flex flex-col">
           <label class="label"
             ><span class="label-text font-medium text-base-content kawaru-text-125"
-              >Pixel Size X (μm) <span class="text-error">*</span></span
+              >{{ $t('upload.form.pixelSizeX') }} <span class="text-error">*</span></span
             ></label
           >
           <input
@@ -191,7 +199,7 @@ const cancelModeChange = () => {
         <div class="flex flex-col">
           <label class="label"
             ><span class="label-text font-medium text-base-content kawaru-text-125"
-              >Pixel Size Y (μm) <span class="text-error">*</span></span
+              >{{ $t('upload.form.pixelSizeY') }} <span class="text-error">*</span></span
             ></label
           >
           <input
@@ -211,13 +219,13 @@ const cancelModeChange = () => {
         <div class="flex flex-col">
           <label class="label"
             ><span class="label-text font-medium text-base-content kawaru-text-125"
-              >Spectrum Mode <span class="text-error">*</span></span
+              >{{ $t('datasets.field.spectrumMode') }} <span class="text-error">*</span></span
             ></label
           >
           <IconSelect
             :model-value="form.spectrum_mode"
             :options="SPECTRUM_MODES"
-            placeholder="Select..."
+            :placeholder="$t('datasets.metadata.selectPlaceholder')"
             hide-label
             @change="(v: string) => handleModeChange('spectrum_mode', v)"
           />
@@ -225,13 +233,13 @@ const cancelModeChange = () => {
         <div class="flex flex-col">
           <label class="label"
             ><span class="label-text font-medium text-base-content kawaru-text-125"
-              >Storage Mode <span class="text-error">*</span></span
+              >{{ $t('datasets.field.storageMode') }} <span class="text-error">*</span></span
             ></label
           >
           <IconSelect
             :model-value="form.storage_mode"
             :options="STORAGE_MODES"
-            placeholder="Select..."
+            :placeholder="$t('datasets.metadata.selectPlaceholder')"
             hide-label
             @change="(v: string) => handleModeChange('storage_mode', v)"
           />
@@ -242,7 +250,7 @@ const cancelModeChange = () => {
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >{{ ionRules.solvent.label }}
+            >{{ $t('datasets.field.solvent') }}
             <span v-if="ionRules.solvent.required" class="text-error">*</span>
           </span></label
         >
@@ -255,36 +263,38 @@ const cancelModeChange = () => {
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >{{ ionRules.maldiMatrix.label }}
+            >{{ $t('datasets.field.maldiMatrix') }}
             <span v-if="ionRules.maldiMatrix.required" class="text-error">*</span>
           </span></label
         >
         <SelectWithOther
           v-model="form.maldi_matrix"
           :options="MALDI_MATRICES"
-          placeholder="Select matrix..."
-          other-placeholder="Please specify..."
+          :label-of="vocabLabel"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :other-placeholder="$t('datasets.filter.specifyOther')"
         />
       </div>
 
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >{{ ionRules.maldiMatrixApplication.label }}
+            >{{ $t('upload.form.maldiMatrixApplication') }}
             <span v-if="ionRules.maldiMatrixApplication.required" class="text-error">*</span>
           </span></label
         >
         <SelectWithOther
           v-model="form.maldi_matrix_application"
           :options="MALDI_MATRIX_APPLICATIONS"
-          placeholder="Select application..."
-          other-placeholder="Please specify..."
+          :label-of="vocabLabel"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :other-placeholder="$t('datasets.filter.specifyOther')"
         />
       </div>
 
       <label class="label"
         ><span class="label-text font-medium text-base-content kawaru-text-125"
-          >Detector resolving power</span
+          >{{ $t('upload.form.detectorResolvingPower') }}</span
         ></label
       >
       <div class="grid grid-cols-2 gap-3">
@@ -303,7 +313,7 @@ const cancelModeChange = () => {
         <div class="flex flex-col">
           <label class="label"
             ><span class="label-text font-medium text-base-content kawaru-text-125"
-              >Resolving Power</span
+              >{{ $t('datasets.field.resolvingPower') }}</span
             ></label
           >
           <input
@@ -316,89 +326,95 @@ const cancelModeChange = () => {
         </div>
       </div>
 
-      <div class="divider kawaru-text-112 text-base-content/50">Sample Metadata</div>
+      <div class="divider kawaru-text-112 text-base-content/50">{{ $t('upload.form.sampleMetadata') }}</div>
 
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >Organism <span class="text-error">*</span></span
+            >{{ $t('common.meta.organism') }} <span class="text-error">*</span></span
           ></label
         >
         <SelectWithOther
           v-model="form.organism"
           :options="ORGANISMS"
-          placeholder="Select organism..."
-          other-placeholder="Please specify..."
+          :label-of="vocabLabel"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :other-placeholder="$t('datasets.filter.specifyOther')"
         />
       </div>
 
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >Organism Part <span class="text-error">*</span></span
+            >{{ $t('common.meta.organismPart') }} <span class="text-error">*</span></span
           ></label
         >
         <SelectWithOther
           v-model="form.organism_part"
           :options="ORGANISM_PARTS"
-          placeholder="Select part..."
-          other-placeholder="Please specify..."
+          :label-of="vocabLabel"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :other-placeholder="$t('datasets.filter.specifyOther')"
         />
       </div>
 
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >Condition <span class="text-error">*</span></span
+            >{{ $t('datasets.field.condition') }} <span class="text-error">*</span></span
           ></label
         >
         <SelectWithOther
           v-model="form.condition"
           :options="CONDITIONS"
-          placeholder="Select condition..."
-          other-placeholder="Please specify..."
+          :label-of="vocabLabel"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :other-placeholder="$t('datasets.filter.specifyOther')"
         />
       </div>
 
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >Sample Stabilization <span class="text-error">*</span></span
+            >{{ $t('common.meta.sampleStabilization') }} <span class="text-error">*</span></span
           ></label
         >
         <SelectWithOther
           v-model="form.sample_stabilization"
           :options="SAMPLE_STABILIZATIONS"
-          placeholder="Select stabilization..."
-          other-placeholder="Please specify..."
+          :label-of="vocabLabel"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :other-placeholder="$t('datasets.filter.specifyOther')"
         />
       </div>
 
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >Sample Growth Conditions</span
+            >{{ $t('upload.form.sampleGrowthConditions') }}</span
           ></label
         >
         <SelectWithOther
           v-model="form.sample_growth_conditions"
           :options="SAMPLE_GROWTH_CONDITIONS"
-          placeholder="Select growth..."
-          other-placeholder="Please specify..."
+          :label-of="vocabLabel"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :other-placeholder="$t('datasets.filter.specifyOther')"
         />
       </div>
 
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >Tissue Modification</span
+            >{{ $t('common.meta.tissueModification') }}</span
           ></label
         >
         <SelectWithOther
           v-model="form.tissue_modification"
           :options="TISSUE_MODIFICATIONS"
-          placeholder="Select modification..."
-          other-placeholder="Please specify..."
+          :label-of="vocabLabel"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :other-placeholder="$t('datasets.filter.specifyOther')"
         />
       </div>
 
@@ -408,7 +424,7 @@ const cancelModeChange = () => {
       :open="modeConfirmOpen"
       :title="modeConfirmTitle"
       :message="modeConfirmMessage"
-      confirm-label="Change"
+:confirm-label="$t('upload.form.modeChangeConfirm')"
       danger
       @confirm="confirmModeChange"
       @cancel="cancelModeChange"

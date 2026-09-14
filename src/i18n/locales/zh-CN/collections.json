@@ -1,0 +1,138 @@
+{
+  "collections": {
+    "meta": {
+      "description": "简介",
+      "memberType": "成员类型",
+      "collectionType": "集合类型",
+      "title": "标题",
+      "doi": "DOI",
+      "access": "访问地址",
+      "journal": "期刊",
+      "citation": "引用信息",
+      "abstract": "摘要"
+    },
+    "group": {
+      "general": "基本信息",
+      "citation": "引用",
+      "sample": "样本",
+      "acquisition": "采集"
+    },
+    "unit": {
+      "dataset": "个数据集",
+      "organism": "个物种"
+    },
+    "card": {
+      "coversAria": "{name} 的封面",
+      "prev": "上一个数据集",
+      "next": "下一个数据集",
+      "moreAria": "{name} 的更多元数据",
+      "more": "更多（+{count}）",
+      "owner": "所有者：{name}",
+      "updated": "更新于 {date}",
+      "memberCountTitle": "该集合包含 {count} 个数据集",
+      "viewCollection": "查看集合",
+      "deleteTitle": "删除集合"
+    },
+    "list": {
+      "emptyTitle": "还没有数据集合",
+      "emptyDesc": "把相关的数据集整理成集合，方便分享和再次查阅。",
+      "create": "新建集合",
+      "noResultsTitle": "未找到数据集合",
+      "noResultsDesc": "没有与“{query}”匹配的集合，换个关键词试试。",
+      "clearSearch": "清除搜索",
+      "target": "数据集合列表"
+    },
+    "toolbar": {
+      "searchPlaceholder": "搜索数据集合",
+      "mineOnly": "只看我的集合",
+      "sortAria": "排序方式",
+      "sortUpdated": "按更新时间排序"
+    },
+    "form": {
+      "step3": "第 3 步：集合信息",
+      "optional": "（选填）",
+      "namePlaceholder": "例如：人肾脏 MALDI 图谱",
+      "descriptionPlaceholder": "这个集合汇集了哪些数据集？"
+    },
+    "picker": {
+      "step1": "第 1 步：选择数据集",
+      "selected": "已选 {count} 个",
+      "searchPlaceholder": "搜索公开数据集",
+      "selectAria": "选择 {name}",
+      "previewAlt": "{name} 的预览图",
+      "alreadyIn": "已在集合中",
+      "empty": "未找到公开数据集。"
+    },
+    "selected": {
+      "step2": "第 2 步：调整顺序",
+      "dragHint": "拖动调整顺序",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "moveUpAria": "上移 {name}",
+      "moveDownAria": "下移 {name}",
+      "removeTitle": "从集合中移除",
+      "removeAria": "移除 {name}",
+      "empty": "还没有选择数据集——请从上方列表中选择。"
+    },
+    "thumb": {
+      "defaultAlt": "数据集预览图"
+    },
+    "metaForm": {
+      "editedByHand": "已手动修改。",
+      "resetToDetected": "恢复为自动识别值"
+    },
+    "panel": {
+      "title": "集合元数据",
+      "fieldsCount": "已填 {filled}/{total} 项"
+    },
+    "members": {
+      "title": "成员",
+      "countBadge": "{count}/{limit} 个数据集",
+      "add": "添加成员",
+      "removeSelected": "移除所选",
+      "removeSelectedCount": "移除所选（{count}）",
+      "downloadAria": "下载 {name}",
+      "emptyManage": "还没有成员——请把公开的 imzML 数据集添加到这个集合。",
+      "empty": "该集合没有成员。"
+    },
+    "view": {
+      "title": "数据集合",
+      "subtitle": "把相关的数据集整理成集合。",
+      "deleteTitle": "删除集合？",
+      "deleteMessage": "该集合将被删除，其中的数据集不受影响。"
+    },
+    "create": {
+      "title": "新建集合",
+      "subtitle": "挑选公开数据集，整理成一个集合。",
+      "step4": "第 4 步：元数据",
+      "step4Hint": "样本与采集字段已根据所选数据集自动填写。手动修改某个字段后，该字段将不再自动更新。",
+      "leaveTitle": "放弃未保存的修改？",
+      "leaveMessage": "你选择的数据集和填写的集合信息将会丢失。"
+    },
+    "overview": {
+      "sessionLostDesc": "请从「数据集合」列表进入查看详情。",
+      "backToCollections": "返回数据集合",
+      "notFound": "未找到该集合",
+      "target": "数据集合",
+      "addMembers": "添加成员",
+      "addButton": "添加数据集 | 添加 {count} 个数据集 | 添加 {count} 个数据集",
+      "shareLink": "分享链接：{url}"
+    },
+    "public": {
+      "notFoundDesc": "该集合不存在，或已不再公开。",
+      "backHome": "返回首页",
+      "badge": "公开集合"
+    },
+    "toast": {
+      "removedCount": "已移除 {count} 个",
+      "skippedCount": "{count} 个已不在集合中",
+      "separator": " · ",
+      "reorderConflict": "成员已在别处被修改，已刷新为最新顺序。"
+    },
+    "validation": {
+      "nameRequired": "请填写名称。",
+      "nameTooLong": "名称最多 80 个字符。",
+      "descriptionTooLong": "简介最多 300 个字符。"
+    }
+  }
+}

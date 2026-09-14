@@ -7,12 +7,12 @@
   >
     <div class="flex items-center justify-between gap-3 mb-4">
       <h2 class="kawaru-text-125 font-bold text-base-content flex items-center gap-2">
-        Step 2: Arrange Order
+        {{ $t('collections.selected.step2') }}
         <span
           v-if="selected.length"
           class="badge badge-sm font-medium border border-base-300 bg-base-200 text-base-content/70 kawaru-text-75"
         >
-          {{ selected.length }} {{ selected.length === 1 ? 'dataset' : 'datasets' }}
+          {{ selected.length }} {{ $t('collections.unit.dataset', selected.length) }}
         </span>
       </h2>
       <button
@@ -21,7 +21,7 @@
         @click="emit('clear-all')"
       >
         <SvgIcon type="trash" class="w-[1em] h-[1em]" />
-        Clear all
+        {{ $t('common.action.clearAll') }}
       </button>
     </div>
 
@@ -51,7 +51,7 @@
         <!-- 拖拽手柄：pointerdown 武装 draggable，dragstart 前生效 -->
         <div
           class="shrink-0 cursor-grab active:cursor-grabbing text-base-content/40 hover:text-base-content/70 p-1"
-          title="Drag to reorder"
+:title="$t('collections.selected.dragHint')"
           aria-hidden="true"
           @pointerdown="arm"
         >
@@ -59,7 +59,7 @@
         </div>
 
         <div class="w-10 h-10 shrink-0">
-          <DatasetThumb :file-id="dataset.id" :alt="`Preview of ${dataset.name}`" />
+          <DatasetThumb :file-id="dataset.id" :alt="$t('collections.picker.previewAlt', { name: dataset.name })" />
         </div>
 
         <div class="flex-1 min-w-0">
@@ -67,7 +67,7 @@
             {{ dataset.name }}
           </div>
           <div class="kawaru-text-87 text-base-content/60 truncate">
-            {{ [dataset.organism, dataset.submitter].filter(Boolean).join(' · ') || '–' }}
+            {{ [vocabLabel(dataset.organism), dataset.submitter].filter(Boolean).join(' · ') || '–' }}
           </div>
         </div>
 
@@ -75,26 +75,26 @@
         <div class="flex items-center gap-1 shrink-0">
           <button
             class="btn btn-ghost btn-sm btn-square kawaru-text-100"
-            title="Move up"
+:title="$t('collections.selected.moveUp')"
             :disabled="i === 0"
-            :aria-label="`Move ${dataset.name} up`"
+            :aria-label="$t('collections.selected.moveUpAria', { name: dataset.name })"
             @click="emit('move-up', i)"
           >
             <SvgIcon type="chevron_up" class="w-[1em] h-[1em]" />
           </button>
           <button
             class="btn btn-ghost btn-sm btn-square kawaru-text-100"
-            title="Move down"
+:title="$t('collections.selected.moveDown')"
             :disabled="i === selected.length - 1"
-            :aria-label="`Move ${dataset.name} down`"
+            :aria-label="$t('collections.selected.moveDownAria', { name: dataset.name })"
             @click="emit('move-down', i)"
           >
             <SvgIcon type="chevron_down" class="w-[1em] h-[1em]" />
           </button>
           <button
             class="btn btn-ghost btn-sm btn-square kawaru-text-100 text-error"
-            title="Remove from collection"
-            :aria-label="`Remove ${dataset.name}`"
+:title="$t('collections.selected.removeTitle')"
+            :aria-label="$t('collections.selected.removeAria', { name: dataset.name })"
             @click="emit('remove', dataset.id)"
           >
             <SvgIcon type="close" class="w-[1em] h-[1em]" />
@@ -109,7 +109,7 @@
       class="border-2 border-dashed border-base-300 dark:border-slate-600 rounded-lg p-8 text-center text-base-content/50"
     >
       <SvgIcon type="queue_list" class="h-10 w-10 mx-auto mb-3 text-base-content/30" />
-      <p>No datasets selected yet — pick datasets from the list above.</p>
+      <p>{{ $t('collections.selected.empty') }}</p>
     </div>
   </section>
 </template>
@@ -118,6 +118,7 @@
 import type { PropType } from 'vue'
 import DatasetThumb from '@/features/collections/components/DatasetThumb.vue'
 import { useDragReorder } from '@/features/collections/composables/useDragReorder'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
 import type { File } from '@/features/datasets/types/dataset'
 
 defineProps({

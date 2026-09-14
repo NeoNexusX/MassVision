@@ -121,6 +121,9 @@ export default defineConfig(({ mode }) => {
             // 必须排在下面 shared 规则之前 —— 语言包一旦被并进那个 eager chunk，
             // 两种语言、所有 feature 的文案都会压进首屏，懒加载就白做了。
             if (id.includes('/src/i18n/locales/')) return
+            // 国家名的非英文语言包同理（见 shared/utils/regionOptions.ts）：必须早于下面的
+            // node_modules → vendor 规则返回，否则会被并进 eager 的 vendor chunk
+            if (/\/i18n-iso-countries\/langs\/(?!en\.json)/.test(id)) return
 
             // src/shared 目录合并为一个 chunk（排除 config）
             if (

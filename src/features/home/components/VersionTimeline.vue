@@ -5,6 +5,7 @@
  *
  * 数据从 content.json 的 timeline 数组读取，每个节点含 date / version / features。
  */
+import { localized } from '@/shared/config/localizedText'
 import type { TimelineItem } from '@/features/home/config/contentConfig'
 
 defineProps<{
@@ -27,13 +28,13 @@ defineProps<{
       <!-- 偶数项（i=0,2,4…）：左侧日期，右侧特性；奇数项：反过来 -->
       <template v-if="i % 2 === 0">
         <div class="timeline-start">
-          <span class="tl-date">{{ item.date }}</span>
-          <span class="badge badge-primary tl-badge kawaru-text-87">v{{ item.version }}</span>
+          <span class="tl-date">{{ localized(item.date) }}</span>
+          <span class="badge badge-primary tl-badge kawaru-text-87">{{ item.version }}</span>
         </div>
         <div class="timeline-end">
           <div class="timeline-box">
             <ul class="tl-features">
-              <li v-for="(feat, j) in item.features" :key="j">{{ feat }}</li>
+              <li v-for="(feat, j) in item.features" :key="j">{{ localized(feat) }}</li>
             </ul>
           </div>
         </div>
@@ -42,13 +43,13 @@ defineProps<{
         <div class="timeline-start">
           <div class="timeline-box">
             <ul class="tl-features">
-              <li v-for="(feat, j) in item.features" :key="j">{{ feat }}</li>
+              <li v-for="(feat, j) in item.features" :key="j">{{ localized(feat) }}</li>
             </ul>
           </div>
         </div>
         <div class="timeline-end">
-          <span class="tl-date">{{ item.date }}</span>
-          <span class="badge badge-primary tl-badge kawaru-text-87">v{{ item.version }}</span>
+          <span class="tl-date">{{ localized(item.date) }}</span>
+          <span class="badge badge-primary tl-badge kawaru-text-87">{{ item.version }}</span>
         </div>
       </template>
       <hr />

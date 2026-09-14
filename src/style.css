@@ -19,7 +19,12 @@ i {
 }
 
 :root {
-  font-family: 'Poppins', system-ui, sans-serif;
+  /* 拉丁字形用 Poppins，中文落到系统 CJK 字体，不下载 CJK 网络字体（动辄数 MB）：
+     PingFang SC = 苹方（macOS / iOS），Microsoft YaHei = 微软雅黑（Windows），
+     Noto Sans CJK SC / Source Han Sans SC = 思源黑体（Linux / Android）。
+     Poppins 必须排第一，否则英文会被 CJK 字体自带的拉丁字形接管。 */
+  font-family: 'Poppins', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC',
+    'Source Han Sans SC', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -27,6 +32,16 @@ i {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* 中文界面放开字重合成：部分系统 CJK 字体没有粗体字面，font-synthesis:none 下
+   font-weight:600 的标题会完全不加粗。<html lang> 由 useLocale 维护。
+   <i> 上面单独设了 font-synthesis:style，中文下要把 weight 一并带上。 */
+:root:lang(zh-CN) {
+  font-synthesis: weight;
+}
+i:lang(zh-CN) {
+  font-synthesis: weight style;
 }
 
 /* 品牌渐变取色：主色 → 主色提亮。标题文字 / 强调按钮统一用此 token，

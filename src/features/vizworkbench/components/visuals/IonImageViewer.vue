@@ -77,8 +77,8 @@
         <button
           type="button"
           class="zoom-control-button flex items-center justify-center hover:bg-base-300 text-base-content/70"
-          title="Zoom out"
-          aria-label="Zoom out"
+          :title="$t('vizworkbench.toolbar.zoomOut')"
+          :aria-label="$t('vizworkbench.toolbar.zoomOut')"
           @click="zoomOut"
         >
           <SvgIcon type="minus" class="zoom-control-icon" />
@@ -89,8 +89,8 @@
         <button
           type="button"
           class="zoom-control-button flex items-center justify-center hover:bg-base-300 text-base-content/70"
-          title="Zoom in"
-          aria-label="Zoom in"
+          :title="$t('vizworkbench.toolbar.zoomIn')"
+          :aria-label="$t('vizworkbench.toolbar.zoomIn')"
           @click="zoomIn"
         >
           <SvgIcon type="plus" class="zoom-control-icon" />
@@ -99,8 +99,8 @@
           v-if="zoom > 1"
           type="button"
           class="zoom-control-button ms-[0.125em] flex items-center justify-center hover:bg-base-300 text-base-content/50"
-          title="Reset zoom"
-          aria-label="Reset zoom"
+          :title="$t('vizworkbench.toolbar.resetZoom')"
+          :aria-label="$t('vizworkbench.toolbar.resetZoom')"
           @click="resetZoom"
         >
           1:1
@@ -147,7 +147,7 @@ const props = defineProps({
   /** zarr 是否预存 stats/tic（TIC 归一化可用） */
   hasTic: { type: Boolean, default: false },
   /** 图片区域标题 */
-  imageTitle: { type: String, default: 'Ion Image' },
+  imageTitle: { type: String, default: '' },
   /** 多离子叠加模式：为 true 时矩阵走通道合成渲染，colormap 等不适用 */
   channelsMode: { type: Boolean, default: false },
   /** 可见且已加载的叠加通道（渲染 + 悬停读数） */

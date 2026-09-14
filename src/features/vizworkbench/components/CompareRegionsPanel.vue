@@ -84,7 +84,7 @@ function onNoiseFloor(e: Event) {
       <!-- Expand / collapse chevron -->
       <SvgIcon :type="expanded ? 'chevron_down' : 'chevron_right'" class="text-base-content/60" />
       <!-- Title -->
-      <span class="kawaru-text-87 font-semibold text-base-content">Compare regions</span>
+      <span class="kawaru-text-87 font-semibold text-base-content">{{ $t('vizworkbench.compare.title') }}</span>
       <!-- Show a compact status when collapsed -->
       <span v-if="!expanded && comparing" class="ml-auto flex items-center gap-1 text-base-content/50">
         <span class="loading loading-spinner loading-xs"></span>
@@ -95,11 +95,11 @@ function onNoiseFloor(e: Event) {
     <!-- Expanded content (side panel, expanded state) -->
     <div v-if="expanded" class="px-3 pb-2.5 space-y-2">
       <div v-if="!isComparisonAvailable" class="text-base-content/60 leading-relaxed kawaru-text-87">
-        Region comparison is only available for centroid data
+        {{ $t('vizworkbench.compare.centroidOnly') }}
       </div>
       <!-- No regions hint -->
       <div v-else-if="noRegions" class="text-base-content/50 leading-relaxed kawaru-text-87">
-        Run KMeans or create ROIs first to compare regions.
+        {{ $t('vizworkbench.compare.noRegions') }}
       </div>
 
       <!-- Region group selectors (multi-select checkboxes) -->
@@ -144,14 +144,14 @@ function onNoiseFloor(e: Event) {
             </div>
           </div>
           <div class="text-base-content/50">
-            Members of a group are combined (union) before comparing.
+            {{ $t('vizworkbench.compare.unionHint') }}
           </div>
         </div>
 
         <!-- Detection rate slider -->
         <div class="space-y-0.5">
           <div class="flex items-center justify-between text-base-content/60">
-            <span>Min detection rate</span>
+            <span>{{ $t('vizworkbench.compare.minDetectionRate') }}</span>
             <span class="font-mono text-base-content">{{ minDetectionRate }}%</span>
           </div>
           <input
@@ -168,7 +168,7 @@ function onNoiseFloor(e: Event) {
         <!-- Noise floor (intensity percentile) slider -->
         <div class="space-y-0.5">
           <div class="flex items-center justify-between text-base-content/60">
-            <span>Intensity threshold</span>
+            <span>{{ $t('vizworkbench.compare.intensityThreshold') }}</span>
             <span class="font-mono text-base-content">{{ noiseFloorPercentile }}%</span>
           </div>
           <input
@@ -187,7 +187,7 @@ function onNoiseFloor(e: Event) {
           <div class="flex items-center justify-between text-base-content/60">
             <span class="flex items-center gap-1.5">
               <span class="loading loading-spinner loading-xs"></span>
-              Scanning...
+              {{ $t('vizworkbench.compare.scanning') }}
             </span>
             <span class="font-mono">{{ progress }}%</span>
           </div>
@@ -209,7 +209,7 @@ function onNoiseFloor(e: Event) {
             @click="emit('compare')"
           >
             <SvgIcon type="scale" />
-            Compare
+            {{ $t('vizworkbench.compare.compare') }}
           </button>
           <button
             v-else
@@ -217,7 +217,7 @@ function onNoiseFloor(e: Event) {
             @click="emit('cancel')"
           >
             <SvgIcon type="close" />
-            Cancel
+            {{ $t('common.action.cancel') }}
           </button>
         </div>
       </template>

@@ -1,4 +1,7 @@
 import { computed, onMounted, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
+import { t } from '@/i18n'
+import { formatTime } from '@/shared/utils/format'
+import { GithubRateLimitError } from '../types/github'
 import type { CalendarItem, TooltipFormatter } from 'vue3-calendar-heatmap'
 import { useTheme } from '@/shared/composables/useTheme'
 import {
@@ -25,7 +28,7 @@ export function useCommitHeatmap(params: MaybeRefOrGetter<FetchCommitHeatmapOpti
 
   // State
   const loading = ref(false)
-  const error = ref<string | null>(null)
+  const error = ref<unknown>(null)
   const values = ref<HeatValue[]>([])
   const total = ref(0)
   const activeDays = ref(0)
@@ -38,8 +41,9 @@ export function useCommitHeatmap(params: MaybeRefOrGetter<FetchCommitHeatmapOpti
   const endDate = computed(() => toDateStr(new Date()))
 
   // tooltip：2026-06-10: 3 commits
-  const tooltipFormatter: TooltipFormatter = (item: CalendarItem, unit: string) =>
-    `${toDateStr(item.date)}: ${item.count ?? 0} ${unit}`
+  // 单/复数合并成一条带 `|` 的消息（choice===1 取前段，其余取后段；zh 只有一段，不受影响）
+  const tooltipFormatter: TooltipFormatter = (item: CalendarItem, _unit: string) =>
+    t('home.heatmap.tooltip', { date: toDateStr(item.date), count: item.count ?? 0 }, item.count ?? 0)
 
   // Methods
   async function load() {
@@ -54,7 +58,7 @@ export function useCommitHeatmap(params: MaybeRefOrGetter<FetchCommitHeatmapOpti
       activeDays.value = r.activeDays
     } catch (e) {
       if (currentRequest !== requestId) return
-      error.value = e instanceof Error ? e.message : '获取数据失败'
+      error.value = e
     } finally {
       if (currentRequest === requestId) loading.value = false
     }
@@ -70,9 +74,16 @@ export function useCommitHeatmap(params: MaybeRefOrGetter<FetchCommitHeatmapOpti
   )
   onMounted(load)
 
+  const errorMessage = computed(() => {
+    const e = error.value
+    if (e instanceof GithubRateLimitError) return t('home.heatmap.rateLimited', { remaining: e.remaining, time: e.resetAt ? formatTime(e.resetAt) : t('home.heatmap.unknownTime') })
+    if (e instanceof Error) return e.message
+    return e ? t('home.heatmap.loadFailed') : ''
+  })
+
   return {
     loading,
-    error,
+    error: errorMessage,
     values,
     total,
     activeDays,

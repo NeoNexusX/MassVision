@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { shallowRef, type ShallowRef } from 'vue'
 
 const { showToastMock } = vi.hoisted(() => ({ showToastMock: vi.fn() }))
@@ -17,6 +17,7 @@ vi.mock('../../api/collectionApi', () => ({
 import { addMembers, removeMembers, reorderMembers } from '../../api/collectionApi'
 import { useCollectionMembers } from '../useCollectionMembers'
 import type { CollectionApiError, CollectionDetail } from '../../types/collection'
+import { loadCoreMessages, loadFeatureMessages } from '@/i18n'
 
 const addMembersMock = vi.mocked(addMembers)
 const removeMembersMock = vi.mocked(removeMembers)
@@ -59,6 +60,10 @@ function apiError(status: number, backendMessage: string): CollectionApiError {
   return e
 }
 
+
+// 被测代码用 t() 取文案：预先加载英文语言包，断言保持英文原文
+beforeAll(() => Promise.all([loadCoreMessages('en'), loadFeatureMessages('collections')]))
+
 describe('useCollectionMembers', () => {
   let detail: ShallowRef<CollectionDetail | null>
   let refresh: () => Promise<unknown>
@@ -80,7 +85,7 @@ describe('useCollectionMembers', () => {
 
     expect(addMembersMock).toHaveBeenCalledWith(7, [4])
     expect(ops.members.value.map((m) => m.id)).toEqual([1, 2, 3, 4])
-    expect(showToastMock).toHaveBeenCalledWith('Members added', 'success')
+    expect(showToastMock).toHaveBeenCalledWith('Added', 'success')
   })
 
   it('add on 409 shows the backend message, refreshes, and reports failure', async () => {

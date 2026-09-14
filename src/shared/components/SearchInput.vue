@@ -13,7 +13,7 @@
     <input
       :value="modelValue"
       type="text"
-      :placeholder="placeholder"
+      :placeholder="placeholder ?? $t('common.action.search')"
       :autocomplete="autocomplete"
       :disabled="disabled"
       class="input input-bordered w-full pl-8"
@@ -25,8 +25,8 @@
       v-if="clearable && modelValue"
       type="button"
       class="absolute z-10 right-1.5 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle text-base-content/40 hover:text-base-content kawaru-text-68"
-      title="Clear"
-      aria-label="Clear"
+:title="$t('common.action.clear')"
+      :aria-label="$t('common.action.clear')"
       @click="emit('update:modelValue', '')"
     >
       <SvgIcon type="close" />
@@ -64,7 +64,7 @@ const props = withDefaults(
     autocomplete?: string
   }>(),
   {
-    placeholder: 'Search',
+    placeholder: undefined,
     size: 'md',
     clearable: true,
     fluid: true,

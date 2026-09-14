@@ -17,7 +17,7 @@
       <h3
         class="w-full flex items-center gap-2 min-w-0
           font-bold text-base-content kawaru-text-112 leading-snug"
-        :aria-label="`Dataset name: ${dataset.filename || dataset.name}`"
+        :aria-label="$t('datasets.card.datasetName', { name: dataset.filename || dataset.name })"
       >
         <span
           class="truncate cursor-pointer min-w-0
@@ -30,8 +30,8 @@
         <span
           v-if="isMyDataset"
           class="shrink-0 inline-flex items-center text-slate-400"
-          :title="dataset.isPublic ? 'Public' : 'Private'"
-          :aria-label="dataset.isPublic ? 'Public' : 'Private'"
+          :title="dataset.isPublic ? $t('datasets.card.public') : $t('datasets.card.private')"
+          :aria-label="dataset.isPublic ? $t('datasets.card.public') : $t('datasets.card.private')"
         >
           <SvgIcon :type="dataset.isPublic ? 'region' : 'password'" class="w-[1.1em] h-[1.1em]" />
         </span>
@@ -105,6 +105,8 @@ import type { File } from '@/features/datasets/types/dataset'
 import type { IconType } from '@/shared/components/svgIcons'
 import { formatBytes, formatDate } from '@/shared/utils/format'
 import DatasetPreviewGallery from '@/features/datasets/components/DatasetPreviewGallery.vue'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   dataset: File
@@ -124,14 +126,16 @@ const submitDate = computed(() => formatDate(props.dataset.submitTime))
 
 const formattedSize = computed(() => formatBytes(props.dataset.sizeBytes))
 
+const labelColon = (label: string) => t('common.format.labelColon', { label })
+
 const metaFields = computed(() => [
-  { label: 'Organism:', value: props.dataset.organism },
-  { label: 'Organism Part:', value: props.dataset.organismPart },
-  { label: 'Ionisation Source:', value: props.dataset.ionSource },
-  { label: 'Analyzer:', value: props.dataset.analyzer },
-  { label: 'File Size:', value: formattedSize.value },
-  { label: 'Submitted by:', value: props.dataset.submitter },
-  { label: 'Submit Time:', value: submitDate.value },
+  { label: labelColon(t('common.meta.organism')), value: vocabLabel(props.dataset.organism) },
+  { label: labelColon(t('common.meta.organismPart')), value: vocabLabel(props.dataset.organismPart) },
+  { label: labelColon(t('common.meta.ionisationSource')), value: vocabLabel(props.dataset.ionSource) },
+  { label: labelColon(t('common.meta.analyzer')), value: vocabLabel(props.dataset.analyzer) },
+  { label: labelColon(t('datasets.field.fileSize')), value: formattedSize.value },
+  { label: labelColon(t('datasets.field.submittedBy')), value: props.dataset.submitter },
+  { label: labelColon(t('datasets.card.submitTime')), value: submitDate.value },
 ])
 
 interface ActionItem {
@@ -149,18 +153,18 @@ const actionItems = computed<ActionItem[]>(() => {
   // Upload status
   const status = props.dataset.status
   if (status === 'uploading')
-    items.push({ id: 'status', label: 'Processing', colorClass: 'text-info', spinner: true })
+    items.push({ id: 'status', label: t('common.status.processing'), colorClass: 'text-info', spinner: true })
   else if (status === 'completed')
-    items.push({ id: 'status', icon: 'success', label: 'Uploaded', colorClass: 'text-success' })
+    items.push({ id: 'status', icon: 'success', label: t('datasets.card.uploaded'), colorClass: 'text-success' })
   else if (status === 'failed')
-    items.push({ id: 'status', icon: 'error', label: 'Failed', colorClass: 'text-error' })
+    items.push({ id: 'status', icon: 'error', label: t('common.status.failed'), colorClass: 'text-error' })
 
   // 元信息编辑（原本在 Dataset Overview 页，现收到卡片右侧；可见性标志已挪到文件名旁）
   if (props.isMyDataset)
     items.push({
       id: 'edit',
       icon: 'pencil',
-      label: 'Edit',
+      label: t('common.action.edit'),
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
       onClick: () => emit('edit', props.dataset.id),
     })
@@ -174,7 +178,7 @@ const actionItems = computed<ActionItem[]>(() => {
     items.push({
       id: 'explore',
       icon: 'search',
-      label: 'Visualize',
+      label: t('datasets.card.visualize'),
       colorClass: 'text-primary hover:text-primary-focus transition-colors',
       onClick: () => emit('explore', props.dataset.id),
     })
@@ -183,7 +187,7 @@ const actionItems = computed<ActionItem[]>(() => {
     items.push({
       id: 'explore',
       icon: 'search',
-      label: 'Explore',
+      label: t('datasets.card.explore'),
       colorClass: 'text-primary hover:text-primary-focus transition-colors',
       onClick: () => emit('explore', props.dataset.id),
     })
@@ -193,21 +197,21 @@ const actionItems = computed<ActionItem[]>(() => {
     {
       id: 'overview',
       icon: 'document-text',
-      label: 'Overview',
+      label: t('datasets.card.overview'),
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
       onClick: () => emit('view-overview', props.dataset.id),
     },
     props.packing
       ? {
           id: 'download',
-          label: 'Packing',
+          label: t('datasets.card.packing'),
           colorClass: 'text-base-content/80',
           spinner: true,
         }
       : {
           id: 'download',
           icon: 'download',
-          label: 'Download',
+          label: t('common.action.download'),
           colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
           onClick: () => emit('download', props.dataset.id),
         },
@@ -217,7 +221,7 @@ const actionItems = computed<ActionItem[]>(() => {
     items.push({
       id: 'delete',
       icon: 'trash',
-      label: 'Delete',
+      label: t('common.action.delete'),
       colorClass: 'text-error hover:text-error transition-colors',
       onClick: () => emit('delete', props.dataset.id),
     })

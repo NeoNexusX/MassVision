@@ -40,12 +40,12 @@
         @focus="emit('focus')"
       >
         <option
-          v-if="placeholder"
+          v-if="placeholderText"
           value=""
           :disabled="required || !placeholderSelectable"
           :hidden="!placeholderSelectable"
         >
-          {{ placeholder }}
+          {{ placeholderText }}
         </option>
         <option
           v-for="(value, label) in normalizedOptions"
@@ -68,6 +68,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { PropType } from 'vue'
+import { t } from '@/i18n'
 
 const props = defineProps({
   modelValue: {
@@ -86,9 +87,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // 缺省（undefined）时显示当前语言的「请选择」；显式传 '' 表示不要占位项
   placeholder: {
     type: String,
-    default: 'Select an option',
+    default: undefined,
   },
   // 占位项（提示文案）默认不是可选项：它只负责在未选时显示提示，
   // 不该出现在展开列表里被点成“空值”。需要“选回空值”语义的下拉
@@ -125,6 +127,8 @@ const emit = defineEmits<{
   (e: 'focus'): void
 }>()
 
+const placeholderText = computed(() => props.placeholder ?? t('common.input.selectPlaceholder'))
+
 const normalizedOptions = computed(() => {
   if (typeof props.options === 'string') {
     return { [props.options]: props.options }
@@ -145,7 +149,7 @@ const normalizedOptions = computed(() => {
 // 命中选项显示其 label；值不在选项里（如 SelectWithOther 的自由输入）显示空。
 const displayLabel = computed(() => {
   const value = props.modelValue
-  if (value === '' || value == null) return props.placeholder
+  if (value === '' || value == null) return placeholderText.value
   const options = normalizedOptions.value as Record<string, string>
   return Object.keys(options).find((label) => options[label] === String(value)) ?? ''
 })

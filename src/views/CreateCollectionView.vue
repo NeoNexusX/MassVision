@@ -4,9 +4,9 @@
     <div class="max-w-[1680px] mx-auto p-4 md:p-8 pb-24 kawaru-text-100">
       <!-- 页头：标题/说明。与 Public Datasets 等顶级页面同级，不带面包屑 -->
       <div class="mb-6 px-3">
-        <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content">Create Collection</h1>
+        <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content">{{ $t('collections.create.title') }}</h1>
         <p class="kawaru-text-100 text-base-content/70 mt-1">
-          Pick public datasets and organize them into a curated collection.
+          {{ $t('collections.create.subtitle') }}
         </p>
       </div>
 
@@ -50,10 +50,9 @@
       <section
         class="mt-6 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6"
       >
-        <h2 class="kawaru-text-125 font-bold text-base-content mb-1">Step 4: Metadata</h2>
+        <h2 class="kawaru-text-125 font-bold text-base-content mb-1">{{ $t('collections.create.step4') }}</h2>
         <p class="kawaru-text-87 text-base-content/60 mb-4">
-          Sample and acquisition fields are pre-filled from the selected datasets. Edit any
-          of them and it stops updating automatically.
+          {{ $t('collections.create.step4Hint') }}
         </p>
         <CollectionMetadataForm
           :draft="metadata"
@@ -74,12 +73,12 @@
       <div class="max-w-[1680px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="text-base-content/70 kawaru-text-95">
           <span class="font-semibold text-base-content">{{ selectedCount }}</span>
-          {{ selectedCount === 1 ? 'dataset' : 'datasets' }} ·
+          {{ $t('collections.unit.dataset', selectedCount) }} ·
           {{ selectedOrganisms.length }}
-          {{ selectedOrganisms.length === 1 ? 'organism' : 'organisms' }}
+          {{ $t('collections.unit.organism', selectedOrganisms.length) }}
         </div>
         <div class="flex items-center gap-2">
-          <button class="btn kawaru-text-100" @click="cancelCreate">Cancel</button>
+          <button class="btn kawaru-text-100" @click="cancelCreate">{{ $t('common.action.cancel') }}</button>
           <button
             class="btn btn-primary kawaru-text-100"
             :disabled="!canCreate || saving"
@@ -87,7 +86,7 @@
           >
             <SvgIcon v-if="!saving" type="plus" class="w-[1em] h-[1em]" />
             <span v-else class="loading loading-spinner loading-sm"></span>
-            Create Collection
+            {{ $t('collections.create.title') }}
           </button>
         </div>
       </div>
@@ -96,9 +95,9 @@
     <!-- 脏态离开确认（onBeforeRouteLeave promise 守卫驱动） -->
     <ConfirmDialog
       :open="showLeaveConfirm"
-      title="Discard unsaved changes?"
-      message="Your dataset selection and collection details will be lost."
-      confirm-label="Discard"
+:title="$t('collections.create.leaveTitle')"
+      :message="$t('collections.create.leaveMessage')"
+      :confirm-label="$t('common.action.discard')"
       danger
       @confirm="confirmLeave"
       @cancel="cancelLeave"

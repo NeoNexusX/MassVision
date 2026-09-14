@@ -5,17 +5,17 @@
     <!-- Header: Title + actions -->
     <div class="flex flex-col sm:flex-row items-start justify-between mb-6 gap-4">
       <div>
-        <h1 class="kawaru-text-page-title leading-[1.15] font-semibold">Workspace</h1>
+        <h1 class="kawaru-text-page-title leading-[1.15] font-semibold">{{ $t('workspace.dashboard.title') }}</h1>
         <p class="kawaru-text-100 text-base-content/60 mt-1">
-          Monitor preprocessing tasks and review recent MSI results.
+          {{ $t('workspace.dashboard.subtitle') }}
         </p>
       </div>
       <div class="flex flex-col sm:flex-row items-center gap-3 flex-shrink-0 w-full sm:w-auto">
         <router-link to="/mydatasets" class="btn btn-ghost btn-md sm:btn-lg w-full sm:w-auto kawaru-text-87"
-          >Go to MyDatasets</router-link
+          >{{ $t('workspace.dashboard.goToMyDatasets') }}</router-link
         >
         <router-link to="/workspace/new" class="btn btn-primary btn-md sm:btn-lg w-full sm:w-auto kawaru-text-87"
-          >New Task</router-link
+          >{{ $t('workspace.dashboard.newTask') }}</router-link
         >
       </div>
     </div>
@@ -23,21 +23,21 @@
     <!-- Summary: moved to top, horizontal cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
       <SummaryCard
-        title="Running"
+        :title="$t('common.status.running')"
         :count="summary.running"
-        subtitle="Active preprocessing tasks"
+        :subtitle="$t('workspace.dashboard.runningHint')"
         variant="info"
       />
       <SummaryCard
-        title="Completed"
+        :title="$t('common.status.completed')"
         :count="summary.completed"
-        subtitle="Successfully completed"
+        :subtitle="$t('workspace.dashboard.completedHint')"
         variant="success"
       />
       <SummaryCard
-        title="Failed"
+        :title="$t('common.status.failed')"
         :count="summary.failed"
-        subtitle="Requires review"
+        :subtitle="$t('workspace.dashboard.failedHint')"
         variant="error"
       />
     </div>
@@ -47,18 +47,18 @@
       <div
         class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3 sm:mb-4"
       >
-        <h2 class="kawaru-text-125 sm:kawaru-text-150 font-medium">Recent Results</h2>
+        <h2 class="kawaru-text-125 sm:kawaru-text-150 font-medium">{{ $t('workspace.dashboard.recentResults') }}</h2>
         <!-- 搜索：只按源文件名模糊匹配（服务端 RunFilter.filename），与数据集页一致。
              回车或点 Search 提交；清空输入框立即取消筛选。 -->
         <div class="flex items-center gap-2 w-full sm:w-auto">
           <SearchInput
             v-model="searchQuery"
-            placeholder="Search dataset"
+            :placeholder="$t('common.input.searchDatasets')"
             class="flex-1 sm:w-72 sm:flex-none"
             @update:model-value="onQueryInput"
             @search="onSearch"
           />
-          <button class="btn btn-primary shrink-0 kawaru-text-100" @click="onSearch">Search</button>
+          <button class="btn btn-primary shrink-0 kawaru-text-100" @click="onSearch">{{ $t('common.action.search') }}</button>
         </div>
       </div>
       <ResultTable
@@ -85,9 +85,9 @@
     <!-- Delete Confirmation Modal -->
     <ConfirmDialog
       :open="deleteConfirm.isOpen"
-      title="Delete Result"
-      :message="`Are you sure you want to delete this result? This action cannot be undone.`"
-      confirm-label="Delete"
+      :title="$t('workspace.dashboard.deleteTitle')"
+      :message="$t('workspace.dashboard.deleteMessage')"
+      :confirm-label="$t('common.action.delete')"
       :danger="true"
       :loading="deleteConfirm.deleting"
       @confirm="deleteConfirm.confirm"
@@ -97,12 +97,12 @@
     <!-- Error Modal for failed processes -->
     <ConfirmDialog
       :open="isErrorModalOpen"
-      title="Process Failed"
+      :title="$t('workspace.dashboard.failedTitle')"
       hide-confirm
       @cancel="isErrorModalOpen = false"
     >
       <div>
-        <p class="font-medium">Error details:</p>
+        <p class="font-medium">{{ $t('workspace.dashboard.errorDetails') }}</p>
         <p class="mt-2 kawaru-text-87 text-base-content/70 whitespace-pre-wrap break-all">
           {{ errorModalMessage }}
         </p>
@@ -156,7 +156,6 @@ const deleteConfirm = useConfirmDelete({
   onDelete: async (id) => {
     await deleteResult(id)
   },
-  successMessage: 'Result deleted successfully',
 })
 
 // Error modal for failed processes

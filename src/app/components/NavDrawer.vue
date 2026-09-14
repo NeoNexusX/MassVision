@@ -4,7 +4,7 @@
     <div class="drawer-side fixed inset-0 h-screen">
       <label
         for="nav-drawer"
-        aria-label="close sidebar"
+        :aria-label="$t('common.nav.closeSidebar')"
         class="drawer-overlay"
         @click.prevent="open = false"
       ></label>
@@ -23,7 +23,8 @@
           </span>
         </li>
 
-        <template v-for="item in items" :key="item.kind === 'group' ? item.label : item.to">
+        <!-- label 可能是按语言分写的对象，不能当 key；分组没有 to，用位置区分 -->
+        <template v-for="(item, i) in items" :key="item.kind === 'group' ? `group-${i}` : item.to">
           <!-- Group item -->
           <li v-if="item.kind === 'group'">
             <details>
@@ -42,7 +43,7 @@
                     class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]"
                   />
                 </span>
-                <span class="whitespace-nowrap">{{ item.label }}</span>
+                <span class="whitespace-nowrap">{{ localized(item.label) }}</span>
               </summary>
 
               <ul
@@ -69,7 +70,7 @@
                         class="w-full h-full text-base-content/60 [&_svg]:stroke-[1.6]"
                       />
                     </span>
-                    <span class="whitespace-nowrap">{{ child.label }}</span>
+                    <span class="whitespace-nowrap">{{ localized(child.label) }}</span>
                   </a>
                   <router-link
                     v-else
@@ -90,7 +91,7 @@
                         class="w-full h-full text-base-content/60 [&_svg]:stroke-[1.6]"
                       />
                     </span>
-                    <span class="whitespace-nowrap">{{ child.label }}</span>
+                    <span class="whitespace-nowrap">{{ localized(child.label) }}</span>
                   </router-link>
                 </li>
               </ul>
@@ -118,7 +119,7 @@
                   class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]"
                 />
               </span>
-              <span class="whitespace-nowrap">{{ item.label }}</span>
+              <span class="whitespace-nowrap">{{ localized(item.label) }}</span>
             </a>
             <router-link
               v-else
@@ -139,7 +140,7 @@
                   class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]"
                 />
               </span>
-              <span class="whitespace-nowrap">{{ item.label }}</span>
+              <span class="whitespace-nowrap">{{ localized(item.label) }}</span>
             </router-link>
           </li>
         </template>
@@ -154,6 +155,7 @@ import type { User } from '@/shared/auth/types'
 import type { IconType } from '@/shared/components/svgIcons'
 import { getBrandParts } from '@/shared/config/appName'
 import { getConfig, filterNavItems } from '@/shared/config/runtimeConfig'
+import { localized } from '@/shared/config/localizedText'
 import type { NavItem, NavLinkItem, NavUserLink } from '@/shared/config/runtimeConfig'
 
 const props = defineProps<{

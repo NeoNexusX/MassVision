@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { useUserManagement } from '@/features/users/composables/useUserManagement'
 import UserStats from '@/features/users/components/UserStats.vue'
 import UserTable from '@/features/users/components/UserTable.vue'
@@ -14,7 +14,6 @@ const {
   filters,
   currentPage,
   pageSize,
-  isDrawerOpen,
   selectedUser,
   meta,
   stats,
@@ -44,8 +43,8 @@ const {
       <!-- 1. Top Banner -->
       <div class="flex flex-col sm:flex-row items-start justify-between gap-4 mb-6">
         <div>
-          <h1 class="kawaru-text-page-title leading-[1.15] font-semibold text-base-content">User Management</h1>
-          <p class="kawaru-text-100 text-base-content/60 mt-1">View and manage registered users across regions.</p>
+          <h1 class="kawaru-text-page-title leading-[1.15] font-semibold text-base-content">{{ $t('users.management.title') }}</h1>
+          <p class="kawaru-text-100 text-base-content/60 mt-1">{{ $t('users.management.subtitle') }}</p>
         </div>
         <button
           class="btn btn-primary rounded-lg shadow-sm border-none kawaru-text-87"
@@ -54,7 +53,7 @@ const {
         >
           <span v-if="loading" class="loading loading-spinner loading-sm"></span>
           <SvgIcon v-else type="refresh" class="h-4 w-4" />
-          Refresh
+          {{ $t('common.action.refresh') }}
         </button>
       </div>
 
@@ -67,10 +66,12 @@ const {
       >
         <SvgIcon type="error" class="stroke-current shrink-0 h-6 w-6" />
         <div class="flex-1">
-          <h3 class="font-bold">Failed to load users</h3>
+          <h3 class="font-bold">
+            {{ $t('common.feedback.loadFailed', { target: $t('users.management.target') }) }}
+          </h3>
           <div class="kawaru-text-87 opacity-80">{{ error }}</div>
         </div>
-        <button class="btn btn-sm btn-ghost kawaru-text-75" @click="fetchUsers">Retry</button>
+        <button class="btn btn-sm btn-ghost kawaru-text-75" @click="fetchUsers">{{ $t('common.action.retry') }}</button>
       </div>
 
       <UserTable
@@ -105,9 +106,9 @@ const {
     <!-- Delete Confirmation Modal -->
     <ConfirmDialog
       :open="isConfirmOpen"
-      title="Confirm Deletion"
-      :message="`Are you sure you want to permanently delete user ${selectedUser?.username}? This action cannot be undone.`"
-      confirm-label="Yes, Delete"
+      :title="$t('users.management.deleteTitle')"
+      :message="$t('users.management.deleteMessage', { name: selectedUser?.username ?? '' })"
+      :confirm-label="$t('users.management.deleteConfirm')"
       :danger="true"
       :loading="loading"
       @confirm="executeDeleteUser"

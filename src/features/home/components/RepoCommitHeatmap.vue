@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Icon } from '@iconify/vue'
 import { CalendarHeatmap } from 'vue3-calendar-heatmap'
 import 'vue3-calendar-heatmap/dist/style.css'
 import { useCommitHeatmap } from '../composables/useCommitHeatmap'
 import { useMediaQuery } from '@/shared/composables/useMediaQuery'
+import type { LocalizedText } from '@/shared/config/localizedText'
+import { localized } from '@/shared/config/localizedText'
 
+const { t } = useI18n()
 const props = withDefaults(
   defineProps<{
     owner: string
@@ -13,7 +17,7 @@ const props = withDefaults(
     /** 统计哪个分支的提交，默认 'dev' */
     branch?: string
     days?: number
-    title?: string
+    title?: LocalizedText
     /** 点击标题跳转的仓库地址；缺省时标题不可点击 */
     repoUrl?: string
     /**
@@ -46,7 +50,7 @@ const {
   days: props.days,
 }))
 
-const displayTitle = computed(() => props.title ?? `${props.owner}/${props.repo} Commit Activity`)
+const displayTitle = computed(() => props.title ? localized(props.title) : `${props.owner}/${props.repo} Commit Activity`)
 
 // 朝向：auto 时按屏宽切换（大屏纵向 / 小屏横向），否则用显式值
 const isLargeScreen = useMediaQuery('(min-width: 1024px)')
@@ -90,7 +94,7 @@ const vertical = computed(() =>
         class="flex items-center justify-center gap-[0.5em] text-base-content/40 py-[2.2em]"
       >
         <span class="loading loading-spinner h-[1.35em] w-[1.35em]" />
-        <span class="kawaru-text-75">Loading…</span>
+        <span class="kawaru-text-75">{{ t('common.state.loading') }}</span>
       </div>
 
       <!-- Error -->
@@ -117,7 +121,6 @@ const vertical = computed(() =>
               :max="maxCount"
               :vertical="vertical"
               tooltip
-              tooltip-unit="commits"
               :tooltip-formatter="tooltipFormatter"
               :dark-mode="isDark"
               :round="2"
@@ -125,23 +128,22 @@ const vertical = computed(() =>
             <!-- 图例：横向保留库原生底部图例；纵向用 SVG 内置的右侧纵向图例（外置图例由下方 CSS 隐藏）。 -->
           </div>
 
-          <footer class="heatmap-summary" aria-label="Commit activity summary">
+          <footer class="heatmap-summary" :aria-label="t('home.heatmap.summary')">
             <div class="heatmap-metrics">
               <div class="heatmap-metric">
-                <span>Total:</span>
+                <span>{{ t('home.heatmap.total') }}</span>
                 <strong>{{ total }}</strong>
+                <span>{{ t('home.heatmap.commits') }}</span>
               </div>
               <div class="heatmap-metric">
-                <span>Active days:</span>
+                <span>{{ t('home.heatmap.activeDays') }}</span>
                 <strong>{{ activeDays }}</strong>
               </div>
               <div class="heatmap-metric">
-                <span
-                  >Last <strong>{{ days }}</strong> days</span
-                >
+                <span>{{ t('home.heatmap.lastDays', { days }) }}</span>
               </div>
               <div class="heatmap-metric">
-                <span>Branch:</span>
+                <span>{{ t('home.heatmap.branch') }}</span>
                 <span class="badge badge-primary h-[1.7em] px-[0.7em] font-mono kawaru-text-81">
                   {{ branch }}
                 </span>

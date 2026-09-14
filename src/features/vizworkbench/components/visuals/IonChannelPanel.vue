@@ -2,7 +2,7 @@
   <div class="kawaru-text-81">
     <!-- Mode toggle -->
     <label class="flex items-center justify-between mb-2 cursor-pointer select-none kawaru-text-87">
-      <span class="text-base-content">Overlay mode</span>
+      <span class="text-base-content">{{ $t('vizworkbench.channels.overlayMode') }}</span>
       <input
         type="checkbox"
         class="toggle toggle-sm toggle-primary"
@@ -12,7 +12,7 @@
     </label>
 
     <div class="text-base-content/60 mb-2">
-      Each channel is normalized on its own range and added as a color.
+      {{ $t('vizworkbench.channels.hint') }}
     </div>
 
     <!-- Channel list -->
@@ -28,7 +28,7 @@
           class="checkbox checkbox-xs checkbox-primary shrink-0"
           :checked="c.visible"
           :disabled="!enabled || !c.matrix"
-          :aria-label="`Show channel m/z ${c.mz}`"
+          :aria-label="$t('vizworkbench.channels.show', { mz: c.mz })"
           @change="emit('toggle-visible', c.id)"
         />
         <span
@@ -42,14 +42,14 @@
         <button
           v-else-if="c.error"
           class="text-error shrink-0"
-          :title="`Load failed: ${c.error} — click to retry`"
+          :title="$t('vizworkbench.channels.loadFailed', { error: c.error })"
           @click="emit('retry', c.id)"
         >
           <SvgIcon type="warning" class="w-[1.1em] h-[1.1em]" />
         </button>
         <button
           class="ml-auto text-base-content/50 hover:text-error shrink-0"
-          :aria-label="`Remove channel m/z ${c.mz}`"
+          :aria-label="$t('vizworkbench.channels.remove', { mz: c.mz })"
           @click="emit('remove', c.id)"
         >
           <SvgIcon type="trash" class="w-[1em] h-[1em]" />
@@ -67,22 +67,22 @@
       >
         <span v-if="anyLoading" class="loading loading-spinner loading-xs"></span>
         <SvgIcon v-else type="plus" />
-        Add m/z {{ currentMz.toFixed(6) }}
+        {{ $t('vizworkbench.channels.add', { mz: currentMz.toFixed(6) }) }}
       </button>
       <button
         class="btn btn-ghost btn-sm kawaru-text-81"
         :disabled="!channels.length"
         @click="emit('clear')"
       >
-        Clear
+        {{ $t('common.action.clear') }}
       </button>
     </div>
 
     <div v-if="!channels.length" class="text-base-content/60 mt-1.5">
-      Add the current m/z to start overlaying.
+      {{ $t('vizworkbench.channels.empty') }}
     </div>
     <div v-else-if="channels.length >= maxChannels" class="text-base-content/60 mt-1.5">
-      Maximum of {{ maxChannels }} channels reached.
+      {{ $t('vizworkbench.channels.full', { max: maxChannels }) }}
     </div>
   </div>
 </template>
@@ -91,6 +91,7 @@
 import { computed } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import type { IonChannel } from '@/features/vizworkbench/composables/useIonChannels'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   enabled: boolean
@@ -115,8 +116,8 @@ const emit = defineEmits<{
 }>()
 
 const addTitle = computed(() => {
-  if (!props.enabled) return 'Enable overlay mode first'
-  if (props.channels.length >= props.maxChannels) return 'All channel colors are in use'
-  return `Add the current m/z (${props.currentMz.toFixed(6)}) as a channel`
+  if (!props.enabled) return t('vizworkbench.channels.enableFirst')
+  if (props.channels.length >= props.maxChannels) return t('vizworkbench.channels.colorsInUse')
+  return t('vizworkbench.channels.addHint', { mz: props.currentMz.toFixed(6) })
 })
 </script>

@@ -3,8 +3,26 @@
     "language": {
       "switch": "Switch language"
     },
+    "nav": {
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu",
+      "closeSidebar": "close sidebar",
+      "toggleTheme": "Toggle theme",
+      "notSignedIn": "Not signed in",
+      "signIn": "Sign in"
+    },
+    "field": {
+      "name": "Name",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "position": "Position",
+      "region": "Region",
+      "researchField": "Research Field"
+    },
     "action": {
       "save": "Save",
+      "saveChanges": "Save Changes",
       "cancel": "Cancel",
       "confirm": "Confirm",
       "delete": "Delete",
@@ -12,12 +30,107 @@
       "search": "Search",
       "reset": "Reset",
       "close": "Close",
-      "retry": "Retry"
+      "retry": "Retry",
+      "refresh": "Refresh",
+      "view": "View",
+      "apply": "Apply",
+      "clear": "Clear",
+      "download": "Download",
+      "remove": "Remove",
+      "prev": "Prev",
+      "next": "Next",
+      "go": "Go",
+      "clearAll": "Clear all",
+      "discard": "Discard"
     },
     "state": {
       "loading": "Loading…",
       "empty": "No data",
       "error": "Something went wrong"
+    },
+    "feedback": {
+      "updated": "Updated",
+      "updateFailed": "Failed to update",
+      "created": "Created",
+      "createFailed": "Failed to create",
+      "deleted": "Deleted",
+      "deleteFailed": "Failed to delete",
+      "added": "Added",
+      "addFailed": "Failed to add",
+      "removeFailed": "Failed to remove",
+      "copied": "Copied to clipboard",
+      "copyFailed": "Failed to copy",
+      "exported": "Exported",
+      "exportFailed": "Failed to export",
+      "loadFailed": "Failed to load {target}",
+      "withDetail": "{message}: {detail}"
+    },
+    "status": {
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "processing": "Processing",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "stat": {
+      "files": "Files",
+      "processing": "Processing",
+      "downloads": "Downloads",
+      "totalUsers": "Total Users"
+    },
+    "preprocessing": {
+      "noiseReduction": "Noise Reduction",
+      "baselineCorrection": "Baseline Correction",
+      "normalization": "Normalization",
+      "peakPicking": "Peak Picking",
+      "peakAlignment": "Peak Alignment",
+      "rawConvert": "Direct conversion (no preprocessing)"
+    },
+    "meta": {
+      "organism": "Organism",
+      "organismPart": "Organism Part",
+      "sampleStabilization": "Sample Stabilization",
+      "growthConditions": "Growth Conditions",
+      "tissueModification": "Tissue Modification",
+      "polarity": "Polarity",
+      "ionisationSource": "Ionisation Source",
+      "analyzer": "Analyzer"
+    },
+    "pagination": {
+      "summary": "Page {page} of {total} — {count} records",
+      "perPage": "Per page"
+    },
+    "format": {
+      "labelColon": "{label}:"
+    },
+    "input": {
+      "selectPlaceholder": "Select an option",
+      "tagPlaceholder": "Type and press Enter",
+      "addTag": "Add tag",
+      "addNamedTag": "Add {name}",
+      "removeTag": "Remove {tag}",
+      "otherRequired": "Please specify the value.",
+      "otherTooLong": "Please keep the value under {max} characters.",
+      "otherInvalidChars": "Only letters, numbers, spaces, hyphens, underscores, slashes, parentheses, commas, and periods are allowed.",
+      "searchDatasets": "Search datasets"
+    },
+    "assistant": {
+      "title": "AI Assistant",
+      "online": "Online",
+      "minimize": "Minimize",
+      "welcome": "Hi, I'm your AI research assistant. I can help explain ion images, summarize datasets, suggest preprocessing methods, and support report writing.",
+      "quick": {
+        "summarize": "Summarize this dataset",
+        "explain": "Explain this ion image",
+        "preprocess": "Suggest preprocessing methods",
+        "report": "Help me write a report"
+      },
+      "placeholder": "Ask AI anything…",
+      "attach": "Attach file",
+      "send": "Send",
+      "replyPrompt": "Here's my response to \"{prompt}\". This is a simulated reply — connect your backend AI to see real results.",
+      "replyText": "Thanks for your message! I received \"{text}\". This is a demo — connect your AI backend for real answers."
     }
   }
 }

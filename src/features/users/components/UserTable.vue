@@ -4,6 +4,7 @@ import StatusBadge from '@/shared/components/StatusBadge.vue'
 import PaginationFooter from '@/shared/components/PaginationFooter.vue'
 import SearchInput from '@/shared/components/SearchInput.vue'
 import { getRegionName } from '@/shared/utils/regionOptions'
+import { identityLabel } from '@/features/users/utils/identityLabel'
 
 defineProps<{
   users: AdminUser[]
@@ -34,7 +35,7 @@ defineEmits<{
     <div class="p-4 border-b border-base-200 flex flex-wrap items-center gap-3 bg-base-100">
       <SearchInput
         v-model="filters.username"
-        placeholder="Search username..."
+        :placeholder="$t('users.table.searchPlaceholder')"
         class="w-full sm:w-64"
         @search="$emit('search')"
       />
@@ -43,16 +44,17 @@ defineEmits<{
         v-model="filters.status"
         class="select select-bordered rounded-lg bg-base-100 font-normal kawaru-text-100 w-full sm:w-36"
       >
-        <option value="">All Status</option>
-        <option value="Active">Active</option>
-        <option value="Inactive">Inactive</option>
+        <!-- value 是发给后端的筛选值，保持英文；只翻译显示文字 -->
+        <option value="">{{ $t('users.table.allStatus') }}</option>
+        <option value="Active">{{ $t('common.status.active') }}</option>
+        <option value="Inactive">{{ $t('common.status.inactive') }}</option>
       </select>
 
       <input
         v-model="filters.institution"
         @keyup.enter="$emit('search')"
         type="text"
-        placeholder="Institution..."
+        :placeholder="$t('users.table.institutionPlaceholder')"
         class="input input-bordered rounded-lg bg-base-100 font-normal kawaru-text-100 w-full sm:w-44 focus:outline-none focus:border-primary/50"
       />
 
@@ -60,7 +62,7 @@ defineEmits<{
         v-model="filters.region"
         @keyup.enter="$emit('search')"
         type="text"
-        placeholder="Region..."
+        :placeholder="$t('users.table.regionPlaceholder')"
         class="input input-bordered rounded-lg bg-base-100 font-normal kawaru-text-100 w-full sm:w-36 focus:outline-none focus:border-primary/50"
       />
 
@@ -70,14 +72,14 @@ defineEmits<{
         @click="$emit('search')"
         class="btn btn-primary rounded-lg font-medium shadow-sm flex-1 sm:flex-none kawaru-text-87"
       >
-        Search
+        {{ $t('common.action.search') }}
       </button>
 
       <button
         @click="$emit('reset-filters')"
         class="btn btn-outline border border-base-300 text-base-content/70 hover:bg-base-200 font-medium flex-1 sm:flex-none kawaru-text-87"
       >
-        Reset Filters
+        {{ $t('users.table.resetFilters') }}
       </button>
     </div>
 
@@ -94,12 +96,12 @@ defineEmits<{
         </colgroup>
         <thead>
           <tr class="bg-base-200 text-base-content/60 border-b border-base-200 kawaru-text-112">
-            <th class="font-medium py-3 px-4 text-center">Username</th>
-            <th class="font-medium py-3 px-4 text-center">Identity</th>
-            <th class="font-medium py-3 px-4 text-center">Status</th>
-            <th class="font-medium py-3 px-4 text-center">Institution</th>
-            <th class="font-medium py-3 px-4 text-center">Region</th>
-            <th class="font-medium py-3 px-4 text-center">View</th>
+            <th class="font-medium py-3 px-4 text-center">{{ $t('common.field.username') }}</th>
+            <th class="font-medium py-3 px-4 text-center">{{ $t('users.field.identity') }}</th>
+            <th class="font-medium py-3 px-4 text-center">{{ $t('users.field.status') }}</th>
+            <th class="font-medium py-3 px-4 text-center">{{ $t('users.field.institution') }}</th>
+            <th class="font-medium py-3 px-4 text-center">{{ $t('common.field.region') }}</th>
+            <th class="font-medium py-3 px-4 text-center">{{ $t('common.action.view') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -107,7 +109,7 @@ defineEmits<{
             <td colspan="6" class="py-20 text-center text-base-content/40 kawaru-text-112">
               <div class="flex flex-col items-center justify-center">
                 <SvgIcon type="duplicate" class="h-10 w-10 mb-3 opacity-30" />
-                <span>No users match your filters.</span>
+                <span>{{ $t('users.table.empty') }}</span>
               </div>
             </td>
           </tr>
@@ -141,7 +143,7 @@ defineEmits<{
                       : 'bg-success/15 text-success'
                   "
                 >
-                  {{ user.identity }}
+                  {{ identityLabel(user.identity) }}
                 </span>
               </td>
               <td class="px-4 text-center">
@@ -155,7 +157,7 @@ defineEmits<{
                   class="btn btn-ghost border border-base-200/60 rounded-lg hover:bg-base-100 hover:border-base-300 bg-transparent kawaru-text-100 font-medium h-8 min-h-8
                     max-sm:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                 >
-                  View
+                  {{ $t('common.action.view') }}
                 </button>
               </td>
             </tr>

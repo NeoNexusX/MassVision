@@ -2,6 +2,7 @@ import type OSS from 'ali-oss'
 import { OSS_UPLOAD } from '@/shared/config'
 import type { PartRetryInfo } from './imzmlHelper'
 import { isAbortLike, messageOf } from './uploadAbort'
+import { t } from '@/i18n'
 
 export interface DonePart {
   number: number
@@ -135,7 +136,11 @@ export async function openMultipartSession(
         }
       }
       throw new Error(
-        `OSS part ${partNo} failed after ${OSS_UPLOAD.partRetries + 1} attempts: ${messageOf(lastError)}`,
+        t('upload.error.partFailed', {
+          part: partNo,
+          attempts: OSS_UPLOAD.partRetries + 1,
+          detail: messageOf(lastError),
+        }),
       )
     },
 

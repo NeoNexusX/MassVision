@@ -27,10 +27,10 @@
         </div>
         <button
           class="btn btn-fluid btn-ghost"
-          title="Jump to the nearest m/z peak within tolerance"
+          :title="$t('vizworkbench.toolbar.searchHint')"
           @click="onSearchMz"
         >
-          Search
+          {{ $t('common.action.search') }}
         </button>
       </template>
       <!-- 像素坐标显示（processed 模式） -->
@@ -38,12 +38,12 @@
         v-if="dataMode === 'processed' && pixelCoord"
         class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 h-8 flex items-center"
       >
-        <span class="text-base-content/50 pr-[0.25em]">Pixel</span>
+        <span class="text-base-content/50 pr-[0.25em]">{{ $t('vizworkbench.toolbar.pixel') }}</span>
         <span class="font-mono font-semibold">({{ pixelCoord.x }}, {{ pixelCoord.y }})</span>
       </div>
       <!-- m/z 容差（仅 continuous 模式） -->
       <div v-if="dataMode === 'continuous'" class="flex items-center gap-1">
-        <span class="text-base-content/50">Tolerance &plusmn;</span>
+        <span class="text-base-content/50">{{ $t('vizworkbench.toolbar.tolerance') }}</span>
         <input
           type="text"
           inputmode="decimal"
@@ -58,13 +58,13 @@
       <!-- Colormap（两种模式都可用；多离子叠加时置灰，颜色由通道决定）
            宽度用 em 而非 w-28：字号随窗口流体放大，固定 7rem 的盒子在宽屏下可用文字空间
            反而净缩水（110px − 2.75em），最长的 TIC norm/Viridis 会溢出去压到箭头上。
-           7.5em 扣掉 2.75em 内边距后留 4.75em 文字空间，够放最长标签。 -->
+           7.5em 扣掉 2.75em 内边距后留 4.75em 文字空间，够放最长的英文标签。 -->
       <select
         data-testid="colormap-select"
         class="select select-fluid select-bordered w-[7.5em]"
         :class="{ 'opacity-50': channelsMode }"
         :disabled="channelsMode"
-        :title="channelsMode ? 'Not used in multi-ion overlay mode' : undefined"
+        :title="channelsMode ? $t('vizworkbench.ionImage.rangeDisabled') : undefined"
         :value="colormap"
         @change="$emit('update:colormap', ($event.target as HTMLSelectElement).value)"
       >
@@ -73,36 +73,39 @@
       <!-- 强度标度：TIC 归一化仅 continuous 模式（processed 本身就是 TIC 图） -->
       <div class="flex items-center gap-1.5">
         <span v-if="normalizationLoading" class="loading loading-spinner loading-xs"></span>
+        <!-- 强度标度的选项会被翻译：中文「TIC 归一化」约 5em，7.5em 的盒子只留 4.75em 会压到箭头，
+             故加宽到 8em（文字空间 5.25em）。w-auto 靠不住——原生 select 的固有宽度不含 select-fluid
+             的 em 内边距换算。色图名不翻译，仍保持 7.5em。 -->
         <select
           data-testid="intensity-scale-select"
-          class="select select-fluid select-bordered w-[7.5em]"
+          class="select select-fluid select-bordered w-[8em]"
           :class="[normalizationError ? 'select-error' : '', channelsMode ? 'opacity-50' : '']"
           :disabled="channelsMode"
           :title="
             channelsMode
-              ? 'Not used in multi-ion overlay mode'
+              ? $t('vizworkbench.ionImage.rangeDisabled')
               : normalizationError
-                ? `Normalization failed: ${normalizationError}`
+                ? $t('vizworkbench.toolbar.normalizationFailed', { error: normalizationError })
                 : undefined
           "
           :value="intensityScale"
           @change="$emit('update:intensityScale', ($event.target as HTMLSelectElement).value)"
         >
-          <option value="linear">Linear</option>
-          <option value="log">Log</option>
-          <option v-if="dataMode === 'continuous' && hasTic" value="tic" title="Divide each pixel by its total ion current (pre-computed stats/tic)">TIC norm</option>
+          <option value="linear">{{ $t('vizworkbench.toolbar.linear') }}</option>
+          <option value="log">{{ $t('vizworkbench.toolbar.log') }}</option>
+          <option v-if="dataMode === 'continuous' && hasTic" value="tic" :title="$t('vizworkbench.toolbar.ticNormHint')">{{ $t('vizworkbench.toolbar.ticNorm') }}</option>
         </select>
       </div>
       <button
         class="btn btn-fluid btn-ghost"
         :class="{ 'opacity-50': channelsMode }"
         :disabled="channelsMode"
-        :title="channelsMode ? 'Not used in multi-ion overlay mode' : undefined"
+        :title="channelsMode ? $t('vizworkbench.ionImage.rangeDisabled') : undefined"
         @click="$emit('reset')"
       >
-        Reset
+        {{ $t('common.action.reset') }}
       </button>
-      <button class="btn btn-fluid btn-ghost" title="Export current view as PNG" @click="$emit('download')">
+      <button class="btn btn-fluid btn-ghost" :title="$t('vizworkbench.toolbar.exportPng')" @click="$emit('download')">
         <SvgIcon type="download" />
         PNG
       </button>
@@ -116,7 +119,7 @@ import type { DataMode } from '@/services/zarr/types/zarr'
 import { ZARR_STORE } from '@/shared/config/defaults'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 
-/** 可选色图：value 传给 zarr 渲染，label 用于展示 */
+/** 可选色图：value 传给 zarr 渲染，label 用于展示（色图是专有名称，各语言都显示英文原名） */
 const COLORMAPS = [
   { value: 'viridis', label: 'Viridis' },
   { value: 'inferno', label: 'Inferno' },

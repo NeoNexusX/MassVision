@@ -4,10 +4,10 @@
     <div v-if="rows.length === 0" class="text-center py-8">
       <template v-if="loading">
         <span class="loading loading-spinner loading-md text-primary"></span>
-        <span class="text-base-content/50 kawaru-text-100 ml-2">Loading...</span>
+        <span class="text-base-content/50 kawaru-text-100 ml-2">{{ $t('common.state.loading') }}</span>
       </template>
       <template v-else>
-        <span class="text-base-content/40 kawaru-text-100">No data available</span>
+        <span class="text-base-content/40 kawaru-text-100">{{ $t('common.state.empty') }}</span>
       </template>
     </div>
 
@@ -27,14 +27,14 @@
           </colgroup>
           <thead>
             <tr class="kawaru-text-87 text-base-content/70">
-              <th class="text-center py-3 px-2">Process</th>
-              <th class="text-center py-3 px-2">Dataset</th>
-              <th class="text-center py-3 px-2">Methods</th>
-              <th class="text-center py-3 px-2">Created</th>
-              <th class="text-center py-3 px-2">Finished</th>
-              <th class="text-center py-3 px-2">Status</th>
-              <th class="text-center py-3 px-1">View</th>
-              <th class="text-center py-3 px-1">Delete</th>
+              <th class="text-center py-3 px-2">{{ $t('workspace.table.process') }}</th>
+              <th class="text-center py-3 px-2">{{ $t('workspace.table.dataset') }}</th>
+              <th class="text-center py-3 px-2">{{ $t('workspace.table.methods') }}</th>
+              <th class="text-center py-3 px-2">{{ $t('workspace.table.created') }}</th>
+              <th class="text-center py-3 px-2">{{ $t('workspace.table.finished') }}</th>
+              <th class="text-center py-3 px-2">{{ $t('workspace.table.status') }}</th>
+              <th class="text-center py-3 px-1">{{ $t('common.action.view') }}</th>
+              <th class="text-center py-3 px-1">{{ $t('common.action.delete') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -53,7 +53,7 @@
                     :key="m"
                     class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-75 font-medium"
                     :class="methodBadgeClass(m)"
-                  >{{ m }}</span>
+                  >{{ methodLabel(m) }}</span>
                 </div>
               </td>
               <td class="text-center py-3 px-2">
@@ -76,7 +76,7 @@
                   v-if="r.status !== 'processing'"
                   @click="openRow(r)"
                   class="btn btn-ghost btn-sm btn-circle hover:bg-base-200 kawaru-text-75"
-                  aria-label="View"
+                  :aria-label="$t('common.action.view')"
                 >
                   <svg-icon type="chevron_right" class="w-6 h-6 text-base-content/60" />
                 </button>
@@ -87,7 +87,7 @@
                   v-if="type === 'results' && (['completed', 'failed'].includes(r.status) || isStaleRunning(r))"
                   @click.stop="$emit('delete', r.id)"
                   class="btn btn-ghost btn-sm btn-circle hover:bg-error/10 hover:text-error kawaru-text-75"
-                  aria-label="Delete"
+                  :aria-label="$t('common.action.delete')"
                 >
                   <svg-icon type="trash" class="w-5 h-5 text-base-content/50" />
                 </button>
@@ -114,26 +114,26 @@
           <!-- Middle: Dataset, Methods, Created, Finished -->
           <div class="flex flex-col gap-1 kawaru-text-87 text-base-content/70 pl-0.5">
             <div class="flex items-center gap-2">
-              <span class="text-base-content/40 w-16 flex-shrink-0">Dataset</span>
+              <span class="text-base-content/40 w-16 flex-shrink-0">{{ $t('workspace.table.dataset') }}</span>
               <span class="truncate" :title="r.dataset">{{ r.dataset }}</span>
             </div>
             <div class="flex items-start gap-2">
-              <span class="text-base-content/40 w-16 flex-shrink-0">Methods</span>
+              <span class="text-base-content/40 w-16 flex-shrink-0">{{ $t('workspace.table.methods') }}</span>
               <div class="flex flex-wrap gap-1">
                 <span
                   v-for="m in r.methods"
                   :key="m"
                   class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-75 font-medium"
                   :class="methodBadgeClass(m)"
-                >{{ m }}</span>
+                >{{ methodLabel(m) }}</span>
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-base-content/40 w-16 flex-shrink-0">Created</span>
+              <span class="text-base-content/40 w-16 flex-shrink-0">{{ $t('workspace.table.created') }}</span>
               <span>{{ r.createdDate }} {{ r.createdTime }}</span>
             </div>
             <div v-if="r.finishedDate" class="flex items-center gap-2">
-              <span class="text-base-content/40 w-16 flex-shrink-0">Finished</span>
+              <span class="text-base-content/40 w-16 flex-shrink-0">{{ $t('workspace.table.finished') }}</span>
               <span>{{ r.finishedDate }} {{ r.finishedTime }}</span>
             </div>
           </div>
@@ -144,20 +144,20 @@
               v-if="r.status !== 'processing'"
               @click="openRow(r)"
               class="btn btn-ghost btn-sm kawaru-text-75"
-              aria-label="View"
+              :aria-label="$t('common.action.view')"
             >
               <svg-icon type="chevron_right" class="w-5 h-5" />
-              <span>View</span>
+              <span>{{ $t('common.action.view') }}</span>
             </button>
-            <span v-else class="text-base-content/30 kawaru-text-87 px-2">Processing</span>
+            <span v-else class="text-base-content/30 kawaru-text-87 px-2">{{ $t('common.status.processing') }}</span>
             <button
               v-if="type === 'results' && (['completed', 'failed'].includes(r.status) || isStaleRunning(r))"
               @click.stop="$emit('delete', r.id)"
               class="btn btn-ghost btn-sm text-error/70 hover:text-error hover:bg-error/10 kawaru-text-75"
-              aria-label="Delete"
+              :aria-label="$t('common.action.delete')"
             >
               <svg-icon type="trash" class="w-4 h-4" />
-              <span>Delete</span>
+              <span>{{ $t('common.action.delete') }}</span>
             </button>
           </div>
         </div>
@@ -171,6 +171,8 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import StatusBadge from '@/shared/components/StatusBadge.vue'
 import { parseUtcDate } from '@/shared/utils/date'
+import { methodLabel } from '@/shared/utils/methodsNormalize'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   title?: string
@@ -228,7 +230,7 @@ const isStaleRunning = (r: any) => {
 
 const openRow = (r: any) => {
   if (r.status === 'failed') {
-    emit('view-error', r.errorMessage || 'Unknown error')
+    emit('view-error', r.errorMessage || t('workspace.table.unknownError'))
     return
   }
   router.push({

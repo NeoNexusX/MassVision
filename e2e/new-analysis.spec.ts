@@ -167,7 +167,7 @@ test.describe('New Analysis', () => {
 
     // Summary 更新为第二个名称
     await expect(summarySection.getByText(secondName!.trim())).toBeVisible()
-    await expect(summarySection.getByText(firstName!.trim())).not.toBeVisible()
+    await expect(summarySection.getByText(firstName!.trim())).toBeHidden()
   })
 
   test('selecting a dataset updates summary panel', async ({ page }) => {
@@ -190,7 +190,7 @@ test.describe('New Analysis', () => {
     await expect(firstLi.locator('input[type="radio"]')).toBeChecked()
 
     // Summary panel 不再显示 "No dataset selected"
-    await expect(page.getByText('No dataset selected')).not.toBeVisible()
+    await expect(page.getByText('No dataset selected')).toBeHidden()
 
     // Summary panel 的 "Selected dataset" 区域显示该名称
     const summarySection = page.locator('.lg\\:col-span-1')
@@ -222,7 +222,7 @@ test.describe('New Analysis', () => {
 
     // 方法选中后按钮应变为可用
     await expect(page.getByRole('button', { name: 'Start Analysis' })).toBeEnabled()
-    await expect(page.getByText('Select dataset and configure pipeline first')).not.toBeVisible()
+    await expect(page.getByText('Select dataset and configure pipeline first')).toBeHidden()
   })
 })
 
@@ -367,7 +367,7 @@ test.describe.serial('Peak Alignment journey', () => {
     await expect(page.getByTestId('ion-image-section')).toHaveAttribute('data-loading', 'false', {
       timeout: 30_000,
     })
-    await expect(page.getByText(/Failed to (load|update) ion image/)).not.toBeVisible()
+    await expect(page.getByText(/Failed to (load|update) ion image/)).toBeHidden()
 
     // 确认点击后页面没崩：谱图仍在。
     await expect(page.getByRole('heading', { name: 'Spectrum View' })).toBeVisible()
@@ -399,7 +399,7 @@ test.describe.serial('Peak Alignment journey', () => {
     await page.waitForTimeout(500)
 
     // ion image 没崩
-    await expect(page.getByText(/^Loading ion image/)).not.toBeVisible()
+    await expect(page.getByText(/^Loading ion image/)).toBeHidden()
   })
 })
 
@@ -447,7 +447,7 @@ test.describe('Cleanup', () => {
     await row.getByRole('button', { name: 'Delete' }).click()
 
     await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
-    await expect(page.locator('.toast')).toContainText('Result deleted', { timeout: 10_000 })
+    await expect(page.locator('.toast')).toContainText('Deleted', { timeout: 10_000 })
   })
 })
 

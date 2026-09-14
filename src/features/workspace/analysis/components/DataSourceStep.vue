@@ -26,17 +26,17 @@ const emit = defineEmits<{
 
 <template>
   <section class="bg-base-100 rounded-lg border border-base-200 p-4 sm:p-6 shadow-sm">
-    <h2 class="kawaru-text-150 font-medium mb-4">Step 1: Data Source</h2>
+    <h2 class="kawaru-text-150 font-medium mb-4">{{ $t('workspace.source.title') }}</h2>
     <div class="tabs mb-4">
       <a
         :class="['tab', activeTab === 'my' ? 'tab-active' : '']"
         @click.prevent="emit('update:activeTab', 'my')"
-        >My Datasets</a
+        >{{ $t('datasets.my.title') }}</a
       >
       <a
         :class="['tab', activeTab === 'public' ? 'tab-active' : '']"
         @click.prevent="emit('update:activeTab', 'public')"
-        >Public Datasets</a
+        >{{ $t('datasets.public.title') }}</a
       >
     </div>
 
@@ -44,7 +44,7 @@ const emit = defineEmits<{
       <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
         <SearchInput
           :model-value="datasetQuery"
-          placeholder="Search datasets"
+          :placeholder="$t('common.input.searchDatasets')"
           class="w-full sm:w-48"
           @update:model-value="emit('update:datasetQuery', $event)"
         />
@@ -53,8 +53,13 @@ const emit = defineEmits<{
           class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full sm:w-auto sm:ml-auto"
         >
           <span class="kawaru-text-100 text-base-content/60 whitespace-nowrap tabular-nums"
-            >Page {{ meta.current_page }} / {{ meta.total_pages }} &mdash;
-            {{ meta.total_records }} records</span
+            >{{
+              $t('common.pagination.summary', {
+                page: meta.current_page,
+                total: meta.total_pages,
+                count: meta.total_records,
+              })
+            }}</span
           >
           <PaginationBar
             :current-page="meta.current_page"
@@ -102,7 +107,7 @@ const emit = defineEmits<{
             </li>
           </ul>
           <div v-if="datasets.length === 0" class="kawaru-text-112 text-base-content/60 p-3">
-            No datasets found.
+            {{ $t('workspace.source.empty') }}
           </div>
         </div>
       </div>

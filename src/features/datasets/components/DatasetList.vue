@@ -51,7 +51,7 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
       v-else-if="!datasets.length"
       class="p-6 bg-base-100 dark:bg-slate-800 rounded-xl text-base-content mb-4 kawaru-text-100"
     >
-      <slot name="empty">No datasets found matching your filters.</slot>
+      <slot name="empty">{{ $t('datasets.list.empty') }}</slot>
     </div>
 
     <!-- Data list -->

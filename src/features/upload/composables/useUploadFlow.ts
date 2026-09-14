@@ -1,5 +1,6 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 import { formatBytes } from '@/shared/utils/format'
 import {
   MIN_PUBLIC_IBD_SIZE,
@@ -83,9 +84,9 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   const resumeHint = computed(() => {
     if (!resumeState.pendingResume.value) return ''
     if (!selectedPair.value) {
-      return 'Select the same .imzML and .ibd pair below to continue this upload.'
+      return t('upload.resume.hintSelect')
     }
-    return resumeReady.value ? '' : 'The selected files do not match this pending upload.'
+    return resumeReady.value ? '' : t('upload.resume.hintMismatch')
   })
 
   const expectedResumeFiles = computed(() => {
@@ -96,7 +97,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   // Methods
   const handleProgress = (progressInfo: UnifiedUploadProgress) => {
     progress.value = progressInfo.percent
-    uploadMessage.value = progressInfo.message || `Stage: ${progressInfo.stage}`
+    uploadMessage.value = progressInfo.message || t('upload.progress.stage', { stage: progressInfo.stage })
     speed.value = progressInfo.speedStr || ''
     eta.value = progressInfo.etaStr || ''
     compressSpeed.value = progressInfo.compressSpeedStr || ''
@@ -178,7 +179,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
       const settings = await parseImzmlUploadMetadata(pair.imzml)
       metadataForm.applyParsedSettings(settings)
     } catch (err: any) {
-      showToast(err?.message || 'Failed to parse imzML metadata', 'error')
+      showToast(err?.message || t('upload.toast.parseFailed'), 'error')
     } finally {
       parsingMetadata.value = false
     }
@@ -196,9 +197,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
 
   const finishSuccessfully = (datasetName: string, reused = false) => {
     showToast(
-      reused
-        ? 'File already exists on server, reused without re-upload.'
-        : 'Dataset pipeline successfully completed',
+      reused ? t('upload.toast.reused') : t('upload.toast.completed'),
       'success',
     )
     uploading.value = false
@@ -209,11 +208,8 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   const handleUploadError = (err: any, fallbackMessage: string) => {
     console.error(fallbackMessage, err)
     if (isAbortLike(err)) {
-      showToast('Upload safely aborted', 'info')
-      uploadError.value =
-        'Upload aborted and the uploaded parts were discarded. A part that was already in ' +
-        'flight cannot be cancelled by the browser and may keep uploading in the background ' +
-        'for a minute or two.'
+      showToast(t('upload.toast.aborted'), 'info')
+      uploadError.value = t('upload.toast.abortedDetail')
     } else {
       uploadError.value = err.message || fallbackMessage
       showToast(uploadError.value, 'error')
@@ -228,7 +224,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     if (!selectedPair.value || !resumeReady.value) return
     const pair = selectedPair.value
     resumeState.pendingResume.value = false
-    startUploading('Resuming upload...')
+    startUploading(t('upload.progress.resuming'))
 
     try {
       const result = await uploadImzmlDataset({
@@ -240,7 +236,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
       })
       finishSuccessfully(result?.datasetName || resumeState.pendingDatasetName.value)
     } catch (err: any) {
-      handleUploadError(err, 'Resume upload failed')
+      handleUploadError(err, t('upload.toast.resumeFailed'))
     } finally {
       uploading.value = false
       abortController = null
@@ -273,7 +269,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
 
     if (metadataForm.form.value.is_public && selectedPair.value.ibd.size < MIN_PUBLIC_IBD_SIZE) {
       const minSizeMB = MIN_PUBLIC_IBD_SIZE / (1024 * 1024)
-      showToast(`IBD file must be at least ${minSizeMB} MB for public datasets.`, 'error')
+      showToast(t('upload.toast.ibdTooSmall', { mb: minSizeMB }), 'error')
       return
     }
 
@@ -298,7 +294,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     if (!selectedPair.value) return
     const pair = selectedPair.value
 
-    startUploading('Initializing Pipeline...')
+    startUploading(t('upload.progress.initializing'))
 
     try {
       const payload = metadataForm.buildMetadataPayload()
@@ -311,7 +307,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
       })
       finishSuccessfully(result?.datasetName || pair.baseName, !!result?.reused)
     } catch (err: any) {
-      handleUploadError(err, 'Pipeline sequence failed')
+      handleUploadError(err, t('upload.toast.uploadFailed'))
     } finally {
       uploading.value = false
       abortController = null

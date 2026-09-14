@@ -4,6 +4,7 @@ import { useAuthStore } from '@/shared/auth/authStore'
 import { login as loginApi } from '@/shared/auth/authApi'
 import { extractBackendError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 
 export function useLoginForm() {
   // External composables
@@ -19,7 +20,7 @@ export function useLoginForm() {
   // Methods
   const login = async () => {
     if (!username.value || !password.value) {
-      showToast('Please enter both username and password.', 'warning')
+      showToast(t('auth.toast.missingCredentials'), 'warning')
       return
     }
 
@@ -31,11 +32,11 @@ export function useLoginForm() {
       })
 
       if (response.status !== 200) {
-        throw new Error(response.data?.message || 'Unable to connect the server.')
+        throw new Error(response.data?.message || t('auth.toast.serverUnreachable'))
       }
 
       const { access_token } = response.data
-      if (!access_token) throw new Error('Invalid token received')
+      if (!access_token) throw new Error(t('auth.toast.invalidToken'))
 
       // Await login(): authStore.login internally awaits fetchUser(), so the
       // navbar renders with auth.user already populated instead of racing it
@@ -44,7 +45,7 @@ export function useLoginForm() {
       // login() resolved -> token survived the profile fetch (a 401 would have
       // cleared it and bounced to /login via the http interceptor).
       sessionStorage.setItem('just_logged_in', '1')
-      showToast('Login successful! Redirecting...', 'success')
+      showToast(t('auth.toast.loginSuccess'), 'success')
       // 登录后的默认落地页是公开数据集列表（与 router.beforeEach 里
       // 「已登录用户访问 /login 时的去向」保持一致）。
       router.push('/datasets').catch((err) => console.error('Router Push Error:', err))

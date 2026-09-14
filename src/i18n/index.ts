@@ -34,8 +34,10 @@ export const LOCALES: readonly { value: Locale; label: string; short: string }[]
 
 /**
  * 启动即加载的核心命名空间。
- * 列在这里但对应 json 还不存在的（如迁移中的 auth），loadNs 会静默跳过，
- * 等文件补上即自动生效——不必为了分期迁移反复改这份清单。
+ * 列在这里但对应 json 还不存在的，loadNs 会静默跳过，等文件补上即自动生效。
+ *
+ * auth 放 core 而不是随路由加载：除了登录/注册/找回密码页，验证码发送、密码强度、
+ * 「请先登录」提示这些 auth 文案还会在 users、datasets 等其他路由里用到。
  */
 const CORE_NS = ['common', 'auth'] as const
 

@@ -5,7 +5,7 @@
       <!-- Percentage text input -->
       <div class="flex flex-col flex-1">
         <label class="label py-1">
-          <span class="label-text kawaru-text-100">Percentage (%)</span>
+          <span class="label-text kawaru-text-100">{{ $t('upload.solvent.percentage') }}</span>
         </label>
         <input
           v-model="percentageStr"
@@ -27,8 +27,9 @@
         <SelectWithOther
           v-model="selectedSolvent"
           :options="solventOptions"
-          placeholder="Select solvent..."
-          other-placeholder="Please specify..."
+          :label-of="vocabLabel"
+          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :other-placeholder="$t('datasets.filter.specifyOther')"
           hide-label
         />
       </div>
@@ -42,7 +43,7 @@
           class="btn btn-primary btn-square kawaru-text-87"
           @click="addSolvent"
           :disabled="!canAdd"
-          title="Add solvent"
+:title="$t('upload.solvent.add')"
         >
           <SvgIcon type="plus" class="h-5 w-5" />
         </button>
@@ -59,11 +60,11 @@
         :key="index"
         class="flex items-center justify-between bg-base-200 rounded-lg px-3 py-1.5"
       >
-        <span class="kawaru-text-87">{{ entry }}</span>
+        <span class="kawaru-text-87">{{ entryLabel(entry) }}</span>
         <button
           class="btn btn-ghost btn-xs text-error kawaru-text-68"
           @click="removeSolvent(index)"
-          title="Remove"
+:title="$t('common.action.remove')"
         >
           <SvgIcon type="close" class="h-4 w-4" />
         </button>
@@ -73,7 +74,7 @@
     <!-- Clear all -->
     <div v-if="solventEntries.length > 0" class="flex justify-end">
       <button class="btn btn-ghost btn-sm text-error kawaru-text-75" @click="clearAll">
-        Clear All
+        {{ $t('common.action.clearAll') }}
       </button>
     </div>
   </div>
@@ -82,6 +83,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   modelValue: string
@@ -107,7 +110,7 @@ const percentage = computed(() => {
 const percentageError = computed(() => {
   if (!percentageStr.value) return ''
   const val = percentage.value
-  if (val === null || val < 1 || val > 100) return 'Percentage must be a number between 1 and 100'
+  if (val === null || val < 1 || val > 100) return t('upload.solvent.percentageError')
   return ''
 })
 
@@ -116,6 +119,12 @@ const solventEntries = computed(() => {
   if (!props.modelValue) return []
   return props.modelValue.split(',').map(s => s.trim()).filter(Boolean)
 })
+
+/** 条目形如 "50% Water"：提交的仍是这个英文串，只把溶剂名部分换成显示文字 */
+function entryLabel(entry: string): string {
+  const m = /^(\S+%)\s+(.+)$/.exec(entry)
+  return m ? `${m[1]} ${vocabLabel(m[2])}` : entry
+}
 
 // Can add check
 const canAdd = computed(() => {
@@ -127,12 +136,12 @@ function addSolvent() {
   error.value = ''
 
   if (percentage.value === null || percentage.value < 1 || percentage.value > 100) {
-    error.value = 'Please enter a valid percentage (1-100)'
+    error.value = t('upload.solvent.invalidPercentage')
     return
   }
 
   if (!selectedSolvent.value.trim()) {
-    error.value = 'Please select a solvent'
+    error.value = t('upload.solvent.selectSolvent')
     return
   }
 

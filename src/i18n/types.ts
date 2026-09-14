@@ -16,6 +16,14 @@
  *   3. i18n/index.ts 的 CORE_NS 或 FeatureNs 加一个成员（决定它什么时候被加载）
  */
 import type enCommon from './locales/en/common.json'
+import type enAuth from './locales/en/auth.json'
+import type enDatasets from './locales/en/datasets.json'
+import type enUsers from './locales/en/users.json'
+import type enUpload from './locales/en/upload.json'
+import type enCollections from './locales/en/collections.json'
+import type enWorkspace from './locales/en/workspace.json'
+import type enVizworkbench from './locales/en/vizworkbench.json'
+import type enHome from './locales/en/home.json'
 
 /**
  * 支持的界面语言。
@@ -34,13 +42,16 @@ export type Locale = 'en' | 'zh-CN'
  * 在 A 路由里写 B 路由的 key，TS 不会拦，但运行时查不到（会回退 en 或显示 key）。
  * 这一层由 ESLint 的 no-missing-keys 配合 code review 兜住。
  */
-export type MessageSchema = typeof enCommon
-// 后续分期在此交叉上去，例如：
-//   export type MessageSchema = typeof enCommon & typeof enAuth & typeof enDatasets
-// P1 接入：auth
-// P2 接入：datasets / collections / upload / users
-// P3 接入：workspace / vizworkbench
-// P4 接入：home
+export type MessageSchema = typeof enCommon &
+  typeof enAuth &
+  typeof enDatasets &
+  typeof enUsers &
+  typeof enUpload &
+  typeof enCollections &
+  typeof enWorkspace &
+  typeof enVizworkbench &
+  typeof enHome
+
 
 declare module 'vue-i18n' {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- 模块增强的固定写法，接口体必须为空

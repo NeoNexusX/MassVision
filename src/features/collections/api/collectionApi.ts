@@ -1,6 +1,7 @@
 import { api, auth_api, extractBackendError } from '@/shared/api/httpClient'
 import { mapCollectionDetail, mapCollectionSummary } from '../mappers/collectionMapper'
 import { isCollectionApiError } from '../types/collection'
+import { t } from '@/i18n'
 import type {
   CollectionApiError,
   CollectionCreatePayload,
@@ -21,7 +22,7 @@ import type {
  */
 
 function toCollectionApiError(err: any): CollectionApiError {
-  const e = new Error(extractBackendError(err, 'Collection request failed')) as CollectionApiError
+  const e = new Error(extractBackendError(err, t('common.state.error'))) as CollectionApiError
   e.status = err?.response?.status
   // 409 的 detail 是字符串原文（invalid collection members 等）；422 时是校验数组，String 化即可
   const detail = err?.response?.data?.detail

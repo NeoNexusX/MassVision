@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { ANALYZERS, ION_SOURCES } from '@/features/datasets/constants/datasetMetadata'
 import { getIonSourceFieldRules } from '@/features/upload/utils/ionSourceRules'
+import { t } from '@/i18n'
 
 export interface UploadMetadataFormState {
   experiment_type: string
@@ -27,21 +28,22 @@ export interface UploadMetadataFormState {
 
 interface RequiredField {
   key: keyof UploadMetadataFormState
-  label: string
+  /** 字段显示名，校验出错时按当前界面语言取 */
+  label: () => string
 }
 
 const REQUIRED_FIELDS: RequiredField[] = [
-  { key: 'polarity', label: 'Polarity' },
-  { key: 'ionisation_source', label: 'Ionisation Source' },
-  { key: 'analyzer', label: 'Analyzer' },
-  { key: 'pixel_size_horizontal', label: 'Pixel Size X (μm)' },
-  { key: 'pixel_size_vertical', label: 'Pixel Size Y (μm)' },
-  { key: 'organism', label: 'Organism' },
-  { key: 'organism_part', label: 'Organism Part' },
-  { key: 'condition', label: 'Condition' },
-  { key: 'sample_stabilization', label: 'Sample Stabilization' },
-  { key: 'spectrum_mode', label: 'Spectrum Mode' },
-  { key: 'storage_mode', label: 'Storage Mode' },
+  { key: 'polarity', label: () => t('common.meta.polarity') },
+  { key: 'ionisation_source', label: () => t('common.meta.ionisationSource') },
+  { key: 'analyzer', label: () => t('common.meta.analyzer') },
+  { key: 'pixel_size_horizontal', label: () => t('upload.form.pixelSizeX') },
+  { key: 'pixel_size_vertical', label: () => t('upload.form.pixelSizeY') },
+  { key: 'organism', label: () => t('common.meta.organism') },
+  { key: 'organism_part', label: () => t('common.meta.organismPart') },
+  { key: 'condition', label: () => t('datasets.field.condition') },
+  { key: 'sample_stabilization', label: () => t('common.meta.sampleStabilization') },
+  { key: 'spectrum_mode', label: () => t('datasets.field.spectrumMode') },
+  { key: 'storage_mode', label: () => t('datasets.field.storageMode') },
 ]
 
 function createForm(): UploadMetadataFormState {
@@ -136,10 +138,10 @@ export function useUploadMetadataForm() {
     for (const field of REQUIRED_FIELDS) {
       const value = form.value[field.key]
       if (!value || (typeof value === 'string' && !value.trim())) {
-        return `${field.label} is required.`
+        return t('upload.validation.required', { field: field.label() })
       }
       if (value === 'Other') {
-        return `Please specify custom value for ${field.label}.`
+        return t('upload.validation.specifyCustom', { field: field.label() })
       }
     }
 
@@ -147,22 +149,24 @@ export function useUploadMetadataForm() {
     const rules = getIonSourceFieldRules(form.value.ionisation_source)
 
     // Solvent only checks presence; the MALDI fields additionally reject 'Other'.
+    // 显示名不用 rule.label（规则表是纯数据、只有英文），按字段取译文
     const dynamicFields = [
-      { rule: rules.solvent, value: form.value.solvent, rejectOther: false },
-      { rule: rules.maldiMatrix, value: form.value.maldi_matrix, rejectOther: true },
+      { rule: rules.solvent, label: t('datasets.field.solvent'), value: form.value.solvent, rejectOther: false },
+      { rule: rules.maldiMatrix, label: t('datasets.field.maldiMatrix'), value: form.value.maldi_matrix, rejectOther: true },
       {
         rule: rules.maldiMatrixApplication,
+        label: t('upload.form.maldiMatrixApplication'),
         value: form.value.maldi_matrix_application,
         rejectOther: true,
       },
     ]
-    for (const { rule, value, rejectOther } of dynamicFields) {
+    for (const { rule, label, value, rejectOther } of dynamicFields) {
       if (!rule.required) continue
       if (!value || (typeof value === 'string' && !value.trim())) {
-        return `${rule.label} is required.`
+        return t('upload.validation.required', { field: label })
       }
       if (rejectOther && value === 'Other') {
-        return `Please specify custom value for ${rule.label}.`
+        return t('upload.validation.specifyCustom', { field: label })
       }
     }
 
@@ -170,8 +174,9 @@ export function useUploadMetadataForm() {
     for (const key of ['pixel_size_horizontal', 'pixel_size_vertical'] as const) {
       const val = form.value[key]
       if (val && !isValidPixelSize(val)) {
-        const label = key === 'pixel_size_horizontal' ? 'Pixel Size X (μm)' : 'Pixel Size Y (μm)'
-        return `${label} must be an integer between 1 and 200.`
+        const label =
+          key === 'pixel_size_horizontal' ? t('upload.form.pixelSizeX') : t('upload.form.pixelSizeY')
+        return t('upload.validation.pixelRange', { field: label })
       }
     }
     return ''

@@ -7,11 +7,11 @@
     <div class="flex flex-1 items-center gap-2 min-w-0 w-full md:w-auto">
       <SearchInput
         v-model="searchQuery"
-        placeholder="Search collections"
+:placeholder="$t('collections.toolbar.searchPlaceholder')"
         class="flex-1 min-w-0"
         @search="onSearchClick"
       />
-      <button @click="onSearchClick" class="btn btn-primary shrink-0 kawaru-text-100">Search</button>
+      <button @click="onSearchClick" class="btn btn-primary shrink-0 kawaru-text-100">{{ $t('common.action.search') }}</button>
     </div>
 
     <!-- 范围切换：默认浏览全部（/collections/all），勾选后仅显示自己的（/collections） -->
@@ -25,7 +25,7 @@
         :checked="mineOnly"
         @change="$emit('update:mineOnly', ($event.target as HTMLInputElement).checked)"
       />
-      <span>My collections only</span>
+      <span>{{ $t('collections.toolbar.mineOnly') }}</span>
     </label>
 
     <!-- 排序：后端目前仅支持 updated_at 倒序（无排序参数），先以单选项静态展示；
@@ -33,9 +33,9 @@
     <div class="relative w-full md:w-64 min-w-0">
       <select
         class="appearance-none w-full min-w-0 bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content py-2 pl-3 pr-8 rounded-lg kawaru-text-100"
-        aria-label="Sort order"
+:aria-label="$t('collections.toolbar.sortAria')"
       >
-        <option>Sort by updated time</option>
+        <option>{{ $t('collections.toolbar.sortUpdated') }}</option>
       </select>
       <div
         class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-base-content/60"

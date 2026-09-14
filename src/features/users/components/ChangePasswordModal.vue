@@ -34,17 +34,17 @@ const strengthLabel = computed(() => passwordStrengthLabel(passwordScore.value))
 <template>
   <div v-if="isOpen" class="modal modal-open" @click.self="emit('close')">
     <div class="modal-box max-w-md" @click.stop>
-      <h3 class="font-bold kawaru-text-112">Change Password</h3>
-      <p class="py-2 kawaru-text-87 opacity-70">Enter your new password. You will be asked to log in again after the change.</p>
+      <h3 class="font-bold kawaru-text-112">{{ $t('users.changePassword.title') }}</h3>
+      <p class="py-2 kawaru-text-87 opacity-70">{{ $t('users.changePassword.hint') }}</p>
 
       <div class="form-control mt-2">
-        <label class="label"><span class="label-text">New Password</span></label>
+        <label class="label"><span class="label-text">{{ $t('auth.field.newPassword') }}</span></label>
         <input
           type="password"
           :value="newPassword"
           @input="emit('update:newPassword', ($event.target as HTMLInputElement).value)"
           autocomplete="new-password"
-          placeholder="Enter new password"
+          :placeholder="$t('users.changePassword.newPlaceholder')"
           class="input input-bordered w-full kawaru-text-87"
         />
         <progress
@@ -55,29 +55,29 @@ const strengthLabel = computed(() => passwordStrengthLabel(passwordScore.value))
           max="5"
         ></progress>
         <div v-if="newPassword" class="flex justify-between kawaru-text-75 opacity-60 mt-0.5">
-          <span>Strength</span>
+          <span>{{ $t('auth.strength.label') }}</span>
           <span>{{ strengthLabel }}</span>
         </div>
       </div>
 
       <div class="form-control mt-3">
-        <label class="label"><span class="label-text">Confirm New Password</span></label>
+        <label class="label"><span class="label-text">{{ $t('auth.field.confirmNewPassword') }}</span></label>
         <input
           type="password"
           :value="confirmPassword"
           @input="emit('update:confirmPassword', ($event.target as HTMLInputElement).value)"
           autocomplete="new-password"
-          placeholder="Re-enter new password"
+          :placeholder="$t('users.changePassword.confirmPlaceholder')"
           class="input input-bordered w-full kawaru-text-87"
           :class="{ 'input-error': mismatch }"
         />
         <label v-if="mismatch" class="label">
-          <span class="label-text-alt text-error">Passwords do not match</span>
+          <span class="label-text-alt text-error">{{ $t('auth.validation.passwordMismatch') }}</span>
         </label>
       </div>
 
       <div class="modal-action">
-        <button class="btn kawaru-text-87" type="button" @click="emit('close')">Cancel</button>
+        <button class="btn kawaru-text-87" type="button" @click="emit('close')">{{ $t('common.action.cancel') }}</button>
         <button
           class="btn btn-primary kawaru-text-87"
           type="button"
@@ -85,7 +85,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(passwordScore.value))
           :disabled="loading || !newPassword || !confirmPassword || mismatch"
         >
           <span v-if="loading" class="loading loading-spinner loading-sm"></span>
-          Change Password
+          {{ $t('users.changePassword.submit') }}
         </button>
       </div>
     </div>

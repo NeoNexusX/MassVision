@@ -6,6 +6,7 @@ import ROIOverlay from '@/features/vizworkbench/components/visuals/ROIOverlay.vu
 import type { ROIType } from '@/features/vizworkbench/composables/useROI'
 import type { ViewIonChannel } from '@/features/vizworkbench/composables/useIonChannels'
 import type { DataMode } from '@/services/zarr/types/zarr'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   isStale?: boolean
@@ -71,13 +72,13 @@ const roiOverlayRef = ref<InstanceType<typeof ROIOverlay> | null>(null)
 watch(roiOverlayRef, (el) => emit('roi-overlay-ref', el ?? null))
 
 /** 图像标题 */
-const imageTitle = 'Image View'
+const imageTitle = computed(() => t('vizworkbench.ionImage.title'))
 
 /** 图像加载占位提示 */
 const processedPlaceholder = computed(() => {
-  if (props.dataMode === 'processed') return 'Computing TIC image, please wait a moment...'
-  if (props.dataMode === null) return 'Loading result…'
-  return 'Loading ion image, please wait a moment...'
+  if (props.dataMode === 'processed') return t('vizworkbench.ionImage.computingTic')
+  if (props.dataMode === null) return t('vizworkbench.ionImage.loadingResult')
+  return t('vizworkbench.ionImage.loading')
 })
 
 // ---- 延迟 loading overlay：避免快速切换时一闪而过 ----
@@ -124,14 +125,14 @@ onBeforeUnmount(() => {
         v-if="isStale"
         class="flex-1 flex flex-col items-center justify-center text-base-content/40 gap-1"
       >
-        <p class="kawaru-text-95">No result selected</p>
-        <p class="kawaru-text-95"> Navigate from the Workspace dashboard to view a result.</p>
+        <p class="kawaru-text-95">{{ $t('vizworkbench.ionImage.noResult') }}</p>
+        <p class="kawaru-text-95">{{ $t('vizworkbench.ionImage.noResultHint') }}</p>
       </div>
       <div
         v-else-if="ionError && !ionMatrix"
         class="flex-1 flex flex-col items-center justify-center gap-2 px-6 text-center"
       >
-        <p class="kawaru-text-112 font-semibold text-error">Failed to load ion image</p>
+        <p class="kawaru-text-112 font-semibold text-error">{{ $t('vizworkbench.ionImage.loadFailed') }}</p>
         <p class="kawaru-text-68 text-base-content/60 break-words">{{ ionError }}</p>
       </div>
       <div
@@ -181,7 +182,7 @@ onBeforeUnmount(() => {
         >
           <div class="flex flex-col items-center gap-3">
             <span class="loading loading-spinner loading-lg text-primary"></span>
-            <span class="text-base-content/70 kawaru-text-95">Updating ion image…</span>
+            <span class="text-base-content/70 kawaru-text-95">{{ $t('vizworkbench.ionImage.updating') }}</span>
           </div>
         </div>
         <ROIOverlay
@@ -197,7 +198,7 @@ onBeforeUnmount(() => {
           v-if="ionError"
           class="absolute left-3 right-3 top-3 z-30 rounded-lg border border-error/30 bg-error/10 px-3 py-2 kawaru-text-68 text-error shadow-sm backdrop-blur-sm"
         >
-          Failed to update ion image: {{ ionError }}
+          {{ $t('vizworkbench.ionImage.updateFailed', { error: ionError }) }}
         </div>
       </div>
     </div>
@@ -206,11 +207,11 @@ onBeforeUnmount(() => {
     <div
       class="shrink-0 flex flex-col items-center gap-2 w-[3em] kawaru-text-87"
       :class="{ 'opacity-40 pointer-events-none': channelsMode }"
-      :title="channelsMode ? 'Not used in multi-ion overlay mode' : undefined"
+      :title="channelsMode ? $t('vizworkbench.ionImage.rangeDisabled') : undefined"
     >
       <button
         class="text-base-content/40 hover:text-base-content w-[3em]"
-        title="Reset to auto range"
+        :title="$t('vizworkbench.ionImage.resetRange')"
         :disabled="channelsMode"
         @click="emit('reset-range')"
       >
