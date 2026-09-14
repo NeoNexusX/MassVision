@@ -5,9 +5,9 @@
        差量提交只发变化的键；枚举字段空值（后端不接受的 ''）不发送。
        保存成功后把返回的 FilePublic 交回父级。 -->
   <dialog class="modal" :class="{ 'modal-open': open }">
-    <div class="modal-box w-11/12 max-w-2xl page-type">
-      <h3 class="text-[1.15em] font-bold text-base-content mb-1">Edit Metadata</h3>
-      <p class="text-[0.8em] text-base-content/50 mb-4 truncate" :title="dataset?.filename">
+    <div class="modal-box w-11/12 max-w-2xl kawaru-text-100">
+      <h3 class="kawaru-text-112 font-bold text-base-content mb-1">{{ $t('datasets.metadata.title') }}</h3>
+      <p class="kawaru-text-81 text-base-content/50 mb-4 truncate" :title="dataset?.filename">
         {{ dataset?.filename }}
       </p>
 
@@ -22,26 +22,27 @@
             :key="field.key"
             class="flex flex-col gap-1 min-w-0"
           >
-            <span class="text-[0.8em] font-medium text-base-content/70">{{ field.label }}</span>
+            <span class="kawaru-text-81 font-medium text-base-content/70">{{ field.label }}</span>
             <SelectWithOther
               v-model="draft![field.key]"
               :options="field.suggestions"
-              :placeholder="`Select ${field.label.toLowerCase()}...`"
-              other-placeholder="Please specify..."
+              :label-of="vocabLabel"
+              :placeholder="$t('common.input.selectShort')"
+              :other-placeholder="$t('common.input.specifyOther')"
             />
           </label>
 
           <!-- 溶剂：与上传页同款复合控件（"N% 名称" 逗号分隔，可增删条目）。
                整行占满：百分比输入 + 溶剂下拉 + 条目列表在窄栏里会挤成一团。 -->
           <div class="flex flex-col gap-1 min-w-0 col-span-full">
-            <span class="text-[0.8em] font-medium text-base-content/70">Solvent</span>
+            <span class="kawaru-text-81 font-medium text-base-content/70">{{ $t('common.meta.solvent') }}</span>
             <SolventPicker v-model="draft!.solvent" :solvent-options="SOLVENTS" />
           </div>
 
           <!-- 枚举：IconSelect 下拉。placeholder="" 让 IconSelect 不渲染占位项，
                下拉里只有真实取值；未设置的字段显示为空（选中态 = 不修改该字段） -->
           <label class="flex flex-col gap-1 min-w-0">
-            <span class="text-[0.8em] font-medium text-base-content/70">Spectrum Mode</span>
+            <span class="kawaru-text-81 font-medium text-base-content/70">{{ $t('common.meta.spectrumMode') }}</span>
             <IconSelect
               v-model="draft!.spectrum_mode"
               :options="SPECTRUM_MODES"
@@ -50,7 +51,7 @@
             />
           </label>
           <label class="flex flex-col gap-1 min-w-0">
-            <span class="text-[0.8em] font-medium text-base-content/70">Storage Mode</span>
+            <span class="kawaru-text-81 font-medium text-base-content/70">{{ $t('common.meta.storageMode') }}</span>
             <IconSelect
               v-model="draft!.storage_mode"
               :options="STORAGE_MODES"
@@ -62,15 +63,15 @@
       </div>
 
       <div class="modal-action">
-        <button class="btn text-[1em]" :disabled="saving" @click="close">Cancel</button>
-        <button class="btn btn-primary text-[1em]" :disabled="saving || !dirty" @click="save">
+        <button class="btn kawaru-text-100" :disabled="saving" @click="close">{{ $t('common.action.cancel') }}</button>
+        <button class="btn btn-primary kawaru-text-100" :disabled="saving || !dirty" @click="save">
           <span v-if="saving" class="loading loading-spinner loading-sm"></span>
-          Save Changes
+          {{ $t('common.action.saveChanges') }}
         </button>
       </div>
     </div>
     <form method="dialog" class="modal-backdrop" @click="close">
-      <button @click.prevent="close">close</button>
+      <button @click.prevent="close">{{ $t('common.action.close') }}</button>
     </form>
   </dialog>
 </template>
@@ -93,6 +94,8 @@ import {
   STORAGE_MODES,
   TISSUE_MODIFICATIONS,
 } from '@/features/datasets/constants/datasetMetadata'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { t } from '@/i18n'
 import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
 import { patchFileMetadata } from '@/features/datasets/api/datasetApi'
 import {
@@ -117,16 +120,16 @@ const emit = defineEmits<{
 
 const { showToast } = useToast()
 
-const TEXT_FIELDS: { key: FileMetadataKey; label: string; suggestions: readonly string[] }[] = [
-  { key: 'organism', label: 'Organism', suggestions: ORGANISMS },
-  { key: 'organism_part', label: 'Organism Part', suggestions: ORGANISM_PARTS },
-  { key: 'condition', label: 'Condition', suggestions: CONDITIONS },
-  { key: 'sample_growth_conditions', label: 'Growth Conditions', suggestions: SAMPLE_GROWTH_CONDITIONS },
-  { key: 'sample_stabilization', label: 'Stabilization', suggestions: SAMPLE_STABILIZATIONS },
-  { key: 'tissue_modification', label: 'Tissue Modification', suggestions: TISSUE_MODIFICATIONS },
-  { key: 'maldi_matrix', label: 'MALDI Matrix', suggestions: MALDI_MATRICES },
-  { key: 'maldi_matrix_application', label: 'Matrix Application', suggestions: MALDI_MATRIX_APPLICATIONS },
-]
+const TEXT_FIELDS = computed<{ key: FileMetadataKey; label: string; suggestions: readonly string[] }[]>(() => [
+  { key: 'organism', label: t('common.meta.organism'), suggestions: ORGANISMS },
+  { key: 'organism_part', label: t('common.meta.organismPart'), suggestions: ORGANISM_PARTS },
+  { key: 'condition', label: t('common.meta.condition'), suggestions: CONDITIONS },
+  { key: 'sample_growth_conditions', label: t('common.meta.growthConditions'), suggestions: SAMPLE_GROWTH_CONDITIONS },
+  { key: 'sample_stabilization', label: t('datasets.field.stabilization'), suggestions: SAMPLE_STABILIZATIONS },
+  { key: 'tissue_modification', label: t('common.meta.tissueModification'), suggestions: TISSUE_MODIFICATIONS },
+  { key: 'maldi_matrix', label: t('common.meta.maldiMatrix'), suggestions: MALDI_MATRICES },
+  { key: 'maldi_matrix_application', label: t('datasets.field.matrixApplication'), suggestions: MALDI_MATRIX_APPLICATIONS },
+])
 
 const draft = ref<FileMetadataDraft | null>(null)
 const saving = ref(false)
@@ -158,15 +161,15 @@ async function save() {
   try {
     const raw = await patchFileMetadata(props.dataset.id, patch)
     // 响应为更新后的 FilePublic（与列表行同构），复用 mapper 转成前端 File
-    showToast('Metadata updated', 'success')
+    showToast(t('common.feedback.updated'), 'success')
     emit('saved', mapItemToDataset(raw))
     emit('close')
   } catch (err: any) {
     // 非持有者改别人的数据 → 后端 403 / "permission denied"。
     // 原文对用户无信息量，换成能看懂的说法。
     const message = isPermissionDenied(err)
-      ? 'You do not own this dataset, so you cannot modify it.'
-      : extractBackendError(err, 'Failed to update metadata')
+      ? t('datasets.metadata.notOwner')
+      : extractBackendError(err, t('common.feedback.updateFailed'))
     showToast(message, 'error')
   } finally {
     saving.value = false

@@ -1,0 +1,84 @@
+{
+  "workspace": {
+    "dashboard": {
+      "title": "工作台",
+      "subtitle": "监控预处理任务，查看最近的 MSI 结果。",
+      "goToMyDatasets": "前往我的数据集",
+      "newTask": "新建任务",
+      "runningHint": "正在进行的预处理任务",
+      "completedHint": "已成功完成",
+      "failedHint": "需要检查",
+      "recentResults": "最近结果",
+      "deleteTitle": "删除结果",
+      "deleteMessage": "确定要删除这条结果吗？此操作无法撤销。",
+      "failedTitle": "任务失败",
+      "errorDetails": "错误详情："
+    },
+    "table": {
+      "process": "任务",
+      "dataset": "数据集",
+      "methods": "方法",
+      "created": "创建时间",
+      "finished": "完成时间",
+      "processName": "任务 #{id}",
+      "unknownFile": "未知",
+      "unknownError": "未知错误"
+    },
+    "createTask": {
+      "title": "新建任务",
+      "selectDataset": "选择数据集",
+      "methods": "预处理方法",
+      "params": "方法参数",
+      "paramPlaceholder": "参数 JSON 或数值",
+      "start": "开始处理"
+    },
+    "analysis": {
+      "title": "新建分析",
+      "subtitle": "为 MSI 数据集配置预处理流程",
+      "uploadHint": "前往我的数据集上传新数据集",
+      "started": "分析已开始",
+      "startFailed": "分析启动失败"
+    },
+    "source": {
+      "title": "第 1 步：数据来源",
+      "empty": "未找到数据集。"
+    },
+    "pipeline": {
+      "title": "第 2 步：预处理流程",
+      "modeNotice": "该数据集为 {spectrum} + {storage}。",
+      "alignNeedsPick": "峰对齐需要先选择峰提取。",
+      "alignNotApplicable": "峰对齐不适用：continuous 存储下各像素的峰已共享同一条 m/z 轴。",
+      "compatibleOnly": "仅显示兼容的预处理方法。",
+      "groupHint": {
+        "noise": "降低噪声，同时保留峰",
+        "baseline": "去除基线，校正背景信号",
+        "norm": "将谱图缩放到可比较的强度",
+        "pick": "检测谱图中的峰",
+        "align": "跨谱图对齐峰"
+      },
+      "paramHint": {
+        "window": "滤波窗口大小",
+        "polyorder": "多项式阶数",
+        "deriv": "导数阶数（0 = 平滑）",
+        "delta": "采样间隔",
+        "sigma": "高斯标准差",
+        "scale": "输出缩放系数",
+        "ref": "参考 m/z（留空则自动）",
+        "snr": "信噪比阈值",
+        "width": "峰宽（数据点数）",
+        "minFrequency": "保留峰的最低出现频率阈值"
+      }
+    },
+    "summary": {
+      "title": "分析概要",
+      "metadata": "数据集元数据",
+      "selectedDataset": "已选数据集",
+      "noDataset": "尚未选择数据集",
+      "start": "开始分析",
+      "starting": "正在启动…",
+      "notReady": "请先选择数据集并配置预处理流程",
+      "ready": "就绪",
+      "incomplete": "未完成"
+    }
+  }
+}

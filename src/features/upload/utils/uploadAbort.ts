@@ -45,3 +45,13 @@ export function isAbortLike(err: unknown): boolean {
 export function reasonOf(signal?: AbortSignal): unknown {
   return signal?.reason ?? new DOMException('Aborted by user', 'AbortError')
 }
+
+/**
+ * 从任意抛出物里取文案。整个上传链路统一用它，不要用 `String(err)` ——
+ * 上面那些 reason 是普通对象字面量而不是 Error，`String()` 会把它们
+ * 变成 `"[object Object]"`。
+ */
+export function messageOf(err: unknown): string {
+  const message = (err as { message?: unknown } | null)?.message
+  return typeof message === 'string' ? message : String(err)
+}

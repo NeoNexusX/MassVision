@@ -1,5 +1,6 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 import { formatBytes } from '@/shared/utils/format'
 import {
   MIN_PUBLIC_IBD_SIZE,
@@ -12,7 +13,7 @@ import {
   type ImzmlFilePair,
   type UnifiedUploadProgress,
 } from '@/features/upload/services/imzmlUploadService'
-import type { PartRetryInfo } from '@/features/upload/utils/imzmlHelper'
+import type { PartRetryInfo, ImzmlMilestone } from '@/features/upload/utils/imzmlHelper'
 import { useUploadMetadataForm } from '@/features/upload/composables/useUploadMetadataForm'
 import { useUploadResume } from '@/features/upload/composables/useUploadResume'
 import { isAbortLike, makeAbortReason } from '@/features/upload/utils/uploadAbort'
@@ -47,8 +48,16 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   const retryInfo = ref<PartRetryInfo | null>(null) // 分片重试中，非致命
   const stage = ref<UploadStage>('select')
   const parsingMetadata = ref(false)
-  const speed = ref('')
+  const speed = ref('') // 端到端
   const eta = ref('')
+  // 端到端速度的两个拆解项，只在上传阶段有值
+  const compressSpeed = ref('')
+  const uploadSpeed = ref('')
+  const bottleneck = ref<'upload' | 'compress' | null>(null)
+  /** imzML 段完成的一次性结算，触发后常驻到本轮上传结束 */
+  const imzmlMilestone = ref<ImzmlMilestone | null>(null)
+  const doneSourceBytes = ref(0)
+  const totalSourceBytes = ref(0)
   const pickerResetKey = ref(0)
   /** 已发出中止、正在等在途分片收尾。见 abortUpload 的注释 */
   const aborting = ref(false)
@@ -75,9 +84,9 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   const resumeHint = computed(() => {
     if (!resumeState.pendingResume.value) return ''
     if (!selectedPair.value) {
-      return 'Select the same .imzML and .ibd pair below to continue this upload.'
+      return t('upload.resume.hintSelect')
     }
-    return resumeReady.value ? '' : 'The selected files do not match this pending upload.'
+    return resumeReady.value ? '' : t('upload.resume.hintMismatch')
   })
 
   const expectedResumeFiles = computed(() => {
@@ -88,24 +97,50 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   // Methods
   const handleProgress = (progressInfo: UnifiedUploadProgress) => {
     progress.value = progressInfo.percent
-    uploadMessage.value = progressInfo.message || `Stage: ${progressInfo.stage}`
+    uploadMessage.value = progressInfo.message || t('upload.progress.stage', { stage: progressInfo.stage })
     speed.value = progressInfo.speedStr || ''
     eta.value = progressInfo.etaStr || ''
+    compressSpeed.value = progressInfo.compressSpeedStr || ''
+    uploadSpeed.value = progressInfo.uploadSpeedStr || ''
+    bottleneck.value = progressInfo.bottleneck ?? null
+    // 里程碑是一次性事件但要常驻：不带这个字段的阶段（syncing/completed）
+    // 不该把它抹掉，所以只在拿到非空值时覆盖
+    if (progressInfo.imzmlMilestone) imzmlMilestone.value = progressInfo.imzmlMilestone
+    doneSourceBytes.value = progressInfo.doneSourceBytes ?? 0
+    totalSourceBytes.value = progressInfo.totalSourceBytes ?? 0
     // undefined 表示这条消息不携带重试状态，保持现状；只有显式的 null 才清除告警。
     // 重试期间压缩进度照常流动，若无差别覆盖会把刚亮起的告警立刻抹掉。
     if (progressInfo.retry !== undefined) retryInfo.value = progressInfo.retry
   }
 
-  const resetAll = () => {
-    selectedPair.value = null
-    uploading.value = false
+  /**
+   * 清空所有进度读数。`resetAll` 和每轮上传开始时都要调。
+   *
+   * 漏掉任何一项都会把上一轮的数字带进下一轮 —— `imzmlMilestone` 尤其明显：
+   * 它是刻意常驻的（handleProgress 只在拿到非空值时才覆盖），而上传失败后
+   * 模态框并不关闭，所以不在开传时清掉的话，上一轮的「✓ imzML transferred」
+   * 会一直挂到新一轮自己的里程碑触发为止。
+   */
+  const clearProgress = () => {
     progress.value = 0
+    uploadMessage.value = ''
     speed.value = ''
     eta.value = ''
-    uploadMessage.value = ''
+    compressSpeed.value = ''
+    uploadSpeed.value = ''
+    bottleneck.value = null
+    imzmlMilestone.value = null
+    doneSourceBytes.value = 0
+    totalSourceBytes.value = 0
+    retryInfo.value = null
+  }
+
+  const resetAll = () => {
+    clearProgress()
+    selectedPair.value = null
+    uploading.value = false
     pickerError.value = ''
     uploadError.value = ''
-    retryInfo.value = null
     aborting.value = false
     stage.value = 'select'
     abortController = null
@@ -144,28 +179,25 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
       const settings = await parseImzmlUploadMetadata(pair.imzml)
       metadataForm.applyParsedSettings(settings)
     } catch (err: any) {
-      showToast(err?.message || 'Failed to parse imzML metadata', 'error')
+      showToast(err?.message || t('upload.toast.parseFailed'), 'error')
     } finally {
       parsingMetadata.value = false
     }
   }
 
   const startUploading = (message: string) => {
+    clearProgress()
     uploading.value = true
     stage.value = 'uploading'
-    progress.value = 0
     uploadMessage.value = message
     uploadError.value = ''
-    retryInfo.value = null
     aborting.value = false
     abortController = new AbortController()
   }
 
   const finishSuccessfully = (datasetName: string, reused = false) => {
     showToast(
-      reused
-        ? 'File already exists on server, reused without re-upload.'
-        : 'Dataset pipeline successfully completed',
+      reused ? t('upload.toast.reused') : t('upload.toast.completed'),
       'success',
     )
     uploading.value = false
@@ -176,11 +208,8 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
   const handleUploadError = (err: any, fallbackMessage: string) => {
     console.error(fallbackMessage, err)
     if (isAbortLike(err)) {
-      showToast('Upload safely aborted', 'info')
-      uploadError.value =
-        'Upload aborted and the uploaded parts were discarded. A part that was already in ' +
-        'flight cannot be cancelled by the browser and may keep uploading in the background ' +
-        'for a minute or two.'
+      showToast(t('upload.toast.aborted'), 'info')
+      uploadError.value = t('upload.toast.abortedDetail')
     } else {
       uploadError.value = err.message || fallbackMessage
       showToast(uploadError.value, 'error')
@@ -195,7 +224,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     if (!selectedPair.value || !resumeReady.value) return
     const pair = selectedPair.value
     resumeState.pendingResume.value = false
-    startUploading('Resuming upload...')
+    startUploading(t('upload.progress.resuming'))
 
     try {
       const result = await uploadImzmlDataset({
@@ -207,7 +236,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
       })
       finishSuccessfully(result?.datasetName || resumeState.pendingDatasetName.value)
     } catch (err: any) {
-      handleUploadError(err, 'Resume upload failed')
+      handleUploadError(err, t('upload.toast.resumeFailed'))
     } finally {
       uploading.value = false
       abortController = null
@@ -240,7 +269,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
 
     if (metadataForm.form.value.is_public && selectedPair.value.ibd.size < MIN_PUBLIC_IBD_SIZE) {
       const minSizeMB = MIN_PUBLIC_IBD_SIZE / (1024 * 1024)
-      showToast(`IBD file must be at least ${minSizeMB} MB for public datasets.`, 'error')
+      showToast(t('upload.toast.ibdTooSmall', { mb: minSizeMB }), 'error')
       return
     }
 
@@ -265,7 +294,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     if (!selectedPair.value) return
     const pair = selectedPair.value
 
-    startUploading('Initializing Pipeline...')
+    startUploading(t('upload.progress.initializing'))
 
     try {
       const payload = metadataForm.buildMetadataPayload()
@@ -278,7 +307,7 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
       })
       finishSuccessfully(result?.datasetName || pair.baseName, !!result?.reused)
     } catch (err: any) {
-      handleUploadError(err, 'Pipeline sequence failed')
+      handleUploadError(err, t('upload.toast.uploadFailed'))
     } finally {
       uploading.value = false
       abortController = null
@@ -314,6 +343,12 @@ export function useUploadFlow(options: UseUploadFlowOptions) {
     parsingMetadata,
     speed,
     eta,
+    compressSpeed,
+    uploadSpeed,
+    bottleneck,
+    imzmlMilestone,
+    doneSourceBytes,
+    totalSourceBytes,
     pickerResetKey,
     formattedSize,
     resumeReady,

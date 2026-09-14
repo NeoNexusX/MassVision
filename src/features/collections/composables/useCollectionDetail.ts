@@ -3,6 +3,7 @@ import { useAuthStore } from '@/shared/auth/authStore'
 import { collectionErrorMessage, getPublicCollection } from '../api/collectionApi'
 import { isCollectionApiError } from '../types/collection'
 import type { CollectionDetail } from '../types/collection'
+import { t } from '@/i18n'
 
 /**
  * Collection Overview 页的数据装配：详情拉取 + owner/admin 编辑权判定。
@@ -52,7 +53,10 @@ export function useCollectionDetail() {
       detail.value = { ...fetched, id: fetched.id ?? collectionId.value }
     } catch (err: any) {
       notFound.value = isCollectionApiError(err) && err.status === 404
-      error.value = collectionErrorMessage(err, 'Failed to load collection')
+      error.value = collectionErrorMessage(
+        err,
+        t('common.feedback.loadFailed', { target: t('collections.overview.target') }),
+      )
     } finally {
       loading.value = false
     }

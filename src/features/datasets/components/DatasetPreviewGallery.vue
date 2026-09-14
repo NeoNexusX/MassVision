@@ -8,7 +8,7 @@
         <img
           v-if="tic.src && !tic.error"
           :src="tic.src"
-          alt="TIC preview"
+          :alt="t('datasets.card.ticPreviewAlt')"
           class="w-full h-full object-contain"
           loading="lazy"
           @error="tic.error = true"
@@ -28,7 +28,7 @@
         <img
           v-if="img.src && !img.error"
           :src="img.src"
-          :alt="`Preview ${i + 1}`"
+          :alt="t('datasets.card.previewAlt', { n: i + 1 })"
           class="w-full h-full object-contain"
           loading="lazy"
           @error="img.error = true"
@@ -48,6 +48,8 @@
 import { reactive, ref } from 'vue'
 import { buildPreviewImageUrls } from '@/features/datasets/utils/imageUtils'
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
+// 模板里直接用导入的 t（而不是 $t）：本组件的单测不安装 i18n 插件，alt 文字也无需断言
+import { t } from '@/i18n'
 
 const props = defineProps<{ fileId: string; storageMode?: string }>()
 

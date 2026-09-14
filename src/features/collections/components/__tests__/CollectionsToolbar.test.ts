@@ -1,17 +1,22 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CollectionsToolbar from '../CollectionsToolbar.vue'
+import { i18n, loadCoreMessages, loadFeatureMessages } from '@/i18n'
 
 // SearchInput 是受控共享组件，直接用真实实现驱动 input；
 // SvgIcon 依赖 iconify，stub 掉
 const mountToolbar = (props: Record<string, unknown> = {}) =>
   mount(CollectionsToolbar, {
     props,
-    global: { stubs: { SvgIcon: true } },
+    global: { plugins: [i18n], stubs: { SvgIcon: true } },
   })
 
 const inputValue = (wrapper: ReturnType<typeof mountToolbar>) =>
   (wrapper.get('input').element as HTMLInputElement).value
+
+
+// 组件模板用 $t：挂载时装上 i18n 实例，并预先加载英文语言包（断言保持英文原文）
+beforeAll(() => Promise.all([loadCoreMessages('en'), loadFeatureMessages('collections')]))
 
 describe('CollectionsToolbar', () => {
   it('emits the typed query on submit', async () => {

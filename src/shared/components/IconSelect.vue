@@ -1,15 +1,17 @@
 <template>
-  <div class="form-control fluid-input">
+  <!-- 字号全部绝对，与 IconInput 同构：标签 95 档、控件文字 87 档、
+       图标 kawaru-field-icon。内层 .select 需显式挂档位压过 daisyUI 死值。 -->
+  <div class="form-control">
     <template v-if="!hideLabel && label">
       <label class="label">
-        <span class="label-text text-[1em] font-semibold">
+        <span class="label-text kawaru-text-95 font-semibold">
           {{ label }}
         </span>
       </label>
     </template>
 
     <label
-      class="select w-full flex items-center gap-2 fluid-input"
+      class="select w-full flex items-center gap-2 kawaru-text-87"
       :class="[
         { validator: validator },
         size === 'xs' ? 'select-xs' : size === 'sm' ? 'select-sm' : size === 'lg' ? 'select-lg' : '',
@@ -18,32 +20,32 @@
       <SvgIcon
         v-if="iconType"
         :type="iconType"
-        class="mr-2 ml-2 flex-shrink-0 icon-fluid"
+        class="mr-2 ml-2 flex-shrink-0 kawaru-field-icon"
         aria-hidden="true"
       />
       <!-- 可见文本层：Chromium 对 <select> 强制 overflow:visible，text-overflow
            不生效，长选项（MALDI Matrix 等）会一路画到箭头下面。改为自绘文本并
            truncate（字重/字号/透明度与原 select 完全一致，只多了截断），
            原生 select 透明铺满整个控件，只负责交互与展开列表。 -->
-      <span class="grow w-full truncate opacity-80 text-[0.9em]" :title="selectedTitle">
+      <span class="grow w-full truncate opacity-80 kawaru-text-87" :title="selectedTitle">
         {{ displayLabel }}
       </span>
       <!-- 原生 select 透明覆盖层只负责交互，字号必须与上面的 span 一致：
            展开列表由它渲染，字号不同会让选项看起来比闭合态更大更粗。 -->
       <select
-        class="icon-select-native text-[0.9em]"
+        class="icon-select-native kawaru-text-87"
         :value="modelValue"
         :required="required"
         @change="onChange"
         @focus="emit('focus')"
       >
         <option
-          v-if="placeholder"
+          v-if="placeholderText"
           value=""
           :disabled="required || !placeholderSelectable"
           :hidden="!placeholderSelectable"
         >
-          {{ placeholder }}
+          {{ placeholderText }}
         </option>
         <option
           v-for="(value, label) in normalizedOptions"
@@ -58,7 +60,7 @@
     <slot></slot>
 
     <label class="label" v-if="error">
-      <span class="label-text-alt text-error">{{ error }}</span>
+      <span class="label-text-alt kawaru-text-87 text-error">{{ error }}</span>
     </label>
   </div>
 </template>
@@ -66,6 +68,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { PropType } from 'vue'
+import { t } from '@/i18n'
 
 const props = defineProps({
   modelValue: {
@@ -84,9 +87,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // 缺省（undefined）时显示当前语言的「请选择」；显式传 '' 表示不要占位项
   placeholder: {
     type: String,
-    default: 'Select an option',
+    default: undefined,
   },
   // 占位项（提示文案）默认不是可选项：它只负责在未选时显示提示，
   // 不该出现在展开列表里被点成“空值”。需要“选回空值”语义的下拉
@@ -123,6 +127,8 @@ const emit = defineEmits<{
   (e: 'focus'): void
 }>()
 
+const placeholderText = computed(() => props.placeholder ?? t('common.input.selectPlaceholder'))
+
 const normalizedOptions = computed(() => {
   if (typeof props.options === 'string') {
     return { [props.options]: props.options }
@@ -143,7 +149,7 @@ const normalizedOptions = computed(() => {
 // 命中选项显示其 label；值不在选项里（如 SelectWithOther 的自由输入）显示空。
 const displayLabel = computed(() => {
   const value = props.modelValue
-  if (value === '' || value == null) return props.placeholder
+  if (value === '' || value == null) return placeholderText.value
   const options = normalizedOptions.value as Record<string, string>
   return Object.keys(options).find((label) => options[label] === String(value)) ?? ''
 })

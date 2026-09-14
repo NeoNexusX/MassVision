@@ -2,7 +2,7 @@
   <div class="flex h-[320px] flex-col lg:h-full">
     <!-- 标题区 -->
     <div class="flex items-center gap-3 mb-3">
-      <h3 class="text-[1.25em] font-semibold">{{ title }}</h3>
+      <h3 class="kawaru-text-95 font-semibold">{{ title }}</h3>
       <div
         v-if="!loading && !error && showPeakCount"
         class="ml-auto text-base-content/50 font-mono"
@@ -17,7 +17,7 @@
       class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-content/30"
     >
       <span class="loading loading-spinner loading-lg text-primary"></span>
-      <p class="text-[1.25em] text-base-content/60">{{ loadingText }}</p>
+      <p class="kawaru-text-95 text-base-content/60">{{ loadingText }}</p>
     </div>
 
     <!-- 错误 -->
@@ -26,9 +26,9 @@
       class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-content/30"
     >
       <SvgIcon type="warning" class="w-8 h-8 text-error" />
-      <p class="text-[1.25em] text-error font-semibold">Failed to load data</p>
-      <p class="text-[1.125em] text-base-content/50 max-w-md text-center">{{ error }}</p>
-      <button class="btn btn-sm btn-outline mt-2 text-[1em]" @click="$emit('retry')">Retry</button>
+      <p class="kawaru-text-95 text-error font-semibold">{{ $t('vizworkbench.spectrum.loadFailed') }}</p>
+      <p class="kawaru-text-81 text-base-content/50 max-w-md text-center">{{ error }}</p>
+      <button class="btn btn-sm btn-outline mt-2 kawaru-text-75" @click="$emit('retry')">{{ $t('common.action.retry') }}</button>
     </div>
 
     <!-- 谱图 -->
@@ -56,8 +56,10 @@ import {
 import { CanvasRenderer } from 'echarts/renderers'
 import type { DataMode } from '@/services/zarr/types/zarr'
 import { useTheme } from '@/shared/composables/useTheme'
+import { formatNumber } from '@/shared/utils/format'
 import { resolveSpectrumPalette } from '../../types/spectrumTheme'
 import { findClosestDisplayedMz } from '../../utils/spectrumSelection'
+import { i18n, t } from '@/i18n'
 
 echarts.use([
   LineChart,
@@ -133,11 +135,13 @@ const { isDark } = useTheme()
 const palette = computed(() => resolveSpectrumPalette(isDark.value ? 'dark' : 'light'))
 
 /** 谱图标题 */
-const title = 'Spectrum View'
+const title = computed(() => t('vizworkbench.spectrum.title'))
 
 /** 加载中文本 */
 const loadingText = computed(() =>
-  props.dataMode === 'processed' ? 'Loading spectrum...' : 'Loading average spectrum...',
+  props.dataMode === 'processed'
+    ? t('vizworkbench.spectrum.loading')
+    : t('vizworkbench.spectrum.loadingAverage'),
 )
 
 /** 是否显示峰数 */
@@ -150,7 +154,7 @@ const showPeakCount = computed(
 /** 峰数标签 */
 const peakCountLabel = computed(() => {
   const count = props.chartData.length
-  return `${count.toLocaleString()} peaks`
+  return t('vizworkbench.spectrum.peakCount', { count: formatNumber(count) })
 })
 
 // ---- ECharts 实例管理 ----
@@ -287,7 +291,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
         const [mz, intensity] = items[0]!.data
         return `<div class="font-mono">
             <div><i>m/z</i>: <strong>${mz}</strong></div>
-            <div>Intensity: <strong>${intensity}</strong></div>
+            <div>${t('vizworkbench.spectrum.intensity')}: <strong>${intensity}</strong></div>
           </div>`
       },
     },
@@ -319,7 +323,7 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
     },
     yAxis: {
       type: 'value',
-      name: 'Intensity',
+      name: t('vizworkbench.spectrum.intensity'),
       nameLocation: 'center',
       nameGap: 48,
       axisLabel: { color: colors.axis.label },
@@ -529,9 +533,9 @@ watch(
   },
 )
 
-// 主题切换时强制重建：lastData 短路会跳过相同数据的渲染，需先置空；
-// notMerge: true 的 setOption 会整体替换旧配色，无残留
-watch(isDark, () => {
+// 主题或界面语言切换时强制重建：lastData 短路会跳过相同数据的渲染，需先置空；
+// notMerge: true 的 setOption 会整体替换旧配色与轴名，无残留
+watch([isDark, i18n.global.locale], () => {
   if (props.chartData.length > 0 && !isUnmounted && !props.loading) {
     lastData = null
     renderChart()

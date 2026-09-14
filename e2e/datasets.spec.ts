@@ -388,7 +388,7 @@ test.describe('My Datasets', () => {
     await expect(rawConvertRow).toBeVisible({ timeout: 10_000 })
     await rawConvertRow.getByRole('button', { name: 'Delete' }).click()
     await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
-    await expect(page.locator('.toast')).toContainText('Result deleted', { timeout: 10_000 })
+    await expect(page.locator('.toast')).toContainText('Deleted', { timeout: 10_000 })
   })
 })
 
@@ -402,7 +402,7 @@ test.describe('Public Datasets', () => {
     await page.goto('/datasets')
 
     await expect(page.locator('h1:has-text("Public Datasets")')).toBeVisible()
-    await expect(page.getByPlaceholder('Search Datasets')).toBeVisible()
+    await expect(page.getByPlaceholder('Search datasets')).toBeVisible()
 
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 

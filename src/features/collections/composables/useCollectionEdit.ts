@@ -3,6 +3,7 @@ import { useToast } from '@/shared/composables/useToast'
 import { collectionErrorMessage, updateCollection } from '../api/collectionApi'
 import { buildMetadataPatch, toMetadataDraft } from '../utils/metadataPatch'
 import type { CollectionDetail, CollectionMetadata, CollectionMetadataDraft } from '../types/collection'
+import { t } from '@/i18n'
 
 /**
  * Overview 页的原地编辑（不再弹窗）：Edit → 页内字段变输入框 → Save/Cancel。
@@ -62,15 +63,15 @@ export function useCollectionEdit(options: {
 
     const name = current.name.trim()
     if (!name) {
-      validationError.value = 'Name is required.'
+      validationError.value = t('collections.validation.nameRequired')
       return
     }
     if (name.length > 80) {
-      validationError.value = 'Name must be at most 80 characters.'
+      validationError.value = t('collections.validation.nameTooLong')
       return
     }
     if ((current.description ?? '').length > 300) {
-      validationError.value = 'Description must be at most 300 characters.'
+      validationError.value = t('collections.validation.descriptionTooLong')
       return
     }
 
@@ -84,13 +85,13 @@ export function useCollectionEdit(options: {
     validationError.value = ''
     try {
       const next = await updateCollection(options.detail.value!.id, patch)
-      showToast('Collection updated', 'success')
+      showToast(t('common.feedback.updated'), 'success')
       options.onSaved(next)
       editing.value = false
       draft.value = null
     } catch (err: any) {
       // 留在编辑态，草稿不丢，用户改完可直接重试
-      showToast(collectionErrorMessage(err, 'Failed to update collection'), 'error')
+      showToast(collectionErrorMessage(err, t('common.feedback.updateFailed')), 'error')
     } finally {
       saving.value = false
     }

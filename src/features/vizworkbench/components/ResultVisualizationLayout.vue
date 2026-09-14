@@ -18,7 +18,7 @@ withDefaults(
       <!-- 左列 -->
       <div
         :class="[
-          'visualize-fluid-type w-full scrollbar-thin lg:h-full lg:min-h-0 lg:min-w-0 lg:self-stretch lg:overflow-y-auto',
+          'kawaru-text-75 w-full scrollbar-thin lg:h-full lg:min-h-0 lg:min-w-0 lg:self-stretch lg:overflow-y-auto',
           leftPanelCollapsed ? 'lg:flex-none lg:w-auto' : 'lg:flex-[1_1_0%]',
         ]"
       >
@@ -27,7 +27,7 @@ withDefaults(
 
       <!-- 中列 -->
       <div
-        class="visualize-fluid-type flex min-w-0 flex-col gap-2 no-scrollbar lg:h-full lg:min-h-0 lg:flex-[3_1_0%] lg:overflow-y-auto"
+        class="kawaru-text-75 flex min-w-0 flex-col gap-2 no-scrollbar lg:h-full lg:min-h-0 lg:flex-[3_1_0%] lg:overflow-y-auto"
       >
         <div
           class="contents lg:flex lg:min-h-0 lg:flex-none lg:flex-col lg:gap-2 lg:h-[calc(100%_-_3.5rem)]"
@@ -43,7 +43,7 @@ withDefaults(
       </div>
       <!-- 右列：桌面下是弹性列（1 份）、封顶 340px，内部字号/图标用 em 等比缩放 -->
       <div
-        class="visualize-fluid-type w-full scrollbar-thin lg:min-w-0 lg:flex-[1_1_0%] lg:max-w-[340px] lg:min-h-0 lg:overflow-y-auto"
+        class="kawaru-text-75 w-full scrollbar-thin lg:min-w-0 lg:flex-[1_1_0%] lg:max-w-[340px] lg:min-h-0 lg:overflow-y-auto"
       >
         <slot name="side-panel"></slot>
       </div>
@@ -52,15 +52,9 @@ withDefaults(
 </template>
 
 <style scoped>
-/* 可视化区流体字号基准（仅 ≥lg 桌面三列布局生效，断点值同 Tailwind lg = 64rem）。
-   三个列容器提供基准，容器内部不覆盖任何原生档位，一律显式写 text-[nem] 相对比例
-   （em 相对继承字号解析）。小屏无基准 -> 继承根 16px，text-[0.875em] 等恰好等于
-   原生档位值，渲染不变；桌面继承基准 -> 随窗口等比缩放。
-   锚点：≥1920px 恰为 16px（max 封顶不再放大），窗口变小线性收缩：
-   1440px ≈ 15.3px、1024px ≈ 14.6px（min 0.4rem 之上由 vw 项决定）。 */
-.visualize-fluid-type {
-  font-size: clamp(0.8125rem, 0.65rem + 0.25vw, 1.25rem);
-}
+/* 三栏挂 kawaru-text-75（工作台正文锚点，12.2px@390 / 15.0px@1320+）的唯一作用：
+   给栏内「没自带字号类」的 em 布局盒子（VizInfoPanel 的 w-[2em]/w-[4em]/h-[5em]、
+   IonImageSection 的 w-[3em] 等）一个确定的继承参照。文字字号都是绝对档位，不靠这层。 */
 
 /* 给本页原本透明的 ghost 按钮补一道自适应细边框，使其与 New/Confirm 等实心按钮
    一样具备清晰轮廓（亮色模式深边、暗色模式浅边）。DaisyUI 的 .btn-ghost 只是把

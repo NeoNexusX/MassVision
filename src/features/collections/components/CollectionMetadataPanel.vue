@@ -9,11 +9,11 @@
     class="bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6"
   >
     <div class="flex items-center justify-between gap-3 mb-4">
-      <h2 class="text-[1.25em] font-bold text-base-content">Collection Metadata</h2>
+      <h2 class="kawaru-text-125 font-bold text-base-content">{{ $t('collections.panel.title') }}</h2>
       <span
-        class="badge badge-sm font-medium border border-base-300 bg-base-200 text-base-content/70 whitespace-nowrap"
+        class="badge badge-sm font-medium border border-base-300 bg-base-200 text-base-content/70 whitespace-nowrap kawaru-text-75"
       >
-        {{ filledCount }}/{{ METADATA_FIELDS.length }} fields
+        {{ $t('collections.panel.fieldsCount', { filled: filledCount, total: METADATA_FIELDS.length }) }}
       </span>
     </div>
 
@@ -23,9 +23,9 @@
     <template v-else>
       <template v-for="(group, index) in METADATA_GROUPS" :key="group.id">
         <h3
-          class="text-[0.95em] font-semibold uppercase tracking-wide text-base-content/50 border-b border-base-200 dark:border-slate-700 pb-1 mb-3"
+          class="kawaru-text-95 font-semibold uppercase tracking-wide text-base-content/50 border-b border-base-200 dark:border-slate-700 pb-1 mb-3"
         >
-          {{ group.label }}
+          {{ group.label() }}
         </h3>
         <dl
           class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3"
@@ -37,26 +37,26 @@
             class="flex flex-col gap-0.5 min-w-0"
             :class="field.type === 'long' ? 'md:col-span-2' : ''"
           >
-            <dt class="text-[0.8em] font-medium text-base-content/50">{{ field.label }}</dt>
+            <dt class="kawaru-text-81 font-medium text-base-content/50">{{ field.label() }}</dt>
             <!-- 未填写：统一显示长破折号占位 -->
-            <dd v-if="!hasValue(field)" class="text-[0.95em] text-base-content/35">—</dd>
+            <dd v-if="!hasValue(field)" class="kawaru-text-95 text-base-content/35">—</dd>
             <!-- list 字段渲染为 chips，text/long 直接展示文本 -->
             <dd v-else-if="field.type === 'list'" class="flex flex-wrap gap-1.5">
               <span
                 v-for="item in asList(metadata[field.key])"
                 :key="String(item)"
-                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.8em] font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
               >
-                {{ item }}
+                {{ vocabLabel(String(item)) }}
               </span>
             </dd>
             <dd
               v-else-if="field.type === 'long'"
-              class="text-[0.92em] leading-relaxed text-base-content/80 whitespace-pre-line"
+              class="kawaru-text-95 leading-relaxed text-base-content/80 whitespace-pre-line"
             >
               {{ metadata[field.key] }}
             </dd>
-            <dd v-else class="text-[0.95em] text-base-content/80 break-words">
+            <dd v-else class="kawaru-text-95 text-base-content/80 break-words">
               {{ metadata[field.key] }}
             </dd>
           </div>
@@ -70,6 +70,7 @@
 import { computed } from 'vue'
 import type { PropType } from 'vue'
 import CollectionMetadataForm from './CollectionMetadataForm.vue'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
 import {
   METADATA_FIELDS,
   METADATA_GROUPS,

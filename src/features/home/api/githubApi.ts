@@ -98,7 +98,7 @@ async function fetchCommitsFromGithub(
     }
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as { message?: string }
-      throw new Error(body.message ?? `GitHub API 错误: ${res.status}`)
+      throw new Error(body.message ?? `GitHub API error: ${res.status}`)
     }
 
     const commits = (await res.json()) as RawCommit[]
@@ -133,7 +133,7 @@ async function fetchCommitsFromGithub(
  */
 export async function fetchCommitHeatmap(o: FetchCommitHeatmapOptions): Promise<CommitHeatmapResult> {
   if (!o.owner || !o.repo) {
-    throw new Error('owner 和 repo 不能为空')
+    throw new Error('owner and repo are required')
   }
 
   const key = cacheKey(o)

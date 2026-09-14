@@ -81,7 +81,7 @@ test.describe('Collection create → overview → delete', () => {
     await page.locator('input[maxlength="80"]').fill(renamed)
     await page.getByRole('button', { name: 'Save Changes' }).click()
     // toast 是保存真正落到后端的信号（头部是草稿联动，不能单独作数）
-    await expect(page.getByText('Collection updated')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('Updated', { exact: true })).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('h1')).toContainText(renamed)
 
     // 删除集合 → 回列表

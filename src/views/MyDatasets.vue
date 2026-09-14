@@ -1,45 +1,45 @@
 <template>
   <div class="min-h-screen bg-base-200">
-    <div class="max-w-[1680px] mx-auto p-4 md:p-8 page-type">
-      <h1 class="page-title font-bold text-base-content mb-6 px-3">My Datasets</h1>
+    <div class="max-w-[1680px] mx-auto p-4 md:p-8 kawaru-text-100">
+      <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mb-6 px-3">{{ $t('common.page.myDatasets') }}</h1>
 
       <div
         v-if="quota"
-        class="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-3 md:gap-6 mb-4 text-[1em] text-base-content/80"
+        class="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-3 md:gap-6 mb-4 kawaru-text-100 text-base-content/80"
       >
         <span class="px-3 whitespace-nowrap"
-          >Storage
+          >{{ $t('datasets.my.storage') }}
           <strong class="text-base-content"
             >{{ quota.uploadUsed }} / {{ quota.uploadMax }}</strong
           ></span
         >
         <span class="px-3 whitespace-nowrap"
-          >Files
+          >{{ $t('common.stat.files') }}
           <strong class="text-base-content"
             >{{ quota.fileCount }} / {{ quota.maxFiles }}</strong
           ></span
         >
         <span class="px-3 whitespace-nowrap"
-          >Processing
+          >{{ $t('common.stat.processing') }}
           <strong class="text-base-content"
             >{{ quota.procUsed }} / {{ quota.procMax }}</strong
           ></span
         >
         <span class="px-3 whitespace-nowrap"
-          >Downloads
+          >{{ $t('common.stat.downloads') }}
           <strong class="text-base-content"
             >{{ quota.downloadUsed }} / {{ quota.downloadMax }}</strong
           ></span
         >
         <button
-          class="btn btn-ghost text-[1em] md:ml-auto"
+          class="btn btn-ghost kawaru-text-100 md:ml-auto"
           :class="{ loading: checkingFiles }"
           :disabled="checkingFiles"
           @click="refreshFileStatus"
-          title="Check file processing status"
+:title="$t('datasets.my.refreshStatusHint')"
         >
           <SvgIcon v-if="!checkingFiles" type="refresh" class="w-[1.2em] h-[1.2em]" />
-          Refresh Status
+          {{ $t('datasets.my.refreshStatus') }}
         </button>
       </div>
 
@@ -47,7 +47,7 @@
         :show-add-filter="true"
         :show-upload="true"
         :show-collections-link="true"
-        search-placeholder="Search my datasets"
+        :search-placeholder="$t('datasets.my.searchPlaceholder')"
         @upload="handleUpload"
         @search="handleSearch"
         @apply-filters="handleApplyFilters"
@@ -64,9 +64,9 @@
       <!-- Delete Confirmation Modal -->
       <ConfirmDialog
         :open="deleteConfirm.isOpen"
-        title="Delete Dataset"
-        message="Are you sure you want to delete this dataset? This action cannot be undone."
-        confirm-label="Delete"
+:title="$t('datasets.my.deleteTitle')"
+        :message="$t('datasets.my.deleteMessage')"
+        :confirm-label="$t('common.action.delete')"
         :danger="true"
         :loading="deleteConfirm.deleting"
         @confirm="deleteConfirm.confirm"
@@ -107,7 +107,7 @@
         @change-size="changeSize"
         @go-to-page="goToPage"
       >
-        <template #empty> You have no datasets yet matching your filters. </template>
+        <template #empty>{{ $t('datasets.list.myEmpty') }}</template>
       </DatasetList>
     </div>
   </div>
@@ -233,7 +233,6 @@ const deleteConfirm = useConfirmDelete({
       deletingId.value = null
     }
   },
-  successMessage: 'Dataset deleted successfully',
 })
 
 const explore = useExploreDataset()

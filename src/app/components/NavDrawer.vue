@@ -4,7 +4,7 @@
     <div class="drawer-side fixed inset-0 h-screen">
       <label
         for="nav-drawer"
-        aria-label="close sidebar"
+        :aria-label="$t('common.nav.closeSidebar')"
         class="drawer-overlay"
         @click.prevent="open = false"
       ></label>
@@ -13,7 +13,7 @@
       >
         <!-- Header -->
         <li class="menu-title mb-8 flex items-center px-2">
-          <span class="text-[clamp(1.4rem,4.2vw,2rem)] font-medium leading-none">
+          <span class="kawaru-text-drawer-brand font-medium leading-none">
             {{ namePre
             }}<span
               class="brand-text bg-gradient-to-bl from-[var(--brand-accent)] to-primary font-['Outfit',sans-serif] text-[1.2em]"
@@ -23,12 +23,13 @@
           </span>
         </li>
 
-        <template v-for="item in items" :key="item.kind === 'group' ? item.label : item.to">
+        <!-- label 可能是按语言分写的对象，不能当 key；分组没有 to，用位置区分 -->
+        <template v-for="(item, i) in items" :key="item.kind === 'group' ? `group-${i}` : item.to">
           <!-- Group item -->
           <li v-if="item.kind === 'group'">
             <details>
               <summary
-                class="flex items-center gap-[clamp(0.6rem,2.5vw,1.2rem)] py-[clamp(0.6rem,2.5vw,1.2rem)] px-[clamp(0.4rem,1.7vw,0.8rem)] text-[clamp(0.95rem,3vw,1.4rem)] font-medium rounded-lg transition-colors hover:bg-base-200/70 cursor-pointer"
+                class="flex items-center gap-[clamp(0.6rem,2.5vw,1.2rem)] py-[clamp(0.6rem,2.5vw,1.2rem)] px-[clamp(0.4rem,1.7vw,0.8rem)] kawaru-text-drawer-group font-medium rounded-lg transition-colors hover:bg-base-200/70 cursor-pointer"
               >
                 <span
                   class="flex items-center justify-center shrink-0"
@@ -42,7 +43,7 @@
                     class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]"
                   />
                 </span>
-                <span class="whitespace-nowrap">{{ item.label }}</span>
+                <span class="whitespace-nowrap">{{ localized(item.label) }}</span>
               </summary>
 
               <ul
@@ -55,7 +56,7 @@
                     target="_blank"
                     rel="noopener noreferrer"
                     @click="open = false"
-                    class="flex items-center gap-[clamp(0.5rem,2vw,1rem)] py-[clamp(0.5rem,1.9vw,0.9rem)] px-[clamp(0.3rem,1.3vw,0.6rem)] text-[clamp(0.9rem,2.5vw,1.2rem)] font-medium rounded-lg transition-colors hover:bg-base-200/60"
+                    class="flex items-center gap-[clamp(0.5rem,2vw,1rem)] py-[clamp(0.5rem,1.9vw,0.9rem)] px-[clamp(0.3rem,1.3vw,0.6rem)] kawaru-text-drawer-item font-medium rounded-lg transition-colors hover:bg-base-200/60"
                   >
                     <span
                       class="flex items-center justify-center shrink-0"
@@ -69,13 +70,13 @@
                         class="w-full h-full text-base-content/60 [&_svg]:stroke-[1.6]"
                       />
                     </span>
-                    <span class="whitespace-nowrap">{{ child.label }}</span>
+                    <span class="whitespace-nowrap">{{ localized(child.label) }}</span>
                   </a>
                   <router-link
                     v-else
                     :to="child.to"
                     @click="open = false"
-                    class="flex items-center gap-[clamp(0.5rem,2vw,1rem)] py-[clamp(0.5rem,1.9vw,0.9rem)] px-[clamp(0.3rem,1.3vw,0.6rem)] text-[clamp(0.9rem,2.5vw,1.2rem)] font-medium rounded-lg transition-colors hover:bg-base-200/60"
+                    class="flex items-center gap-[clamp(0.5rem,2vw,1rem)] py-[clamp(0.5rem,1.9vw,0.9rem)] px-[clamp(0.3rem,1.3vw,0.6rem)] kawaru-text-drawer-item font-medium rounded-lg transition-colors hover:bg-base-200/60"
                     active-class="!bg-primary/10 !text-primary font-medium"
                   >
                     <span
@@ -90,7 +91,7 @@
                         class="w-full h-full text-base-content/60 [&_svg]:stroke-[1.6]"
                       />
                     </span>
-                    <span class="whitespace-nowrap">{{ child.label }}</span>
+                    <span class="whitespace-nowrap">{{ localized(child.label) }}</span>
                   </router-link>
                 </li>
               </ul>
@@ -103,7 +104,7 @@
               :href="item.to"
               target="_blank"
               rel="noopener noreferrer"
-              class="flex items-center gap-[clamp(0.6rem,2.5vw,1.2rem)] py-[clamp(0.6rem,2.5vw,1.2rem)] px-[clamp(0.4rem,1.7vw,0.8rem)] text-[clamp(0.95rem,3vw,1.4rem)] font-medium rounded-lg transition-colors hover:bg-base-200/70"
+              class="flex items-center gap-[clamp(0.6rem,2.5vw,1.2rem)] py-[clamp(0.6rem,2.5vw,1.2rem)] px-[clamp(0.4rem,1.7vw,0.8rem)] kawaru-text-drawer-group font-medium rounded-lg transition-colors hover:bg-base-200/70"
               @click="open = false"
             >
               <span
@@ -118,12 +119,12 @@
                   class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]"
                 />
               </span>
-              <span class="whitespace-nowrap">{{ item.label }}</span>
+              <span class="whitespace-nowrap">{{ localized(item.label) }}</span>
             </a>
             <router-link
               v-else
               :to="item.to"
-              class="flex items-center gap-[clamp(0.6rem,2.5vw,1.2rem)] py-[clamp(0.6rem,2.5vw,1.2rem)] px-[clamp(0.4rem,1.7vw,0.8rem)] text-[clamp(0.95rem,3vw,1.4rem)] font-medium rounded-lg transition-colors hover:bg-base-200/70"
+              class="flex items-center gap-[clamp(0.6rem,2.5vw,1.2rem)] py-[clamp(0.6rem,2.5vw,1.2rem)] px-[clamp(0.4rem,1.7vw,0.8rem)] kawaru-text-drawer-group font-medium rounded-lg transition-colors hover:bg-base-200/70"
               active-class="!bg-primary/10 !text-primary font-medium"
               @click="item.closeOnClick !== false ? (open = false) : null"
             >
@@ -139,7 +140,7 @@
                   class="w-full h-full text-base-content/70 [&_svg]:stroke-[1.6]"
                 />
               </span>
-              <span class="whitespace-nowrap">{{ item.label }}</span>
+              <span class="whitespace-nowrap">{{ localized(item.label) }}</span>
             </router-link>
           </li>
         </template>
@@ -154,6 +155,7 @@ import type { User } from '@/shared/auth/types'
 import type { IconType } from '@/shared/components/svgIcons'
 import { getBrandParts } from '@/shared/config/appName'
 import { getConfig, filterNavItems } from '@/shared/config/runtimeConfig'
+import { localized } from '@/shared/config/localizedText'
 import type { NavItem, NavLinkItem, NavUserLink } from '@/shared/config/runtimeConfig'
 
 const props = defineProps<{

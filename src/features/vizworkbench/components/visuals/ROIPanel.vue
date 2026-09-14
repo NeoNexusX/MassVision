@@ -1,65 +1,65 @@
 <template>
-  <div class="flex flex-col gap-3 text-[1.125em]">
+  <div class="flex flex-col gap-3 kawaru-text-81">
     <!-- ROI Tools -->
     <div>
-      <div class="font-semibold text-base-content mb-2 tracking-wide">ROI Tools</div>
+      <div class="font-semibold text-base-content mb-2 tracking-wide">{{ $t('vizworkbench.roi.tools') }}</div>
       <div class="flex gap-1.5">
         <button
-          class="btn btn-sm flex-1 text-[1em]"
+          class="btn btn-sm flex-1 kawaru-text-81"
           :class="selectedTool === 'rectangle' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'rectangle' ? null : 'rectangle')"
         >
-          <SvgIcon type="square" /> Rect
+          <SvgIcon type="square" /> {{ $t('vizworkbench.roi.rect') }}
         </button>
         <button
-          class="btn btn-sm flex-1 text-[1em]"
+          class="btn btn-sm flex-1 kawaru-text-81"
           :class="selectedTool === 'freehand' ? 'btn-primary' : 'btn-ghost'"
           @click="$emit('update:selectedTool', selectedTool === 'freehand' ? null : 'freehand')"
         >
-          <SvgIcon type="lasso" /> Lasso
+          <SvgIcon type="lasso" /> {{ $t('vizworkbench.roi.lasso') }}
         </button>
       </div>
       <div v-if="draftReady" class="flex gap-1.5 mt-1.5">
-        <button class="btn btn-sm btn-success flex-1 text-[1em]" @click="$emit('confirm')">
-          <SvgIcon type="check" /> Confirm
+        <button class="btn btn-sm btn-success flex-1 kawaru-text-81" @click="$emit('confirm')">
+          <SvgIcon type="check" /> {{ $t('common.action.confirm') }}
         </button>
         <button
-          class="btn btn-sm btn-ghost flex-1 text-error text-[1em]"
+          class="btn btn-sm btn-ghost flex-1 text-error kawaru-text-81"
           @click="$emit('cancel')"
         >
-          <SvgIcon type="close" /> Cancel
+          <SvgIcon type="close" /> {{ $t('common.action.cancel') }}
         </button>
       </div>
       <button
         v-if="rois.length"
-        class="btn btn-sm w-full mt-1.5 text-[1em]"
+        class="btn btn-sm w-full mt-1.5 kawaru-text-81"
         :class="viewingRoi ? 'btn-primary' : 'btn-ghost'"
-        :title="viewingRoi ? '当前：仅显示 ROI 区域内' : '当前：显示完整离子图'"
+        :title="viewingRoi ? $t('vizworkbench.roi.viewingRoiHint') : $t('vizworkbench.roi.viewingAllHint')"
         @click="$emit('update:viewingRoi', !viewingRoi)"
       >
-        {{ viewingRoi ? 'ROI only' : 'Show all' }}
+        {{ viewingRoi ? $t('vizworkbench.roi.roiOnly') : $t('vizworkbench.roi.showAll') }}
       </button>
       <div v-if="draftReady" class="text-base-content mt-1">
         {{
           selectedTool === 'freehand'
-            ? 'Selection ready — confirm, or drag inside to move'
-            : 'Selection ready — confirm or drag handles to adjust'
+            ? $t('vizworkbench.roi.readyLasso')
+            : $t('vizworkbench.roi.readyRect')
         }}
       </div>
       <div v-else-if="selectedTool === 'rectangle'" class="text-base-content mt-1">
-        Drag on the ion image to draw a rectangle
+        {{ $t('vizworkbench.roi.rectHint') }}
       </div>
       <div v-else-if="selectedTool === 'freehand'" class="text-base-content mt-1">
-        Draw a freeform outline on the ion image
+        {{ $t('vizworkbench.roi.lassoHint') }}
       </div>
     </div>
 
     <!-- ROI List -->
     <div v-if="rois.length">
       <div class="flex items-center justify-between mb-2">
-        <span class="font-semibold text-base-content tracking-wide">ROIs</span>
+        <span class="font-semibold text-base-content tracking-wide">{{ $t('vizworkbench.roi.rois') }}</span>
         <button class="text-error hover:underline" @click="$emit('clearAll')">
-          Clear all
+          {{ $t('common.action.clearAll') }}
         </button>
       </div>
       <div class="space-y-2 max-h-64 overflow-y-auto">
@@ -83,23 +83,23 @@
             </div>
           </div>
           <span class="text-base-content">{{
-            roi.type === 'freehand' ? 'Lasso' : 'Rectangle'
+            roi.type === 'freehand' ? $t('vizworkbench.roi.lasso') : $t('vizworkbench.roi.rectangle')
           }}</span>
           <div v-if="roi.stats" class="mt-1 space-y-0.5 font-mono text-base-content">
             <div class="flex justify-between">
-              <span>Pixels</span><span>{{ roi.stats.pixelCount }}</span>
+              <span>{{ $t('vizworkbench.roi.pixels') }}</span><span>{{ roi.stats.pixelCount }}</span>
             </div>
             <div class="flex justify-between">
-              <span>Mean</span><span>{{ fmt(roi.stats.mean) }}</span>
+              <span>{{ $t('vizworkbench.roi.mean') }}</span><span>{{ fmt(roi.stats.mean) }}</span>
             </div>
             <div class="flex justify-between">
-              <span>Std</span><span>{{ fmt(roi.stats.std) }}</span>
+              <span>{{ $t('vizworkbench.roi.std') }}</span><span>{{ fmt(roi.stats.std) }}</span>
             </div>
             <div class="flex justify-between">
-              <span>Min</span><span>{{ fmt(roi.stats.min) }}</span>
+              <span>{{ $t('vizworkbench.roi.min') }}</span><span>{{ fmt(roi.stats.min) }}</span>
             </div>
             <div class="flex justify-between">
-              <span>Max</span><span>{{ fmt(roi.stats.max) }}</span>
+              <span>{{ $t('vizworkbench.roi.max') }}</span><span>{{ fmt(roi.stats.max) }}</span>
             </div>
           </div>
         </div>
@@ -107,7 +107,7 @@
     </div>
 
     <div v-else-if="!selectedTool" class="text-base-content">
-      Select Rect or Lasso to draw on the ion image.
+      {{ $t('vizworkbench.roi.empty') }}
     </div>
   </div>
 </template>

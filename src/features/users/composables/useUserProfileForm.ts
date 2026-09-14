@@ -1,4 +1,4 @@
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCurrentUser, updateUserProfile } from '@/shared/auth/authApi'
 import { useToast } from '@/shared/composables/useToast'
@@ -14,8 +14,7 @@ import {
   VALIDATION_PATTERNS,
 } from '@/features/auth/constants/validationPatterns'
 import type { UsrProfileUpdate } from '@/shared/auth/types'
-
-const regionOptions = getRegionOptions()
+import { t } from '@/i18n'
 
 export function useUserProfileForm() {
   // External composables
@@ -31,8 +30,11 @@ export function useUserProfileForm() {
   } = useSendEmailCode({
     sessionKey: SESSION_KEYS.profileEmailCode,
     purpose: 'update',
-    successMessage: 'Verification code sent to email',
+    successMessage: () => t('auth.code.sentCheckEmail'),
   })
+
+  // 国家名随界面语言变化；提交的始终是 ISO 代码
+  const regionOptions = computed(() => getRegionOptions())
 
   // State
   const loading = ref(false)
@@ -93,7 +95,7 @@ export function useUserProfileForm() {
     await sendCodeRequest(newEmail.value, {
       validate: () => {
         if (!newEmail.value || !new RegExp(PROFILE_EMAIL_PATTERN).test(newEmail.value)) {
-          showToast('Please enter a valid email address', 'warning')
+          showToast(t('auth.toast.enterValidEmail'), 'warning')
           return false
         }
         return true
@@ -106,7 +108,7 @@ export function useUserProfileForm() {
 
   const submitEmailChange = async () => {
     if (!newEmail.value || !emailCode.value) {
-      showToast('Please enter new email and verification code', 'warning')
+      showToast(t('users.toast.enterEmailAndCode'), 'warning')
       return
     }
     try {
@@ -117,7 +119,7 @@ export function useUserProfileForm() {
         verify_code: emailCode.value,
       } as any)
       formData.email = newEmail.value
-      showToast('Email updated successfully', 'success')
+      showToast(t('common.feedback.updated'), 'success')
       closeEmailModal()
     } catch (err: any) {
       console.error('Email change failed:', err?.response?.data ?? err)
@@ -142,18 +144,18 @@ export function useUserProfileForm() {
   const submitPasswordChange = async () => {
     const pw = newPassword.value
     if (!pw || !confirmPassword.value) {
-      showToast('Please fill in both password fields', 'warning')
+      showToast(t('users.toast.fillBothPasswords'), 'warning')
       return
     }
 
     const passwordPattern = new RegExp(VALIDATION_PATTERNS.password)
     if (!passwordPattern.test(pw)) {
-      showToast('Password must be 8-25 characters with at least one letter and one number', 'error')
+      showToast(t('users.toast.passwordRule'), 'error')
       return
     }
 
     if (pw !== confirmPassword.value) {
-      showToast('Passwords do not match', 'error')
+      showToast(t('auth.validation.passwordMismatch'), 'error')
       return
     }
 
@@ -163,7 +165,7 @@ export function useUserProfileForm() {
         username: formData.username,
         password: pw,
       } as Partial<UsrProfileUpdate>)
-      showToast('Password changed successfully. Please login again.', 'success')
+      showToast(t('users.toast.passwordChanged'), 'success')
       closePasswordModal()
       setTimeout(() => {
         handleLogout()
@@ -195,6 +197,8 @@ export function useUserProfileForm() {
   const handleSave = async () => {
     loading.value = true
     const messages: string[] = []
+    // 用布尔标记判断成败，不要再从文案里找 "failed"——文案翻译后就匹配不到了
+    let failed = false
 
     const profilePayload: Partial<UsrProfileUpdate> = {
       username: formData.username,
@@ -208,9 +212,15 @@ export function useUserProfileForm() {
 
     try {
       await updateUserProfile(profilePayload)
-      messages.push('Profile info updated.')
+      messages.push(t('common.feedback.updated'))
     } catch (profileError: any) {
-      messages.push(`Profile update failed: ${extractBackendError(profileError)}`)
+      failed = true
+      messages.push(
+        t('common.feedback.withDetail', {
+          message: t('common.feedback.updateFailed'),
+          detail: extractBackendError(profileError),
+        }),
+      )
     }
 
     try {
@@ -218,12 +228,16 @@ export function useUserProfileForm() {
       if (refreshRes.data) applyUserData({ ...formData, ...refreshRes.data })
     } catch (refreshError) {
       console.warn('Silent refresh failed after save:', refreshError)
-      messages.push(`Profile update failed: ${extractBackendError(refreshError)}`)
+      failed = true
+      messages.push(
+        t('common.feedback.withDetail', {
+          message: t('common.feedback.updateFailed'),
+          detail: extractBackendError(refreshError),
+        }),
+      )
     }
 
-    const fullMessage = messages.join('\n')
-    const isFailure = messages.some((message) => message.toLowerCase().includes('failed'))
-    showToast(fullMessage, isFailure ? 'error' : 'success')
+    showToast(messages.join('\n'), failed ? 'error' : 'success')
 
     loading.value = false
   }

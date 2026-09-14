@@ -4,8 +4,9 @@
 
 - `src/app`: application shell and global entry components.
 - `src/views`: route pages that compose feature capabilities; existing pages may contain limited page-coordination logic.
-- `src/shared`: HTTP, authentication, configuration, generic components, composables, types, and utilities that do not belong to one business feature.
-- `src/features/<module>`: business modules with `api`, `components`, `composables`, `services`, `stores`, `types`, or `utils` as needed.
+- `src/shared`: HTTP, authentication, configuration, directives (`v-reveal`), generic components, composables, types, and utilities that do not belong to one business feature.
+- `src/features/<module>`: business modules with `api`, `components`, `composables`, `services`, `stores`, `types`, or `utils` as needed. Current modules: `assistant`, `auth`, `collections`, `datasets`, `home`, `upload`, `users`, `vizworkbench`, `workspace`.
+- `src/i18n`: the app-wide vue-i18n instance, type definitions, and locale messages. Messages are organized as `locales/{locale}/{namespace}.json`; core namespaces (`common`, `auth`) are loaded at startup, while feature namespaces are lazy-loaded alongside their routes.
 - `src/services`: infrastructure-oriented OSS, Zarr, and clustering readers shared by multiple features.
 - `src/router`: route declarations plus authentication/authorization guards.
 - `src/workers`: the worker shared by the upload flow; feature-owned workers may remain inside their module.
@@ -16,6 +17,7 @@
 - Features may depend on `shared` and cross-module `services`.
 - Avoid reaching directly into another feature's internals. Extract genuinely shared behavior to an appropriate `shared` or `services` API.
 - Views and workspace pages may compose multiple features, while requests, calculations, and side effects should normally live in composables/services.
+- **Locale message files must live under `src/i18n/locales/`, not `src/shared/`.** The `manualChunks` config in `vite.config.ts` merges `src/shared/**` (except `config/`) into a single eager chunk; placing locale files there would bundle every language and namespace into the initial load, defeating lazy loading.
 
 These are maintenance conventions, not fully enforced import laws. The current ESLint architecture rule explicitly blocks deprecated root aliases such as `@/components/*`, `@/composables/*`, `@/utils/*`, `@/stores/*`, `@/types/*`, and `@/constants/*`; it does not automatically reject every cross-feature import.
 
