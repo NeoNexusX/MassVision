@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "SpatialX · Workspace",
+    "title": "SpatialXomics · Workspace",
     "subtitle": "Analysis pipeline and task management",
     "quality_profile": "showcase",
     "viewBox": [900, 400]
