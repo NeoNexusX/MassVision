@@ -16,7 +16,7 @@ import type { CollectionListMeta, CollectionSummary } from '../types/collection'
  * Collections 列表页装配：取数（服务端分页）/ 范围切换 / 搜索 / 删除。
  *
  * 数据源（均按 updated_at 倒序，服务端分页 {meta, data}）：
- * - 默认 GET /collections/all —— 全库集合（浏览全部，含他人集合）；
+ * - 默认 GET /collections/all —— 公共集合（浏览全库，含他人集合）；
  * - 勾选「My collections only」后走 GET /collections —— 仅当前登录用户的集合。
  * 后端未提供集合搜索/排序参数：排序固定 updated_at 倒序（无控件），
  * search 是**本地**逻辑，只作用于当前页；后端补上参数后可挪进请求。
@@ -45,6 +45,10 @@ export function useCollectionsPage() {
   // 所有者或管理员才能删除/编辑（列表含他人集合，与后端写权限一致）
   const canEdit = (c: CollectionSummary) =>
     c.ownerUsername === auth.user?.username || auth.isAdmin
+
+  // 严格归属（不含 admin），卡片据此显示 My Collection 徽标
+  const isMine = (c: CollectionSummary) =>
+    !!auth.user && c.ownerUsername === auth.user.username
 
   async function fetchPage(targetPage = page.value) {
     loading.value = true
@@ -113,6 +117,7 @@ export function useCollectionsPage() {
     search,
     pagination,
     canEdit,
+    isMine,
     fetchPage,
     handleSearch,
     clearSearch,

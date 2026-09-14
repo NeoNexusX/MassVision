@@ -54,6 +54,7 @@
         :pagination="pagination"
         :search-applied="search"
         :can-edit="canEdit"
+        :is-mine="isMine"
         :member-ids="memberIds"
         :cover-loading="coverLoading"
         @view="handleView"
@@ -101,6 +102,7 @@ const {
   search,
   pagination,
   canEdit,
+  isMine,
   handleSearch,
   clearSearch,
   goToPage,
