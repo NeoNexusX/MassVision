@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-base-200">
-    <div class="max-w-[1680px] mx-auto p-4 md:p-8 page-type">
+    <div class="max-w-[1680px] mx-auto p-4 md:p-8 kawaru-text-100">
       <!-- Loading：与列表页同构的骨架 -->
       <div v-if="loading" class="animate-pulse flex flex-col gap-6">
         <div class="h-16 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
@@ -15,12 +15,12 @@
         class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
       >
         <SvgIcon type="circle_stack" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-        <h3 class="text-[1.15em] font-bold text-base-content">Session lost</h3>
+        <h3 class="kawaru-text-112 font-bold text-base-content">{{ $t('common.state.sessionLost') }}</h3>
         <p class="mt-2 text-base-content/60">
-          Please navigate from Collections to view details.
+          {{ $t('collections.overview.sessionLostDesc') }}
         </p>
-        <router-link to="/collections" class="btn btn-primary mt-6 text-[1em]">
-          Back to Collections
+        <router-link to="/collections" class="btn btn-primary mt-6 kawaru-text-100">
+          {{ $t('collections.overview.backToCollections') }}
         </router-link>
       </div>
 
@@ -30,14 +30,18 @@
         class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
       >
         <SvgIcon type="circle_stack" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-        <h3 class="text-[1.15em] font-bold text-base-content">
-          {{ notFound ? 'Collection not found' : 'Failed to load collection' }}
+        <h3 class="kawaru-text-112 font-bold text-base-content">
+          {{
+            notFound
+              ? $t('collections.overview.notFound')
+              : $t('common.feedback.loadFailed', { target: $t('collections.overview.target') })
+          }}
         </h3>
         <p class="mt-2 text-base-content/60">{{ error }}</p>
         <div class="mt-6 flex justify-center gap-2">
-          <button v-if="!notFound" class="btn btn-outline text-[1em]" @click="fetch">Retry</button>
-          <router-link to="/collections" class="btn btn-primary text-[1em]">
-            Back to Collections
+          <button v-if="!notFound" class="btn btn-outline kawaru-text-100" @click="fetch">{{ $t('common.action.retry') }}</button>
+          <router-link to="/collections" class="btn btn-primary kawaru-text-100">
+            {{ $t('collections.overview.backToCollections') }}
           </router-link>
         </div>
       </div>
@@ -48,12 +52,12 @@
           <div class="min-w-0">
             <router-link
               to="/collections"
-              class="inline-flex items-center gap-1 text-[0.85em] text-base-content/60 hover:text-primary transition-colors"
+              class="inline-flex items-center gap-1 kawaru-text-87 text-base-content/60 hover:text-primary transition-colors"
             >
               <SvgIcon type="back" class="w-[0.9em] h-[0.9em]" />
-              Collections
+              {{ $t('common.page.collections') }}
             </router-link>
-            <h1 class="page-title font-bold text-base-content mt-1 truncate" :title="headerName">
+            <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mt-1 truncate" :title="headerName">
               {{ headerName }}
             </h1>
             <p v-if="headerTitle" class="text-base-content/70 mt-0.5 truncate">
@@ -64,47 +68,47 @@
             <!-- 编辑态：原地修改，头部换成保存/取消（Delete/Share 期间隐藏，避免误触） -->
             <template v-if="editing">
               <button
-                class="btn btn-outline border-base-300 text-[0.95em]"
+                class="btn btn-outline border-base-300 kawaru-text-95"
                 :disabled="saving"
                 @click="cancel"
               >
-                Cancel
+                {{ $t('common.action.cancel') }}
               </button>
               <button
-                class="btn btn-primary text-[0.95em]"
+                class="btn btn-primary kawaru-text-95"
                 :disabled="saving || !isDirty || !draft?.name?.trim()"
                 @click="save"
               >
                 <span v-if="saving" class="loading loading-spinner loading-sm"></span>
-                Save Changes
+                {{ $t('common.action.saveChanges') }}
               </button>
             </template>
             <template v-else>
               <button
                 v-if="detail.publicId"
-                class="btn btn-outline border-base-300 text-[0.95em]"
+                class="btn btn-outline border-base-300 kawaru-text-95"
                 @click="copyShareLink"
               >
                 <SvgIcon type="share" class="w-[1em] h-[1em]" />
-                Share
+                {{ $t('common.action.share') }}
               </button>
-              <button class="btn btn-outline border-base-300 text-[0.95em]" @click="start">
+              <button class="btn btn-outline border-base-300 kawaru-text-95" @click="start">
                 <SvgIcon type="pencil" class="w-[1em] h-[1em]" />
-                Edit
+                {{ $t('common.action.edit') }}
               </button>
               <button
-                class="btn btn-outline border-base-300 text-error text-[0.95em]"
+                class="btn btn-outline border-base-300 text-error kawaru-text-95"
                 @click="deleteConfirm.open(String(detail.id))"
               >
                 <SvgIcon type="trash" class="w-[1em] h-[1em]" />
-                Delete
+                {{ $t('common.action.delete') }}
               </button>
             </template>
           </div>
         </div>
 
         <!-- 表单校验失败（Name 必填/超长等）：留在原地编辑，不弹窗 -->
-        <p v-if="editing && validationError" class="text-error text-[0.9em] -mt-3 mb-4">
+        <p v-if="editing && validationError" class="text-error kawaru-text-87 -mt-3 mb-4">
           {{ validationError }}
         </p>
 
@@ -112,23 +116,23 @@
         <div
           class="flex flex-wrap items-center gap-x-6 gap-y-2 bg-base-100 dark:bg-slate-800
             rounded-xl shadow-sm border border-base-300 px-4 py-3 mb-6
-            text-[0.9em] text-base-content/70"
+            kawaru-text-87 text-base-content/70"
         >
           <span class="inline-flex items-center gap-1.5">
             <SvgIcon type="queue_list" class="w-[1.1em] h-[1.1em]" />
             <span class="font-semibold text-base-content">{{ detail.memberCount }}</span>
-            {{ detail.memberCount === 1 ? 'dataset' : 'datasets' }}
+            {{ $t('collections.unit.dataset', detail.memberCount) }}
           </span>
           <span class="inline-flex items-center gap-1.5">
             <SvgIcon type="folder" class="w-[1.1em] h-[1.1em]" />
             {{ formatBytes(detail.totalSize) }}
           </span>
-          <span class="inline-flex items-center gap-1.5" :title="`Owner: ${detail.ownerUsername}`">
+          <span class="inline-flex items-center gap-1.5" :title="$t('collections.card.owner', { name: detail.ownerUsername })">
             <SvgIcon type="user" class="w-[1.1em] h-[1.1em]" />
             {{ detail.ownerUsername }}
           </span>
           <span v-if="updatedDate" class="ml-auto whitespace-nowrap">
-            Updated {{ updatedDate }}
+            {{ $t('collections.card.updated', { date: updatedDate }) }}
           </span>
         </div>
 
@@ -152,9 +156,9 @@
     </div>
 
     <!-- 添加成员弹窗：选择器复用 Picker（排除已在集合中的成员）。
-         弹窗在 page-type 容器之外，需自行挂 page-type 继承流体字号基准 -->
+         弹窗在 kawaru-text-100 容器之外，需自行挂 kawaru-text-100 继承流体字号基准 -->
     <dialog class="modal" :class="{ 'modal-open': addOpen }">
-      <div class="modal-box max-w-2xl page-type">
+      <div class="modal-box max-w-2xl kawaru-text-100">
         <CollectionDatasetPicker
           :datasets="pickerDatasets"
           :loading="pickerLoading"
@@ -165,7 +169,7 @@
           :query="pickerQuery"
           :is-selected="pickerSelection.isSelected"
           :selected-count="pickerSelection.selected.value.length"
-          title="Add Members"
+:title="$t('collections.overview.addMembers')"
           :exclude-ids="memberIds"
           @update:query="pickerQuery = $event"
           @toggle="pickerSelection.toggle"
@@ -173,29 +177,28 @@
           @change-size="pickerChangeSize"
         />
         <div class="modal-action">
-          <button class="btn text-[1em]" :disabled="adding" @click="closeAddMembers">Cancel</button>
+          <button class="btn kawaru-text-100" :disabled="adding" @click="closeAddMembers">{{ $t('common.action.cancel') }}</button>
           <button
-            class="btn btn-primary text-[1em]"
+            class="btn btn-primary kawaru-text-100"
             :disabled="!pickerSelection.selected.value.length || adding"
             @click="confirmAddMembers"
           >
             <span v-if="adding" class="loading loading-spinner loading-sm"></span>
-            Add {{ pickerSelection.selected.value.length || '' }}
-            {{ pickerSelection.selected.value.length === 1 ? 'dataset' : 'datasets' }}
+            {{ $t('collections.overview.addButton', pickerSelection.selected.value.length) }}
           </button>
         </div>
       </div>
       <form method="dialog" class="modal-backdrop" @click="closeAddMembers">
-        <button @click.prevent="closeAddMembers">close</button>
+        <button @click.prevent="closeAddMembers">{{ $t('common.action.close') }}</button>
       </form>
     </dialog>
 
     <!-- 删除集合确认 -->
     <ConfirmDialog
       :open="deleteConfirm.isOpen"
-      title="Delete collection?"
-      message="The collection will be removed. Member datasets are not affected."
-      confirm-label="Delete"
+:title="$t('collections.view.deleteTitle')"
+      :message="$t('collections.view.deleteMessage')"
+      :confirm-label="$t('common.action.delete')"
       danger
       @confirm="deleteConfirm.confirm"
       @cancel="deleteConfirm.cancel"
@@ -212,7 +215,7 @@ import CollectionMetadataPanel from '@/features/collections/components/Collectio
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 import { useToast } from '@/shared/composables/useToast'
-import { formatBytes } from '@/shared/utils/format'
+import { formatBytes, formatDate } from '@/shared/utils/format'
 import { listFiles } from '@/features/datasets/api/datasetApi'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
 import type { File } from '@/features/datasets/types/dataset'
@@ -222,6 +225,7 @@ import { useCollectionDetail } from '@/features/collections/composables/useColle
 import { useCollectionEdit } from '@/features/collections/composables/useCollectionEdit'
 import { useCollectionMembers } from '@/features/collections/composables/useCollectionMembers'
 import { useOrderedSelection } from '@/features/collections/composables/useOrderedSelection'
+import { t } from '@/i18n'
 
 const router = useRouter()
 const { showToast } = useToast()
@@ -243,9 +247,7 @@ const { members, adding, removing, reordering, add } = memberOps
 
 const memberIds = computed(() => members.value.map((m) => String(m.id)))
 
-const updatedDate = computed(() =>
-  detail.value?.updatedAt ? new Date(detail.value.updatedAt).toLocaleDateString() : '',
-)
+const updatedDate = computed(() => formatDate(detail.value?.updatedAt))
 
 // ---- 下载（复用数据集下载链：限流 + 逐文件 iframe 触发）----
 const { handleDownloadRaw } = useDownloadProgress()
@@ -274,7 +276,6 @@ const deleteConfirm = useConfirmDelete({
     await deleteCollection(Number(id))
     router.push('/collections')
   },
-  successMessage: 'Collection deleted',
 })
 
 // ---- 分享链接（publicId 后端未确认携带，无则按钮隐藏）----
@@ -283,9 +284,9 @@ async function copyShareLink() {
   const url = `${location.origin}/collections/${detail.value.publicId}`
   try {
     await navigator.clipboard.writeText(url)
-    showToast('Share link copied to clipboard', 'success')
+    showToast(t('common.feedback.copied'), 'success')
   } catch {
-    showToast(`Share link: ${url}`, 'info')
+    showToast(t('collections.overview.shareLink', { url }), 'info')
   }
 }
 

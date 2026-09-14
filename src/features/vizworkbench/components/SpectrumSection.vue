@@ -14,6 +14,8 @@ import {
   loadPixelSpectrum,
 } from '@/features/vizworkbench/composables/useZarrIonImage'
 import type { DataMode } from '@/services/zarr/types/zarr'
+import { formatNumber } from '@/shared/utils/format'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   isStale?: boolean
@@ -34,7 +36,7 @@ const emit = defineEmits<{
 // ---- continuous 模式数据 ----
 
 const totalPeaks = computed(() =>
-  mzAxisRef.value ? mzAxisRef.value.length.toLocaleString() : '--',
+  mzAxisRef.value ? formatNumber(mzAxisRef.value.length) : '--',
 )
 
 function onSelectMz(mz: number) {
@@ -92,19 +94,19 @@ async function onRetry() {
 
 /** continuous 模式的底部统计 */
 const continuousStats = computed<{ label: string; value: string }[]>(() => [
-  { label: 'Peaks', value: totalPeaks.value },
-  { label: 'Intensity', value: props.intensityRange ?? '--' },
-  { label: 'Selected', value: props.selectedMz.toFixed(6) },
-  { label: 'Tolerance', value: `±${props.mzTolerance}` },
+  { label: t('vizworkbench.spectrum.peaks'), value: totalPeaks.value },
+  { label: t('vizworkbench.spectrum.intensity'), value: props.intensityRange ?? '--' },
+  { label: t('vizworkbench.spectrum.selected'), value: props.selectedMz.toFixed(6) },
+  { label: t('vizworkbench.spectrum.tolerance'), value: `±${props.mzTolerance}` },
 ])
 
 /** processed 模式的底部统计 */
 const processedStats = computed<{ label: string; value: string }[]>(() => {
   const spec = pixelSpectrum.value
   return [
-    { label: 'Peaks', value: pixelChartData.value.length.toLocaleString() },
+    { label: t('vizworkbench.spectrum.peaks'), value: formatNumber(pixelChartData.value.length) },
     {
-      label: 'Pixel',
+      label: t('vizworkbench.spectrum.pixel'),
       value: spec ? `(${spec.x}, ${spec.y})` : '--',
     },
   ]
@@ -123,22 +125,22 @@ const currentStats = computed(() =>
   >
     <div
       v-if="isStale"
-      class="flex-1 flex items-center justify-center text-base-content/40 text-[1.25em]"
+      class="flex-1 flex items-center justify-center text-base-content/40 kawaru-text-95"
     >
-      No spectrum data available
+      {{ $t('vizworkbench.spectrum.noData') }}
     </div>
     <div
       v-else-if="dataMode === 'processed' && !pixelSpectrum"
-      class="flex-1 flex items-center justify-center text-base-content/40 text-[1.25em]"
+      class="flex-1 flex items-center justify-center text-base-content/40 kawaru-text-95"
     >
       <template v-if="pixelSpectrumLoading">
         <span class="loading loading-spinner loading-lg text-primary mr-3"></span>
         <div class="text-center">
-          <div>Loading spectrum...</div>
-          <div class="text-base-content/40 mt-1">First load may take a moment while fetching data</div>
+          <div>{{ $t('vizworkbench.spectrum.loading') }}</div>
+          <div class="text-base-content/40 mt-1">{{ $t('vizworkbench.spectrum.firstLoadHint') }}</div>
         </div>
       </template>
-      <template v-else> Click a pixel on the TIC image to view its spectrum </template>
+      <template v-else>{{ $t('vizworkbench.spectrum.clickPixelHint') }}</template>
     </div>
     <AverageSpectrum
       v-else
@@ -155,9 +157,9 @@ const currentStats = computed(() =>
   </div>
 
   <!-- 底部统计信息 -->
-  <div class="shrink-0 flex flex-wrap gap-4 text-[1.25em] text-base-content/60 pl-4 pr-1">
+  <div class="shrink-0 flex flex-wrap gap-4 kawaru-text-95 text-base-content/60 pl-4 pr-1">
     <span v-for="stat in currentStats" :key="stat.label">
-      {{ stat.label }}:
+      {{ $t('common.format.labelColon', { label: stat.label }) }}
       <strong class="text-base-content font-mono">{{ stat.value }}</strong>
     </span>
   </div>

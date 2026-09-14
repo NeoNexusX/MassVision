@@ -60,9 +60,20 @@ export interface MatchedAnnotationRow extends AnnotationRow {
   altAdducts: string[]
 }
 
-/** Thrown when the CSV cannot be used at all (empty / no m/z column). */
+export type CsvParseErrorCode = 'empty' | 'noMzColumn' | 'noDataRows'
+
+/**
+ * Thrown when the CSV cannot be used at all (empty / no m/z column).
+ *
+ * This module also runs inside csvAnnotation.worker.ts, so it must not import
+ * i18n: `message` stays English (logs / worker transport) and the UI translates
+ * by `code` instead.
+ */
 export class CsvParseError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly code: CsvParseErrorCode,
+  ) {
     super(message)
     this.name = 'CsvParseError'
   }
@@ -283,7 +294,7 @@ export function parseAnnotationCsv(text: string): ParsedAnnotationCsv {
   // Strip UTF-8 BOM if present.
   const cleaned = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text
   const normalized = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n+$/, '')
-  if (!normalized.trim()) throw new CsvParseError('CSV file is empty.')
+  if (!normalized.trim()) throw new CsvParseError('CSV file is empty.', 'empty')
 
   const lines = normalized.split('\n')
   const headerLine = lines.shift()!
@@ -294,6 +305,7 @@ export function parseAnnotationCsv(text: string): ParsedAnnotationCsv {
   if (!mzCol) {
     throw new CsvParseError(
       'No m/z column found. Expected one of: "Tar. m/z", "m/z", "mz", "MZ", "target_mz", "mass", ...',
+      'noMzColumn',
     )
   }
   const formulaCol = matchColumn(headers, FORMULA_ALIASES)
@@ -336,7 +348,7 @@ export function parseAnnotationCsv(text: string): ParsedAnnotationCsv {
     })
   }
 
-  if (!rows.length) throw new CsvParseError('CSV has a header but no data rows.')
+  if (!rows.length) throw new CsvParseError('CSV has a header but no data rows.', 'noDataRows')
   return { rows, mzColumn: mzCol }
 }
 

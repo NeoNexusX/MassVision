@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import IonChannelPanel from '../IonChannelPanel.vue'
 import type { IonChannel } from '@/features/vizworkbench/composables/useIonChannels'
 import { ION_CHANNEL_COLORS } from '@/features/vizworkbench/utils/ionChannelBlend'
+import { i18n, loadCoreMessages, loadFeatureMessages } from '@/i18n'
+
+// 组件模板用 $t：挂载时装上 i18n 实例，并预先加载英文语言包（断言保持英文原文）
+beforeAll(() => Promise.all([loadCoreMessages('en'), loadFeatureMessages('vizworkbench')]))
 
 function channel(over: Partial<IonChannel> = {}): IonChannel {
   return {
@@ -30,6 +34,7 @@ function mountPanel(over: Record<string, unknown> = {}) {
       maxChannels: 6,
       ...over,
     },
+    global: { plugins: [i18n] },
   })
 }
 

@@ -3,6 +3,7 @@ import { useToast } from '@/shared/composables/useToast'
 import { addMembers, collectionErrorMessage, removeMembers, reorderMembers } from '../api/collectionApi'
 import { isCollectionApiError } from '../types/collection'
 import type { CollectionDetail, CollectionMember } from '../types/collection'
+import { t } from '@/i18n'
 
 /** 409 order conflict 的标准处理：提示 + 拉最新列表让用户重试（不自动合并） */
 export const ORDER_CONFLICT_MESSAGE = 'collection member order conflict'
@@ -46,10 +47,10 @@ export function useCollectionMembers(options: UseCollectionMembersOptions) {
     try {
       detail.value = await addMembers(detail.value.id, fileIds)
       syncFromServer()
-      showToast('Members added', 'success')
+      showToast(t('common.feedback.added'), 'success')
       return true
     } catch (err: any) {
-      showToast(errorText(err, 'Failed to add members'), 'error')
+      showToast(errorText(err, t('common.feedback.addFailed')), 'error')
       // 409（资格/上限）后服务端状态可能已变，拉一次最新保持一致
       if (isCollectionApiError(err) && err.status === 409) await refresh()
       return false
@@ -64,12 +65,14 @@ export function useCollectionMembers(options: UseCollectionMembersOptions) {
     removing.value = true
     try {
       const result = await removeMembers(detail.value.id, ids)
-      const parts = [`Removed ${result.removed.length}`]
-      if (result.skipped.length) parts.push(`${result.skipped.length} were no longer in the collection`)
-      showToast(parts.join(' · '), 'success')
+      const parts = [t('collections.toast.removedCount', { count: result.removed.length })]
+      if (result.skipped.length) {
+        parts.push(t('collections.toast.skippedCount', { count: result.skipped.length }))
+      }
+      showToast(parts.join(t('collections.toast.separator')), 'success')
       await refresh()
     } catch (err: any) {
-      showToast(errorText(err, 'Failed to remove members'), 'error')
+      showToast(errorText(err, t('common.feedback.removeFailed')), 'error')
     } finally {
       removing.value = false
     }
@@ -95,10 +98,11 @@ export function useCollectionMembers(options: UseCollectionMembersOptions) {
       )
       syncFromServer()
     } catch (err: any) {
+      // 这里匹配的是后端英文原文，不要改成匹配译文
       if (isCollectionApiError(err) && err.backendMessage.includes(ORDER_CONFLICT_MESSAGE)) {
-        showToast('Members were changed elsewhere. Refreshed to the latest order.', 'warning')
+        showToast(t('collections.toast.reorderConflict'), 'warning')
       } else {
-        showToast(errorText(err, 'Failed to reorder members'), 'error')
+        showToast(errorText(err, t('common.feedback.updateFailed')), 'error')
       }
       // 冲突或失败：以服务端版本为准（重拉）
       await refresh()

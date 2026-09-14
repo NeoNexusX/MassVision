@@ -1,4 +1,5 @@
 import { computed, type Ref } from 'vue'
+import { t } from '@/i18n'
 
 interface MethodParam {
   key: string
@@ -8,7 +9,8 @@ interface MethodParam {
   min?: number
   max?: number
   step?: number
-  hint?: string
+  /** 显示文字用 getter：常量表在模块加载时求值，写死字符串切语言后不会刷新 */
+  hint?: () => string
   options?: Array<{ label: string; value: string }>
 }
 
@@ -19,18 +21,22 @@ interface MethodItem {
   params?: MethodParam[]
 }
 
+/**
+ * 方法组的标题与说明是界面文字，写成 getter，在模板 / computed 里调用才会随语言切换刷新。
+ * 方法名（Savitzky–Golay、SNIP、TIC…）与参数名是算法术语，保持英文原样。
+ */
 export interface MethodGroup {
   key: string
-  title: string
-  hint: string
+  title: () => string
+  hint: () => string
   methods: MethodItem[]
 }
 
 export const allMethodGroups: MethodGroup[] = [
   {
     key: 'noise',
-    title: 'Noise Reduction',
-    hint: 'Reduce noise while preserving peaks',
+    title: () => t('common.preprocessing.noiseReduction'),
+    hint: () => t('workspace.pipeline.groupHint.noise'),
     methods: [
       {
         id: 'savgol_numba',
@@ -42,7 +48,7 @@ export const allMethodGroups: MethodGroup[] = [
             type: 'number',
             default: 5,
             min: 1,
-            hint: 'Filter window size',
+            hint: () => t('workspace.pipeline.paramHint.window'),
           },
           {
             key: 'polyorder',
@@ -50,7 +56,7 @@ export const allMethodGroups: MethodGroup[] = [
             type: 'number',
             default: 3,
             min: 0,
-            hint: 'Polynomial order',
+            hint: () => t('workspace.pipeline.paramHint.polyorder'),
           },
           {
             key: 'deriv',
@@ -58,7 +64,7 @@ export const allMethodGroups: MethodGroup[] = [
             type: 'number',
             default: 0,
             min: 0,
-            hint: 'Derivative order (0=smooth)',
+            hint: () => t('workspace.pipeline.paramHint.deriv'),
           },
           {
             key: 'delta',
@@ -67,7 +73,7 @@ export const allMethodGroups: MethodGroup[] = [
             default: 1.0,
             min: 0,
             step: 0.1,
-            hint: 'Sample spacing',
+            hint: () => t('workspace.pipeline.paramHint.delta'),
           },
         ],
       },
@@ -83,7 +89,7 @@ export const allMethodGroups: MethodGroup[] = [
             default: 2.0,
             min: 0,
             step: 0.1,
-            hint: 'Gaussian std deviation',
+            hint: () => t('workspace.pipeline.paramHint.sigma'),
           },
         ],
       },
@@ -96,8 +102,8 @@ export const allMethodGroups: MethodGroup[] = [
   },
   {
     key: 'baseline',
-    title: 'Baseline Correction',
-    hint: 'Remove baseline to correct background signal',
+    title: () => t('common.preprocessing.baselineCorrection'),
+    hint: () => t('workspace.pipeline.groupHint.baseline'),
     methods: [
       { id: 'snip_numba', label: 'SNIP', params: [] },
       { id: 'locmin_numba', label: 'Local Minimum', params: [] },
@@ -105,8 +111,8 @@ export const allMethodGroups: MethodGroup[] = [
   },
   {
     key: 'norm',
-    title: 'Normalization',
-    hint: 'Scale spectra to comparable intensities',
+    title: () => t('common.preprocessing.normalization'),
+    hint: () => t('workspace.pipeline.groupHint.norm'),
     methods: [
       {
         id: 'tic_numba',
@@ -119,7 +125,7 @@ export const allMethodGroups: MethodGroup[] = [
             default: 1.0,
             min: 0,
             step: 1,
-            hint: 'Output scaling factor',
+            hint: () => t('workspace.pipeline.paramHint.scale'),
           },
         ],
       },
@@ -134,7 +140,7 @@ export const allMethodGroups: MethodGroup[] = [
             default: 1.0,
             min: 0,
             step: 1,
-            hint: 'Output scaling factor',
+            hint: () => t('workspace.pipeline.paramHint.scale'),
           },
         ],
       },
@@ -143,7 +149,7 @@ export const allMethodGroups: MethodGroup[] = [
         label: 'REF',
         params: [
           { key: 'scale', label: 'Scale', type: 'float', default: 1.0, min: 0, step: 1 },
-          { key: 'ref', label: 'Ref m/z', type: 'text', hint: 'Reference m/z (auto if empty)' },
+          { key: 'ref', label: 'Ref m/z', type: 'text', hint: () => t('workspace.pipeline.paramHint.ref') },
           {
             key: 'ref_tolerance',
             label: 'Ref Tolerance',
@@ -158,8 +164,8 @@ export const allMethodGroups: MethodGroup[] = [
   },
   {
     key: 'pick',
-    title: 'Peak Picking',
-    hint: 'Detect peaks in spectra',
+    title: () => t('common.preprocessing.peakPicking'),
+    hint: () => t('workspace.pipeline.groupHint.pick'),
     methods: [
       {
         id: 'diff',
@@ -184,7 +190,7 @@ export const allMethodGroups: MethodGroup[] = [
             default: 2.0,
             min: 0,
             step: 0.1,
-            hint: 'Signal-to-noise threshold',
+            hint: () => t('workspace.pipeline.paramHint.snr'),
           },
           {
             key: 'return_type',
@@ -202,7 +208,7 @@ export const allMethodGroups: MethodGroup[] = [
             type: 'number',
             default: 5,
             min: 1,
-            hint: 'Peak width (data points)',
+            hint: () => t('workspace.pipeline.paramHint.width'),
           },
         ],
       },
@@ -210,8 +216,8 @@ export const allMethodGroups: MethodGroup[] = [
   },
   {
     key: 'align',
-    title: 'Peak Alignment',
-    hint: 'Align peaks across spectra',
+    title: () => t('common.preprocessing.peakAlignment'),
+    hint: () => t('workspace.pipeline.groupHint.align'),
     methods: [
       {
         id: 'align_py',
@@ -237,7 +243,7 @@ export const allMethodGroups: MethodGroup[] = [
             min: 0,
             max: 1,
             step: 0.01,
-            hint: 'Minimum frequency threshold for peak retention',
+            hint: () => t('workspace.pipeline.paramHint.minFrequency'),
           },
         ],
       },
@@ -293,24 +299,28 @@ export function usePreprocessingMethods(
   const modeKey = computed(() => resolveModeKey(spectrumMode.value, storageMode.value))
 
   const modeNotice = computed(() => {
-    const s = spectrumMode.value
-    const t = storageMode.value
-    if (!s && !t) return ''
+    const spectrum = spectrumMode.value
+    const storage = storageMode.value
+    if (!spectrum && !storage) return ''
     const notices: string[] = []
 
-    notices.push(`This dataset is ${s || 'profile'} + ${t || 'continuous'}.`)
+    // 谱图 / 存储模式的取值（profile、continuous…）是专业术语，原样插进译文
+    notices.push(
+      t('workspace.pipeline.modeNotice', {
+        spectrum: spectrum || 'profile',
+        storage: storage || 'continuous',
+      }),
+    )
 
-    const sMode = (s || 'profile').toLowerCase()
-    const tMode = (t || 'continuous').toLowerCase()
+    const sMode = (spectrum || 'profile').toLowerCase()
+    const tMode = (storage || 'continuous').toLowerCase()
     if (sMode === 'profile') {
-      notices.push('Peak Alignment requires Peak Picking to be selected first.')
+      notices.push(t('workspace.pipeline.alignNeedsPick'))
     } else if (tMode === 'continuous') {
-      notices.push(
-        'Peak Alignment is not applicable: peaks already share a common m/z axis under continuous storage.',
-      )
+      notices.push(t('workspace.pipeline.alignNotApplicable'))
     }
 
-    notices.push('Only compatible preprocessing methods are shown.')
+    notices.push(t('workspace.pipeline.compatibleOnly'))
     return notices.join(' ')
   })
 

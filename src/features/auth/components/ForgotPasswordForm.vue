@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { I18nT } from 'vue-i18n'
 import IconInput from '@/shared/components/IconInput.vue'
 import { passwordStrengthLabel } from '@/features/auth/utils/passwordStrength'
 
@@ -27,18 +28,25 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
 
 <template>
   <div
-    class="card max-w-md w-full flex flex-col gap-5 bg-base-100 shadow-xl p-5 sm:p-8 rounded-box border border-base-200 text-[1em]"
+    class="card max-w-md w-full flex flex-col gap-5 bg-base-100 shadow-xl p-5 sm:p-8 rounded-box border border-base-200 kawaru-text-100"
   >
     <div class="text-center">
-      <h2 class="text-[1.5em] font-bold">Reset Password</h2>
-      <p v-if="step === 'email'" class="text-base-content/60 mt-2 text-[0.9rem]">
-        Enter your registered email to receive a verification code.
+      <h2 class="kawaru-text-150 font-bold">{{ $t('auth.forgot.title') }}</h2>
+      <p v-if="step === 'email'" class="text-base-content/60 mt-2 kawaru-text-87">
+        {{ $t('auth.forgot.emailHint') }}
       </p>
-      <p v-else class="text-base-content/60 mt-2 text-[0.9rem]">
-        Enter the verification code sent to
-        <span class="font-semibold text-base-content">{{ form.email }}</span>
-        and set a new password.
-      </p>
+      <!-- 邮箱在句中的位置随语言变化，用 I18nT 的具名插槽把加粗的邮箱嵌进译文 -->
+      <I18nT
+        v-else
+        keypath="auth.forgot.codeHint"
+        tag="p"
+        scope="global"
+        class="text-base-content/60 mt-2 kawaru-text-87"
+      >
+        <template #email>
+          <span class="font-semibold text-base-content">{{ form.email }}</span>
+        </template>
+      </I18nT>
     </div>
 
     <!-- Step 1: Enter email -->
@@ -49,7 +57,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
         type="email"
         required
         validator
-        placeholder="Email"
+        :placeholder="$t('common.field.email')"
         :pattern="patterns.email"
         :error="errors.email"
         @blur="validateField('email')"
@@ -58,18 +66,18 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
 
       <div class="form-control w-full mt-2">
         <button
-          class="btn btn-primary w-full"
+          class="btn btn-primary w-full kawaru-text-87"
           :disabled="loading.sendCode || isExhausted"
           @click="sendCode"
         >
           <span v-if="loading.sendCode" class="loading loading-spinner loading-sm"></span>
-          {{ loading.sendCode ? 'Sending...' : 'Send Verification Code' }}
+          {{ loading.sendCode ? $t('auth.forgot.sending') : $t('auth.code.send') }}
         </button>
       </div>
 
       <div class="text-center border-t border-base-200 pt-4">
-        <router-link to="/login" class="link link-hover text-secondary text-[0.9rem] font-semibold">
-          Back to Sign In
+        <router-link to="/login" class="link link-hover text-secondary kawaru-text-87 font-semibold">
+          {{ $t('auth.forgot.backToSignIn') }}
         </router-link>
       </div>
     </template>
@@ -86,7 +94,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
               type="text"
               required
               validator
-              placeholder="Verification Code"
+              :placeholder="$t('auth.field.verificationCode')"
               :pattern="patterns.verify_code"
               :error="errors.verify_code"
               @blur="validateField('verify_code')"
@@ -95,15 +103,17 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
           </div>
           <button
             @click="sendCode"
-            class="btn btn-neutral min-w-[100px]"
+            class="btn btn-neutral min-w-[100px] kawaru-text-87"
             :disabled="isCountdownActive || loading.sendCode || isExhausted"
             :class="{ 'opacity-50 cursor-not-allowed': isExhausted }"
-            :title="isExhausted ? 'Too many requests for now' : ''"
+            :title="isExhausted ? $t('auth.code.tooManyRequests') : ''"
           >
             <span v-if="loading.sendCode" class="loading loading-spinner loading-xs"></span>
-            <span v-else-if="isCountdownActive" class="font-mono">{{ countdown }}s</span>
-            <span v-else-if="isExhausted">Limit Reached</span>
-            <span v-else>Resend</span>
+            <span v-else-if="isCountdownActive" class="font-mono">{{
+              $t('auth.code.countdown', { seconds: countdown })
+            }}</span>
+            <span v-else-if="isExhausted">{{ $t('auth.code.limitReached') }}</span>
+            <span v-else>{{ $t('auth.forgot.resend') }}</span>
           </button>
         </div>
 
@@ -116,7 +126,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
             required
             validator
             autocomplete="new-password"
-            placeholder="New Password"
+            :placeholder="$t('auth.field.newPassword')"
             :error="errors.new_password"
             @focus="clearError('new_password')"
             @blur="validateField('new_password')"
@@ -127,8 +137,8 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
             :class="progressBarClass"
             max="5"
           ></progress>
-          <div class="flex justify-between text-xs opacity-70">
-            <span>Strength</span>
+          <div class="flex justify-between kawaru-text-75 opacity-70">
+            <span>{{ $t('auth.strength.label') }}</span>
             <span>{{ strengthLabel }}</span>
           </div>
         </div>
@@ -141,7 +151,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
           required
           validator
           autocomplete="new-password"
-          placeholder="Confirm New Password"
+          :placeholder="$t('auth.field.confirmNewPassword')"
           :error="errors.confirm_password"
           @blur="validateField('confirm_password')"
           @focus="clearError('confirm_password')"
@@ -149,26 +159,21 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
       </div>
 
       <div class="form-control w-full mt-2">
-        <button class="btn btn-primary w-full" :disabled="loading.reset" @click="submitReset">
+        <button class="btn btn-primary w-full kawaru-text-87" :disabled="loading.reset" @click="submitReset">
           <span v-if="loading.reset" class="loading loading-spinner loading-sm"></span>
-          {{ loading.reset ? 'Resetting...' : 'Reset Password' }}
+          {{ loading.reset ? $t('auth.forgot.submitting') : $t('auth.forgot.submit') }}
         </button>
       </div>
 
       <div class="flex items-center justify-center gap-4">
-        <button class="btn btn-ghost btn-sm text-[0.9rem]" @click="backToEmail">
-          ← Change email
+        <button class="btn btn-ghost btn-sm kawaru-text-87" @click="backToEmail">
+          {{ $t('auth.forgot.changeEmail') }}
         </button>
-        <router-link to="/login" class="link link-hover text-secondary text-[0.9rem] font-semibold">
-          Back to Sign In
+        <router-link to="/login" class="link link-hover text-secondary kawaru-text-87 font-semibold">
+          {{ $t('auth.forgot.backToSignIn') }}
         </router-link>
       </div>
     </template>
   </div>
 </template>
 
-<style scoped>
-.reset-step-inputs :deep(.fluid-input) {
-  font-size: 1rem;
-}
-</style>

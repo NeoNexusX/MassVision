@@ -6,7 +6,7 @@ const { username, password, isLoading, login } = useLoginForm()
 </script>
 
 <template>
-  <div class="flex-1 w-full flex items-center justify-center p-4 sm:p-8 bg-base-200 page-type">
+  <div class="flex-1 w-full flex items-center justify-center p-4 sm:p-8 bg-base-200 kawaru-text-100">
     <LoginForm
       v-model:username="username"
       v-model:password="password"

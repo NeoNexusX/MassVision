@@ -24,6 +24,8 @@ import { ZarrOssStore } from '@/services/zarr/zarrOssStore'
 import type { MetadataAttrs, DataMode } from '@/services/zarr/types/zarr'
 import { ZARR_STORE } from '@/shared/config/defaults'
 import { getConfig } from '@/shared/config'
+import { formatNumber } from '@/shared/utils/format'
+import { t } from '@/i18n'
 
 // ---- Module-level shared state ----
 
@@ -178,7 +180,7 @@ export async function loadMeanSpectrum(): Promise<void> {
     if (!store) return
     if (!meanData) {
       spectrumLoading.value = false
-      spectrumError.value = 'Mean spectrum not available'
+      spectrumError.value = t('vizworkbench.spectrum.meanUnavailable')
       return
     }
 
@@ -254,7 +256,7 @@ export async function loadPixelSpectrum(pixelIndex: number): Promise<void> {
     if (!store) return
     if (!spectrum) {
       pixelSpectrumLoading.value = false
-      pixelSpectrumError.value = 'Empty spectrum for this pixel'
+      pixelSpectrumError.value = t('vizworkbench.spectrum.pixelEmpty')
       return
     }
 
@@ -404,7 +406,7 @@ export function useZarrIonImage() {
   const ionCols = computed(() => ionDims.value?.width ?? 0)
   const ionRows = computed(() => ionDims.value?.height ?? 0)
   const totalPeaks = computed(() =>
-    mzAxisRef.value ? mzAxisRef.value.length.toLocaleString() : '--',
+    mzAxisRef.value ? formatNumber(mzAxisRef.value.length) : '--',
   )
 
   const isContinuous = computed(() => dataModeRef.value === 'continuous')

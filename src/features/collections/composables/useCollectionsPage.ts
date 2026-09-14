@@ -9,6 +9,7 @@ import {
   listCollections,
 } from '../api/collectionApi'
 import type { CollectionListMeta, CollectionSummary } from '../types/collection'
+import { t } from '@/i18n'
 
 // 每页条数与数据集列表一致，走全局 config（默认 10，选项 [6,10,20]）
 
@@ -56,7 +57,10 @@ export function useCollectionsPage() {
       Object.assign(meta, res.meta)
       page.value = res.meta.current_page || targetPage
     } catch (err: any) {
-      error.value = collectionErrorMessage(err, 'Failed to load collections. Please try again.')
+      error.value = collectionErrorMessage(
+        err,
+        t('common.feedback.loadFailed', { target: t('collections.list.target') }),
+      )
     } finally {
       loading.value = false
     }

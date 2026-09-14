@@ -1,0 +1,84 @@
+{
+  "workspace": {
+    "dashboard": {
+      "title": "Workspace",
+      "subtitle": "Monitor preprocessing tasks and review recent MSI results.",
+      "goToMyDatasets": "Go to MyDatasets",
+      "newTask": "New Task",
+      "runningHint": "Active preprocessing tasks",
+      "completedHint": "Successfully completed",
+      "failedHint": "Requires review",
+      "recentResults": "Recent Results",
+      "deleteTitle": "Delete Result",
+      "deleteMessage": "Are you sure you want to delete this result? This action cannot be undone.",
+      "failedTitle": "Process Failed",
+      "errorDetails": "Error details:"
+    },
+    "table": {
+      "process": "Process",
+      "dataset": "Dataset",
+      "methods": "Methods",
+      "created": "Created",
+      "finished": "Finished",
+      "processName": "Process #{id}",
+      "unknownFile": "Unknown",
+      "unknownError": "Unknown error"
+    },
+    "createTask": {
+      "title": "Create New Task",
+      "selectDataset": "Select Dataset",
+      "methods": "Preprocessing Methods",
+      "params": "Method Parameters",
+      "paramPlaceholder": "parameter JSON or value",
+      "start": "Start Processing"
+    },
+    "analysis": {
+      "title": "Create New Analysis",
+      "subtitle": "Configure preprocessing pipeline for MSI datasets",
+      "uploadHint": "Go to My Datasets to upload a new dataset",
+      "started": "Analysis started",
+      "startFailed": "Failed to start analysis"
+    },
+    "source": {
+      "title": "Step 1: Data Source",
+      "empty": "No datasets found."
+    },
+    "pipeline": {
+      "title": "Step 2: Preprocessing Pipeline",
+      "modeNotice": "This dataset is {spectrum} + {storage}.",
+      "alignNeedsPick": "Peak Alignment requires Peak Picking to be selected first.",
+      "alignNotApplicable": "Peak Alignment is not applicable: peaks already share a common m/z axis under continuous storage.",
+      "compatibleOnly": "Only compatible preprocessing methods are shown.",
+      "groupHint": {
+        "noise": "Reduce noise while preserving peaks",
+        "baseline": "Remove baseline to correct background signal",
+        "norm": "Scale spectra to comparable intensities",
+        "pick": "Detect peaks in spectra",
+        "align": "Align peaks across spectra"
+      },
+      "paramHint": {
+        "window": "Filter window size",
+        "polyorder": "Polynomial order",
+        "deriv": "Derivative order (0=smooth)",
+        "delta": "Sample spacing",
+        "sigma": "Gaussian std deviation",
+        "scale": "Output scaling factor",
+        "ref": "Reference m/z (auto if empty)",
+        "snr": "Signal-to-noise threshold",
+        "width": "Peak width (data points)",
+        "minFrequency": "Minimum frequency threshold for peak retention"
+      }
+    },
+    "summary": {
+      "title": "Analysis Summary",
+      "metadata": "Dataset metadata",
+      "selectedDataset": "Selected dataset",
+      "noDataset": "No dataset selected",
+      "start": "Start Analysis",
+      "starting": "Starting...",
+      "notReady": "Select dataset and configure pipeline first",
+      "ready": "Ready",
+      "incomplete": "Incomplete"
+    }
+  }
+}

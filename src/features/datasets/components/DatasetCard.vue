@@ -1,6 +1,6 @@
 <template>
   <!-- 六个容器：卡片 → 左（文件名/图片/信息）+ 右（状态/操作）。
-       右侧容器固定 160px 宽（lg），public 与 my datasets 卡片几何完全一致；
+       右侧容器 lg 下宽 8em，public 与 my datasets 卡片几何完全一致；
        中间信息以左容器为基准居中，右侧操作列靠左、纵向均匀分布。 -->
   <div
     class="flex flex-col lg:flex-row p-4 gap-x-4 gap-y-2
@@ -16,8 +16,8 @@
            收进 title/aria-label，不占横向空间。 -->
       <h3
         class="w-full flex items-center gap-2 min-w-0
-          font-bold text-base-content text-[1.1em] leading-snug"
-        :aria-label="`Dataset name: ${dataset.filename || dataset.name}`"
+          font-bold text-base-content kawaru-text-112 leading-snug"
+        :aria-label="$t('datasets.card.datasetName', { name: dataset.filename || dataset.name })"
       >
         <span
           class="truncate cursor-pointer min-w-0
@@ -30,8 +30,8 @@
         <span
           v-if="isMyDataset"
           class="shrink-0 inline-flex items-center text-slate-400"
-          :title="dataset.isPublic ? 'Public' : 'Private'"
-          :aria-label="dataset.isPublic ? 'Public' : 'Private'"
+          :title="dataset.isPublic ? $t('datasets.card.public') : $t('datasets.card.private')"
+          :aria-label="dataset.isPublic ? $t('datasets.card.public') : $t('datasets.card.private')"
         >
           <SvgIcon :type="dataset.isPublic ? 'region' : 'password'" class="w-[1.1em] h-[1.1em]" />
         </span>
@@ -47,7 +47,7 @@
         <p
           v-for="field in metaFields"
           :key="field.label"
-          class="truncate text-[0.95em] "
+          class="truncate kawaru-text-95"
           :title="field.value ?? ''"
         >
           <span>{{ field.label }}</span>
@@ -58,21 +58,23 @@
     </div>
 
     <!-- 右侧容器：上传状态 + 操作。整列点击不触发卡片跳转。
-         lg：靠左对齐，160px 减去 pl-3 后的内容盒能装下最宽的
-         "Visualize" 项（约 133px）并给右侧留出空隙；justify-evenly
-         随条目数自适应拉开间距（public 4 项也能均匀排满整列） -->
+         lg：靠左对齐，列宽 8em 减去 pl-3 后的内容盒能装下最宽的
+         "Visualize" 项并给右侧留出空隙；justify-evenly
+         随条目数自适应拉开间距（public 4 项也能均匀排满整列）。
+         列宽用 8em 而非写死 160px：本容器自挂 kawaru-text-100 钉住字号，
+         8em 恒等于「档位 × 8」，换档时列宽同步跟上，标签不会撞墙换行。 -->
     <div
-      class="cursor-default
+      class="cursor-default kawaru-text-100
         flex flex-row flex-wrap gap-2 items-center justify-evenly
         w-full border-t border-base-300 pt-3
-        lg:w-[160px] lg:flex-col lg:items-start lg:self-stretch
+        lg:w-[8em] lg:flex-col lg:items-start lg:self-stretch
         lg:border-l lg:border-t-0 lg:pt-0 lg:pl-3"
       @click.stop
     >
       <template v-for="item in actionItems" :key="item.id">
         <button
           v-if="item.onClick"
-          class="flex items-center gap-2 text-[1.0em] font-medium p-1 rounded"
+          class="flex items-center gap-2 kawaru-text-100 font-medium p-1 rounded"
           :class="item.colorClass"
           @click.stop="item.onClick"
         >
@@ -81,7 +83,7 @@
         </button>
         <div
           v-else
-          class="flex items-center gap-2 text-[1.0em] font-medium p-1 rounded"
+          class="flex items-center gap-2 kawaru-text-100 font-medium p-1 rounded"
           :class="item.colorClass"
         >
           <span v-if="item.spinner" class="loading loading-spinner loading-xs"></span>
@@ -101,8 +103,10 @@
 import { computed } from 'vue'
 import type { File } from '@/features/datasets/types/dataset'
 import type { IconType } from '@/shared/components/svgIcons'
-import { formatBytes } from '@/shared/utils/format'
+import { formatBytes, formatDate } from '@/shared/utils/format'
 import DatasetPreviewGallery from '@/features/datasets/components/DatasetPreviewGallery.vue'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   dataset: File
@@ -118,22 +122,20 @@ const emit = defineEmits<{
   (e: 'edit', id: string): void
 }>()
 
-const submitDate = computed(() =>
-  props.dataset.submitTime
-    ? new Date(props.dataset.submitTime).toLocaleDateString()
-    : '',
-)
+const submitDate = computed(() => formatDate(props.dataset.submitTime))
 
 const formattedSize = computed(() => formatBytes(props.dataset.sizeBytes))
 
+const labelColon = (label: string) => t('common.format.labelColon', { label })
+
 const metaFields = computed(() => [
-  { label: 'Organism:', value: props.dataset.organism },
-  { label: 'Organism Part:', value: props.dataset.organismPart },
-  { label: 'Ionisation Source:', value: props.dataset.ionSource },
-  { label: 'Analyzer:', value: props.dataset.analyzer },
-  { label: 'File Size:', value: formattedSize.value },
-  { label: 'Submitted by:', value: props.dataset.submitter },
-  { label: 'Submit Time:', value: submitDate.value },
+  { label: labelColon(t('common.meta.organism')), value: vocabLabel(props.dataset.organism) },
+  { label: labelColon(t('common.meta.organismPart')), value: vocabLabel(props.dataset.organismPart) },
+  { label: labelColon(t('common.meta.ionisationSource')), value: vocabLabel(props.dataset.ionSource) },
+  { label: labelColon(t('common.meta.analyzer')), value: vocabLabel(props.dataset.analyzer) },
+  { label: labelColon(t('datasets.field.fileSize')), value: formattedSize.value },
+  { label: labelColon(t('datasets.field.submittedBy')), value: props.dataset.submitter },
+  { label: labelColon(t('datasets.card.submitTime')), value: submitDate.value },
 ])
 
 interface ActionItem {
@@ -151,18 +153,18 @@ const actionItems = computed<ActionItem[]>(() => {
   // Upload status
   const status = props.dataset.status
   if (status === 'uploading')
-    items.push({ id: 'status', label: 'Processing', colorClass: 'text-info', spinner: true })
+    items.push({ id: 'status', label: t('common.status.processing'), colorClass: 'text-info', spinner: true })
   else if (status === 'completed')
-    items.push({ id: 'status', icon: 'success', label: 'Uploaded', colorClass: 'text-success' })
+    items.push({ id: 'status', icon: 'success', label: t('datasets.card.uploaded'), colorClass: 'text-success' })
   else if (status === 'failed')
-    items.push({ id: 'status', icon: 'error', label: 'Failed', colorClass: 'text-error' })
+    items.push({ id: 'status', icon: 'error', label: t('common.status.failed'), colorClass: 'text-error' })
 
   // 元信息编辑（原本在 Dataset Overview 页，现收到卡片右侧；可见性标志已挪到文件名旁）
   if (props.isMyDataset)
     items.push({
       id: 'edit',
       icon: 'pencil',
-      label: 'Edit',
+      label: t('common.action.edit'),
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
       onClick: () => emit('edit', props.dataset.id),
     })
@@ -176,7 +178,7 @@ const actionItems = computed<ActionItem[]>(() => {
     items.push({
       id: 'explore',
       icon: 'search',
-      label: 'Visualize',
+      label: t('datasets.card.visualize'),
       colorClass: 'text-primary hover:text-primary-focus transition-colors',
       onClick: () => emit('explore', props.dataset.id),
     })
@@ -185,7 +187,7 @@ const actionItems = computed<ActionItem[]>(() => {
     items.push({
       id: 'explore',
       icon: 'search',
-      label: 'Explore',
+      label: t('datasets.card.explore'),
       colorClass: 'text-primary hover:text-primary-focus transition-colors',
       onClick: () => emit('explore', props.dataset.id),
     })
@@ -195,21 +197,21 @@ const actionItems = computed<ActionItem[]>(() => {
     {
       id: 'overview',
       icon: 'document-text',
-      label: 'Overview',
+      label: t('datasets.card.overview'),
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
       onClick: () => emit('view-overview', props.dataset.id),
     },
     props.packing
       ? {
           id: 'download',
-          label: 'Packing',
+          label: t('datasets.card.packing'),
           colorClass: 'text-base-content/80',
           spinner: true,
         }
       : {
           id: 'download',
           icon: 'download',
-          label: 'Download',
+          label: t('common.action.download'),
           colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
           onClick: () => emit('download', props.dataset.id),
         },
@@ -219,7 +221,7 @@ const actionItems = computed<ActionItem[]>(() => {
     items.push({
       id: 'delete',
       icon: 'trash',
-      label: 'Delete',
+      label: t('common.action.delete'),
       colorClass: 'text-error hover:text-error transition-colors',
       onClick: () => emit('delete', props.dataset.id),
     })

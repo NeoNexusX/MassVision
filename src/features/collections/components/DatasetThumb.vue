@@ -7,7 +7,7 @@
     <img
       v-if="!failed"
       :src="previewUrl"
-      :alt="alt"
+:alt="alt ?? $t('collections.thumb.defaultAlt')"
       class="w-full h-full object-contain"
       loading="lazy"
       @error="failed = true"
@@ -26,7 +26,7 @@ const props = withDefaults(
     fileId: string
     alt?: string
   }>(),
-  { alt: 'Dataset preview' },
+  { alt: undefined },
 )
 
 // 随 fileId 跟随：调用方目前都用 :key 绑定 id 不会变更，但组件契约上不应缓存旧值

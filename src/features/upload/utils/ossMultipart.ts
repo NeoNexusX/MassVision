@@ -1,14 +1,22 @@
 import type OSS from 'ali-oss'
 import { OSS_UPLOAD } from '@/shared/config'
 import type { PartRetryInfo } from './imzmlHelper'
-import { isAbortLike } from './uploadAbort'
+import { isAbortLike, messageOf } from './uploadAbort'
+import { t } from '@/i18n'
 
 export interface DonePart {
   number: number
   etag: string
 }
 
-export interface MultipartHooks {
+export interface MultipartOptions {
+  /**
+   * 单个分片的上传超时（ms）。必填，一般传 `OSS_UPLOAD.partTimeout`。
+   *
+   * 做成参数而不是在这里读常量，只是为了能在测试里缩短它。
+   * 取值的权衡见 `OSS_UPLOAD.partTimeout` 的注释。
+   */
+  partTimeout: number
   /** 用户中止 / 组件卸载。用于打断退避等待并停止后续重试 */
   signal?: AbortSignal
   /**
@@ -31,6 +39,9 @@ export interface MultipartUploadSession {
 export function normalizeEtag(etag: string): string {
   return etag.replace(/"/g, '').trim().toUpperCase()
 }
+
+/** 第 `retryIndex` 次重试之前要等多久：1s、2s、4s…… 封顶 8s */
+const backoffMs = (retryIndex: number) => Math.min(1000 * 2 ** retryIndex, 8000)
 
 /**
  * 可被中止打断的退避等待。
@@ -63,19 +74,21 @@ function interruptibleSleep(ms: number, signal?: AbortSignal): Promise<void> {
  * 与 `client.multipartUpload()` 的区别：那个 API 要求先有一个完整的 File，
  * 这里则是外部把分片一片片喂进来，配合压缩流实现「边压边传、不落盘」。
  *
- * 单片失败会带指数退避重试 `OSS_UPLOAD.partRetries` 次 —— 这是流式方案里
- * 最主要的容错手段，覆盖绝大多数网络抖动，无需回到磁盘缓存。每次重试都会
- * 通过 `hooks.onRetry` 上报，UI 据此显示「第 N 片失败，正在第 X/Y 次重试」。
+ * 单片失败会带指数退避重试 `OSS_UPLOAD.partRetries` 次（当前 = 1，共 2 次尝试），
+ * 每次都通过 `onRetry` 上报，UI 据此显示「第 N 片失败，正在第 X/Y 次重试」。
+ *
+ * 任一分片耗尽尝试次数即抛出，上层据此停掉整条流水线并保留会话供续传 ——
+ * 不需要单独的熔断逻辑，第一个耗尽的分片已经把整轮停掉了。
  */
 export async function openMultipartSession(
   client: OSS,
   ossPath: string,
-  existing?: { uploadId: string; doneParts: DonePart[] },
-  hooks?: MultipartHooks,
+  existing: { uploadId: string; doneParts: DonePart[] } | undefined,
+  options: MultipartOptions,
 ): Promise<MultipartUploadSession> {
   const uploadId = existing?.uploadId ?? (await client.initMultipartUpload(ossPath)).uploadId
   const doneParts: DonePart[] = existing ? [...existing.doneParts] : []
-  const signal = hooks?.signal
+  const { signal, partTimeout, onRetry } = options
 
   return {
     uploadId,
@@ -88,36 +101,46 @@ export async function openMultipartSession(
       for (let attempt = 0; attempt <= OSS_UPLOAD.partRetries; attempt++) {
         // 每轮开头检查：中止后不再发起新的尝试
         if (signal?.aborted) throw signal.reason
-        if (attempt > 0) {
-          await interruptibleSleep(Math.min(1000 * 2 ** (attempt - 1), 8000), signal)
-        }
+        if (attempt > 0) await interruptibleSleep(backoffMs(attempt - 1), signal)
         try {
           const result = await client.uploadPart(ossPath, uploadId, partNo, blob, 0, blob.size, {
-            timeout: OSS_UPLOAD.partTimeout,
+            timeout: partTimeout,
+            // 把 ali-oss 浏览器端的默认值手动补回来：它的两个高层入口（put、
+            // multipartUpload）都默认关掉 Content-MD5，因为浏览器里只能用纯 JS
+            // 算，而底层的 uploadPart 只是原样转发 options、没有这层包装。
+            // 我们为了不落盘必须走底层 API，于是附带丢掉了这个默认值。
+            //
+            // 开着的代价实测：每片 50MB 阻塞主线程约 600ms，且中间会展开成
+            // 一千二百万元素的 JS 数组（堆尖峰 357MB）。
+            // 关掉之后完整性由 TLS 和 OSS 返回的 ETag（即分片 MD5）保证。
+            disabledMD5: true,
           })
           // 中止期间完成的分片不记账：它对应的 uploadId 可能马上就被作废了
           if (signal?.aborted) throw signal.reason
           doneParts.push({ number: partNo, etag: result.etag })
-          if (retried) hooks?.onRetry?.(null)
+          if (retried) onRetry?.(null)
           return
         } catch (err) {
           if (isAbortLike(err)) throw err
           lastError = err
           if (attempt < OSS_UPLOAD.partRetries) {
             retried = true
-            hooks?.onRetry?.({
+            onRetry?.({
               partNo,
               attempt: attempt + 1,
               maxAttempts: OSS_UPLOAD.partRetries + 1,
-              reason: err instanceof Error ? err.message : String(err),
-              nextRetryInMs: Math.min(1000 * 2 ** attempt, 8000),
+              reason: messageOf(err),
+              nextRetryInMs: backoffMs(attempt),
             })
           }
         }
       }
-      const detail = lastError instanceof Error ? lastError.message : String(lastError)
       throw new Error(
-        `OSS part ${partNo} failed after ${OSS_UPLOAD.partRetries + 1} attempts: ${detail}`,
+        t('upload.error.partFailed', {
+          part: partNo,
+          attempts: OSS_UPLOAD.partRetries + 1,
+          detail: messageOf(lastError),
+        }),
       )
     },
 

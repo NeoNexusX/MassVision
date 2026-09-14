@@ -1,8 +1,9 @@
 <template>
   <div class="flex flex-wrap items-center gap-3 mb-1 pt-1">
-    <h3 class="text-[1.5em] font-semibold">{{ title }}</h3>
-    <!-- 右侧控件组统一 1.125em；daisyUI 的 select/btn 自带 font-size 不继承，仍需各自声明。 -->
-    <div class="ml-auto flex flex-wrap items-center gap-2 text-[1.125em]">
+    <h3 class="kawaru-text-112 font-semibold">{{ title }}</h3>
+    <!-- 右侧控件组统一 kawaru-text-81；daisyUI 的 select/btn 自带 font-size，
+         不继承，仍需各自显式挂档位。 -->
+    <div class="ml-auto flex flex-wrap items-center gap-2 kawaru-text-81">
       <!-- m/z 搜索（continuous 模式）：可填写目标值，Search/回车命中最近的峰；
            悬停显示更高精度的当前值 -->
       <template v-if="dataMode === 'continuous'">
@@ -26,10 +27,10 @@
         </div>
         <button
           class="btn btn-fluid btn-ghost"
-          title="Jump to the nearest m/z peak within tolerance"
+          :title="$t('vizworkbench.toolbar.searchHint')"
           @click="onSearchMz"
         >
-          Search
+          {{ $t('common.action.search') }}
         </button>
       </template>
       <!-- 像素坐标显示（processed 模式） -->
@@ -37,30 +38,33 @@
         v-if="dataMode === 'processed' && pixelCoord"
         class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 h-8 flex items-center"
       >
-        <span class="text-base-content/50 pr-[0.25em]">Pixel</span>
+        <span class="text-base-content/50 pr-[0.25em]">{{ $t('vizworkbench.spectrum.pixel') }}</span>
         <span class="font-mono font-semibold">({{ pixelCoord.x }}, {{ pixelCoord.y }})</span>
       </div>
       <!-- m/z 容差（仅 continuous 模式） -->
       <div v-if="dataMode === 'continuous'" class="flex items-center gap-1">
-        <span class="text-base-content/50">Tolerance &plusmn;</span>
+        <span class="text-base-content/50">{{ $t('vizworkbench.toolbar.tolerance') }}</span>
         <input
           type="text"
           inputmode="decimal"
           autocomplete="off"
           spellcheck="false"
-          class="input input-sm input-bordered w-24 font-mono text-[1em]"
+          class="input input-sm input-bordered w-24 font-mono kawaru-text-81"
           :value="mzTolerance"
           @input="onToleranceInput"
           @blur="onToleranceBlur"
         />
       </div>
-      <!-- Colormap（两种模式都可用；多离子叠加时置灰，颜色由通道决定） -->
+      <!-- Colormap（两种模式都可用；多离子叠加时置灰，颜色由通道决定）
+           宽度用 em 而非 w-28：字号随窗口流体放大，固定 7rem 的盒子在宽屏下可用文字空间
+           反而净缩水（110px − 2.75em），最长的 TIC norm/Viridis 会溢出去压到箭头上。
+           7.5em 扣掉 2.75em 内边距后留 4.75em 文字空间，够放最长的英文标签。 -->
       <select
         data-testid="colormap-select"
-        class="select select-fluid select-bordered w-28"
+        class="select select-fluid select-bordered w-[7.5em]"
         :class="{ 'opacity-50': channelsMode }"
         :disabled="channelsMode"
-        :title="channelsMode ? 'Not used in multi-ion overlay mode' : undefined"
+        :title="channelsMode ? $t('vizworkbench.ionImage.rangeDisabled') : undefined"
         :value="colormap"
         @change="$emit('update:colormap', ($event.target as HTMLSelectElement).value)"
       >
@@ -69,36 +73,39 @@
       <!-- 强度标度：TIC 归一化仅 continuous 模式（processed 本身就是 TIC 图） -->
       <div class="flex items-center gap-1.5">
         <span v-if="normalizationLoading" class="loading loading-spinner loading-xs"></span>
+        <!-- 强度标度的选项会被翻译：中文「TIC 归一化」约 5em，7.5em 的盒子只留 4.75em 会压到箭头，
+             故加宽到 8em（文字空间 5.25em）。w-auto 靠不住——原生 select 的固有宽度不含 select-fluid
+             的 em 内边距换算。色图名不翻译，仍保持 7.5em。 -->
         <select
           data-testid="intensity-scale-select"
-          class="select select-fluid select-bordered w-28"
+          class="select select-fluid select-bordered w-[8em]"
           :class="[normalizationError ? 'select-error' : '', channelsMode ? 'opacity-50' : '']"
           :disabled="channelsMode"
           :title="
             channelsMode
-              ? 'Not used in multi-ion overlay mode'
+              ? $t('vizworkbench.ionImage.rangeDisabled')
               : normalizationError
-                ? `Normalization failed: ${normalizationError}`
+                ? $t('vizworkbench.toolbar.normalizationFailed', { error: normalizationError })
                 : undefined
           "
           :value="intensityScale"
           @change="$emit('update:intensityScale', ($event.target as HTMLSelectElement).value)"
         >
-          <option value="linear">Linear</option>
-          <option value="log">Log</option>
-          <option v-if="dataMode === 'continuous' && hasTic" value="tic" title="Divide each pixel by its total ion current (pre-computed stats/tic)">TIC norm</option>
+          <option value="linear">{{ $t('vizworkbench.toolbar.linear') }}</option>
+          <option value="log">{{ $t('vizworkbench.toolbar.log') }}</option>
+          <option v-if="dataMode === 'continuous' && hasTic" value="tic" :title="$t('vizworkbench.toolbar.ticNormHint')">{{ $t('vizworkbench.toolbar.ticNorm') }}</option>
         </select>
       </div>
       <button
         class="btn btn-fluid btn-ghost"
         :class="{ 'opacity-50': channelsMode }"
         :disabled="channelsMode"
-        :title="channelsMode ? 'Not used in multi-ion overlay mode' : undefined"
+        :title="channelsMode ? $t('vizworkbench.ionImage.rangeDisabled') : undefined"
         @click="$emit('reset')"
       >
-        Reset
+        {{ $t('common.action.reset') }}
       </button>
-      <button class="btn btn-fluid btn-ghost" title="Export current view as PNG" @click="$emit('download')">
+      <button class="btn btn-fluid btn-ghost" :title="$t('vizworkbench.toolbar.exportPng')" @click="$emit('download')">
         <SvgIcon type="download" />
         PNG
       </button>
@@ -112,7 +119,7 @@ import type { DataMode } from '@/services/zarr/types/zarr'
 import { ZARR_STORE } from '@/shared/config/defaults'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 
-/** 可选色图：value 传给 zarr 渲染，label 用于展示 */
+/** 可选色图：value 传给 zarr 渲染，label 用于展示（色图是专有名称，各语言都显示英文原名） */
 const COLORMAPS = [
   { value: 'viridis', label: 'Viridis' },
   { value: 'inferno', label: 'Inferno' },
@@ -214,28 +221,30 @@ function onToleranceBlur(e: Event) {
 </script>
 
 <style scoped>
-/* daisyUI 的 btn-xs…btn-xl 档位用 rem 推导高度与内边距（--size-field），字号变化时尺寸不跟随。
-   这里把 .btn 的尺寸属性全部改写为 em，让按钮随工具栏字号等比缩放。
-   与 .btn 并用（.btn 仍提供配色、圆角与交互），不要再叠加 btn-sm 等档位类。
-   高度与内边距沿用原 btn-sm 的比例（2 / 0.75），但字号改为 1em —— 即继承工具栏的
-   text-[1.125em] 基准，而非 btn-sm 固定的 .75rem，否则按钮文字不会跟着缩放。 */
+/* daisyUI 的 btn-xs…btn-xl 用 rem 推导高度与内边距（--size-field），字号变了尺寸不跟。
+   这里把尺寸全改成 em，让按钮随自身字号等比缩放；比例沿用 btn-sm（2 / 0.75）。
+   与 .btn 并用（它仍提供配色/圆角/交互），但不要再叠加 btn-sm 等档位类。 */
 .btn-fluid {
   height: 2em;
   min-height: 1rem;
   padding-inline: 0.75em;
-  font-size: 1em;
+  font-size: calc(var(--kawaru-fs) * 0.8125);
   gap: 0.1em;
 }
 
 /* select 版的流体尺寸，高度与 .btn-fluid 对齐。
    .select 的下拉箭头是 background-image，靠右侧内边距让位、靠 background-position
    定位（默认 .75rem/1.75rem 与 20px/16.1px 都是绝对值），所以这三项要一并改成 em，
-   否则缩放时文字会顶到箭头上。 */
+   否则缩放时文字会顶到箭头上。
+   换算基准是 .select 自带的 .875rem = 14px，四个值都要除以它——注意右内边距
+   1.75rem ÷ 14px = 2em（不是 1.75em）。写成 1.75em 会让文字右界落在 1.75em，
+   而箭头左端在 1.4286 + 0.2857 = 1.7143em，仅剩 0.036em 间隙，文字一贴边就糊上箭头。
+   2em 还原了原设计 4px（0.286em）的安全间距。 */
 .select-fluid {
   height: 2em;
   min-height: 1rem;
-  padding-inline: 0.75em 1.75em;
-  font-size: 1em;
+  padding-inline: 0.75em 2em;
+  font-size: calc(var(--kawaru-fs) * 0.8125);
   background-position:
     calc(100% - 1.4286em) calc(1px + 50%),
     calc(100% - 1.15em) calc(1px + 50%);

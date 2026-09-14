@@ -65,7 +65,7 @@ test.describe('Unauthenticated', () => {
 
     // 未登录 → 踢到 /login，URL 带 redirect 参数
     await expect(page).toHaveURL(/\/login/)
-    await expect(page.url()).toContain('redirect=')
+    expect(page.url()).toContain('redirect=')
   })
 
   // ── 注册页表单校验（不提交，不调后端）──
@@ -123,7 +123,7 @@ test.describe('Unauthenticated', () => {
 
     await page.fill('input[placeholder="Email"]', 'not-an-email')
     await page.locator('input[placeholder="Email"]').blur()
-    await page.click('button:has-text("Send Verification Code")')
+    await page.click('button:has-text("Send Code")')
 
     // 非法邮箱格式 → toast
     await expect(page.locator('.toast')).toContainText('valid email')
@@ -157,7 +157,7 @@ test.describe('Authenticated', () => {
     await page.click('button:has-text("Save All Changes")')
 
     // 保存成功 → toast
-    await expect(page.locator('.toast')).toContainText('Profile info updated')
+    await expect(page.locator('.toast')).toContainText('Updated')
   })
 
   // ── 路由守卫 + 持久化 ──

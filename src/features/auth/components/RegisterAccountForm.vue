@@ -28,11 +28,13 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
   >
     <div class="min-h-[72px] mb-4">
       <h2
-        class="page-title font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
+        class="kawaru-text-page-title leading-[1.15] font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent w-fit"
       >
-      Create Account
-     </h2>
-      <p class="page-subtitle text-base-content/70 mt-5 mb-5">Join {{ getAppName() }} for scientific data analysis</p>
+        {{ $t('auth.register.title') }}
+      </h2>
+      <p class="kawaru-text-100 text-base-content/70 mt-5 mb-5">
+        {{ $t('auth.register.subtitle', { app: getAppName() }) }}
+      </p>
     </div>
 
     <div class="flex flex-col gap-5">
@@ -44,7 +46,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
           autocomplete="username"
           required
           validator
-          placeholder="Username"
+          :placeholder="$t('common.field.username')"
           :pattern="patterns.username"
           :error="errors.username"
           @blur="validateField('username')"
@@ -59,7 +61,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
           autocomplete="email"
           required
           validator
-          placeholder="Email"
+          :placeholder="$t('common.field.email')"
           :pattern="patterns.email"
           :error="errors.email"
           @blur="validateField('email')"
@@ -74,7 +76,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
           required
           validator
           autocomplete="new-password"
-          placeholder="Password"
+          :placeholder="$t('common.field.password')"
           :error="errors.password"
           @focus="clearError('password')"
           @blur="validateField('password')"
@@ -86,8 +88,8 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
             :class="progressBarClass"
             max="5"
           ></progress>
-          <div class="flex justify-between text-xs mb-2 opacity-70">
-            <span>Strength</span>
+          <div class="flex justify-between kawaru-text-75 mb-2 opacity-70">
+            <span>{{ $t('auth.strength.label') }}</span>
             <span>{{ strengthLabel }}</span>
           </div>
         </div>
@@ -100,7 +102,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
           required
           validator
           autocomplete="new-password"
-          placeholder="Confirm Password"
+          :placeholder="$t('auth.field.confirmPassword')"
           :error="errors.confirm_password"
           @blur="validateField('confirm_password')"
           @focus="clearError('confirm_password')"
@@ -116,7 +118,7 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
                 type="text"
                 required
                 validator
-                placeholder="Verify Code"
+                :placeholder="$t('auth.field.verificationCode')"
                 :pattern="patterns.verify_code"
                 :error="errors.verify_code"
                 @blur="validateField('verify_code')"
@@ -126,28 +128,30 @@ const strengthLabel = computed(() => passwordStrengthLabel(props.passwordScore))
             <button
               type="button"
               @click="sendVerificationCode"
-              class="btn btn-neutral w-full sm:w-auto sm:min-w-[100px]"
+              class="btn btn-neutral w-full sm:w-auto sm:min-w-[100px] kawaru-text-87"
               :disabled="isCountdownActive || loading.sendCode || isExhausted"
               :class="{ 'opacity-50 cursor-not-allowed': isExhausted }"
-              :title="isExhausted ? 'Too many requests for now' : ''"
+              :title="isExhausted ? $t('auth.code.tooManyRequests') : ''"
             >
               <span v-if="loading.sendCode" class="loading loading-spinner loading-xs"></span>
-              <span v-else-if="isCountdownActive" class="font-mono">{{ countdown }}s</span>
-              <span v-else-if="isExhausted">Limit Reached</span>
-              <span v-else>Send Code</span>
+              <span v-else-if="isCountdownActive" class="font-mono">{{
+                $t('auth.code.countdown', { seconds: countdown })
+              }}</span>
+              <span v-else-if="isExhausted">{{ $t('auth.code.limitReached') }}</span>
+              <span v-else>{{ $t('auth.code.send') }}</span>
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="mt-auto pt-6 flex items-center justify-center text-sm">
-      <span class="opacity-70">Already have an account?</span>
+    <div class="mt-auto pt-6 flex items-center justify-center kawaru-text-87">
+      <span class="opacity-70">{{ $t('auth.register.haveAccount') }}</span>
       <router-link
         to="/login"
         class="link link-primary font-bold ml-1 no-underline hover:underline"
       >
-        Sign in
+        {{ $t('auth.register.signIn') }}
       </router-link>
     </div>
   </div>

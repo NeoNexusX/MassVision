@@ -38,6 +38,7 @@ import {
   type RGB,
 } from '@/features/vizworkbench/utils/regionPalette'
 import type { DataMode } from '@/services/zarr/types/zarr'
+import { t } from '@/i18n'
 
 // ---------- types ----------
 
@@ -136,7 +137,7 @@ export function useRegionComparison(deps: {
       for (const c of deps.kmeansClusters.value) {
         regions.push({
           value: `cluster:${c.id}`,
-          label: `Cluster ${c.id}`,
+          label: t('vizworkbench.kmeans.cluster', { id: c.id }),
           source: { type: 'cluster', id: c.id },
           color: rgbCss({ r: c.color[0], g: c.color[1], b: c.color[2] }),
         })
@@ -380,7 +381,7 @@ export function useRegionComparison(deps: {
     const ctx = getSharedZarrContext()
     const store = ctx.store
     if (!store) {
-      error.value = 'Data not loaded yet'
+      error.value = t('vizworkbench.compare.dataNotLoaded')
       return
     }
 
@@ -405,7 +406,7 @@ export function useRegionComparison(deps: {
       const membersA = buildMemberRasters(sourcesA)
       const membersB = buildMemberRasters(sourcesB)
       if (!membersA || !membersB) {
-        error.value = 'Failed to build region masks - ensure KMeans/ROI data is available'
+        error.value = t('vizworkbench.compare.maskBuildFailed')
         return
       }
 
@@ -426,7 +427,7 @@ export function useRegionComparison(deps: {
       if (cancelled) return
 
       if (maskA.pixelCount === 0 || maskB.pixelCount === 0) {
-        error.value = 'One or both regions contain no pixels'
+        error.value = t('vizworkbench.compare.emptyRegion')
         return
       }
 
@@ -446,7 +447,7 @@ export function useRegionComparison(deps: {
         )
         if (cancelled) return
         if (binCount === 0) {
-          error.value = 'No m/z bins found in the selected regions'
+          error.value = t('vizworkbench.compare.noBins')
           return
         }
 
@@ -483,13 +484,13 @@ export function useRegionComparison(deps: {
         )
         if (cancelled) return
         if (!stats) {
-          error.value = 'Region comparison requires the pixel-major spectra group (zarr v1.1)'
+          error.value = t('vizworkbench.compare.needsPixelMajor')
           return
         }
 
         const mzAxis = ctx.mzAxis
         if (!mzAxis) {
-          error.value = 'm/z axis not available'
+          error.value = t('vizworkbench.compare.noMzAxis')
           return
         }
 

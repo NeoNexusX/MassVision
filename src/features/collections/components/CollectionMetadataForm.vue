@@ -9,10 +9,10 @@
     <section v-for="group in METADATA_GROUPS" :key="group.id">
       <h4
         v-if="fieldsOf(group.id).length"
-        class="text-[0.85em] font-semibold uppercase tracking-wide text-base-content/50
+        class="kawaru-text-87 font-semibold uppercase tracking-wide text-base-content/50
           border-b border-base-200 dark:border-slate-700 pb-1 mb-3"
       >
-        {{ group.label }}
+        {{ group.label() }}
       </h4>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
         <div
@@ -22,8 +22,8 @@
           :class="field.type === 'long' ? 'sm:col-span-2' : ''"
         >
           <label class="flex flex-col gap-1 min-w-0">
-            <span class="text-[0.8em] font-medium text-base-content/70">
-              {{ field.label }}
+            <span class="kawaru-text-81 font-medium text-base-content/70">
+              {{ field.label() }}
               <span v-if="field.key === 'name'" class="text-error">*</span>
             </span>
 
@@ -31,7 +31,7 @@
               v-if="field.type === 'text'"
               v-model="d[field.key]"
               type="text"
-              class="input input-bordered w-full text-[0.95em]"
+              class="input input-bordered w-full kawaru-text-95"
               :maxlength="field.key === 'name' ? 80 : undefined"
               :placeholder="placeholderOf(field)"
             />
@@ -42,13 +42,13 @@
               v-model="d[field.key]"
               rows="2"
               maxlength="300"
-              class="textarea textarea-bordered w-full text-[0.95em] resize-none"
+              class="textarea textarea-bordered w-full kawaru-text-95 resize-none"
               :placeholder="placeholderOf(field)"
             ></textarea>
             <TagInput
               v-else
               v-model="d[field.key]"
-              :name="field.label"
+:name="field.label()"
               :placeholder="placeholderOf(field)"
             />
           </label>
@@ -56,15 +56,15 @@
           <!-- 用户接管了自动推导的字段后，给一个回到「按数据集识别」的入口 -->
           <div
             v-if="autoKeys.includes(field.key) && lockedKeys.includes(field.key)"
-            class="flex items-center gap-1.5 text-[0.75em] text-base-content/50"
+            class="flex items-center gap-1.5 kawaru-text-75 text-base-content/50"
           >
-            <span>Edited by hand.</span>
+            <span>{{ $t('collections.metaForm.editedByHand') }}</span>
             <button
               type="button"
               class="text-primary hover:underline"
               @click="emit('reset-field', field.key)"
             >
-              Reset to detected
+              {{ $t('collections.metaForm.resetToDetected') }}
             </button>
           </div>
         </div>
@@ -109,9 +109,10 @@ function fieldsOf(group: MetadataGroupId) {
   )
 }
 
-function placeholderOf(field: MetadataFieldDef): string {
+function placeholderOf(field: MetadataFieldDef): string | undefined {
   if (field.key === 'doi') return '10.1000/xyz123'
-  if (field.type === 'list') return `Add ${field.label.toLowerCase()}`
+  // list 字段交给 TagInput 的缺省占位（「输入后按回车添加」），不再逐字段拼 "Add xxx"
+  if (field.type === 'list') return undefined
   return ''
 }
 </script>

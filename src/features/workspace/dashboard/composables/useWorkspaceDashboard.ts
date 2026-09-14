@@ -3,7 +3,9 @@ import { listMyProcesses, deleteProcess, getProcessingStats, type ProcessRunFilt
 import { parseAlgorithms } from '@/shared/utils/methodsNormalize'
 import { buildPageList } from '@/shared/utils/pagination'
 import { parseUtcDate } from '@/shared/utils/date'
+import { formatDate, formatDateTime, formatTime } from '@/shared/utils/format'
 import { getConfig } from '@/shared/config/runtimeConfig'
+import { t } from '@/i18n'
 
 export interface ProcessItem {
   id: number
@@ -55,18 +57,18 @@ export function useWorkspaceDashboard() {
     const finishedDate = parseUtcDate(p.finished_at)
     return {
       id: String(p.id),
-      name: `Process #${p.id}`,
+      name: t('workspace.table.processName', { id: p.id }),
       dataset: getFileName(p),
       filename: p.filename || '',
       fileId: p.source_file_id,
       methods: parseAlgorithms(p.params_json),
       status: p.status,
-      created: createdDate?.toLocaleString() ?? '',
-      createdDate: createdDate?.toLocaleDateString() ?? '',
-      createdTime: createdDate?.toLocaleTimeString() ?? '',
+      created: formatDateTime(createdDate),
+      createdDate: formatDate(createdDate),
+      createdTime: formatTime(createdDate),
       createdAt: p.created_at,
-      finishedDate: finishedDate?.toLocaleDateString() ?? '',
-      finishedTime: finishedDate?.toLocaleTimeString() ?? '',
+      finishedDate: formatDate(finishedDate),
+      finishedTime: formatTime(finishedDate),
       finishedAt: p.finished_at,
       errorMessage: p.error_message || null,
     }
@@ -81,7 +83,7 @@ export function useWorkspaceDashboard() {
 
   // ── Methods ─────────────────────────────────────────────────────
   function getFileName(p: ProcessItem): string {
-    return (p.filename || 'Unknown').replace(/\.[^.]+$/, '')
+    return (p.filename || t('workspace.table.unknownFile')).replace(/\.[^.]+$/, '')
   }
 
   async function fetchStats() {

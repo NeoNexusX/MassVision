@@ -39,6 +39,7 @@ import {
   type MaskExportPayload,
 } from '@/features/vizworkbench/utils/maskExport'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
 interface VizWorkbenchState {
@@ -224,10 +225,10 @@ function onAddCurrentChannel() {
   const res = addIonChannel()
   if (res.ok) return
   const messages: Record<typeof res.reason, string> = {
-    'not-continuous': 'Multi-ion overlay is only available for continuous data.',
-    'not-ready': 'Data is still loading.',
-    full: `At most ${MAX_ION_CHANNELS} channels are supported.`,
-    duplicate: 'That m/z is already a channel.',
+    'not-continuous': t('vizworkbench.page.channelNotContinuous'),
+    'not-ready': t('vizworkbench.page.channelNotReady'),
+    full: t('vizworkbench.page.channelFull', { max: MAX_ION_CHANNELS }),
+    duplicate: t('vizworkbench.page.channelDuplicate'),
   }
   showToast(messages[res.reason], 'warning')
 }
@@ -283,8 +284,6 @@ const {
   filterStats: cmpFilterStats,
   availableRegions: cmpAvailableRegions,
   canCompare: cmpCanCompare,
-  selectedRegionsA: cmpSelectedRegionsA,
-  selectedRegionsB: cmpSelectedRegionsB,
   colorA: cmpColorA,
   colorB: cmpColorB,
   buildThumbnailRegions: cmpBuildThumbnailRegions,
@@ -341,7 +340,7 @@ function handleExportMasks(payload: MaskExportPayload) {
   const width = ionCols.value
   const height = ionRows.value
   if (!width || !height) {
-    showToast('Ion image not loaded', 'error')
+    showToast(t('vizworkbench.page.ionImageNotLoaded'), 'error')
     return
   }
 
@@ -362,16 +361,16 @@ function handleExportMasks(payload: MaskExportPayload) {
   }
 
   if (!any) {
-    showToast('Nothing selected to export', 'warning')
+    showToast(t('vizworkbench.page.nothingToExport'), 'warning')
     return
   }
 
   try {
     exportMask(mask, payload.format, 'mask')
-    showToast('Mask exported', 'success')
+    showToast(t('common.feedback.exported'), 'success')
   } catch (err) {
     console.error('[ROI] mask export failed', err)
-    showToast('Failed to export mask', 'error')
+    showToast(t('common.feedback.exportFailed'), 'error')
   }
 }
 
@@ -423,12 +422,12 @@ async function handleSelectMzIndex(idx: number) {
 async function onSearchMz(raw: string) {
   const target = Number(raw.trim())
   if (!Number.isFinite(target) || target <= 0) {
-    showToast('Please enter a valid m/z value.', 'error')
+    showToast(t('vizworkbench.page.invalidMz'), 'error')
     return
   }
   const axis = mzAxisRef.value
   if (!axis || !axis.length) {
-    showToast('m/z axis is not loaded yet.', 'error')
+    showToast(t('vizworkbench.page.mzAxisNotLoaded'), 'error')
     return
   }
   const idx = findClosestIndex(axis, target)
@@ -437,7 +436,12 @@ async function onSearchMz(raw: string) {
   if (delta > mzTolerance.value) {
     const fmtDelta = delta < 0.001 ? delta.toExponential(2) : delta.toFixed(4)
     showToast(
-      `No peak within ±${mzTolerance.value} of ${target}: nearest is ${nearest.toFixed(4)} (Δ ${fmtDelta}). Widen the tolerance or try another value.`,
+      t('vizworkbench.page.noPeakInTolerance', {
+        tolerance: mzTolerance.value,
+        target,
+        nearest: nearest.toFixed(4),
+        delta: fmtDelta,
+      }),
       'error',
     )
     return
