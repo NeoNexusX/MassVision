@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { shallowRef, type ShallowRef } from 'vue'
 
 const { showToastMock } = vi.hoisted(() => ({ showToastMock: vi.fn() }))
@@ -15,6 +15,7 @@ vi.mock('../../api/collectionApi', () => ({
 import { updateCollection } from '../../api/collectionApi'
 import { useCollectionEdit } from '../useCollectionEdit'
 import type { CollectionDetail } from '../../types/collection'
+import { loadCoreMessages, loadFeatureMessages } from '@/i18n'
 
 const updateMock = vi.mocked(updateCollection)
 
@@ -41,6 +42,10 @@ function makeDetail(): CollectionDetail {
     members: [],
   }
 }
+
+
+// 被测代码用 t() 取文案：预先加载英文语言包，断言保持英文原文
+beforeAll(() => Promise.all([loadCoreMessages('en'), loadFeatureMessages('collections')]))
 
 describe('useCollectionEdit', () => {
   let detail: ShallowRef<CollectionDetail | null>
@@ -88,7 +93,7 @@ describe('useCollectionEdit', () => {
     expect(saved).toEqual([updated])
     expect(edit.editing.value).toBe(false)
     expect(edit.draft.value).toBeNull()
-    expect(showToastMock).toHaveBeenCalledWith('Collection updated', 'success')
+    expect(showToastMock).toHaveBeenCalledWith('Updated', 'success')
   })
 
   it('name 为空时不发请求，留在页面上给出校验提示', async () => {

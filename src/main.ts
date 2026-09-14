@@ -8,6 +8,8 @@ import SvgIcon from './shared/components/SvgIcon.vue'
 import { vReveal } from './shared/directives/reveal'
 import { loadConfig } from './shared/config/runtimeConfig'
 import { initTheme } from './shared/composables/useTheme'
+import { initLocale } from './shared/composables/useLocale'
+import { i18n, loadCoreMessages } from './i18n'
 
 
 /**
@@ -18,7 +20,11 @@ import { initTheme } from './shared/composables/useTheme'
 async function bootstrap() {
   // Apply theme before mounting to avoid a flash of the wrong theme (FOUC).
   initTheme()
-  const config = await loadConfig()
+
+  // 语言同理要在挂载前定下来。initLocale 只读 localStorage / navigator（纯本地、同步），
+  // 核心语言包的下载则与 config.json 并行——不给启动链增加任何串行往返。
+  const locale = initLocale()
+  const [config] = await Promise.all([loadConfig(), loadCoreMessages(locale)])
 
   // 标题取自运行时 config.json 的 appName（index.html 里的静态标题仅作 JS 执行前兜底）
   document.title = config.appName
@@ -30,6 +36,7 @@ async function bootstrap() {
 
   const app = createApp(App)
   app.use(createPinia())
+  app.use(i18n)
   app.use(router)
 
   // Register SvgIcon globally so templates can use <SvgIcon /> without local import

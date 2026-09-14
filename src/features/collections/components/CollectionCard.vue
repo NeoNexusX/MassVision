@@ -13,7 +13,10 @@
        中栏右侧：Organism / Organism Part / Ionisation Source chips（不展示
        关键词）。每个字段最多常显 3 个值，超出的值点 More 用 popover 悬浮窗
        查看（top layer，不占卡片高度，也不会被祖先裁切）。
-       卡片右侧多留一截空白（lg:pr-10），让操作列不贴边。 -->
+       卡片右侧多留一截空白（lg:pr-10），让操作列不贴边。
+
+       字号一律走 kawaru-text-* 档位（style.css），不用 text-[Nem] ——
+       本组件嵌在列表页的任意深度，em 会随层级叠乘，档位才是绝对像素。 -->
   <div
     class="flex flex-col lg:flex-row p-4 lg:pr-10 gap-x-5 gap-y-4 h-full bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-base-300 cursor-pointer"
     @click="$emit('view', collection.id)"
@@ -41,7 +44,7 @@
         ref="carouselEl"
         class="carousel overscroll-x-contain w-full h-full"
         role="group"
-        :aria-label="`${collection.name} covers`"
+        :aria-label="$t('collections.card.coversAria', { name: collection.name })"
         @scroll.passive="onCoverScroll"
       >
         <div v-for="fileId in slides" :key="fileId" class="carousel-item w-full h-full">
@@ -59,22 +62,22 @@
       <template v-if="slideCount > 1">
         <button
           type="button"
-          class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800"
-          aria-label="Previous dataset"
+          class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800 kawaru-text-68"
+          :aria-label="$t('collections.card.prev')"
           @click.stop="goPrev"
         >
           <SvgIcon type="chevron_left" class="w-[1em] h-[1em]" />
         </button>
         <button
           type="button"
-          class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800"
-          aria-label="Next dataset"
+          class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800 kawaru-text-68"
+          :aria-label="$t('collections.card.next')"
           @click.stop="goNext"
         >
           <SvgIcon type="chevron_right" class="w-[1em] h-[1em]" />
         </button>
         <span
-          class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-[0.7em] font-medium bg-base-100/85 dark:bg-slate-800/85 text-base-content/70 border border-base-300"
+          class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded kawaru-text-68 font-medium bg-base-100/85 dark:bg-slate-800/85 text-base-content/70 border border-base-300"
         >
           {{ scrollIndex + 1 }}/{{ slideCount }}
         </span>
@@ -94,7 +97,7 @@
            面板拉到同高，底部凭空多出一段空白。self-start 后空白移出面板边框，
            落在面板与 chips 列之间的留白里，视觉上不再是一个空盒子。
            lg:min-h-[300px]：内容不足时补到 300px，与左侧封面（lg 宽 400px × 3/4
-           = 300px）底边对齐；多出来的空白留在面板底部。 -->
+           = 300px）底边对齐；多出来的空白由下半容器 grow 吃满，底色铺到面板底边。 -->
       <div
         class="flex-1 min-w-0 flex flex-col rounded-lg border border-base-300 overflow-hidden lg:min-h-[300px] xl:self-start"
       >
@@ -103,13 +106,13 @@
         <div class="p-3 min-w-0 flex flex-col gap-3">
           <div class="flex items-start justify-between gap-2.5 min-w-0">
             <h3
-              class="flex-1 min-w-0 truncate font-bold text-[1.4em] leading-snug text-base-content"
+              class="flex-1 min-w-0 truncate font-bold kawaru-text-150 leading-snug text-base-content"
               :title="collection.name"
             >
               {{ collection.name }}
             </h3>
             <span
-              class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.72em] font-medium border"
+              class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 kawaru-text-68 font-medium border"
               :class="ownershipBadge.class"
             >
               <SvgIcon type="circle_stack" class="w-[0.95em] h-[0.95em]" />
@@ -118,21 +121,23 @@
           </div>
 
           <div
-            class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.8em] text-base-content/75"
+            class="flex flex-wrap items-center gap-x-4 gap-y-1 kawaru-text-81 text-base-content/75"
           >
             <span
               class="inline-flex items-center gap-1 min-w-0"
-              :title="`Owner: ${collection.ownerUsername}`"
+              :title="$t('collections.card.owner', { name: collection.ownerUsername })"
             >
-              <span class="text-base-content/45">Creator</span>
+              <span class="text-base-content/45">{{ $t('collections.card.label.creator') }}</span>
               <SvgIcon type="user" class="w-[1.05em] h-[1.05em] shrink-0 text-base-content/60" />
               <span class="truncate font-medium">{{ collection.ownerUsername }}</span>
             </span>
             <span class="whitespace-nowrap">
-              <span class="text-base-content/45">Created</span> {{ formattedCreated }}
+              <span class="text-base-content/45">{{ $t('collections.card.label.created') }}</span>
+              {{ formattedCreated }}
             </span>
             <span class="whitespace-nowrap">
-              <span class="text-base-content/45">Updated</span> {{ formattedDate }}
+              <span class="text-base-content/45">{{ $t('collections.card.label.updated') }}</span>
+              {{ formattedUpdated }}
             </span>
           </div>
         </div>
@@ -143,23 +148,23 @@
           class="grow border-t border-base-300 bg-base-200/40 dark:bg-slate-700/40 p-3 flex flex-col gap-3"
         >
           <div class="flex items-baseline gap-2 min-w-0">
-            <span class="w-[4.6em] shrink-0 text-[0.78em] font-medium text-base-content/45"
-              >Title</span
-            >
+            <span class="w-[4.6em] shrink-0 kawaru-text-75 font-medium text-base-content/45">{{
+              $t('collections.meta.title')
+            }}</span>
             <p
               v-if="collection.title"
-              class="flex-1 min-w-0 truncate text-[0.9em] text-base-content/80"
+              class="flex-1 min-w-0 truncate kawaru-text-87 text-base-content/80"
               :title="collection.title"
             >
               {{ collection.title }}
             </p>
-            <span v-else class="text-[0.9em] text-base-content/40">—</span>
+            <span v-else class="kawaru-text-87 text-base-content/40">—</span>
           </div>
 
           <div class="flex items-baseline gap-2 min-w-0">
-            <span class="w-[4.6em] shrink-0 text-[0.78em] font-medium text-base-content/45"
-              >DOI</span
-            >
+            <span class="w-[4.6em] shrink-0 kawaru-text-75 font-medium text-base-content/45">{{
+              $t('collections.meta.doi')
+            }}</span>
             <div v-if="collection.doi.length" class="flex-1 min-w-0 flex flex-col gap-0.5">
               <a
                 v-for="doi in collection.doi"
@@ -167,7 +172,7 @@
                 :href="doiHref(doi)"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center gap-1.5 min-w-0 text-[0.9em] text-primary hover:underline"
+                class="flex items-center gap-1.5 min-w-0 kawaru-text-87 text-primary hover:underline"
                 :title="doi"
                 @click.stop
               >
@@ -175,14 +180,14 @@
                 <span class="truncate">{{ doi }}</span>
               </a>
             </div>
-            <span v-else class="text-[0.9em] text-base-content/40">—</span>
+            <span v-else class="kawaru-text-87 text-base-content/40">—</span>
           </div>
 
           <!-- 后端 access 字段原样透传，可能是 URL 也可能是标签文本 -->
           <div class="flex items-baseline gap-2 min-w-0">
-            <span class="w-[4.6em] shrink-0 text-[0.78em] font-medium text-base-content/45"
-              >Access</span
-            >
+            <span class="w-[4.6em] shrink-0 kawaru-text-75 font-medium text-base-content/45">{{
+              $t('collections.meta.access')
+            }}</span>
             <div v-if="collection.access.length" class="flex-1 min-w-0 flex flex-col gap-0.5">
               <a
                 v-for="entry in collection.access"
@@ -190,7 +195,7 @@
                 :href="isUrl(entry) ? entry : undefined"
                 :target="isUrl(entry) ? '_blank' : undefined"
                 :rel="isUrl(entry) ? 'noopener noreferrer' : undefined"
-                class="flex items-center gap-1.5 min-w-0 text-[0.9em]"
+                class="flex items-center gap-1.5 min-w-0 kawaru-text-87"
                 :class="
                   isUrl(entry)
                     ? 'text-primary hover:underline'
@@ -203,21 +208,21 @@
                 <span class="truncate">{{ entry }}</span>
               </a>
             </div>
-            <span v-else class="text-[0.9em] text-base-content/40">—</span>
+            <span v-else class="kawaru-text-87 text-base-content/40">—</span>
           </div>
 
           <div class="flex items-baseline gap-2 min-w-0">
-            <span class="w-[4.6em] shrink-0 text-[0.78em] font-medium text-base-content/45"
-              >Journal</span
-            >
+            <span class="w-[4.6em] shrink-0 kawaru-text-75 font-medium text-base-content/45">{{
+              $t('collections.meta.journal')
+            }}</span>
             <p
               v-if="collection.journalName"
-              class="flex-1 min-w-0 truncate text-[0.9em] text-base-content/80 italic"
+              class="flex-1 min-w-0 truncate kawaru-text-87 text-base-content/80 italic"
               :title="collection.journalName"
             >
               {{ collection.journalName }}
             </p>
-            <span v-else class="text-[0.9em] text-base-content/40">—</span>
+            <span v-else class="kawaru-text-87 text-base-content/40">—</span>
           </div>
         </div>
       </div>
@@ -226,17 +231,17 @@
            每个字段最多列 3 个值，超出的值收进 More 悬浮窗（卡片高度不随展开变化） -->
       <div class="xl:w-[17em] shrink-0 flex flex-col gap-2.5 min-w-0">
         <div v-for="field in basicFields" :key="field.label" class="min-w-0">
-          <div class="text-[0.78em] font-medium text-base-content/45">{{ field.label }}</div>
+          <div class="kawaru-text-75 font-medium text-base-content/45">{{ field.label }}</div>
           <div v-if="field.values.length" class="flex flex-wrap gap-1.5 mt-1">
             <span
               v-for="value in field.visibleValues"
               :key="value"
-              class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.78em] font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+              class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-75 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
             >
-              {{ value }}
+              {{ vocabLabel(value) }}
             </span>
           </div>
-          <div v-else class="text-[0.9em] text-base-content/40 mt-1">—</div>
+          <div v-else class="kawaru-text-87 text-base-content/40 mt-1">—</div>
         </div>
 
         <!-- More：daisyUI 5 的 popover 形态，内容进 top layer，点外部 / Esc 关闭；
@@ -246,11 +251,11 @@
             type="button"
             :popovertarget="morePopoverId"
             :style="{ anchorName: moreAnchorName }"
-            class="inline-flex items-center gap-1 text-[0.82em] font-medium rounded text-primary hover:underline"
-            :aria-label="`More metadata for ${collection.name}`"
+            class="inline-flex items-center gap-1 kawaru-text-81 font-medium rounded text-primary hover:underline"
+            :aria-label="$t('collections.card.moreAria', { name: collection.name })"
             @click.stop
           >
-            More (+{{ hiddenValueCount }})
+            {{ $t('collections.card.more', { count: hiddenValueCount }) }}
             <SvgIcon type="chevron_down" class="w-[0.9em] h-[0.9em] shrink-0" />
           </button>
           <div
@@ -262,14 +267,14 @@
             @click.stop
           >
             <div v-for="field in overflowFields" :key="field.label" class="min-w-0 [&+&]:mt-3">
-              <div class="text-[0.78em] font-medium text-base-content/45">{{ field.label }}</div>
+              <div class="kawaru-text-75 font-medium text-base-content/45">{{ field.label }}</div>
               <div class="flex flex-wrap gap-1.5 mt-1">
                 <span
                   v-for="value in field.hiddenValues"
                   :key="value"
-                  class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.78em] font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                  class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-75 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
                 >
-                  {{ value }}
+                  {{ vocabLabel(value) }}
                 </span>
               </div>
             </div>
@@ -279,21 +284,22 @@
     </div>
 
     <!-- 右：成员数 + View / Share / Delete（Share 需 publicId，Delete 仅 owner/admin）。
-         lg 固定 11.5em：最宽条目 "View Collection" 需要单行放下，em 随页面流式字号缩放。 -->
+         容器自挂 kawaru-text-100 钉住字号，lg:w-[11.5em] 恒等于「档位 × 11.5」，
+         换档时同步跟上；最宽条目 "View Collection" 需单行放下。 -->
     <div
-      class="cursor-default flex flex-row flex-wrap gap-2 items-center w-full border-t border-base-300 pt-3 lg:w-[11.5em] lg:flex-col lg:items-stretch lg:self-stretch lg:border-l lg:border-t-0 lg:pt-0 lg:pl-4"
+      class="cursor-default kawaru-text-100 flex flex-row flex-wrap gap-2 items-center w-full border-t border-base-300 pt-3 lg:w-[11.5em] lg:flex-col lg:items-stretch lg:self-stretch lg:border-l lg:border-t-0 lg:pt-0 lg:pl-4"
       @click.stop
     >
       <!-- 成员总数（lg 下在列内居中，与小单位文字垂直居中） -->
       <div
         class="flex items-center justify-center gap-2 px-1 text-base-content/70 lg:w-full"
-        :title="`${collection.memberCount} datasets in this collection`"
+        :title="$t('collections.card.memberCountTitle', collection.memberCount)"
       >
-        <SvgIcon type="queue_list" class="w-[1.6em] h-[1.6em] shrink-0" />
-        <span class="text-[1.85em] font-bold leading-none text-primary">{{
+        <SvgIcon type="queue_list" class="w-[1.5em] h-[1.5em] shrink-0" />
+        <span class="kawaru-text-187 font-bold leading-none text-primary">{{
           collection.memberCount
         }}</span>
-        <span class="text-[1.1em]">{{ unitLabel }}</span>
+        <span class="kawaru-text-112">{{ unitLabel }}</span>
       </div>
 
       <!-- 操作按钮组：lg 下 my-auto 在剩余空间里垂直居中（不贴底） -->
@@ -301,32 +307,32 @@
         class="flex flex-row flex-wrap items-center gap-2 w-full lg:my-auto lg:flex-col lg:items-stretch"
       >
         <button
-          class="btn btn-primary text-[0.9em] h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
+          class="btn btn-primary kawaru-text-95 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
           @click.stop="$emit('view', collection.id)"
         >
-          <span class="whitespace-nowrap">View Collection</span>
+          <span class="whitespace-nowrap">{{ $t('collections.card.viewCollection') }}</span>
           <SvgIcon type="chevron_right" class="w-[1em] h-[1em] shrink-0" />
         </button>
 
         <!-- 分享：复制免登录公开链接（与 overview 页同一方案），无 publicId 时隐藏 -->
         <button
           v-if="collection.publicId"
-          class="btn btn-outline border-base-300 text-[0.9em] h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
-          title="Copy share link"
+          class="btn btn-outline border-base-300 kawaru-text-95 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
+          :title="$t('collections.card.copyShareLink')"
           @click.stop="copyShareLink"
         >
           <SvgIcon type="share" class="w-[1em] h-[1em] shrink-0" />
-          <span class="whitespace-nowrap">Share</span>
+          <span class="whitespace-nowrap">{{ $t('common.action.share') }}</span>
         </button>
 
         <button
           v-if="canEdit"
-          class="btn btn-outline border-base-300 text-error hover:bg-error/10 hover:border-error/40 text-[0.9em] h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
-          title="Delete collection"
+          class="btn btn-outline border-base-300 text-error hover:bg-error/10 hover:border-error/40 kawaru-text-95 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
+          :title="$t('collections.card.deleteTitle')"
           @click.stop="$emit('delete', collection.id)"
         >
           <SvgIcon type="trash" class="w-[1em] h-[1em] shrink-0" />
-          <span class="whitespace-nowrap">Delete</span>
+          <span class="whitespace-nowrap">{{ $t('common.action.delete') }}</span>
         </button>
       </div>
     </div>
@@ -338,13 +344,16 @@ import { computed, ref, watch } from 'vue'
 import type { CollectionSummary } from '@/features/collections/types/collection'
 import DatasetThumb from '@/features/collections/components/DatasetThumb.vue'
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { formatDate } from '@/shared/utils/format'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   collection: CollectionSummary
   /** 当前用户是 owner 或 admin（控制 Delete 显隐） */
   canEdit?: boolean
-  /** 集合属于当前登录用户（控制 My Collection 徽标显隐） */
+  /** 集合属于当前登录用户（控制归属徽标显隐） */
   isMine?: boolean
   /** 该集合成员的 file_id（由 useCollectionCovers 逐卡补齐），决定封面轮播；只取前 5 个 */
   memberIds?: number[]
@@ -413,11 +422,11 @@ watch(slides, () => {
 const ownershipBadge = computed(() =>
   props.isMine
     ? {
-        label: 'My Collection',
+        label: t('collections.card.mineBadge'),
         class: 'bg-primary/10 dark:bg-primary/20 text-primary border-primary/20',
       }
     : {
-        label: 'Public Collection',
+        label: t('collections.public.badge'),
         class:
           'bg-base-200/80 text-base-content/60 border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600',
       },
@@ -429,9 +438,9 @@ const VISIBLE_VALUE_COUNT = 3
 
 const basicFields = computed(() =>
   [
-    { label: 'Organism', values: props.collection.organism },
-    { label: 'Organism Part', values: props.collection.organismPart },
-    { label: 'Ionisation Source', values: props.collection.ionisationSource },
+    { label: t('common.meta.organism'), values: props.collection.organism },
+    { label: t('common.meta.organismPart'), values: props.collection.organismPart },
+    { label: t('common.meta.ionisationSource'), values: props.collection.ionisationSource },
   ].map((field) => ({
     label: field.label,
     values: field.values,
@@ -477,19 +486,15 @@ async function copyShareLink() {
   const url = `${location.origin}/collections/${props.collection.publicId}`
   try {
     await navigator.clipboard.writeText(url)
-    showToast('Share link copied to clipboard', 'success')
+    showToast(t('common.feedback.copied'), 'success')
   } catch {
-    showToast(`Share link: ${url}`, 'info')
+    showToast(t('collections.overview.shareLink', { url }), 'info')
   }
 }
 
-const unitLabel = computed(() => (props.collection.memberCount === 1 ? 'dataset' : 'datasets'))
+const unitLabel = computed(() => t('collections.unit.dataset', props.collection.memberCount))
 
-const formattedDate = computed(() =>
-  props.collection.updatedAt ? new Date(props.collection.updatedAt).toLocaleDateString() : '—',
-)
-
-const formattedCreated = computed(() =>
-  props.collection.createdAt ? new Date(props.collection.createdAt).toLocaleDateString() : '—',
-)
+// formatDate 空值返回 ''，这里统一补「—」（与其他元数据行的占位一致）
+const formattedCreated = computed(() => formatDate(props.collection.createdAt) || '—')
+const formattedUpdated = computed(() => formatDate(props.collection.updatedAt) || '—')
 </script>

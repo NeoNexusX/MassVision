@@ -11,6 +11,7 @@ import {
   getUsersClassification,
 } from '@/features/users/api/userAdminApi'
 import type { AdminUser, UserListFilters, UserQuotaLimits } from '@/features/users/types/user'
+import { t } from '@/i18n'
 
 export function useUserManagement() {
   // External composables
@@ -92,7 +93,8 @@ export function useUserManagement() {
       }
     } catch (err: any) {
       console.error('Failed to load users:', err)
-      error.value = err.message || 'Failed to load users from server.'
+      error.value =
+        err.message || t('common.feedback.loadFailed', { target: t('users.management.target') })
     } finally {
       loading.value = false
     }
@@ -150,9 +152,9 @@ export function useUserManagement() {
         max_processing_size: data.max_processing_size ?? quotaLimits.value.max_processing_size,
         max_download_count: data.max_download_count ?? quotaLimits.value.max_download_count,
       }
-      showToast('Quota updated successfully', 'success')
+      showToast(t('common.feedback.updated'), 'success')
     } catch (err: any) {
-      showToast(err.message || 'Failed to update quota', 'error')
+      showToast(err.message || t('common.feedback.updateFailed'), 'error')
     } finally {
       quotaLoading.value = false
     }
@@ -171,14 +173,14 @@ export function useUserManagement() {
     loading.value = true
     try {
       await deleteAdminUser(selectedUser.value.id)
-      showToast('User deleted successfully', 'success')
+      showToast(t('common.feedback.deleted'), 'success')
       isConfirmOpen.value = false
       closeDrawer()
       fetchStats()
       fetchUsers()
     } catch (err: any) {
       console.error('Failed to delete user:', err)
-      showToast(err.message || 'Failed to delete user', 'error')
+      showToast(err.message || t('common.feedback.deleteFailed'), 'error')
     } finally {
       loading.value = false
     }

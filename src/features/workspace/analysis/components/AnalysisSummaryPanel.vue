@@ -20,37 +20,37 @@ const emit = defineEmits<{
     <div class="sticky top-6">
       <div class="rounded-lg border border-base-200 bg-base-100 shadow-sm overflow-hidden">
         <div class="flex items-center justify-between px-5 pt-5 pb-3">
-          <div class="text-3xl font-semibold">Analysis Summary</div>
-          <span :class="statusBadge.cls + ' text-base'">{{ statusBadge.text }}</span>
+          <div class="kawaru-text-187 font-semibold">{{ $t('workspace.summary.title') }}</div>
+          <span :class="statusBadge.cls + ' kawaru-text-100'">{{ statusBadge.text }}</span>
         </div>
 
         <div class="border-t border-base-200/70 px-5 py-4">
-          <div class="text-lg font-medium text-base-content/60 mb-2">Preprocessing</div>
+          <div class="kawaru-text-112 font-medium text-base-content/60 mb-2">{{ $t('common.preprocessing.title') }}</div>
           <ul class="space-y-3">
             <li v-for="item in pipelineSummary" :key="item.key">
-              <div class="text-lg font-medium text-base-content">{{ item.title }}</div>
+              <div class="kawaru-text-112 font-medium text-base-content">{{ item.title }}</div>
               <div class="flex items-center justify-between mt-0.5 pl-3">
-                <span class="text-lg text-base-content/60">{{
+                <span class="kawaru-text-112 text-base-content/60">{{
                   item.present ? item.method : '—'
                 }}</span>
-                <span v-if="item.present" class="text-base text-blue-500 dark:text-blue-400">✓</span>
+                <span v-if="item.present" class="kawaru-text-100 text-blue-500 dark:text-blue-400">✓</span>
               </div>
             </li>
           </ul>
         </div>
 
         <div v-if="msSettingsList.length" class="border-t border-base-200/70 px-5 py-4">
-          <div class="text-lg font-medium text-base-content/60 mb-2">Dataset metadata</div>
+          <div class="kawaru-text-112 font-medium text-base-content/60 mb-2">{{ $t('workspace.summary.metadata') }}</div>
           <ul class="space-y-1.5">
             <li
               v-for="setting in msSettingsList"
               :key="setting.key"
               class="flex items-baseline justify-between gap-3"
             >
-              <span class="text-lg font-medium text-base-content shrink-0">{{
+              <span class="kawaru-text-112 font-medium text-base-content shrink-0">{{
                 setting.label
               }}</span>
-              <span class="text-lg text-base-content/60 text-right min-w-0 break-all">{{
+              <span class="kawaru-text-112 text-base-content/60 text-right min-w-0 break-all">{{
                 setting.value
               }}</span>
             </li>
@@ -58,32 +58,32 @@ const emit = defineEmits<{
         </div>
 
         <div class="border-t border-base-200/70 px-5 py-4">
-          <div class="text-lg font-medium text-base-content/60 mb-2">Selected dataset</div>
+          <div class="kawaru-text-112 font-medium text-base-content/60 mb-2">{{ $t('workspace.summary.selectedDataset') }}</div>
           <div v-if="selectedDataset">
-            <div class="text-lg font-medium text-base-content break-all leading-snug">
+            <div class="kawaru-text-112 font-medium text-base-content break-all leading-snug">
               {{ selectedDataset.name }}
             </div>
-            <div class="text-base text-base-content/50 mt-1">
+            <div class="kawaru-text-100 text-base-content/50 mt-1">
               {{ formatBytes(selectedDataset.sizeBytes) }}
             </div>
           </div>
-          <div v-else class="text-lg text-base-content/40">No dataset selected</div>
+          <div v-else class="kawaru-text-112 text-base-content/40">{{ $t('workspace.summary.noDataset') }}</div>
         </div>
 
         <div class="border-t border-base-200/70 px-5 py-4">
           <button
             :class="[
-              'btn btn-primary w-full h-12 text-xl font-semibold',
+              'btn btn-primary w-full h-12 kawaru-text-125 font-semibold',
               !canSubmit || submitting ? 'opacity-60 cursor-not-allowed' : '',
             ]"
             @click="emit('submit')"
             :disabled="!canSubmit || submitting"
           >
             <span v-if="submitting" class="loading loading-spinner loading-sm"></span>
-            {{ submitting ? 'Starting...' : 'Start Analysis' }}
+            {{ submitting ? $t('workspace.summary.starting') : $t('workspace.summary.start') }}
           </button>
-          <div v-if="!canSubmit" class="text-base text-base-content/50 mt-2 text-center">
-            Select dataset and configure pipeline first
+          <div v-if="!canSubmit" class="kawaru-text-100 text-base-content/50 mt-2 text-center">
+            {{ $t('workspace.summary.notReady') }}
           </div>
         </div>
       </div>

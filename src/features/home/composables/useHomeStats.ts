@@ -1,4 +1,5 @@
 import { computed, onMounted, ref } from 'vue'
+import { t } from '@/i18n'
 import {
   getDatasetCategoryStats,
   getDatasetIonSourceStats,
@@ -23,7 +24,7 @@ import type { DatasetCategoryItem, DatasetCategoryStats } from '@/features/home/
  */
 function useCategoryDistribution(
   fetcher: () => Promise<DatasetCategoryStats>,
-  errorMessage: string,
+  errorMessage: () => string,
 ) {
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -39,7 +40,7 @@ function useCategoryDistribution(
       // 后端未返回 total 时，用各分段计数自行累加兜底
       total.value = r.total ?? items.value.reduce((s, i) => s + i.count, 0)
     } catch (e) {
-      error.value = e instanceof Error ? e.message : errorMessage
+      error.value = e instanceof Error ? e.message : errorMessage()
       items.value = []
       total.value = 0
     } finally {
@@ -56,29 +57,29 @@ function useCategoryDistribution(
 
 // 物种分布
 export function useOrganismStats() {
-  return useCategoryDistribution(getOrganismStats, 'Failed to load organism stats')
+  return useCategoryDistribution(getOrganismStats, () => t('home.stats.loadFailed.organism'))
 }
 
 // 数据集分类分布（上方环形图）
 export function useDatasetCategoryStats() {
-  return useCategoryDistribution(getDatasetCategoryStats, 'Failed to load dataset category stats')
+  return useCategoryDistribution(getDatasetCategoryStats, () => t('home.stats.loadFailed.category'))
 }
 
 // 数据集离子源类型分布（下方环形图）
 export function useDatasetIonSourceStats() {
-  return useCategoryDistribution(getDatasetIonSourceStats, 'Failed to load ion source stats')
+  return useCategoryDistribution(getDatasetIonSourceStats, () => t('home.stats.loadFailed.ionSource'))
 }
 
 // 分析器类型分布
 export function useAnalyzerStats() {
-  return useCategoryDistribution(getAnalyzerStats, 'Failed to load analyzer stats')
+  return useCategoryDistribution(getAnalyzerStats, () => t('home.stats.loadFailed.analyzer'))
 }
 
 /**
  * 单值统计（平台总览 / 访问量）通用三态封装：loading / error / data + onMounted 加载。
  * 与 useCategoryDistribution 同一骨架，只是注入不同的 fetcher。
  */
-function useRemoteStat<T>(fetcher: () => Promise<T>, errorMessage: string) {
+function useRemoteStat<T>(fetcher: () => Promise<T>, errorMessage: () => string) {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const stats = ref<T | null>(null)
@@ -89,7 +90,7 @@ function useRemoteStat<T>(fetcher: () => Promise<T>, errorMessage: string) {
     try {
       stats.value = await fetcher()
     } catch (e) {
-      error.value = e instanceof Error ? e.message : errorMessage
+      error.value = e instanceof Error ? e.message : errorMessage()
       stats.value = null
     } finally {
       loading.value = false
@@ -103,10 +104,10 @@ function useRemoteStat<T>(fetcher: () => Promise<T>, errorMessage: string) {
 
 // 平台总览（总用户 / 总数据集 / 总下载）
 export function usePlatformOverview() {
-  return useRemoteStat(getPlatformOverview, 'Failed to load platform overview')
+  return useRemoteStat(getPlatformOverview, () => t('home.stats.loadFailed.platform'))
 }
 
 // 全站访问量（当日 / 当月 / 总计）
 export function useVisitsStats() {
-  return useRemoteStat(getVisitsStats, 'Failed to load visits stats')
+  return useRemoteStat(getVisitsStats, () => t('home.stats.loadFailed.visits'))
 }

@@ -104,7 +104,7 @@ async function runUploadRoundTrip(page: Page, params: RoundTripParams): Promise<
     await targetCard.getByRole('button', { name: 'Delete' }).click()
     await expect(page.getByText('Are you sure you want to delete this dataset?')).toBeVisible()
     await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
-    await expect(page.locator('.toast')).toContainText(/deleted/)
+    await expect(page.locator('.toast')).toContainText(/deleted/i)
     await expect(cardHeading).not.toBeVisible({ timeout: 15_000 })
 
     // ============================================================
@@ -165,7 +165,7 @@ async function runUploadRoundTrip(page: Page, params: RoundTripParams): Promise<
     // 相同内容 + 相同 metadata -> 相同文件名，卡片以原名重新出现
     // ============================================================
     await expect(page.locator('.toast')).toContainText(/success|reused|complete/, { timeout: params.uploadTimeout })
-    await expect(page.getByText('Upload New Dataset (imzML + ibd)')).not.toBeVisible()
+    await expect(page.getByText('Upload New Dataset (imzML + ibd)')).toBeHidden()
 
     // 轮询 Refresh Status，等数据集卡片出现并变为 Uploaded
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })

@@ -1,4 +1,5 @@
 import type { DonePart } from './ossMultipart'
+import { OSS_UPLOAD } from '@/shared/config'
 
 const STORAGE_KEY = 'oss_upload_session'
 /** 旧版本（落盘 OPFS 再整体上传）留下的缓存文件，仅用于清理 */
@@ -16,6 +17,16 @@ export interface UploadSession {
   datasetName: string
   fileHash: string
   fileId: string
+  /**
+   * zip 产物的格式版本（写入时 `OSS_UPLOAD.zipFormatVersion` 的值）。
+   *
+   * 续传依赖「同样的输入 → 同样的 zip 字节」，压缩参数一变旧分片就全部作废。
+   * 不记版本号的话，这件事要等到重新压出第一个已完成分片、拿 MD5 对 ETag
+   * 才会被发现 —— 用户白压一遍才收到「请重新上传」。
+   */
+  zipFormatVersion: number
+  /** 同上：ibd 是否压缩直接决定 zip 字节，续传必须原样沿用 */
+  compressIbd: boolean
   /**
    * 续传需要重新压缩，因此必须记住源文件身份和最终 entry 名 ——
    * entry 名参与 zip 字节，换了名字产物就对不上已上传的分片。
@@ -50,6 +61,10 @@ export function loadUploadSession(): UploadSession | null {
     // 但会话本身仍然有效（保留 file_id 与 STS，下次续传重开一轮 multipart）。
     if (!data.fileId || !data.ossPath || !data.fileHash) return null
     if (!data.source || !Array.isArray(data.multipart?.doneParts)) return null
+    // zip 字节的产出参数变了，已上传的分片必然对不上 —— 在这里丢掉，
+    // 而不是让用户重压一遍才撞上 MD5 校验失败。
+    if (data.zipFormatVersion !== OSS_UPLOAD.zipFormatVersion) return null
+    if (data.compressIbd !== OSS_UPLOAD.compressIbd) return null
     return data
   } catch {
     return null

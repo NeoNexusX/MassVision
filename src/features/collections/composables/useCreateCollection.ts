@@ -10,6 +10,7 @@ import { buildCollectionCreatePayload, toMetadataDraft } from '../utils/metadata
 import type { CollectionMetadataDraft } from '../types/collection'
 import { useDerivedMetadataSync } from './useDerivedMetadataSync'
 import { useOrderedSelection } from './useOrderedSelection'
+import { t } from '@/i18n'
 
 /**
  * Create Collection 页装配（/collections/new）。
@@ -118,7 +119,7 @@ export function useCreateCollection() {
           selected.value.map((d) => Number(d.id)),
         ),
       )
-      showToast('Collection created successfully', 'success')
+      showToast(t('common.feedback.created'), 'success')
       saved.value = true
       // 详情页无路径参数（replace 让创建页不留在历史栈里）：详情读取走公开
       // 接口，public_id 随 state 传递；数字 id 留给编辑/删除等写操作
@@ -128,7 +129,7 @@ export function useCreateCollection() {
       })
     } catch (err: any) {
       // 409 invalid collection members 等：CollectionApiError.message 是后端 detail 原文
-      showToast(collectionErrorMessage(err, 'Failed to create collection'), 'error')
+      showToast(collectionErrorMessage(err, t('common.feedback.createFailed')), 'error')
     } finally {
       saving.value = false
     }

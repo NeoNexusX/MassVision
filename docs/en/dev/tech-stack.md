@@ -22,7 +22,8 @@ npm run dev
 | Build and styling | Vite 7, Tailwind CSS 4, DaisyUI 5 |
 | Icons | Iconify with build-time offline subsets of `heroicons`, `simple-icons`, and `lucide` |
 | Charts | ECharts, `vue3-calendar-heatmap` |
-| HTTP | Axios, qs |
+| HTTP | Axios |
+| i18n | `vue-i18n` (Composition mode); locale messages split into per-namespace JSON files and lazy-loaded with routes; `@intlify/unplugin-vue-i18n` build optimization; `@intlify/eslint-plugin-vue-i18n` for missing/unused key checks |
 | Upload | `hash-wasm` for MD5, `@zip.js/zip.js` for ZIP64, and `ali-oss` multipart upload |
 | Zarr | In-repository Zarr v3/OSS Range reader with `zstddec`; supports MassFlow layouts 1.0 and 1.1 |
 | Clustering | Backend-generated UMAP; browser-side KMeans using `ml-kmeans` over the UMAP embedding |
@@ -40,10 +41,11 @@ Use root `package.json` and `package-lock.json` for exact versions.
 src/
 ├── app/                  # Application shell and global entry components
 ├── assets/               # Theme and global styles
-├── features/             # Business modules: auth, datasets, upload, workspace, ...
+├── features/             # Business modules: assistant, auth, collections, datasets, home, upload, users, vizworkbench, workspace
+├── i18n/                 # vue-i18n instance, type definitions, and locales/{locale}/{ns}.json message files
 ├── router/               # Routes and guards
 ├── services/             # Cross-module OSS, Zarr, and clustering services
-├── shared/               # HTTP, auth, generic components/composables/config/types
+├── shared/               # HTTP, auth, directives, generic components/composables/config/types
 ├── views/                # Route pages that compose features
 └── workers/              # Upload ZIP/MD5 worker
 ```

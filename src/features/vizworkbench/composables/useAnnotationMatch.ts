@@ -35,6 +35,7 @@ import {
   type MatchInputs,
 } from '@/features/vizworkbench/utils/csvAnnotation'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 
 export type AnnotationFilter = 'all' | 'matched' | 'unmatched'
 export type { AnnotationSortKey, AnnotationSortDir }
@@ -77,6 +78,18 @@ function readFileAsText(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'))
     reader.readAsText(file, 'utf-8')
   })
+}
+
+/** CSV 解析失败的界面文案：按错误码翻译（csvAnnotation.ts 跑在 worker 里，不能直接用 i18n） */
+function csvParseErrorText(e: CsvParseError): string {
+  switch (e.code) {
+    case 'empty':
+      return t('vizworkbench.annotation.csvEmpty')
+    case 'noMzColumn':
+      return t('vizworkbench.annotation.csvNoMzColumn')
+    case 'noDataRows':
+      return t('vizworkbench.annotation.csvNoDataRows')
+  }
 }
 
 /**
@@ -607,7 +620,9 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
         } catch (e) {
           if (stale()) return
           showToast(
-            `Re-matching annotations failed: ${e instanceof Error ? e.message : String(e)}`,
+            t('vizworkbench.annotation.rematchFailed', {
+              error: e instanceof Error ? e.message : String(e),
+            }),
             'error',
           )
         }
@@ -736,20 +751,27 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
         pendingRematch = false
         scheduleRematch()
       }
-      const collapsedNote = res.collapsed > 0 ? ` (${res.collapsed} collapsed onto m/z peaks)` : ''
-      const dupNote =
-        res.droppedDuplicates > 0 ? ` (${res.droppedDuplicates} duplicate rows dropped)` : ''
-      const filteredNote = res.coarseFiltered > 0 ? ` (${res.coarseFiltered} filtered out)` : ''
+      const notes: string[] = []
+      if (res.collapsed > 0)
+        notes.push(t('vizworkbench.annotation.noteCollapsed', { count: res.collapsed }))
+      if (res.droppedDuplicates > 0)
+        notes.push(t('vizworkbench.annotation.noteDuplicates', { count: res.droppedDuplicates }))
+      if (res.coarseFiltered > 0)
+        notes.push(t('vizworkbench.annotation.noteFiltered', { count: res.coarseFiltered }))
+      // 括号的全角 / 半角由 withNote 决定，逐条套上
+      const withNotes = (text: string) =>
+        notes.reduce((acc, note) => t('vizworkbench.annotation.withNote', { text: acc, note }), text)
       if (spectrumAvailable.value) {
-        showToast(
-          `Imported ${res.importedTotal} rows from "${file.name}" (${res.mzColumn}) - ${res.statusCounts.matched} matched${collapsedNote}${dupNote}${filteredNote}.`,
-          'success',
-        )
+        const summary = t('vizworkbench.annotation.importSummary', {
+          total: res.importedTotal,
+          file: file.name,
+          column: res.mzColumn,
+          matched: res.statusCounts.matched,
+        })
+        showToast(t('vizworkbench.annotation.importDone', { summary: withNotes(summary) }), 'success')
       } else {
-        showToast(
-          `Imported ${res.importedTotal} rows${collapsedNote}${dupNote}${filteredNote}. Matching re-runs once the average spectrum loads.`,
-          'info',
-        )
+        const summary = t('vizworkbench.annotation.importSummaryPending', { total: res.importedTotal })
+        showToast(t('vizworkbench.annotation.importPending', { summary: withNotes(summary) }), 'info')
       }
       // Keep the spinner on screen while the (cheap) first render of the
       // virtual table mounts, then clear isImporting.
@@ -768,8 +790,10 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
       pendingRematch = false
       const msg =
         e instanceof CsvParseError
-          ? e.message
-          : `Failed to read CSV: ${e instanceof Error ? e.message : String(e)}`
+          ? csvParseErrorText(e)
+          : t('vizworkbench.annotation.readFailed', {
+              error: e instanceof Error ? e.message : String(e),
+            })
       parseError.value = msg
       showToast(msg, 'error')
     } finally {
@@ -817,7 +841,7 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
       sortDir.value,
     )
     if (!rows.length) {
-      showToast('No matched annotations to export.', 'info')
+      showToast(t('vizworkbench.annotation.noMatchedToExport'), 'info')
       return
     }
     const csv = '﻿' + buildAnnotationExportCsv(rows, tolMode.value)
@@ -831,7 +855,7 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     link.click()
     link.remove()
     URL.revokeObjectURL(url)
-    showToast(`Exported ${rows.length} matched annotations.`, 'success')
+    showToast(t('vizworkbench.annotation.exported', { count: rows.length }), 'success')
   }
 
   return {

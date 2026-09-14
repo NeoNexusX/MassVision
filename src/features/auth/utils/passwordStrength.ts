@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+
 /**
  * Shared password-strength logic for the register, forgot-password and
  * change-password UIs. Pure functions so composables and components can
@@ -29,7 +31,23 @@ export function passwordProgressClass(score: number): string {
   return classes[score - 1] || 'progress-error'
 }
 
-/** Strength label for a 1–5 score; any other value → 'Please Input'. */
+/**
+ * Strength label for a 1–5 score; any other value → the "Please Input" hint.
+ * Translated on every call, so callers must keep it inside `computed` to follow language switches.
+ */
 export function passwordStrengthLabel(score: number): string {
-  return ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][score - 1] || 'Please Input'
+  switch (score) {
+    case 1:
+      return t('auth.strength.veryWeak')
+    case 2:
+      return t('auth.strength.weak')
+    case 3:
+      return t('auth.strength.fair')
+    case 4:
+      return t('auth.strength.good')
+    case 5:
+      return t('auth.strength.strong')
+    default:
+      return t('auth.strength.empty')
+  }
 }

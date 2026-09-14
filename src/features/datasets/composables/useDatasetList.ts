@@ -4,6 +4,7 @@ import { buildPageList } from '@/shared/utils/pagination'
 import { getConfig } from '@/shared/config/runtimeConfig'
 import type { File } from '@/features/datasets/types/dataset'
 import type { FileListSort } from '@/features/datasets/api/datasetApi'
+import { t } from '@/i18n'
 
 type Fetcher = (
   filters: Record<string, any>,
@@ -89,7 +90,10 @@ export function useDatasetList(
       page.value = p
       size.value = s
     } catch (err: any) {
-      error.value = err?.message || String(err) || 'Failed to load files'
+      error.value =
+        err?.message ||
+        String(err) ||
+        t('common.feedback.loadFailed', { target: t('datasets.list.target') })
       datasets.value = []
     } finally {
       loading.value = false

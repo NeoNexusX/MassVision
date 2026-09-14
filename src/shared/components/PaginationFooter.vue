@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { I18nT } from 'vue-i18n'
 import PaginationBar from '@/shared/components/PaginationBar.vue'
 import { getConfig } from '@/shared/config/runtimeConfig'
 
@@ -44,14 +45,18 @@ const onChangeSize = (e: Event) => {
         : 'mt-6 flex flex-col sm:flex-row items-center justify-between gap-4'
     "
   >
-    <div
+    <!-- 数字加粗且在句中的位置随语言变化，用 I18nT 具名插槽嵌入 -->
+    <I18nT
       v-if="showPageText"
-      class="text-[1.1em] text-base-content text-center sm:text-left ml-2"
+      keypath="common.pagination.summary"
+      tag="div"
+      scope="global"
+      class="kawaru-text-112 text-base-content text-center sm:text-left ml-2"
     >
-      Page <span class="font-medium">{{ currentPage }}</span> of
-      <span class="font-medium">{{ totalPages }}</span> —
-      <span class="font-medium">{{ totalItems }}</span> records
-    </div>
+      <template #page><span class="font-medium">{{ currentPage }}</span></template>
+      <template #total><span class="font-medium">{{ totalPages }}</span></template>
+      <template #count><span class="font-medium">{{ totalItems }}</span></template>
+    </I18nT>
 
     <div
       :class="
@@ -63,14 +68,14 @@ const onChangeSize = (e: Event) => {
       <div class="flex items-center gap-2">
         <label
           class="whitespace-nowrap text-base-content/60"
-          :class="variant === 'compact' ? 'text-base' : 'text-[1.1em]'"
-          >Per page</label
+          :class="variant === 'compact' ? 'kawaru-text-100' : 'kawaru-text-112'"
+          >{{ $t('common.pagination.perPage') }}</label
         >
         <select
           :value="size"
           @change="onChangeSize"
           class="select select-bordered pl-3 pr-8"
-          :class="variant === 'compact' ? 'text-base' : 'select-sm text-[1.1em]'"
+          :class="variant === 'compact' ? 'kawaru-text-100' : 'select-sm kawaru-text-112'"
         >
           <option v-for="opt in pageSizeOptions" :key="opt" :value="opt">{{ opt }}</option>
         </select>

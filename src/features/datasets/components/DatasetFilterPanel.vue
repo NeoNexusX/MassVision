@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
 import {
   CONDITIONS,
@@ -12,6 +12,8 @@ import {
   SOLVENTS,
   TISSUE_MODIFICATIONS,
 } from '@/features/datasets/constants/datasetMetadata'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { t } from '@/i18n'
 
 const emit = defineEmits<{
   (e: 'apply', payload: Record<string, string>): void
@@ -24,25 +26,25 @@ interface FilterField {
   type: 'text' | 'select'
   placeholder?: string
   options?: readonly string[]
-  otherPlaceholder?: string
 }
 
-const fields: FilterField[] = [
-  { key: 'filename', label: 'Filename', type: 'text', placeholder: 'Filename' },
-  { key: 'experiment_type', label: 'Experiment Type', type: 'select', options: EXPERIMENT_TYPES, otherPlaceholder: 'Specify experiment type' },
-  { key: 'username', label: 'Username', type: 'text', placeholder: 'Submitter username' },
-  { key: 'organism', label: 'Organism', type: 'select', options: ORGANISMS, otherPlaceholder: 'Specify organism' },
-  { key: 'organism_part', label: 'Organism Part', type: 'select', options: ORGANISM_PARTS, otherPlaceholder: 'Specify organism part' },
-  { key: 'condition', label: 'Condition', type: 'select', options: CONDITIONS, otherPlaceholder: 'Specify condition' },
-  { key: 'sample_stabilization', label: 'Sample Stabilization', type: 'select', options: SAMPLE_STABILIZATIONS, otherPlaceholder: 'Specify stabilization' },
-  { key: 'tissue_modification', label: 'Tissue Modification', type: 'select', options: TISSUE_MODIFICATIONS, otherPlaceholder: 'Specify modification' },
-  { key: 'maldi_matrix', label: 'MALDI Matrix', type: 'select', options: MALDI_MATRICES, otherPlaceholder: 'Specify matrix' },
-  { key: 'maldi_matrix_application', label: 'Matrix Application', type: 'select', options: MALDI_MATRIX_APPLICATIONS, otherPlaceholder: 'Specify application' },
-  { key: 'solvent', label: 'Solvent', type: 'select', options: SOLVENTS, otherPlaceholder: 'Specify solvent' },
-]
+// 字段 key 与选项值是发给后端的筛选参数（英文）；label / placeholder 随界面语言变化
+const fields = computed<FilterField[]>(() => [
+  { key: 'filename', label: t('datasets.field.filename'), type: 'text', placeholder: t('datasets.field.filename') },
+  { key: 'experiment_type', label: t('datasets.field.experimentType'), type: 'select', options: EXPERIMENT_TYPES },
+  { key: 'username', label: t('common.field.username'), type: 'text', placeholder: t('datasets.filter.submitterPlaceholder') },
+  { key: 'organism', label: t('common.meta.organism'), type: 'select', options: ORGANISMS },
+  { key: 'organism_part', label: t('common.meta.organismPart'), type: 'select', options: ORGANISM_PARTS },
+  { key: 'condition', label: t('common.meta.condition'), type: 'select', options: CONDITIONS },
+  { key: 'sample_stabilization', label: t('common.meta.sampleStabilization'), type: 'select', options: SAMPLE_STABILIZATIONS },
+  { key: 'tissue_modification', label: t('common.meta.tissueModification'), type: 'select', options: TISSUE_MODIFICATIONS },
+  { key: 'maldi_matrix', label: t('common.meta.maldiMatrix'), type: 'select', options: MALDI_MATRICES },
+  { key: 'maldi_matrix_application', label: t('datasets.field.matrixApplication'), type: 'select', options: MALDI_MATRIX_APPLICATIONS },
+  { key: 'solvent', label: t('common.meta.solvent'), type: 'select', options: SOLVENTS },
+])
 
 const filters = ref<Record<string, string>>(
-  Object.fromEntries(fields.map((f) => [f.key, ''])),
+  Object.fromEntries(fields.value.map((f) => [f.key, ''])),
 )
 
 const applyFilters = () => {
@@ -62,13 +64,13 @@ const resetFilters = () => {
     <div
       v-for="field in fields"
       :key="field.key"
-      class="text-base text-base-content/60 flex flex-col w-full sm:w-[calc(50%-8px)]"
+      class="kawaru-text-87 text-base-content/60 flex flex-col w-full sm:w-[calc(50%-8px)]"
     >
       {{ field.label }}
       <input
         v-if="field.type === 'text'"
         v-model="filters[field.key]"
-        class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 text-base"
+        class="w-full mt-1 p-2 rounded border border-base-300 bg-base-200 kawaru-text-87"
         :placeholder="field.placeholder"
       />
       <SelectWithOther
@@ -76,18 +78,21 @@ const resetFilters = () => {
         :model-value="filters[field.key] ?? ''"
         @update:model-value="filters[field.key] = $event"
         :options="field.options ?? []"
-        placeholder="Any"
+        :label-of="vocabLabel"
+        :placeholder="$t('datasets.filter.any')"
         placeholder-selectable
-        :other-placeholder="field.otherPlaceholder"
+        :other-placeholder="$t('common.input.specifyOther')"
       />
     </div>
   </div>
+  <!-- 本面板经 <teleport to="body"> 渲染，够不着页面外壳的字号，
+       所以必须显式挂档位，不能靠继承。 -->
   <div class="mt-3 flex justify-end gap-2">
     <button
       @click="resetFilters"
-      class="btn btn-outline text-[1em] border border-base-300 hover:bg-base-300">Reset</button>
+      class="btn btn-outline kawaru-text-87 border border-base-300 hover:bg-base-300">{{ $t('common.action.reset') }}</button>
     <button
     @click="applyFilters"
-    class="btn btn-primary text-[1em] border border-base-300 hover:bg-base-300">Apply</button>
+    class="btn btn-primary kawaru-text-87 border border-base-300 hover:bg-base-300">{{ $t('common.action.apply') }}</button>
   </div>
 </template>

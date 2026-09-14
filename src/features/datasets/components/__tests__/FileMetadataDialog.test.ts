@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { beforeAll, describe, expect, it, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
@@ -18,6 +18,7 @@ vi.mock('@/features/datasets/api/datasetApi', () => ({
 import FileMetadataDialog from '../FileMetadataDialog.vue'
 import SolventPicker from '@/features/upload/components/SolventPicker.vue'
 import type { File } from '@/features/datasets/types/dataset'
+import { i18n, loadCoreMessages, loadFeatureMessages } from '@/i18n'
 
 const dataset = {
   id: '7',
@@ -31,7 +32,11 @@ const dataset = {
 } as File
 
 const mountDialog = (open = false) =>
-  mount(FileMetadataDialog, { props: { open, dataset } })
+  mount(FileMetadataDialog, { props: { open, dataset }, global: { plugins: [i18n] } })
+
+
+// 组件模板用 $t：挂载时装上 i18n 实例，并预先加载英文语言包（断言保持英文原文）
+beforeAll(() => Promise.all([loadCoreMessages('en'), loadFeatureMessages('datasets'), loadFeatureMessages('upload')]))
 
 describe('FileMetadataDialog', () => {
   beforeEach(() => {

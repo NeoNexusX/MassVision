@@ -12,6 +12,8 @@ import { extractBackendError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
 import { useRequireAuth } from '@/shared/composables/useRequireAuth'
 import { useOverviewShare } from '@/features/datasets/composables/useOverviewShare'
+import { isVocabValue, vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { t } from '@/i18n'
 
 export function useDatasetDetail() {
   const router = useRouter()
@@ -55,6 +57,9 @@ export function useDatasetDetail() {
   // Methods
   const formatString = (val?: string) => {
     if (!val) return '—'
+    // 词表值是规范写法（如 CHCA (α-Cyano-4-hydroxycinnamic acid)），原样或按词表译文显示，
+    // 不能再做大小写变换；只有自填值沿用首字母大写的旧显示
+    if (isVocabValue(val)) return vocabLabel(val)
     return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
   }
 
@@ -119,9 +124,9 @@ export function useDatasetDetail() {
       if (dataset.value) {
         dataset.value.isPublic = true
       }
-      showToast('Dataset is now public.', 'success')
+      showToast(t('datasets.overview.madePublic'), 'success')
     } catch (error) {
-      const message = extractBackendError(error, 'Failed to make dataset public')
+      const message = extractBackendError(error, t('common.feedback.updateFailed'))
       showToast(message, 'error')
       console.error('Failed to set file public', error)
     } finally {

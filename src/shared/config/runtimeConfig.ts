@@ -7,12 +7,18 @@
  *   因此任何模块（含模块顶层）都能安全地通过 `getConfig()` 读取配置。
  * - 注意：与「部署环境/构建工具链」相关的后端地址仍走 env/ 目录的 .env 文件（见 env.ts），不在此文件中。
  *
+ * 界面上显示的文案字段（导航 label、guestHint 等）类型是 {@link LocalizedText}：
+ * 既可写纯字符串（所有语言通用，旧配置照常可用），也可写 `{ "en": "...", "zh-CN": "..." }`；
+ * 组件里经 `localized()` 按当前界面语言解析，见 localizedText.ts。
+ *
  * 这里只放**全站都要用的部署开关**。两类内容已分出去，以免它们的体积压在启动关键路径上：
  * - 首页展示内容（团队、时间线、Hero 文案……）→ `public/content.json`，
  *   见 features/home/config/contentConfig.ts，由 `/` 路由按需加载；
  * - 表单词表与离子源规则 → 编译进包，见 features/datasets/constants/datasetMetadata.ts
  *   与 features/upload/utils/ionSourceRules.ts。
  */
+
+import type { LocalizedText } from './localizedText'
 
 /**
  * 侧边导航栏菜单项（config.json 的 `nav` 块）。
@@ -75,8 +81,8 @@ export interface NavChild extends NavVisibility {
   to: string
   /** 图标名（对应 SvgIcon 的 IconType） */
   icon: string
-  /** 显示文案 */
-  label: string
+  /** 显示文案（可按语言分写） */
+  label: LocalizedText
   /** 是否在新标签页中打开（用 <a target="_blank"> 代替 <router-link>） */
   external?: boolean
 }
@@ -88,8 +94,8 @@ export interface NavLinkItem extends NavVisibility {
   to: string
   /** 图标名 */
   icon: string
-  /** 显示文案 */
-  label: string
+  /** 显示文案（可按语言分写） */
+  label: LocalizedText
   /** 点击后是否关闭抽屉，默认 true（如登录/注册等可设为 false） */
   closeOnClick?: boolean
   /** 是否在新标签页中打开（用 <a target="_blank"> 代替 <router-link>） */
@@ -101,8 +107,8 @@ export interface NavGroupItem extends NavVisibility {
   kind: 'group'
   /** 图标名 */
   icon: string
-  /** 显示文案 */
-  label: string
+  /** 显示文案（可按语言分写） */
+  label: LocalizedText
   /** 子菜单 */
   children: NavChild[]
 }
@@ -122,8 +128,8 @@ export interface NavUserAction extends NavVisibility {
   kind: 'action'
   /** 动作类型 */
   action: 'logout'
-  /** 显示文案 */
-  label: string
+  /** 显示文案（可按语言分写） */
+  label: LocalizedText
 }
 
 export type NavUserItem = NavUserLink | NavUserAction
@@ -145,8 +151,10 @@ export interface NavConfig {
   modeByPath?: Record<string, NavMode>
   /** navbar 形态：是否显示头像左侧的主题切换按钮，缺省 true */
   themeToggle?: boolean
-  /** navbar 形态：未登录头像的 tooltip 文案，缺省 'Sign in' */
-  guestHint?: string
+  /** navbar 形态：是否显示主题按钮左侧的语言切换按钮，缺省 true */
+  localeToggle?: boolean
+  /** navbar 形态：未登录头像的 tooltip 文案（可按语言分写），缺省为内置的「Sign in / 登录」 */
+  guestHint?: LocalizedText
   /** 导航菜单（两种形态共用）：link / group */
   items: NavItem[]
   /** 登录后的账户入口 */
@@ -181,9 +189,10 @@ export function resolveNavMode(path: string): NavMode {
  *
  * 子项（items）只有两种 kind：
  * - 'link'   : 跳转到 `to` 指定的路由
- * - 'action' : 触发 `action` 指定的事件（如 'toggle-theme'、'toggle-ai'、'logout'）；
+ * - 'action' : 触发 `action` 指定的事件（如 'toggle-theme'、'toggle-locale'、'toggle-ai'、'logout'）；
  *              其中 'toggle-theme' 的图标由组件根据当前 isDark 自动在 sun/moon 之间切换，
- *              配置里的 `icon` 字段对它会被忽略
+ *              'toggle-locale' 显示将要切换到的语言简称（EN / 中），
+ *              配置里的 `icon` 字段对这两者都会被忽略
  *
  * 每项都支持 NavVisibility 中的 active / requireAuth / requireAdmin / requireGuest 字段。
  */
@@ -195,10 +204,10 @@ export interface FabMainConfig {
 }
 
 interface FabItemBase extends NavVisibility {
-  /** 图标名（'toggle-theme' action 会忽略此字段，改用 sun/moon） */
+  /** 图标名（'toggle-theme' / 'toggle-locale' action 会忽略此字段） */
   icon: string
-  /** tooltip 显示文案 */
-  label: string
+  /** tooltip 显示文案（可按语言分写） */
+  label: LocalizedText
 }
 
 export interface FabLinkItem extends FabItemBase {
@@ -208,7 +217,7 @@ export interface FabLinkItem extends FabItemBase {
 }
 
 /** FAB 上动作型子项支持的动作枚举（与 NavFab 对外 emit 的事件一一对应） */
-export type FabActionKind = 'toggle-theme' | 'toggle-ai' | 'logout'
+export type FabActionKind = 'toggle-theme' | 'toggle-locale' | 'toggle-ai' | 'logout'
 
 export interface FabActionItem extends FabItemBase {
   kind: 'action'

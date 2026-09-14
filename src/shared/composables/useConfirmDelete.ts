@@ -8,12 +8,13 @@
  */
 import { reactive, ref } from 'vue'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 
 export interface UseConfirmDeleteOptions {
   /** Called with the confirmed id; should return a promise. */
   onDelete: (id: string) => Promise<void>
-  /** Success toast message after deletion. */
-  successMessage?: string
+  /** Success toast after deletion; defaults to the shared "Deleted" feedback. Pass a getter to resolve it at toast time. */
+  successMessage?: string | (() => string)
 }
 
 export function useConfirmDelete(options: UseConfirmDeleteOptions) {
@@ -40,9 +41,10 @@ export function useConfirmDelete(options: UseConfirmDeleteOptions) {
     deleting.value = true
     try {
       await options.onDelete(id)
-      showToast(options.successMessage ?? 'Deleted successfully', 'success')
+      const msg = options.successMessage
+      showToast(typeof msg === 'function' ? msg() : (msg ?? t('common.feedback.deleted')), 'success')
     } catch (err: any) {
-      showToast(err?.message ?? 'Failed to delete', 'error')
+      showToast(err?.message ?? t('common.feedback.deleteFailed'), 'error')
       console.error('Delete failed:', err)
     } finally {
       deleting.value = false

@@ -1,4 +1,5 @@
 import { getDownloadMetadata, getDownloadRaw, getDownloadRawNoauth } from '@/features/datasets/api/datasetApi'
+import { t } from '@/i18n'
 
 async function pollDownloadUrl(
   fileId: string,
@@ -24,7 +25,7 @@ async function pollDownloadUrl(
     }
   }
 
-  throw new Error('Download preparation timed out, please try again later')
+  throw new Error(t('datasets.download.timeout'))
 }
 
 /**
@@ -87,7 +88,7 @@ export async function ossDownloadRaw(
   const { files } = await getDownloadRaw(fileId, options?.isPublic ?? false)
 
   if (!files || !files.length) {
-    throw new Error('No download URLs returned')
+    throw new Error(t('datasets.download.noUrls'))
   }
 
   for (const entry of files) {
@@ -103,7 +104,7 @@ export async function ossDownloadRawNoauth(fileId: string) {
   const { files } = await getDownloadRawNoauth(fileId)
 
   if (!files || !files.length) {
-    throw new Error('No download URLs returned')
+    throw new Error(t('datasets.download.noUrls'))
   }
 
   for (const entry of files) {

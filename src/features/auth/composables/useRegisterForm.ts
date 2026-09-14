@@ -7,13 +7,13 @@ import { useToast } from '@/shared/composables/useToast'
 import { POSITION_OPTIONS, RESEARCH_FIELD_OPTIONS } from '@/shared/constants/profileOptions'
 import { getRegionOptions } from '@/shared/utils/regionOptions'
 import { SESSION_KEYS } from '@/shared/config'
+import { t } from '@/i18n'
+import { useLocale } from '@/shared/composables/useLocale'
 import { VALIDATION_PATTERNS } from '@/features/auth/constants/validationPatterns'
 import {
   passwordScore as scorePassword,
   passwordProgressClass,
 } from '@/features/auth/utils/passwordStrength'
-
-const regionOptions = getRegionOptions()
 
 const patterns = {
   username: '^[A-Za-z0-9_\\-]{3,30}$',
@@ -44,68 +44,70 @@ type RegField =
   | 'orcid'
   | 'homepage'
 
+/** 错误文案写成 getter：规则表在模块顶层，文案必须在校验那一刻按当前界面语言取 */
 type Rule = {
-  required?: string
-  test?: { re: RegExp; msg: string }
+  required?: () => string
+  test?: { re: RegExp; msg: () => string }
   custom?: (value: string, form: Record<RegField, string>) => string
 }
 
 const rules: Record<RegField, Rule> = {
   username: {
-    required: 'Username is required',
+    required: () => t('auth.validation.usernameRequired'),
     test: {
       re: new RegExp(patterns.username),
-      msg: 'Invalid username (3-30 chars, letters/numbers)',
+      msg: () => t('auth.validation.usernameInvalid'),
     },
   },
   email: {
-    required: 'Email is required',
+    required: () => t('auth.validation.emailRequired'),
     test: {
       re: new RegExp(patterns.email),
-      msg: 'Invalid email address'
+      msg: () => t('auth.validation.emailInvalid'),
     },
   },
   password: {
-    required: 'Password is required',
+    required: () => t('auth.validation.passwordRequired'),
     test: {
       re: new RegExp(patterns.password),
-      msg: 'Min 8 chars, letters & numbers required'
+      msg: () => t('auth.validation.passwordInvalid'),
     },
   },
   confirm_password: {
-    required: 'Confirm password is required',
-    custom: (value, form) => (value !== form.password ? 'Passwords do not match' : ''),
+    required: () => t('auth.validation.confirmPasswordRequired'),
+    custom: (value, form) =>
+      value !== form.password ? t('auth.validation.passwordMismatch') : '',
   },
   verify_code: {
-    required: 'Code is required',
-    test: { re: new RegExp(patterns.verify_code), msg: 'Must be 6 digits' },
+    required: () => t('auth.validation.verificationCodeRequired'),
+    test: { re: new RegExp(patterns.verify_code), msg: () => t('auth.validation.codeInvalid') },
   },
   institution: {
-    required: 'Institution is required',
+    required: () => t('auth.validation.institutionRequired'),
     test: {
       re: new RegExp(patterns.institution),
-      msg: 'Institution must be 5-100 characters',
+      msg: () => t('auth.validation.institutionInvalid'),
     },
   },
   position: {
-    required: 'Please select a position'
+    required: () => t('auth.validation.positionRequired'),
   },
   research_field: {
-    required: 'Research field is required'
+    required: () => t('auth.validation.researchFieldRequired'),
   },
   region: {
-    required: 'Please select a region'
+    required: () => t('auth.validation.regionRequired'),
   },
   orcid: {
     test: {
       re: new RegExp(patterns.orcid),
-      msg: 'Invalid ORCID format (e.g. 0000-0000-0000-0000)',
+      msg: () => t('auth.validation.orcidInvalid'),
     },
   },
   homepage: {
     test: {
       re: new RegExp(patterns.url, 'i'),
-      msg: 'Invalid URL format'
+      msg: () => t('auth.validation.urlInvalid'),
     },
   },
 }
@@ -122,7 +124,7 @@ export function useRegisterForm() {
   } = useSendEmailCode({
     sessionKey: SESSION_KEYS.registerCodeAttempts,
     purpose: 'register',
-    successMessage: 'Verification code sent!',
+    successMessage: () => t('auth.code.sent'),
   })
 
   // State
@@ -156,6 +158,9 @@ export function useRegisterForm() {
 
   const loading = reactive({ register: false, sendCode: false })
 
+  // 国家名随界面语言变化；提交的始终是 ISO 代码，切语言不会丢失已选值
+  const regionOptions = computed(() => getRegionOptions())
+
   const passwordScore = computed(() => scorePassword(form.password))
 
   const progressBarClass = computed(() => passwordProgressClass(passwordScore.value))
@@ -169,9 +174,9 @@ export function useRegisterForm() {
     const value = form[field]
     const rule = rules[field]
     if (!value) {
-      errors[field] = rule.required ?? ''
+      errors[field] = rule.required?.() ?? ''
     } else if (rule.test && !rule.test.re.test(value)) {
-      errors[field] = rule.test.msg
+      errors[field] = rule.test.msg()
     } else if (rule.custom) {
       errors[field] = rule.custom(value, form)
     } else {
@@ -185,7 +190,7 @@ export function useRegisterForm() {
       validate: () => {
         accountFields.forEach((field) => validateField(field))
         if (accountFields.some((field) => errors[field])) {
-          showToast('Please complete the account information correctly before sending the code', 'error')
+          showToast(t('auth.toast.completeAccountFirst'), 'error')
           return false
         }
         return true
@@ -200,7 +205,7 @@ export function useRegisterForm() {
   const register = async () => {
     ; (Object.keys(form) as RegField[]).forEach((key) => validateField(key))
     if (Object.values(errors).some((error) => !!error)) {
-      showToast('Please fix errors in the form', 'error')
+      showToast(t('auth.toast.fixFormErrors'), 'error')
       return
     }
 
@@ -220,13 +225,13 @@ export function useRegisterForm() {
         homepage: form.homepage || '',
       }
       await usrSignupApi(signupData)
-      showToast('Registration successful! Redirecting to login page...', 'success')
+      showToast(t('auth.toast.registerSuccess'), 'success')
       setTimeout(() => {
         router.replace('/login')
       }, 2000)
     } catch (error: any) {
       console.error('Registration failed:', error.message)
-      showToast(error.message || 'Registration failed', 'error')
+      showToast(error.message || t('auth.toast.registerFailed'), 'error')
     } finally {
       loading.register = false
     }
@@ -239,6 +244,14 @@ export function useRegisterForm() {
       if (form.confirm_password) validateField('confirm_password')
     },
   )
+
+  // 错误文案是校验那一刻按当时语言生成的字符串；切语言后把正在显示的错误按新语言重算
+  const { locale } = useLocale()
+  watch(locale, () => {
+    ;(Object.keys(errors) as RegField[]).forEach((field) => {
+      if (errors[field]) validateField(field)
+    })
+  })
 
   return {
     form,

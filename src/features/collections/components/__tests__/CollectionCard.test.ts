@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { beforeAll, afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
@@ -11,6 +11,7 @@ vi.mock('@/shared/config/runtimeConfig', () => ({
 
 import CollectionCard from '../CollectionCard.vue'
 import type { CollectionSummary } from '../../types/collection'
+import { i18n, loadCoreMessages, loadFeatureMessages } from '@/i18n'
 
 const collection = (over: Partial<CollectionSummary> = {}): CollectionSummary =>
   ({
@@ -36,7 +37,7 @@ const collection = (over: Partial<CollectionSummary> = {}): CollectionSummary =>
 const mountCard = (props: Record<string, unknown> = {}) =>
   mount(CollectionCard, {
     props: { collection: collection(), memberIds: [498, 496, 467], ...props },
-    global: { stubs: { SvgIcon: true } },
+    global: { plugins: [i18n], stubs: { SvgIcon: true } },
   })
 
 // jsdom 不做真实布局/滚动：伪造 scrollLeft / clientWidth 后派发 scroll 事件，
@@ -47,6 +48,10 @@ const fakeSwipe = (wrapper: ReturnType<typeof mountCard>, index: number) => {
   el.scrollLeft = 260 * index
   el.dispatchEvent(new Event('scroll'))
 }
+
+
+// 组件模板用 $t：挂载时装上 i18n 实例，并预先加载英文语言包（断言保持英文原文）
+beforeAll(() => Promise.all([loadCoreMessages('en'), loadFeatureMessages('collections'), loadFeatureMessages('datasets')]))
 
 describe('CollectionCard cover carousel', () => {
   // jsdom 未实现 Element.scrollIntoView / scrollTo（组件在箭头与成员重置时调用）：

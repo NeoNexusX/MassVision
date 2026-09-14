@@ -24,8 +24,7 @@ export class GithubRateLimitError extends Error {
   remaining: number
   resetAt: Date | null
   constructor(remaining: number, resetAt: Date | null) {
-    const at = resetAt ? resetAt.toLocaleTimeString() : '未知'
-    super(`GitHub API 限流（剩余次数 ${remaining}），将于 ${at} 重置`)
+    super(`GitHub API rate limit exceeded (remaining: ${remaining})`)
     this.name = 'GithubRateLimitError'
     this.remaining = remaining
     this.resetAt = resetAt

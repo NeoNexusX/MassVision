@@ -9,6 +9,8 @@
  * - Allow only: A-Z a-z 0-9 space - _ / ( ) , .
  */
 
+import { t } from '@/i18n'
+
 const MAX_LENGTH = 50
 const ALLOWED_RE = /^[A-Za-z0-9\s\-_/(),.]*$/
 
@@ -32,11 +34,11 @@ export function validateOtherInput(value: string): string {
   }
 
   if (normalized.length > MAX_LENGTH) {
-    return `Please keep the value under ${MAX_LENGTH} characters.`
+    return t('common.input.otherTooLong', { max: MAX_LENGTH })
   }
 
   if (!ALLOWED_RE.test(normalized)) {
-    return 'Only letters, numbers, spaces, hyphens, underscores, slashes, parentheses, commas, and periods are allowed.'
+    return t('common.input.otherInvalidChars')
   }
 
   return ''
