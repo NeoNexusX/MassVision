@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { t } from '@/i18n'
 import { Icon } from '@iconify/vue'
 import DonutStatSection from './DonutStatSection.vue'
 // 千分位格式化统一走 shared/utils/format（跟随界面语言，而非浏览器语言）
@@ -26,16 +26,15 @@ import {
  */
 
 // 环形图数据（4 个 2×2 排列）
-const { t } = useI18n()
 const org = useOrganismStats()
 const cat = useDatasetCategoryStats()
 const ion = useDatasetIonSourceStats()
 const ana = useAnalyzerStats()
 const donutSections = computed(() => [
-  { title: t('home.stats.organism'), total: org.total, loading: org.loading, error: org.error, isEmpty: org.isEmpty, items: org.items, reload: org.reload },
+  { title: t('common.meta.organism'), total: org.total, loading: org.loading, error: org.error, isEmpty: org.isEmpty, items: org.items, reload: org.reload },
   { title: t('home.stats.organismParts'), total: cat.total, loading: cat.loading, error: cat.error, isEmpty: cat.isEmpty, items: cat.items, reload: cat.reload },
   { title: t('home.stats.ionSourceTypes'), total: ion.total, loading: ion.loading, error: ion.error, isEmpty: ion.isEmpty, items: ion.items, reload: ion.reload },
-  { title: t('home.stats.analyzer'), total: ana.total, loading: ana.loading, error: ana.error, isEmpty: ana.isEmpty, items: ana.items, reload: ana.reload },
+  { title: t('common.meta.analyzer'), total: ana.total, loading: ana.loading, error: ana.error, isEmpty: ana.isEmpty, items: ana.items, reload: ana.reload },
 ])
 
 // 平台总览
@@ -67,7 +66,7 @@ const statItems = computed(() => [
         <div class="card-body p-6 kawaru-text-home-donut min-h-0 flex flex-col">
           <DonutStatSection
             :title="s.title"
-            :caption="t('home.stats.datasetsTotal', { count: fmt(s.total.value) })"
+            :caption="$t('home.stats.datasetsTotal', { count: fmt(s.total.value) })"
             :loading="s.loading.value"
             :error="s.error.value"
             :is-empty="s.isEmpty.value"
@@ -89,7 +88,7 @@ const statItems = computed(() => [
         >
           <Icon icon="heroicons:exclamation-triangle" class="h-5 w-5 shrink-0" />
           <span class="flex-1">{{ ovError }}</span>
-          <button class="btn btn-ghost btn-xs kawaru-text-62" @click="reloadOv">{{ t('common.action.retry') }}</button>
+          <button class="btn btn-ghost btn-xs kawaru-text-62" @click="reloadOv">{{ $t('common.action.retry') }}</button>
         </div>
 
         <!-- Error（访问量接口独立失败） -->
@@ -100,7 +99,7 @@ const statItems = computed(() => [
         >
           <Icon icon="heroicons:exclamation-triangle" class="h-5 w-5 shrink-0" />
           <span class="flex-1">{{ visitsError }}</span>
-          <button class="btn btn-ghost btn-xs kawaru-text-62" @click="reloadVisits">{{ t('common.action.retry') }}</button>
+          <button class="btn btn-ghost btn-xs kawaru-text-62" @click="reloadVisits">{{ $t('common.action.retry') }}</button>
         </div>
 
         <div v-else class="stats stats-vertical w-full border border-base-300 sm:stats-horizontal">

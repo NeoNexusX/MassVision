@@ -10,10 +10,8 @@
       "totalDatasets": "数据集总数",
       "totalDownloads": "下载总数",
       "websiteVisits": "网站访问量",
-      "organism": "生物体",
-      "organismParts": "器官部位",
+      "organismParts": "组织部位",
       "ionSourceTypes": "离子源类型",
-      "analyzer": "分析器",
       "loadFailed": {
         "organism": "生物体统计加载失败",
         "category": "数据集分类统计加载失败",
@@ -21,7 +19,8 @@
         "analyzer": "分析器统计加载失败",
         "platform": "平台概览加载失败",
         "visits": "访问量统计加载失败"
-      }
+      },
+      "tooltip": "{count} 个数据集（{percent}%）"
     },
     "heatmap": {
       "summary": "提交活跃度概览",
@@ -33,7 +32,10 @@
       "rateLimited": "GitHub API 达到限流（剩余 {remaining} 次），将在 {time} 重置",
       "unknownTime": "未知时间",
       "loadFailed": "GitHub 活跃度加载失败",
-      "tooltip": "{date}：{count} 次提交"
+      "tooltip": "{date}：{count} 次提交",
+      "defaultTitle": "{owner}/{repo} 提交活跃度",
+      "less": "少",
+      "more": "多"
     },
     "footer": {
       "team": "团队介绍",
@@ -43,7 +45,7 @@
       "website": "Bionet 实验室网站",
       "email": "Bionet 实验室邮箱",
       "wechat": "微信公众号",
-      "github": "通过 Github 加入我们",
+      "github": "在 GitHub 上加入我们",
       "recruitment": "加入实验室",
       "computingFramework": "计算框架",
       "aliyun": "阿里云"

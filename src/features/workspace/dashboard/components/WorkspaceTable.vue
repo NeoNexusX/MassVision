@@ -32,7 +32,7 @@
               <th class="text-center py-3 px-2">{{ $t('workspace.table.methods') }}</th>
               <th class="text-center py-3 px-2">{{ $t('workspace.table.created') }}</th>
               <th class="text-center py-3 px-2">{{ $t('workspace.table.finished') }}</th>
-              <th class="text-center py-3 px-2">{{ $t('workspace.table.status') }}</th>
+              <th class="text-center py-3 px-2">{{ $t('common.field.status') }}</th>
               <th class="text-center py-3 px-1">{{ $t('common.action.view') }}</th>
               <th class="text-center py-3 px-1">{{ $t('common.action.delete') }}</th>
             </tr>

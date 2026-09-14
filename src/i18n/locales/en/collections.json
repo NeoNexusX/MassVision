@@ -96,7 +96,6 @@
       "empty": "This collection has no members."
     },
     "view": {
-      "title": "Collections",
       "subtitle": "Organize related datasets into curated collections.",
       "deleteTitle": "Delete collection?",
       "deleteMessage": "The collection will be removed. Member datasets are not affected."

@@ -40,10 +40,10 @@ const REQUIRED_FIELDS: RequiredField[] = [
   { key: 'pixel_size_vertical', label: () => t('upload.form.pixelSizeY') },
   { key: 'organism', label: () => t('common.meta.organism') },
   { key: 'organism_part', label: () => t('common.meta.organismPart') },
-  { key: 'condition', label: () => t('datasets.field.condition') },
+  { key: 'condition', label: () => t('common.meta.condition') },
   { key: 'sample_stabilization', label: () => t('common.meta.sampleStabilization') },
-  { key: 'spectrum_mode', label: () => t('datasets.field.spectrumMode') },
-  { key: 'storage_mode', label: () => t('datasets.field.storageMode') },
+  { key: 'spectrum_mode', label: () => t('common.meta.spectrumMode') },
+  { key: 'storage_mode', label: () => t('common.meta.storageMode') },
 ]
 
 function createForm(): UploadMetadataFormState {
@@ -151,8 +151,8 @@ export function useUploadMetadataForm() {
     // Solvent only checks presence; the MALDI fields additionally reject 'Other'.
     // 显示名不用 rule.label（规则表是纯数据、只有英文），按字段取译文
     const dynamicFields = [
-      { rule: rules.solvent, label: t('datasets.field.solvent'), value: form.value.solvent, rejectOther: false },
-      { rule: rules.maldiMatrix, label: t('datasets.field.maldiMatrix'), value: form.value.maldi_matrix, rejectOther: true },
+      { rule: rules.solvent, label: t('common.meta.solvent'), value: form.value.solvent, rejectOther: false },
+      { rule: rules.maldiMatrix, label: t('common.meta.maldiMatrix'), value: form.value.maldi_matrix, rejectOther: true },
       {
         rule: rules.maldiMatrixApplication,
         label: t('upload.form.maldiMatrixApplication'),

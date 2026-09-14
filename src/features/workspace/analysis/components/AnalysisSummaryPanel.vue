@@ -25,7 +25,7 @@ const emit = defineEmits<{
         </div>
 
         <div class="border-t border-base-200/70 px-5 py-4">
-          <div class="kawaru-text-112 font-medium text-base-content/60 mb-2">{{ $t('workspace.summary.preprocessing') }}</div>
+          <div class="kawaru-text-112 font-medium text-base-content/60 mb-2">{{ $t('common.preprocessing.title') }}</div>
           <ul class="space-y-3">
             <li v-for="item in pipelineSummary" :key="item.key">
               <div class="kawaru-text-112 font-medium text-base-content">{{ item.title }}</div>

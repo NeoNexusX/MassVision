@@ -1,26 +1,18 @@
 {
   "datasets": {
     "field": {
-      "condition": "实验条件",
       "stabilization": "稳定化处理",
-      "maldiMatrix": "MALDI 基质",
       "matrix": "基质",
       "matrixApplication": "基质涂布方式",
-      "solvent": "溶剂",
-      "pixelSize": "像素尺寸",
-      "resolvingPower": "分辨率",
       "fileType": "文件类型",
       "experimentType": "实验类型",
       "size": "大小",
       "fileSize": "文件大小",
-      "spectrumMode": "谱图模式",
-      "storageMode": "存储模式",
       "md5": "MD5 哈希",
       "submittedBy": "提交者",
       "filename": "文件名"
     },
     "vocab": {
-      "other": "其他",
       "positive": "正离子",
       "negative": "负离子",
       "human": "人 (Homo sapiens)",
@@ -95,15 +87,12 @@
     },
     "filter": {
       "addFilter": "添加筛选",
-      "collections": "数据集合",
-      "upload": "上传新数据集",
       "sortNewest": "提交时间（最新优先）",
       "sortOldest": "提交时间（最早优先）",
       "sortLargest": "文件大小（从大到小）",
       "sortSmallest": "文件大小（从小到大）",
       "submitterPlaceholder": "提交者用户名",
-      "any": "不限",
-      "specifyOther": "请填写具体内容..."
+      "any": "不限"
     },
     "list": {
       "empty": "没有符合筛选条件的数据集。",
@@ -120,14 +109,9 @@
     },
     "metadata": {
       "title": "编辑元信息",
-      "selectPlaceholder": "请选择...",
       "notOwner": "你不是该数据集的所有者，无法修改。"
     },
-    "public": {
-      "title": "公开数据集"
-    },
     "my": {
-      "title": "我的数据集",
       "searchPlaceholder": "搜索我的数据集",
       "storage": "存储",
       "refreshStatus": "刷新状态",
@@ -141,12 +125,10 @@
       "backToMy": "返回我的数据集",
       "invalidShare": "分享链接无效",
       "invalidShareDesc": "该公开概览链接无效。",
-      "sessionLost": "页面状态已丢失",
       "sessionLostDesc": "请从「我的数据集」或「公开数据集」进入查看详情。",
       "noData": "暂无数据",
       "noDataDesc": "找不到该数据集的信息，它可能是私有的或已被删除。",
       "makePublic": "设为公开",
-      "share": "分享",
       "linkCopied": "链接已复制",
       "sampleInfo": "生物与样本信息",
       "msiSettings": "质谱成像采集参数",

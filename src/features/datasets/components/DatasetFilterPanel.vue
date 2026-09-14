@@ -35,12 +35,12 @@ const fields = computed<FilterField[]>(() => [
   { key: 'username', label: t('common.field.username'), type: 'text', placeholder: t('datasets.filter.submitterPlaceholder') },
   { key: 'organism', label: t('common.meta.organism'), type: 'select', options: ORGANISMS },
   { key: 'organism_part', label: t('common.meta.organismPart'), type: 'select', options: ORGANISM_PARTS },
-  { key: 'condition', label: t('datasets.field.condition'), type: 'select', options: CONDITIONS },
+  { key: 'condition', label: t('common.meta.condition'), type: 'select', options: CONDITIONS },
   { key: 'sample_stabilization', label: t('common.meta.sampleStabilization'), type: 'select', options: SAMPLE_STABILIZATIONS },
   { key: 'tissue_modification', label: t('common.meta.tissueModification'), type: 'select', options: TISSUE_MODIFICATIONS },
-  { key: 'maldi_matrix', label: t('datasets.field.maldiMatrix'), type: 'select', options: MALDI_MATRICES },
+  { key: 'maldi_matrix', label: t('common.meta.maldiMatrix'), type: 'select', options: MALDI_MATRICES },
   { key: 'maldi_matrix_application', label: t('datasets.field.matrixApplication'), type: 'select', options: MALDI_MATRIX_APPLICATIONS },
-  { key: 'solvent', label: t('datasets.field.solvent'), type: 'select', options: SOLVENTS },
+  { key: 'solvent', label: t('common.meta.solvent'), type: 'select', options: SOLVENTS },
 ])
 
 const filters = ref<Record<string, string>>(
@@ -81,7 +81,7 @@ const resetFilters = () => {
         :label-of="vocabLabel"
         :placeholder="$t('datasets.filter.any')"
         placeholder-selectable
-        :other-placeholder="$t('datasets.filter.specifyOther')"
+        :other-placeholder="$t('common.input.specifyOther')"
       />
     </div>
   </div>

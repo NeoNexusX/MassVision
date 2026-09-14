@@ -71,7 +71,7 @@
     </CollapsibleSection>
 
     <!-- ─── Preprocessing ─── -->
-    <CollapsibleSection v-if="methods.length" :title="$t('vizworkbench.info.preprocessing')" class="mt-5">
+    <CollapsibleSection v-if="methods.length" :title="$t('common.preprocessing.title')" class="mt-5">
       <div class="space-y-1">
         <div
           v-for="m in methods"
@@ -164,10 +164,10 @@ const infoRows = computed(() => {
   if (analyzer) items.push({ label: t('common.meta.analyzer'), value: analyzer })
   if (ionisationSource)
     items.push({ label: t('common.meta.ionisationSource'), value: ionisationSource })
-  if (pixelSize) items.push({ label: t('datasets.field.pixelSize'), value: pixelSize })
+  if (pixelSize) items.push({ label: t('common.meta.pixelSize'), value: pixelSize })
   // 谱图 / 存储模式的取值是专业术语，原样显示
-  if (spectrumMode) items.push({ label: t('datasets.field.spectrumMode'), value: spectrumMode })
-  if (storageMode) items.push({ label: t('datasets.field.storageMode'), value: storageMode })
+  if (spectrumMode) items.push({ label: t('common.meta.spectrumMode'), value: spectrumMode })
+  if (storageMode) items.push({ label: t('common.meta.storageMode'), value: storageMode })
   return items
 })
 

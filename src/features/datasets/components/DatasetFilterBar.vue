@@ -48,7 +48,7 @@
         class="flex w-full sm:w-auto items-center justify-center gap-2 bg-base-100 dark:bg-slate-800 border border-base-300 text-base-content h-10 px-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors kawaru-text-100 font-medium"
       >
         <SvgIcon type="circle_stack" class="w-[1.1em] h-[1.1em] shrink-0" />
-        <span class="truncate">{{ $t('datasets.filter.collections') }}</span>
+        <span class="truncate">{{ $t('common.page.collections') }}</span>
       </router-link>
     </div>
 
@@ -59,7 +59,7 @@
         class="flex w-full sm:w-auto items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 border-none rounded-lg shadow-sm transition-all transform active:scale-95 kawaru-text-100 font-medium h-10 px-4 min-w-0 overflow-hidden"
       >
         <SvgIcon type="upload" class="w-[1.1em] h-[1.1em] shrink-0" />
-        <span class="truncate">{{ $t('datasets.filter.upload') }}</span>
+        <span class="truncate">{{ $t('common.action.uploadDataset') }}</span>
       </button>
 
       <div class="relative flex-1 w-full min-w-0">

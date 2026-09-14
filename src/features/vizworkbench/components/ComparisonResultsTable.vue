@@ -51,7 +51,7 @@ const CATEGORY_META: Record<ComparisonCategory, { label: () => string; badge: st
 }
 
 const FILTER_OPTIONS: { value: ComparisonCategory | 'all'; label: () => string }[] = [
-  { value: 'all', label: () => t('vizworkbench.compare.all') },
+  { value: 'all', label: () => t('common.input.all') },
   { value: 'a-only', label: () => t('vizworkbench.compare.aOnly') },
   { value: 'b-only', label: () => t('vizworkbench.compare.bOnly') },
   { value: 'a-enriched', label: () => t('vizworkbench.compare.aEnriched') },

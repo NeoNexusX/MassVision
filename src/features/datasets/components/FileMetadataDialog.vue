@@ -27,22 +27,22 @@
               v-model="draft![field.key]"
               :options="field.suggestions"
               :label-of="vocabLabel"
-              :placeholder="$t('datasets.metadata.selectPlaceholder')"
-              :other-placeholder="$t('datasets.filter.specifyOther')"
+              :placeholder="$t('common.input.selectShort')"
+              :other-placeholder="$t('common.input.specifyOther')"
             />
           </label>
 
           <!-- 溶剂：与上传页同款复合控件（"N% 名称" 逗号分隔，可增删条目）。
                整行占满：百分比输入 + 溶剂下拉 + 条目列表在窄栏里会挤成一团。 -->
           <div class="flex flex-col gap-1 min-w-0 col-span-full">
-            <span class="kawaru-text-81 font-medium text-base-content/70">{{ $t('datasets.field.solvent') }}</span>
+            <span class="kawaru-text-81 font-medium text-base-content/70">{{ $t('common.meta.solvent') }}</span>
             <SolventPicker v-model="draft!.solvent" :solvent-options="SOLVENTS" />
           </div>
 
           <!-- 枚举：IconSelect 下拉。placeholder="" 让 IconSelect 不渲染占位项，
                下拉里只有真实取值；未设置的字段显示为空（选中态 = 不修改该字段） -->
           <label class="flex flex-col gap-1 min-w-0">
-            <span class="kawaru-text-81 font-medium text-base-content/70">{{ $t('datasets.field.spectrumMode') }}</span>
+            <span class="kawaru-text-81 font-medium text-base-content/70">{{ $t('common.meta.spectrumMode') }}</span>
             <IconSelect
               v-model="draft!.spectrum_mode"
               :options="SPECTRUM_MODES"
@@ -51,7 +51,7 @@
             />
           </label>
           <label class="flex flex-col gap-1 min-w-0">
-            <span class="kawaru-text-81 font-medium text-base-content/70">{{ $t('datasets.field.storageMode') }}</span>
+            <span class="kawaru-text-81 font-medium text-base-content/70">{{ $t('common.meta.storageMode') }}</span>
             <IconSelect
               v-model="draft!.storage_mode"
               :options="STORAGE_MODES"
@@ -123,11 +123,11 @@ const { showToast } = useToast()
 const TEXT_FIELDS = computed<{ key: FileMetadataKey; label: string; suggestions: readonly string[] }[]>(() => [
   { key: 'organism', label: t('common.meta.organism'), suggestions: ORGANISMS },
   { key: 'organism_part', label: t('common.meta.organismPart'), suggestions: ORGANISM_PARTS },
-  { key: 'condition', label: t('datasets.field.condition'), suggestions: CONDITIONS },
+  { key: 'condition', label: t('common.meta.condition'), suggestions: CONDITIONS },
   { key: 'sample_growth_conditions', label: t('common.meta.growthConditions'), suggestions: SAMPLE_GROWTH_CONDITIONS },
   { key: 'sample_stabilization', label: t('datasets.field.stabilization'), suggestions: SAMPLE_STABILIZATIONS },
   { key: 'tissue_modification', label: t('common.meta.tissueModification'), suggestions: TISSUE_MODIFICATIONS },
-  { key: 'maldi_matrix', label: t('datasets.field.maldiMatrix'), suggestions: MALDI_MATRICES },
+  { key: 'maldi_matrix', label: t('common.meta.maldiMatrix'), suggestions: MALDI_MATRICES },
   { key: 'maldi_matrix_application', label: t('datasets.field.matrixApplication'), suggestions: MALDI_MATRIX_APPLICATIONS },
 ])
 

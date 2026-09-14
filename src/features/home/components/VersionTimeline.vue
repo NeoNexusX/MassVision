@@ -29,7 +29,7 @@ defineProps<{
       <template v-if="i % 2 === 0">
         <div class="timeline-start">
           <span class="tl-date">{{ localized(item.date) }}</span>
-          <span class="badge badge-primary tl-badge kawaru-text-87">{{ item.version }}</span>
+          <span class="badge badge-primary tl-badge kawaru-text-87">v{{ item.version }}</span>
         </div>
         <div class="timeline-end">
           <div class="timeline-box">
@@ -49,7 +49,7 @@ defineProps<{
         </div>
         <div class="timeline-end">
           <span class="tl-date">{{ localized(item.date) }}</span>
-          <span class="badge badge-primary tl-badge kawaru-text-87">{{ item.version }}</span>
+          <span class="badge badge-primary tl-badge kawaru-text-87">v{{ item.version }}</span>
         </div>
       </template>
       <hr />

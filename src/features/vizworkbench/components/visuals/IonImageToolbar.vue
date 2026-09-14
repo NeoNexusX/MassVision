@@ -38,7 +38,7 @@
         v-if="dataMode === 'processed' && pixelCoord"
         class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 h-8 flex items-center"
       >
-        <span class="text-base-content/50 pr-[0.25em]">{{ $t('vizworkbench.toolbar.pixel') }}</span>
+        <span class="text-base-content/50 pr-[0.25em]">{{ $t('vizworkbench.spectrum.pixel') }}</span>
         <span class="font-mono font-semibold">({{ pixelCoord.x }}, {{ pixelCoord.y }})</span>
       </div>
       <!-- m/z 容差（仅 continuous 模式） -->

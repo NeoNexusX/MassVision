@@ -17,7 +17,7 @@ import * as DATASET_VOCABS from './datasetMetadata'
  * 在 computed / 模板里调用才会随语言切换刷新。
  */
 const VOCAB_LABELS: Record<string, () => string> = {
-  Other: () => t('datasets.vocab.other'),
+  Other: () => t('common.input.other'),
   Positive: () => t('datasets.vocab.positive'),
   Negative: () => t('datasets.vocab.negative'),
   'Human (Homo sapiens)': () => t('datasets.vocab.human'),
@@ -80,8 +80,9 @@ const VOCAB_LABELS: Record<string, () => string> = {
 
 export function vocabLabel(value: string | null | undefined): string {
   if (!value) return ''
-  // datasets 语言包随路由懒加载；在没加载它的页面里调用时原样显示，而不是显示裸 key
-  if (!te('datasets.vocab.other', 'en')) return value
+  // datasets 语言包随路由懒加载；在没加载它的页面里调用时原样显示，而不是显示裸 key。
+  // 探针必须是 datasets 自己的 key——common 启动即加载，拿它判断会恒为真。
+  if (!te('datasets.vocab.positive', 'en')) return value
   return VOCAB_LABELS[value]?.() ?? value
 }
 

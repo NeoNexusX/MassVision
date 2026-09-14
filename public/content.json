@@ -1,22 +1,10 @@
 {
   "hero": {
     "taglines": [
-      {
-        "en": "OPEN ↗",
-        "zh-CN": "OPEN ↗"
-      },
-      {
-        "en": "FAST ▶︎▶︎",
-        "zh-CN": "FAST ▶︎▶︎"
-      },
-      {
-        "en": "UNIFIED ≡",
-        "zh-CN": "UNIFIED ≡"
-      },
-      {
-        "en": "INTELLIGENT ✧",
-        "zh-CN": "INTELLIGENT ✧"
-      }
+      "OPEN ↗",
+      "FAST ▶︎▶︎",
+      "UNIFIED ≡",
+      "INTELLIGENT ✧"
     ],
     "gallery": [
       "https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260826173023933.png",
@@ -27,10 +15,7 @@
   "features": {
     "items": [
       {
-        "word": {
-          "en": "OPEN",
-          "zh-CN": "OPEN"
-        },
+        "word": "OPEN",
         "title": {
           "en": "Open & Interoperable",
           "zh-CN": "开放与互通"
@@ -42,10 +27,7 @@
         "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mz726.539885.png"
       },
       {
-        "word": {
-          "en": "SMART",
-          "zh-CN": "SMART"
-        },
+        "word": "SMART",
         "title": {
           "en": "SMART Analysis",
           "zh-CN": "智能分析"
@@ -57,10 +39,7 @@
         "image": "https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/kmeans_image2.png"
       },
       {
-        "word": {
-          "en": "FAST",
-          "zh-CN": "FAST"
-        },
+        "word": "FAST",
         "title": {
           "en": "Fast at Scale",
           "zh-CN": "规模化高速处理"
@@ -83,15 +62,15 @@
       "features": [
         {
           "en": "Collections hub: curate and share public imzML datasets",
-          "zh-CN": "合集中心：整理并分享公开 imzML 数据集"
+          "zh-CN": "集合中心：整理并分享公开 imzML 数据集"
         },
         {
           "en": "Collection editing: metadata, members and drag-to-reorder",
-          "zh-CN": "合集编辑：元数据、成员管理与拖拽排序"
+          "zh-CN": "集合编辑：元数据、成员管理与拖拽排序"
         },
         {
           "en": "Share public collections without sign-in",
-          "zh-CN": "公开合集免登录分享"
+          "zh-CN": "公开集合免登录分享"
         },
         {
           "en": "Multi-ion overlay and ROI/KMeans mask export (.npy / .csv)",

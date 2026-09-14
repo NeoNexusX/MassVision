@@ -15,7 +15,7 @@
         class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
       >
         <SvgIcon type="circle_stack" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-        <h3 class="kawaru-text-112 font-bold text-base-content">{{ $t('datasets.overview.sessionLost') }}</h3>
+        <h3 class="kawaru-text-112 font-bold text-base-content">{{ $t('common.state.sessionLost') }}</h3>
         <p class="mt-2 text-base-content/60">
           {{ $t('collections.overview.sessionLostDesc') }}
         </p>
@@ -55,7 +55,7 @@
               class="inline-flex items-center gap-1 kawaru-text-87 text-base-content/60 hover:text-primary transition-colors"
             >
               <SvgIcon type="back" class="w-[0.9em] h-[0.9em]" />
-              {{ $t('collections.view.title') }}
+              {{ $t('common.page.collections') }}
             </router-link>
             <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mt-1 truncate" :title="headerName">
               {{ headerName }}
@@ -90,7 +90,7 @@
                 @click="copyShareLink"
               >
                 <SvgIcon type="share" class="w-[1em] h-[1em]" />
-                {{ $t('datasets.overview.share') }}
+                {{ $t('common.action.share') }}
               </button>
               <button class="btn btn-outline border-base-300 kawaru-text-95" @click="start">
                 <SvgIcon type="pencil" class="w-[1em] h-[1em]" />

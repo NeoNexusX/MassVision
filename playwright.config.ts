@@ -10,6 +10,9 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+/** 中文冒烟用例只在 chromium-zh 里跑；其余项目锁定 en-US，跑到它会误报 */
+const ZH_SMOKE = /i18n-zh\.spec\.ts/
+
 export default defineConfig({
   testDir: './e2e',
   /* Maximum time one test can run for. */
@@ -52,7 +55,7 @@ export default defineConfig({
      * 这里锁的是 navigator.language 而不是往 localStorage 里塞值：后者对未登录组
      * （storageState 被清空）和 setup project 都不生效。
      *
-     * 将来要加中文冒烟用例时，单独开一个 project 覆盖 locale: 'zh-CN'，不要动这里。
+     * 中文冒烟用例在单独的 chromium-zh project 里覆盖 locale: 'zh-CN'，不要动这里。
      */
     locale: 'en-US',
   },
@@ -66,6 +69,7 @@ export default defineConfig({
     },
     {
       name: 'chromium',
+      testIgnore: ZH_SMOKE,
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/user.json',
@@ -74,6 +78,7 @@ export default defineConfig({
     },
     {
       name: 'firefox',
+      testIgnore: ZH_SMOKE,
       use: {
         ...devices['Desktop Firefox'],
         storageState: '.auth/user.json',
@@ -82,8 +87,21 @@ export default defineConfig({
     },
     {
       name: 'webkit',
+      testIgnore: ZH_SMOKE,
       use: {
         ...devices['Desktop Safari'],
+        storageState: '.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+    // 中文冒烟：浏览器语言设为 zh-CN，巡检各路由没有裸 key、确实渲染成中文。
+    // 只跑 chromium——它验的是语言包与懒加载，不是浏览器兼容性。
+    {
+      name: 'chromium-zh',
+      testMatch: ZH_SMOKE,
+      use: {
+        ...devices['Desktop Chrome'],
+        locale: 'zh-CN',
         storageState: '.auth/user.json',
       },
       dependencies: ['setup'],

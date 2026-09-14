@@ -18,7 +18,8 @@
       "password": "Password",
       "position": "Position",
       "region": "Region",
-      "researchField": "Research Field"
+      "researchField": "Research Field",
+      "status": "Status"
     },
     "action": {
       "save": "Save",
@@ -41,12 +42,15 @@
       "next": "Next",
       "go": "Go",
       "clearAll": "Clear all",
-      "discard": "Discard"
+      "discard": "Discard",
+      "uploadDataset": "Upload New Dataset",
+      "share": "Share"
     },
     "state": {
       "loading": "Loading…",
       "empty": "No data",
-      "error": "Something went wrong"
+      "error": "Something went wrong",
+      "sessionLost": "Session lost"
     },
     "feedback": {
       "updated": "Updated",
@@ -85,7 +89,8 @@
       "normalization": "Normalization",
       "peakPicking": "Peak Picking",
       "peakAlignment": "Peak Alignment",
-      "rawConvert": "Direct conversion (no preprocessing)"
+      "rawConvert": "Direct conversion (no preprocessing)",
+      "title": "Preprocessing"
     },
     "meta": {
       "organism": "Organism",
@@ -95,7 +100,14 @@
       "tissueModification": "Tissue Modification",
       "polarity": "Polarity",
       "ionisationSource": "Ionisation Source",
-      "analyzer": "Analyzer"
+      "analyzer": "Analyzer",
+      "condition": "Condition",
+      "maldiMatrix": "MALDI Matrix",
+      "pixelSize": "Pixel Size",
+      "resolvingPower": "Resolving Power",
+      "solvent": "Solvent",
+      "spectrumMode": "Spectrum Mode",
+      "storageMode": "Storage Mode"
     },
     "pagination": {
       "summary": "Page {page} of {total} — {count} records",
@@ -113,7 +125,12 @@
       "otherRequired": "Please specify the value.",
       "otherTooLong": "Please keep the value under {max} characters.",
       "otherInvalidChars": "Only letters, numbers, spaces, hyphens, underscores, slashes, parentheses, commas, and periods are allowed.",
-      "searchDatasets": "Search datasets"
+      "searchDatasets": "Search datasets",
+      "specifyOther": "Please specify...",
+      "selectShort": "Select...",
+      "all": "All",
+      "other": "Other",
+      "example": "e.g. {value}"
     },
     "assistant": {
       "title": "AI Assistant",
@@ -131,6 +148,11 @@
       "send": "Send",
       "replyPrompt": "Here's my response to \"{prompt}\". This is a simulated reply — connect your backend AI to see real results.",
       "replyText": "Thanks for your message! I received \"{text}\". This is a demo — connect your AI backend for real answers."
+    },
+    "page": {
+      "myDatasets": "My Datasets",
+      "publicDatasets": "Public Datasets",
+      "collections": "Collections"
     }
   }
 }

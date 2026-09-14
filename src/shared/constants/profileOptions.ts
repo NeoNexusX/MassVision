@@ -62,7 +62,7 @@ const PROFILE_OPTION_LABELS: Record<string, () => string> = {
   Biotechnology: () => t('auth.vocab.biotechnology'),
   'Environmental Science': () => t('auth.vocab.environmentalScience'),
   'Food Science': () => t('auth.vocab.foodScience'),
-  Other: () => t('auth.vocab.other'),
+  Other: () => t('common.input.other'),
 }
 
 export function profileOptionLabel(value: string): string {

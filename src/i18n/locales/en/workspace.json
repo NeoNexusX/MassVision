@@ -20,7 +20,6 @@
       "methods": "Methods",
       "created": "Created",
       "finished": "Finished",
-      "status": "Status",
       "processName": "Process #{id}",
       "unknownFile": "Unknown",
       "unknownError": "Unknown error"
@@ -72,7 +71,6 @@
     },
     "summary": {
       "title": "Analysis Summary",
-      "preprocessing": "Preprocessing",
       "metadata": "Dataset metadata",
       "selectedDataset": "Selected dataset",
       "noDataset": "No dataset selected",

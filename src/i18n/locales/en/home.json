@@ -10,10 +10,8 @@
       "totalDatasets": "Total Datasets",
       "totalDownloads": "Total Downloads",
       "websiteVisits": "Website Visits",
-      "organism": "Organism",
       "organismParts": "Organism Parts",
       "ionSourceTypes": "Ion Source Types",
-      "analyzer": "Analyzer",
       "loadFailed": {
         "organism": "Failed to load organism stats",
         "category": "Failed to load dataset category stats",
@@ -21,7 +19,8 @@
         "analyzer": "Failed to load analyzer stats",
         "platform": "Failed to load platform overview",
         "visits": "Failed to load visits stats"
-      }
+      },
+      "tooltip": "{count} dataset ({percent}%) | {count} datasets ({percent}%)"
     },
     "heatmap": {
       "summary": "Commit activity summary",
@@ -33,7 +32,10 @@
       "rateLimited": "GitHub API rate limited (remaining {remaining}), resets at {time}",
       "unknownTime": "unknown time",
       "loadFailed": "Failed to load GitHub activity",
-      "tooltip": "{date}: {count} commit | {date}: {count} commits"
+      "tooltip": "{date}: {count} commit | {date}: {count} commits",
+      "defaultTitle": "{owner}/{repo} Commit Activity",
+      "less": "Less",
+      "more": "More"
     },
     "footer": {
       "team": "The Team",
@@ -43,7 +45,7 @@
       "website": "Bionet Lab Website",
       "email": "Bionet Lab Email",
       "wechat": "WeChat Official Account",
-      "github": "Join us with Github",
+      "github": "Join us on GitHub",
       "recruitment": "Join the Lab",
       "computingFramework": "Computing Framework",
       "aliyun": "Aliyun"

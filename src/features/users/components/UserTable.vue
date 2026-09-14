@@ -98,7 +98,7 @@ defineEmits<{
           <tr class="bg-base-200 text-base-content/60 border-b border-base-200 kawaru-text-112">
             <th class="font-medium py-3 px-4 text-center">{{ $t('common.field.username') }}</th>
             <th class="font-medium py-3 px-4 text-center">{{ $t('users.field.identity') }}</th>
-            <th class="font-medium py-3 px-4 text-center">{{ $t('users.field.status') }}</th>
+            <th class="font-medium py-3 px-4 text-center">{{ $t('common.field.status') }}</th>
             <th class="font-medium py-3 px-4 text-center">{{ $t('users.field.institution') }}</th>
             <th class="font-medium py-3 px-4 text-center">{{ $t('common.field.region') }}</th>
             <th class="font-medium py-3 px-4 text-center">{{ $t('common.action.view') }}</th>

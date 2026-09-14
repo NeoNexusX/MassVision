@@ -4,9 +4,7 @@ import HoverGallery from '@/shared/components/HoverGallery.vue'
 import { getBrandParts } from '@/shared/config/appName'
 import { getContent } from '@/features/home/config/contentConfig'
 import { localized } from '@/shared/config/localizedText'
-import { useI18n } from 'vue-i18n'
 
-const { t } = useI18n()
 const { taglines: HERO_TAGLINES, gallery: HERO_GALLERY = [] } = getContent().hero
 
 // 每个 tagline 停留 2000ms，整圈时长 = 数量 × 2000ms
@@ -60,7 +58,7 @@ const { pre: namePre, x: nameX, post: namePost } = getBrandParts()
           from-[var(--brand-accent)] to-primary px-[1.6em] kawaru-text-95
           font-['Outfit',sans-serif] font-bold
           text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/40"
-        >{{ t('home.actions.join') }}<SvgIcon type="chevron_right" class="h-[1.1em] w-[1.1em]" />
+        >{{ $t('home.actions.join') }}<SvgIcon type="chevron_right" class="h-[1.1em] w-[1.1em]" />
         </RouterLink>
 
         <RouterLink
@@ -70,7 +68,7 @@ const { pre: namePre, x: nameX, post: namePost } = getBrandParts()
           from-[var(--brand-accent)] to-secondary px-[1.6em] kawaru-text-95
           font-['Outfit',sans-serif] font-bold
           text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/40"
-        >{{ t('home.actions.datasets') }}<SvgIcon type="chevron_right" class="h-[1.1em] w-[1.1em]" />
+        >{{ $t('home.actions.datasets') }}<SvgIcon type="chevron_right" class="h-[1.1em] w-[1.1em]" />
         </RouterLink>
       </div>
     </div>

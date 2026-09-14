@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
 import DeveloperCard from './DeveloperCard.vue'
 import { getConfig } from '@/shared/config'
 import { getContent } from '@/features/home/config/contentConfig'
 import { useCarouselScroll } from '@/features/home/composables/useCarouselScroll'
 
 // 成员名单属首页展示内容（content.json），轮播节奏属全站 UI 调参（config.json）
-const { t } = useI18n()
 const { team: TEAM_MEMBERS } = getContent()
 const { carousel } = getConfig()
 
@@ -23,7 +21,7 @@ const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage }
       class="dev-track no-scrollbar relative flex snap-x snap-mandatory overflow-x-auto scroll-smooth py-4"
       :style="{ '--cols': cols, '--card-max': MAX_CARD + 'px', '--gap': GAP + 'px' }"
       role="region"
-      :aria-label="t('home.team.carousel')"
+      :aria-label="$t('home.team.carousel')"
       tabindex="0"
     >
       <li v-for="member in TEAM_MEMBERS" :key="member.name" class="dev-cell shrink-0 snap-start">
@@ -41,7 +39,7 @@ const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage }
       :class="atStart ? 'pointer-events-none opacity-0' : 'opacity-100'"
       :aria-hidden="atStart"
       :tabindex="atStart ? -1 : 0"
-      :aria-label="t('common.action.prev')"
+      :aria-label="$t('common.action.prev')"
       @click="scrollByPage(-1)"
     >
       <SvgIcon type="chevron_right" class="h-5 w-5 rotate-180" />
@@ -52,7 +50,7 @@ const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage }
       :class="atEnd ? 'pointer-events-none opacity-0' : 'opacity-100'"
       :aria-hidden="atEnd"
       :tabindex="atEnd ? -1 : 0"
-      :aria-label="t('common.action.next')"
+      :aria-label="$t('common.action.next')"
       @click="scrollByPage(1)"
     >
       <SvgIcon type="chevron_right" class="h-5 w-5" />

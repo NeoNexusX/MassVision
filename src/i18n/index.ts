@@ -113,10 +113,12 @@ function loadNs(locale: Locale, ns: string): Promise<void> {
  * 加载某个命名空间，并在非英文语言下**顺带预热 en 的同一份**。
  *
  * fallbackLocale 只在内存里查 en 的消息，不会自己去下载；不预热的话，中文包缺 key
- * 时回退拿到的是空字符串而不是英文。两者并行发起，不产生额外延迟；代价是中文用户
- * 每个命名空间多下一份 en（gzip 后通常几 KB）。
+ * 时回退拿到的是 key 本身而不是英文。两者并行发起，不产生额外延迟；代价是中文用户
+ * 每个命名空间多下一份 en（gzip 后 0.7–3.6KB，单个页面合计不到 10KB）。
  *
- * 等 zh 翻译完整之后，这里的预热可以去掉以省流量。
+ * zh 已与 en 逐键对齐，且有 ESLint 的 no-missing-keys-in-other-locales 把关，
+ * 这层预热只是兜底。保留它的另一个原因：datasets 的 vocabLabel 用
+ * `te(key, 'en')` 判断 datasets 包是否已加载，去掉预热前要先改掉那个探针。
  */
 function ensureNs(locale: Locale, ns: string): Promise<unknown> {
   return locale === 'en' ? loadNs('en', ns) : Promise.all([loadNs(locale, ns), loadNs('en', ns)])

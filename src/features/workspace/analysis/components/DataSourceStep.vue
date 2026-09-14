@@ -31,12 +31,12 @@ const emit = defineEmits<{
       <a
         :class="['tab', activeTab === 'my' ? 'tab-active' : '']"
         @click.prevent="emit('update:activeTab', 'my')"
-        >{{ $t('datasets.my.title') }}</a
+        >{{ $t('common.page.myDatasets') }}</a
       >
       <a
         :class="['tab', activeTab === 'public' ? 'tab-active' : '']"
         @click.prevent="emit('update:activeTab', 'public')"
-        >{{ $t('datasets.public.title') }}</a
+        >{{ $t('common.page.publicDatasets') }}</a
       >
     </div>
 

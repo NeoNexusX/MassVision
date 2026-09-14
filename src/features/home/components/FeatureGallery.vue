@@ -6,8 +6,7 @@
  * 下部卡片：随 active 联动显示当前项的 title / desc，带过渡动画。
  */
 import { computed } from 'vue'
-import type { LocalizedText } from '@/shared/config/localizedText'
-import { localized } from '@/shared/config/localizedText'
+import { localized, type LocalizedText } from '@/shared/config/localizedText'
 
 const props = defineProps<{
   /** 画廊项：首张为默认显示；image 已由父组件合并好「自有图 / hero 回退」 */
@@ -60,7 +59,7 @@ const activeItem = computed(() => props.items[active.value] ?? { word: '', image
             :class="{
               'scale-[1.15] opacity-100 [text-shadow:0_2px_14px_rgba(0,0,0,0.6),0_0_30px_rgba(255,255,255,0.4)]': active === i,
             }"
-          >{{ localized(it.word) }}</span>
+          >{{ it.word }}</span>
         </div>
       </div>
     </div>
@@ -71,7 +70,7 @@ const activeItem = computed(() => props.items[active.value] ?? { word: '', image
         <div :key="active">
           <h3
             class="brand-text break-words bg-gradient-to-br from-primary to-[var(--brand-accent)] kawaru-text-240 font-black leading-[1.1] tracking-[-0.02em]"
-          >{{ localized(activeItem.word) }}</h3>
+          >{{ activeItem.word }}</h3>
           <p v-if="activeItem.title" class="mt-4 kawaru-text-112 font-semibold text-base-content">{{ localized(activeItem.title) }}</p>
           <p v-if="activeItem.desc" class="mt-4 text-justify kawaru-text-95 leading-[1.5] text-base-content/60">{{ localized(activeItem.desc) }}</p>
         </div>

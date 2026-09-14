@@ -71,7 +71,7 @@ const handleModeChange = (
     field === 'spectrum_mode'
       ? props.detectedSpectrumMode
       : props.detectedStorageMode
-  const label = field === 'spectrum_mode' ? t('datasets.field.spectrumMode') : t('datasets.field.storageMode')
+  const label = field === 'spectrum_mode' ? t('common.meta.spectrumMode') : t('common.meta.storageMode')
   const labelLower =
     field === 'spectrum_mode' ? t('upload.form.spectrumModeLower') : t('upload.form.storageModeLower')
 
@@ -143,7 +143,7 @@ const cancelModeChange = () => {
         <IconSelect
           v-model="form.polarity"
           :options="vocabOptionMap(POLARITIES)"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
+          :placeholder="$t('common.input.selectShort')"
           hide-label
         />
       </div>
@@ -158,8 +158,8 @@ const cancelModeChange = () => {
           v-model="form.ionisation_source"
           :options="ION_SOURCES"
           :label-of="vocabLabel"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
-          :other-placeholder="$t('datasets.filter.specifyOther')"
+          :placeholder="$t('common.input.selectShort')"
+          :other-placeholder="$t('common.input.specifyOther')"
         />
       </div>
 
@@ -173,8 +173,8 @@ const cancelModeChange = () => {
           v-model="form.analyzer"
           :options="ANALYZERS"
           :label-of="vocabLabel"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
-          :other-placeholder="$t('datasets.filter.specifyOther')"
+          :placeholder="$t('common.input.selectShort')"
+          :other-placeholder="$t('common.input.specifyOther')"
         />
       </div>
 
@@ -191,7 +191,7 @@ const cancelModeChange = () => {
             inputmode="numeric"
             class="input input-bordered w-full kawaru-text-100"
             :class="{ 'input-error': pixelSizeXError }"
-            placeholder="e.g. 50"
+            :placeholder="$t('common.input.example', { value: 50 })"
             @blur="validatePixelSize(form.pixel_size_horizontal, 'horizontal')"
           />
           <span v-if="pixelSizeXError" class="kawaru-text-75 text-error mt-0.5">{{ pixelSizeXError }}</span>
@@ -208,7 +208,7 @@ const cancelModeChange = () => {
             inputmode="numeric"
             class="input input-bordered w-full kawaru-text-100"
             :class="{ 'input-error': pixelSizeYError }"
-            placeholder="e.g. 50"
+            :placeholder="$t('common.input.example', { value: 50 })"
             @blur="validatePixelSize(form.pixel_size_vertical, 'vertical')"
           />
           <span v-if="pixelSizeYError" class="kawaru-text-75 text-error mt-0.5">{{ pixelSizeYError }}</span>
@@ -219,13 +219,13 @@ const cancelModeChange = () => {
         <div class="flex flex-col">
           <label class="label"
             ><span class="label-text font-medium text-base-content kawaru-text-125"
-              >{{ $t('datasets.field.spectrumMode') }} <span class="text-error">*</span></span
+              >{{ $t('common.meta.spectrumMode') }} <span class="text-error">*</span></span
             ></label
           >
           <IconSelect
             :model-value="form.spectrum_mode"
             :options="SPECTRUM_MODES"
-            :placeholder="$t('datasets.metadata.selectPlaceholder')"
+            :placeholder="$t('common.input.selectShort')"
             hide-label
             @change="(v: string) => handleModeChange('spectrum_mode', v)"
           />
@@ -233,13 +233,13 @@ const cancelModeChange = () => {
         <div class="flex flex-col">
           <label class="label"
             ><span class="label-text font-medium text-base-content kawaru-text-125"
-              >{{ $t('datasets.field.storageMode') }} <span class="text-error">*</span></span
+              >{{ $t('common.meta.storageMode') }} <span class="text-error">*</span></span
             ></label
           >
           <IconSelect
             :model-value="form.storage_mode"
             :options="STORAGE_MODES"
-            :placeholder="$t('datasets.metadata.selectPlaceholder')"
+            :placeholder="$t('common.input.selectShort')"
             hide-label
             @change="(v: string) => handleModeChange('storage_mode', v)"
           />
@@ -250,7 +250,7 @@ const cancelModeChange = () => {
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >{{ $t('datasets.field.solvent') }}
+            >{{ $t('common.meta.solvent') }}
             <span v-if="ionRules.solvent.required" class="text-error">*</span>
           </span></label
         >
@@ -263,7 +263,7 @@ const cancelModeChange = () => {
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >{{ $t('datasets.field.maldiMatrix') }}
+            >{{ $t('common.meta.maldiMatrix') }}
             <span v-if="ionRules.maldiMatrix.required" class="text-error">*</span>
           </span></label
         >
@@ -271,8 +271,8 @@ const cancelModeChange = () => {
           v-model="form.maldi_matrix"
           :options="MALDI_MATRICES"
           :label-of="vocabLabel"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
-          :other-placeholder="$t('datasets.filter.specifyOther')"
+          :placeholder="$t('common.input.selectShort')"
+          :other-placeholder="$t('common.input.specifyOther')"
         />
       </div>
 
@@ -287,8 +287,8 @@ const cancelModeChange = () => {
           v-model="form.maldi_matrix_application"
           :options="MALDI_MATRIX_APPLICATIONS"
           :label-of="vocabLabel"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
-          :other-placeholder="$t('datasets.filter.specifyOther')"
+          :placeholder="$t('common.input.selectShort')"
+          :other-placeholder="$t('common.input.specifyOther')"
         />
       </div>
 
@@ -307,13 +307,13 @@ const cancelModeChange = () => {
             type="text"
             inputmode="numeric"
             class="input input-bordered w-full kawaru-text-100"
-            placeholder="e.g. 200"
+            :placeholder="$t('common.input.example', { value: 200 })"
           />
         </div>
         <div class="flex flex-col">
           <label class="label"
             ><span class="label-text font-medium text-base-content kawaru-text-125"
-              >{{ $t('datasets.field.resolvingPower') }}</span
+              >{{ $t('common.meta.resolvingPower') }}</span
             ></label
           >
           <input
@@ -321,7 +321,7 @@ const cancelModeChange = () => {
             type="text"
             inputmode="numeric"
             class="input input-bordered w-full kawaru-text-100"
-            placeholder="e.g. 140000"
+            :placeholder="$t('common.input.example', { value: 140000 })"
           />
         </div>
       </div>
@@ -338,8 +338,8 @@ const cancelModeChange = () => {
           v-model="form.organism"
           :options="ORGANISMS"
           :label-of="vocabLabel"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
-          :other-placeholder="$t('datasets.filter.specifyOther')"
+          :placeholder="$t('common.input.selectShort')"
+          :other-placeholder="$t('common.input.specifyOther')"
         />
       </div>
 
@@ -353,23 +353,23 @@ const cancelModeChange = () => {
           v-model="form.organism_part"
           :options="ORGANISM_PARTS"
           :label-of="vocabLabel"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
-          :other-placeholder="$t('datasets.filter.specifyOther')"
+          :placeholder="$t('common.input.selectShort')"
+          :other-placeholder="$t('common.input.specifyOther')"
         />
       </div>
 
       <div class="flex flex-col">
         <label class="label"
           ><span class="label-text font-medium text-base-content kawaru-text-125"
-            >{{ $t('datasets.field.condition') }} <span class="text-error">*</span></span
+            >{{ $t('common.meta.condition') }} <span class="text-error">*</span></span
           ></label
         >
         <SelectWithOther
           v-model="form.condition"
           :options="CONDITIONS"
           :label-of="vocabLabel"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
-          :other-placeholder="$t('datasets.filter.specifyOther')"
+          :placeholder="$t('common.input.selectShort')"
+          :other-placeholder="$t('common.input.specifyOther')"
         />
       </div>
 
@@ -383,8 +383,8 @@ const cancelModeChange = () => {
           v-model="form.sample_stabilization"
           :options="SAMPLE_STABILIZATIONS"
           :label-of="vocabLabel"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
-          :other-placeholder="$t('datasets.filter.specifyOther')"
+          :placeholder="$t('common.input.selectShort')"
+          :other-placeholder="$t('common.input.specifyOther')"
         />
       </div>
 
@@ -398,8 +398,8 @@ const cancelModeChange = () => {
           v-model="form.sample_growth_conditions"
           :options="SAMPLE_GROWTH_CONDITIONS"
           :label-of="vocabLabel"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
-          :other-placeholder="$t('datasets.filter.specifyOther')"
+          :placeholder="$t('common.input.selectShort')"
+          :other-placeholder="$t('common.input.specifyOther')"
         />
       </div>
 
@@ -413,8 +413,8 @@ const cancelModeChange = () => {
           v-model="form.tissue_modification"
           :options="TISSUE_MODIFICATIONS"
           :label-of="vocabLabel"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
-          :other-placeholder="$t('datasets.filter.specifyOther')"
+          :placeholder="$t('common.input.selectShort')"
+          :other-placeholder="$t('common.input.specifyOther')"
         />
       </div>
 

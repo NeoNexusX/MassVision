@@ -62,7 +62,7 @@ const {
         :title="$t('workspace.analysis.uploadHint')"
       >
         <SvgIcon type="upload" class="w-5 h-5" />
-        {{ $t('datasets.filter.upload') }}
+        {{ $t('common.action.uploadDataset') }}
       </button>
     </div>
 

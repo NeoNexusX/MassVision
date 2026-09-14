@@ -100,9 +100,9 @@ export function useAnalysisBuilder(
 
     const px = analysisForm.pixelSizeX || ''
     const py = analysisForm.pixelSizeY || ''
-    if (px && py) list.push({ key: 'pixel', label: t('datasets.field.pixelSize'), value: `${px}×${py} μm` })
-    else if (px) list.push({ key: 'pixel', label: t('datasets.field.pixelSize'), value: `${px} μm` })
-    else if (py) list.push({ key: 'pixel', label: t('datasets.field.pixelSize'), value: `${py} μm` })
+    if (px && py) list.push({ key: 'pixel', label: t('common.meta.pixelSize'), value: `${px}×${py} μm` })
+    else if (px) list.push({ key: 'pixel', label: t('common.meta.pixelSize'), value: `${px} μm` })
+    else if (py) list.push({ key: 'pixel', label: t('common.meta.pixelSize'), value: `${py} μm` })
 
     const dataset = selectedDataset.value
     if (dataset?.organism)
@@ -121,14 +121,14 @@ export function useAnalysisBuilder(
     if (dataset?.condition)
       list.push({
         key: 'condition',
-        label: t('datasets.field.condition'),
+        label: t('common.meta.condition'),
         value: vocabLabel(dataset.condition),
       })
     if (spectrumMode.value) {
-      list.push({ key: 'spectrumMode', label: t('datasets.field.spectrumMode'), value: spectrumMode.value })
+      list.push({ key: 'spectrumMode', label: t('common.meta.spectrumMode'), value: spectrumMode.value })
     }
     if (storageMode.value) {
-      list.push({ key: 'storageMode', label: t('datasets.field.storageMode'), value: storageMode.value })
+      list.push({ key: 'storageMode', label: t('common.meta.storageMode'), value: storageMode.value })
     }
     return list
   })

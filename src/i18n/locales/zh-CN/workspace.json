@@ -20,7 +20,6 @@
       "methods": "方法",
       "created": "创建时间",
       "finished": "完成时间",
-      "status": "状态",
       "processName": "任务 #{id}",
       "unknownFile": "未知",
       "unknownError": "未知错误"
@@ -72,7 +71,6 @@
     },
     "summary": {
       "title": "分析概要",
-      "preprocessing": "预处理",
       "metadata": "数据集元数据",
       "selectedDataset": "已选数据集",
       "noDataset": "尚未选择数据集",

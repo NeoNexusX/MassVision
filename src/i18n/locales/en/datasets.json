@@ -1,26 +1,18 @@
 {
   "datasets": {
     "field": {
-      "condition": "Condition",
       "stabilization": "Stabilization",
-      "maldiMatrix": "MALDI Matrix",
       "matrix": "Matrix",
       "matrixApplication": "Matrix Application",
-      "solvent": "Solvent",
-      "pixelSize": "Pixel Size",
-      "resolvingPower": "Resolving Power",
       "fileType": "File Type",
       "experimentType": "Experiment Type",
       "size": "Size",
       "fileSize": "File Size",
-      "spectrumMode": "Spectrum Mode",
-      "storageMode": "Storage Mode",
       "md5": "MD5 Hash",
       "submittedBy": "Submitted By",
       "filename": "Filename"
     },
     "vocab": {
-      "other": "Other",
       "positive": "Positive",
       "negative": "Negative",
       "human": "Human (Homo sapiens)",
@@ -95,15 +87,12 @@
     },
     "filter": {
       "addFilter": "Add filter",
-      "collections": "Collections",
-      "upload": "Upload New Dataset",
       "sortNewest": "Submission time (newest first)",
       "sortOldest": "Submission time (oldest first)",
       "sortLargest": "File size (largest first)",
       "sortSmallest": "File size (smallest first)",
       "submitterPlaceholder": "Submitter username",
-      "any": "Any",
-      "specifyOther": "Please specify..."
+      "any": "Any"
     },
     "list": {
       "empty": "No datasets found matching your filters.",
@@ -120,14 +109,9 @@
     },
     "metadata": {
       "title": "Edit Metadata",
-      "selectPlaceholder": "Select...",
       "notOwner": "You do not own this dataset, so you cannot modify it."
     },
-    "public": {
-      "title": "Public Datasets"
-    },
     "my": {
-      "title": "My Datasets",
       "searchPlaceholder": "Search my datasets",
       "storage": "Storage",
       "refreshStatus": "Refresh Status",
@@ -141,12 +125,10 @@
       "backToMy": "Back to My Datasets",
       "invalidShare": "Invalid share link",
       "invalidShareDesc": "This public overview link is invalid.",
-      "sessionLost": "Session lost",
       "sessionLostDesc": "Please navigate from My Datasets or Public Datasets to view details.",
       "noData": "No data available",
       "noDataDesc": "The dataset information could not be found, is private, or has been deleted.",
       "makePublic": "Make Public",
-      "share": "Share",
       "linkCopied": "Link Copied",
       "sampleInfo": "Biological & Sample Info",
       "msiSettings": "MSI Analysis Settings",

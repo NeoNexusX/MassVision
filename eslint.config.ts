@@ -43,6 +43,11 @@ export default defineConfigWithVueTs(
   {
     ...pluginPlaywright.configs['flat/recommended'],
     files: ['e2e/**/*.{test,spec}.{js,ts,jsx,tsx}'],
+    rules: {
+      ...pluginPlaywright.configs['flat/recommended'].rules,
+      // 断言封装在 expectXxx 辅助函数里时（如 i18n-zh.spec.ts 的 expectLocalizedPage），同上放行
+      'playwright/expect-expect': ['warn', { assertFunctionPatterns: ['^expect'] }],
+    },
   },
 
   {
@@ -153,15 +158,15 @@ export default defineConfigWithVueTs(
     files: ['src/**/*.{ts,mts,tsx,vue}'],
     rules: {
       /**
-       * 国际化文案已完成迁移，规则设为 error：`lint:check` 带 --quiet 只报 error，这些规则此刻不卡 CI。
-       * 想看待迁移清单就跑 `npx eslint src`（不带 --quiet）。
-       * 每个 feature 的文案清零后，把对应规则提到 error 锁住成果。
+       * 全站界面文案已迁移完毕，设为 error 锁住成果：新写的裸文案会直接卡住 `lint:check`。
+       * attributes 的键是标签名，必须写成 `/.../` 形式的正则字符串；写成 '.*' 会被当成
+       * 字面量标签名、永远匹配不上，属性检查就静默失效了。
        */
       '@intlify/vue-i18n/no-raw-text': [
         'error',
         {
           ignoreNodes: ['i', 'code', 'pre'],
-          attributes: { '.*': ['title', 'placeholder', 'aria-label', 'alt'] },
+          attributes: { '/.+/': ['title', 'placeholder', 'aria-label', 'alt'] },
           // 纯数字 / 标点 / 符号（含空串）不是文案（\p{M} 覆盖 ⏱️ 这类 emoji 自带的变体选择符）
           ignorePattern: '^[\\d\\s\\p{P}\\p{S}\\p{M}]*$',
           // 各语言下写法相同、不该报成待翻译的文字：
@@ -171,6 +176,8 @@ export default defineConfigWithVueTs(
             'v', 'MALDI', 'DESI', 'SIMS', 'ROI', 'PCA', 'UMAP', 'KMeans', 'k-means', 'GitHub', 'ID',
             'CID', 'SMILES', 'InChI', 'InChIKey', 'PubChem',
             'μm', 'ppm', 'Da', 'ℹ', 'x', '(k=',
+            // 输入框里的格式示例
+            'you@example.com', 'https://example.com',
           ],
         },
       ],

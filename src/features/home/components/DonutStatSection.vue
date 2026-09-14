@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { useI18n } from 'vue-i18n'
 import CategoryDonutChart from './CategoryDonutChart.vue'
 import type { DatasetCategoryItem } from '@/features/home/types/stats'
 
@@ -17,7 +16,6 @@ import type { DatasetCategoryItem } from '@/features/home/types/stats'
  * 填满卡片剩余空间。底部说明 <p> 显式 grow-0，抵消 DaisyUI 给 card-body 内 p 加的 flex-grow:1，
  * 避免它抢走图表的弹性空间。
  */
-const { t } = useI18n()
 
 defineProps<{
   title: string
@@ -43,7 +41,7 @@ defineEmits<{ reload: [] }>()
     >
       <div class="flex items-center gap-[0.5em] kawaru-text-68 text-base-content/40">
         <span class="loading loading-spinner h-[1.4em] w-[1.4em]" />
-        <span>{{ t('common.state.loading') }}</span>
+        <span>{{ $t('common.state.loading') }}</span>
       </div>
     </div>
 
@@ -56,7 +54,7 @@ defineEmits<{ reload: [] }>()
       <Icon icon="heroicons:exclamation-triangle" class="h-[1.4em] w-[1.4em] shrink-0" />
       <span class="flex-1">{{ error }}</span>
       <!-- daisyUI 的 .btn-xs 自带固定 .6875rem，显式挂档位才会跟着流体基准走 -->
-      <button class="btn btn-ghost btn-xs kawaru-text-62" @click="$emit('reload')">{{ t('common.action.retry') }}</button>
+      <button class="btn btn-ghost btn-xs kawaru-text-62" @click="$emit('reload')">{{ $t('common.action.retry') }}</button>
     </div>
 
     <!-- Empty -->
@@ -64,7 +62,7 @@ defineEmits<{ reload: [] }>()
       v-else-if="isEmpty"
       class="flex h-[4.5em] items-center justify-center lg:h-auto lg:flex-1 lg:min-h-0"
     >
-      <span class="kawaru-text-68 text-base-content/40">{{ t('common.state.empty') }}</span>
+      <span class="kawaru-text-68 text-base-content/40">{{ $t('common.state.empty') }}</span>
     </div>
 
     <!-- Chart -->

@@ -96,7 +96,6 @@
       "empty": "该集合没有成员。"
     },
     "view": {
-      "title": "数据集合",
       "subtitle": "把相关的数据集整理成集合。",
       "deleteTitle": "删除集合？",
       "deleteMessage": "该集合将被删除，其中的数据集不受影响。"

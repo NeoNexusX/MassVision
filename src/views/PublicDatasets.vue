@@ -87,7 +87,7 @@ const handleUploadSuccess = (_datasetName: string) => {
 <template>
   <div class="min-h-screen bg-base-200">
     <div class="max-w-[1680px] mx-auto p-4 md:p-8 kawaru-text-100">
-      <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mb-6">{{ $t('datasets.public.title') }}</h1>
+      <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mb-6">{{ $t('common.page.publicDatasets') }}</h1>
 
       <DatasetFilterBar
         :show-add-filter="true"

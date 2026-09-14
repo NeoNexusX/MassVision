@@ -17,21 +17,21 @@
         >
           <svg-icon type="sparkles" class="w-4 h-4 text-white" />
         </div>
-        <span class="font-semibold kawaru-text-87 text-base-content">{{ t('common.assistant.title') }}</span>
+        <span class="font-semibold kawaru-text-87 text-base-content">{{ $t('common.assistant.title') }}</span>
         <span class="flex items-center gap-1 kawaru-text-62 text-green-600 dark:text-green-400">
           <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-          {{ t('common.assistant.online') }}
+          {{ $t('common.assistant.online') }}
         </span>
       </div>
       <div class="flex items-center gap-1">
         <button
           class="btn btn-xs btn-ghost btn-square kawaru-text-68"
           @click="isMinimized = true"
-          :title="t('common.assistant.minimize')"
+          :title="$t('common.assistant.minimize')"
         >
           <span class="kawaru-text-87 font-bold">—</span>
         </button>
-        <button class="btn btn-xs btn-ghost btn-square kawaru-text-68" @click="close" :title="t('common.action.close')">
+        <button class="btn btn-xs btn-ghost btn-square kawaru-text-68" @click="close" :title="$t('common.action.close')">
           <svg-icon type="close" class="w-3 h-3" />
         </button>
       </div>
@@ -115,20 +115,20 @@
     <!-- Input area -->
     <div class="border-t border-base-200 px-3 py-2 shrink-0">
       <div class="flex items-center gap-2">
-        <button class="btn btn-sm btn-ghost btn-circle kawaru-text-75" :title="t('common.assistant.attach')">
+        <button class="btn btn-sm btn-ghost btn-circle kawaru-text-75" :title="$t('common.assistant.attach')">
           <svg-icon type="paper-clip" class="w-4 h-4 text-base-content/50" />
         </button>
         <input
           v-model="inputValue"
           class="input input-sm input-bordered flex-1 kawaru-text-87 rounded-full"
-          :placeholder="t('common.assistant.placeholder')"
+          :placeholder="$t('common.assistant.placeholder')"
           @keydown.enter="send"
         />
         <button
           class="btn btn-sm btn-circle bg-indigo-500 hover:bg-indigo-600 border-none text-white kawaru-text-75"
           :disabled="!inputValue.trim()"
           @click="send"
-          :title="t('common.assistant.send')"
+          :title="$t('common.assistant.send')"
         >
           <svg-icon type="bolt" class="w-3.5 h-3.5" />
         </button>
@@ -177,9 +177,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { t } from '@/i18n'
 
-const { t } = useI18n()
 const props = defineProps<{ show?: boolean }>()
 const emit = defineEmits<{ (e: 'update:show', v: boolean): void }>()
 

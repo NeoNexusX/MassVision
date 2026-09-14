@@ -13,7 +13,7 @@
           inputmode="decimal"
           class="input input-bordered w-full kawaru-text-100"
           :class="{ 'input-error': percentageError }"
-          placeholder="e.g. 50"
+          :placeholder="$t('common.input.example', { value: 50 })"
           @keyup.enter="addSolvent"
         />
         <span v-if="percentageError" class="kawaru-text-75 text-error mt-0.5">{{ percentageError }}</span>
@@ -28,8 +28,8 @@
           v-model="selectedSolvent"
           :options="solventOptions"
           :label-of="vocabLabel"
-          :placeholder="$t('datasets.metadata.selectPlaceholder')"
-          :other-placeholder="$t('datasets.filter.specifyOther')"
+          :placeholder="$t('common.input.selectShort')"
+          :other-placeholder="$t('common.input.specifyOther')"
           hide-label
         />
       </div>

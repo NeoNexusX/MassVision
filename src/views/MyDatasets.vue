@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-base-200">
     <div class="max-w-[1680px] mx-auto p-4 md:p-8 kawaru-text-100">
-      <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mb-6 px-3">{{ $t('datasets.my.title') }}</h1>
+      <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mb-6 px-3">{{ $t('common.page.myDatasets') }}</h1>
 
       <div
         v-if="quota"

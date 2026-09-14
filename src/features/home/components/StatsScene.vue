@@ -2,10 +2,8 @@
 import BaseScene from './BaseScene.vue'
 import RepoCommitHeatmap from './RepoCommitHeatmap.vue'
 import DatasetStatsPanel from './DatasetStatsPanel.vue'
-import { useI18n } from 'vue-i18n'
 import { getContent } from '@/features/home/config/contentConfig'
 
-const { t } = useI18n()
 const hm = getContent().githubHeatmap
 </script>
 
@@ -15,7 +13,7 @@ const hm = getContent().githubHeatmap
     <h2
       class="mt-6 mb-2 bg-gradient-to-br from-primary via-primary/70 to-primary/30 bg-clip-text text-transparent font-bold kawaru-text-home-scene leading-tight"
     >
-      {{ t('home.stats.title') }}
+      {{ $t('home.stats.title') }}
     </h2>
 
     <!-- 左右两栏：左=数据集统计面板，右=commit 热力图；大屏并排、小屏堆叠 -->

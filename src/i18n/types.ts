@@ -39,8 +39,9 @@ export type Locale = 'en' | 'zh-CN'
  * 这个约定同时让 ESLint 插件直读文件时看到的 key 路径与运行时一致，见 index.ts 的 loadNs。
  *
  * 注意这里声明的是**全集**，而 feature 命名空间是随路由懒加载的——也就是说
- * 在 A 路由里写 B 路由的 key，TS 不会拦，但运行时查不到（会回退 en 或显示 key）。
- * 这一层由 ESLint 的 no-missing-keys 配合 code review 兜住。
+ * 在 A 路由里写 B 路由的 key，TS 和 ESLint 都不会拦，但运行时可能查不到。
+ * 约定：会出现在多个 feature 界面上的文案一律放 common（启动即加载），
+ * feature 命名空间只放本 feature 独有的文案。
  */
 export type MessageSchema = typeof enCommon &
   typeof enAuth &
@@ -51,7 +52,6 @@ export type MessageSchema = typeof enCommon &
   typeof enWorkspace &
   typeof enVizworkbench &
   typeof enHome
-
 
 declare module 'vue-i18n' {
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- 模块增强的固定写法，接口体必须为空

@@ -81,7 +81,7 @@ defineProps<{
                     size="sm"
                     :model-value="String(getParam(group.key, method.id, param.key) ?? '')"
                     :options="[...new Set(param.options!.map((o) => o.value))]"
-                    :placeholder="param.hint?.() || $t('datasets.metadata.selectPlaceholder')"
+                    :placeholder="param.hint?.() || $t('common.input.selectShort')"
                     hide-label
                     required
                     @update:model-value="

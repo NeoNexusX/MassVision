@@ -108,7 +108,7 @@ const statusBadge = computed(() => {
               isShareView && isStale
                 ? $t('datasets.overview.invalidShare')
                 : isStale
-                  ? $t('datasets.overview.sessionLost')
+                  ? $t('common.state.sessionLost')
                   : $t('datasets.overview.noData')
             }}
           </h3>
@@ -180,7 +180,7 @@ const statusBadge = computed(() => {
                 "
               >
                 <svg-icon :type="isShareCopied ? 'check' : 'share'" class="w-4 h-4" />
-                {{ isShareCopied ? $t('datasets.overview.linkCopied') : $t('datasets.overview.share') }}
+                {{ isShareCopied ? $t('datasets.overview.linkCopied') : $t('common.action.share') }}
               </button>
               <div
                 class="badge badge-soft h-8 min-h-8 shrink-0 inline-flex items-center justify-center border-0 px-3 py-0 font-medium kawaru-text-87"
@@ -203,7 +203,7 @@ const statusBadge = computed(() => {
             <InfoField :label="$t('common.meta.organismPart')">{{
               formatString(dataset?.organismPart)
             }}</InfoField>
-            <InfoField :label="$t('datasets.field.condition')">{{ formatString(dataset?.condition) }}</InfoField>
+            <InfoField :label="$t('common.meta.condition')">{{ formatString(dataset?.condition) }}</InfoField>
             <InfoField :label="$t('common.meta.growthConditions')">{{
               formatString(dataset?.sampleGrowthConditions)
             }}</InfoField>
@@ -227,7 +227,7 @@ const statusBadge = computed(() => {
               vocabLabel(dataset?.ionSource) || '—'
             }}</InfoField>
             <InfoField :label="$t('common.meta.analyzer')">{{ vocabLabel(dataset?.analyzer) || '—' }}</InfoField>
-            <InfoField :label="$t('datasets.field.pixelSize')">
+            <InfoField :label="$t('common.meta.pixelSize')">
               <template
                 v-if="dataset?.pixelSizeHorizontal != null || dataset?.pixelSizeVertical != null"
               >
@@ -236,7 +236,7 @@ const statusBadge = computed(() => {
               </template>
               <template v-else>—</template>
             </InfoField>
-            <InfoField :label="$t('datasets.field.resolvingPower')">
+            <InfoField :label="$t('common.meta.resolvingPower')">
               <I18nT
                 v-if="dataset?.mz != null || dataset?.resolvingPower != null"
                 keypath="datasets.overview.resolvingPowerAt"
@@ -252,7 +252,7 @@ const statusBadge = computed(() => {
             <InfoField :label="$t('datasets.field.matrixApplication')">{{
               formatString(dataset?.maldiMatrixApplication)
             }}</InfoField>
-            <InfoField :label="$t('datasets.field.solvent')">{{ formatString(dataset?.solvent) }}</InfoField>
+            <InfoField :label="$t('common.meta.solvent')">{{ formatString(dataset?.solvent) }}</InfoField>
           </div>
         </div>
 
@@ -267,8 +267,8 @@ const statusBadge = computed(() => {
               vocabLabel(dataset?.experimentType) || '—'
             }}</InfoField>
             <InfoField :label="$t('datasets.field.size')">{{ formatSize(dataset?.sizeBytes) }}</InfoField>
-            <InfoField :label="$t('datasets.field.spectrumMode')">{{ dataset?.spectrumMode || '—' }}</InfoField>
-            <InfoField :label="$t('datasets.field.storageMode')">{{ dataset?.storageMode || '—' }}</InfoField>
+            <InfoField :label="$t('common.meta.spectrumMode')">{{ dataset?.spectrumMode || '—' }}</InfoField>
+            <InfoField :label="$t('common.meta.storageMode')">{{ dataset?.storageMode || '—' }}</InfoField>
             <div class="flex flex-col">
               <span class="kawaru-text-81 font-semibold tracking-wider text-base-content/40 mb-1"
                 >{{ $t('datasets.field.md5') }}</span

@@ -585,14 +585,14 @@ watch(
           <label class="flex flex-col gap-0.5 kawaru-text-75 min-w-0">
             <span class="text-base-content/60">{{ $t('vizworkbench.annotation.adduct') }}</span>
             <select v-model="filterAdduct" class="select select-bordered select-sm w-full kawaru-text-75">
-              <option value="">{{ $t('vizworkbench.annotation.all') }}</option>
+              <option value="">{{ $t('common.input.all') }}</option>
               <option v-for="opt in adductOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>
           </label>
           <label class="flex flex-col gap-0.5 kawaru-text-75 min-w-0">
             <span class="text-base-content/60">{{ $t('vizworkbench.annotation.formula') }}</span>
             <select v-model="filterFormula" class="select select-bordered select-sm w-full kawaru-text-75">
-              <option value="">{{ $t('vizworkbench.annotation.all') }}</option>
+              <option value="">{{ $t('common.input.all') }}</option>
               <option v-for="opt in formulaOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>
           </label>
