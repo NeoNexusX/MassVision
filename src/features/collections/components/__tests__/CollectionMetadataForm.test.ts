@@ -8,8 +8,10 @@ import { i18n, loadCoreMessages, loadFeatureMessages } from '@/i18n'
 const draft = () => reactive(toMetadataDraft({ name: 'Mouse kidney MSI' }))
 
 const mountForm = (props: Record<string, unknown> = {}) =>
-  mount(CollectionMetadataForm, { props: { draft: draft(), ...props }, global: { plugins: [i18n] } })
-
+  mount(CollectionMetadataForm, {
+    props: { draft: draft(), ...props },
+    global: { plugins: [i18n] },
+  })
 
 // 组件模板用 $t：挂载时装上 i18n 实例，并预先加载英文语言包（断言保持英文原文）
 beforeAll(() => Promise.all([loadCoreMessages('en'), loadFeatureMessages('collections')]))
@@ -64,5 +66,40 @@ describe('CollectionMetadataForm', () => {
     const button = wrapper.find('button')
 
     expect(button.element.closest('label')).toBeNull()
+  })
+
+  it('validates free-form DOI values before adding them', async () => {
+    const formDraft = draft()
+    const wrapper = mountForm({ draft: formDraft })
+    const input = wrapper.find('[data-field="DOI"] input')
+
+    await input.setValue('not-a-doi')
+    await input.trigger('keydown.enter')
+
+    expect(wrapper.text()).toContain('Enter a DOI such as 10.1000/xyz123')
+    expect(formDraft.doi).toEqual([])
+  })
+
+  it('accepts pasted doi.org links and doi: prefixes as-is', async () => {
+    const formDraft = draft()
+    const wrapper = mountForm({ draft: formDraft })
+    const input = wrapper.find('[data-field="DOI"] input')
+
+    for (const value of [
+      '10.1000/xyz123',
+      'doi:10.1000/abc',
+      'https://doi.org/10.1038/s41586-020-2649-2',
+      'http://dx.doi.org/10.1000/def',
+    ]) {
+      await input.setValue(value)
+      await input.trigger('keydown.enter')
+    }
+
+    expect(formDraft.doi).toEqual([
+      '10.1000/xyz123',
+      'doi:10.1000/abc',
+      'https://doi.org/10.1038/s41586-020-2649-2',
+      'http://dx.doi.org/10.1000/def',
+    ])
   })
 })

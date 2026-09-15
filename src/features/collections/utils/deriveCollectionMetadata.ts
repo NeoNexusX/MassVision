@@ -7,7 +7,7 @@ import type { File } from '@/features/datasets/types/dataset'
  * 选择顺序保留首次出现的位置（与成员顺序一致）；成员取值不一致时数组会有多项，
  * 这是对的——不是取交集。
  *
- * 只有这 8 个字段能从文件推导；citation 组的 doi/access 虽然也是 list，
+ * 只有这 8 个字段能从文件推导；citation 组的 doi 虽然也是 list，
  * 但属于人工著录，不在这里。数值型仪器字段（pixel_size_* / resolving_power /
  * mz）已随集合级模型下线，不再推导。
  */

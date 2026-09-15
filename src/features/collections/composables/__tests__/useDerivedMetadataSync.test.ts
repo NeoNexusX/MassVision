@@ -5,7 +5,15 @@ import { DERIVED_METADATA_KEYS } from '../../utils/deriveCollectionMetadata'
 import type { File } from '@/features/datasets/types/dataset'
 
 const file = (over: Partial<File>): File =>
-  ({ id: '1', name: '', submitTime: '', submitter: '', status: 'completed', isPublic: true, ...over }) as File
+  ({
+    id: '1',
+    name: '',
+    submitTime: '',
+    submitter: '',
+    status: 'completed',
+    isPublic: true,
+    ...over,
+  }) as File
 
 function setup() {
   const files = ref<File[]>([])
@@ -71,6 +79,20 @@ describe('useDerivedMetadataSync', () => {
 
     expect(draft.organism).toEqual(['Mouse (Mus musculus)'])
     expect(lockedKeys.value).toEqual([])
+  })
+
+  it('does not let in-place draft edits mutate the detected snapshot', async () => {
+    const { files, draft, lockedKeys } = setup()
+
+    files.value = [file({ organism: 'Mouse (Mus musculus)' })]
+    await nextTick()
+
+    draft.organism!.push('My own label')
+
+    expect(lockedKeys.value).toContain('organism')
+    files.value = [file({ organism: 'Rat (Rattus norvegicus)' })]
+    await nextTick()
+    expect(draft.organism).toEqual(['Mouse (Mus musculus)', 'My own label'])
   })
 
   it('reset hands the field back to auto-detection', async () => {

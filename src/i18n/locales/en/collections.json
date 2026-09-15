@@ -80,7 +80,10 @@
     "metaForm": {
       "editedByHand": "Edited by hand.",
       "resetToDetected": "Reset to detected",
+      "doiInvalid": "Enter a DOI such as 10.1000/xyz123, doi:10.1000/xyz123 or https://doi.org/10.1000/xyz123.",
       "placeholder": {
+        "doi": "e.g. 10.1000/xyz123 or https://doi.org/10.1000/xyz123",
+        "access": "Where the data can be accessed, e.g. https://example.org/data",
         "title": "Enter the article title",
         "journal": "Enter the journal name",
         "citation": "Enter the article citation (ACS or RSC style recommended)",

@@ -1,4 +1,4 @@
-import { onBeforeUnmount, ref, watch, type CSSProperties, type Ref } from 'vue'
+import { onBeforeUnmount, shallowRef, watch, type CSSProperties, type Ref } from 'vue'
 
 /**
  * 让 Teleport 到 body 的浮层（下拉菜单等）贴着锚点元素定位。
@@ -17,7 +17,7 @@ export function useAnchoredPosition(
   const gap = options.gap ?? 4
   const maxHeight = options.maxHeight ?? 256
 
-  const style = ref<CSSProperties>({})
+  const style = shallowRef<CSSProperties>({})
 
   function update() {
     const el = anchor.value

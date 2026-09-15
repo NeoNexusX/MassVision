@@ -32,10 +32,10 @@
 
 | 模式 | 图像 | 谱图 | 可用高级功能 |
 |---|---|---|---|
-| Continuous | 指定 m/z 的离子强度图 | 平均谱，点击后切换 m/z | UMAP、KMeans；Centroid 时可做注释和区域比较 |
+| Continuous | 指定 m/z 的离子强度图 | 平均谱或所点击像素的谱，点击谱峰切换 m/z | UMAP、KMeans；Centroid 时可做注释和区域比较 |
 | Processed | TIC 图 | 点击像素后读取逐像素谱 | 可绘制 ROI；Centroid 时可用两个以上 ROI 做区域比较 |
 
-数据模式由 Zarr 的 `row_axis` 与 `encoding` 自动判断，不需要用户切换。
+数据模式由 Zarr 的 `row_axis` 与 `encoding` 自动判断，不需要用户切换。仅支持 MassFlow MSI Zarr v1.1；旧版 v1.0 结果（只有一个 `data/` 组）会在 Image View 提示格式不兼容。
 
 ## Image View
 
@@ -44,7 +44,7 @@
 - 鼠标滚轮以指针位置为中心缩放；大于 1× 时按住左键拖动平移。
 - 右下角的 `− / 倍率 / +` 控件可缩放，放大后出现重置按钮。
 - 悬停显示 1-based 像素坐标和强度。
-- Processed 模式点击像素后，工具栏显示像素坐标并在 Spectrum View 加载其谱。
+- 点击像素会在 Spectrum View 加载该像素的谱：Processed 模式在工具栏显示像素坐标，Continuous 模式在谱图标题栏显示。点击位置 1.5 个像素内没有采集像素时会提示，谱图保持不变。
 
 ### 工具栏
 
@@ -69,9 +69,11 @@ TIC norm 使用预计算的 `stats/tic` 对每个像素归一化。读取失败�
 
 ## Spectrum View
 
-Continuous 模式显示整个结果的平均谱：
+Continuous 模式默认显示整个结果的平均谱，标题栏的 **Mean / Pixel** 按钮切换平均谱与像素谱：
 
-- 点击谱图选择最接近的 m/z，并刷新 Image View。
+- 点击 Image View 中的像素会自动切到 **Pixel**，读取该像素在 `spectra` 组中的谱，标题栏中间显示像素坐标；再点其他像素时原地更新。
+- 选过像素后可随时在 **Mean / Pixel** 间来回切换；切换视图或更换像素都会保留当前的 m/z 缩放范围。
+- 点击谱图选择最接近的 m/z，并刷新 Image View（平均谱与像素谱都适用）。
 - 当前 m/z 用选择线标识；注释表和区域比较表选择同一 m/z 时也会联动。
 - Centroid 数据以柱状峰显示，Profile 数据以连续线显示。
 

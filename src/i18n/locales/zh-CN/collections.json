@@ -80,7 +80,10 @@
     "metaForm": {
       "editedByHand": "已手动修改。",
       "resetToDetected": "恢复为自动识别值",
+      "doiInvalid": "DOI 格式不正确，应形如 10.1000/xyz123、doi:10.1000/xyz123 或 https://doi.org/10.1000/xyz123",
       "placeholder": {
+        "doi": "如 10.1000/xyz123 或 https://doi.org/10.1000/xyz123",
+        "access": "填写数据的访问地址，如 https://example.org/data",
         "title": "填写文章标题",
         "journal": "填写期刊名称",
         "citation": "填写文章引用信息，推荐 ACS 或 RSC 格式",

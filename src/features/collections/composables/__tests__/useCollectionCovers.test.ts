@@ -24,7 +24,7 @@ const summary = (over: Partial<CollectionSummary>): CollectionSummary =>
     publicId: null,
     doi: [],
     journalName: null,
-    access: [],
+    access: null,
     organismPart: [],
     ionisationSource: [],
     ...over,

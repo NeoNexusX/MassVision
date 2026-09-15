@@ -473,8 +473,7 @@ export function useRegionComparison(deps: {
         )
       } else {
         // ---- Continuous mode: shared m/z axis ----
-        // v1.1 双组布局：只取选中区域内像素的谱，工作量与区域大小成正比。
-        // （v1.0 单组布局没有 spectra 组，不在此适配。）
+        // 按 spectra 组只取选中区域内像素的谱，工作量与区域大小成正比。
         const stats = await store.streamRegionStatsBySpectra(
           [maskA.mask, maskB.mask],
           (done, total) => {

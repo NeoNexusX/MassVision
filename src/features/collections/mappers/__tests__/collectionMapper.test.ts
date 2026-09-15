@@ -14,7 +14,7 @@ const flatRaw = {
   collection_type: [],
   title: 'A title',
   doi: ['10.1000/xyz'],
-  access: [],
+  access: null,
   journal_name: 'Nature',
   abstract: 'An abstract',
   cite_information: '',
@@ -35,7 +35,14 @@ const flatRaw = {
 const detailRaw = {
   ...flatRaw,
   members: [
-    { file_id: 42, filename: 'kidney1.imzML', size: 100, status: 'completed', is_public: true, experiment_type: 'imzML' },
+    {
+      file_id: 42,
+      filename: 'kidney1.imzML',
+      size: 100,
+      status: 'completed',
+      is_public: true,
+      experiment_type: 'imzML',
+    },
     { file_id: 7 },
   ],
 }
@@ -91,6 +98,32 @@ describe('mapCollectionDetail', () => {
     expect(nested.metadata.organism).toEqual(['rat'])
   })
 
+  it('merges partial nested metadata without dropping top-level fields', () => {
+    const mapped = mapCollectionDetail({
+      id: 7,
+      name: 'X',
+      organism: ['mouse'],
+      metadata: { doi: ['10.1/x'] },
+      members: [],
+    })
+
+    expect(mapped.metadata.doi).toEqual(['10.1/x'])
+    expect(mapped.metadata.organism).toEqual(['mouse'])
+  })
+
+  it('normalizes legacy scalar list fields without dropping their values', () => {
+    const mapped = mapCollectionDetail({
+      id: 7,
+      name: 'X',
+      member_type: 'MSI',
+      collection_type: 'Serial sections',
+      members: [],
+    })
+
+    expect(mapped.metadata.member_type).toEqual(['MSI'])
+    expect(mapped.metadata.collection_type).toEqual(['Serial sections'])
+  })
+
   it('maps members defensively: missing fields get defaults', () => {
     const d = mapCollectionDetail(detailRaw)
 
@@ -144,9 +177,16 @@ describe('mapCollectionSummary', () => {
 
     expect(s.doi).toEqual(['10.1000/xyz'])
     expect(s.journalName).toBe('Nature')
-    expect(s.access).toEqual([])
+    expect(s.access).toBeNull()
     expect(s.organismPart).toEqual(['kidney'])
     expect(s.ionisationSource).toEqual([])
+  })
+
+  it('maps access as a single string', () => {
+    expect(mapCollectionSummary({ id: 1, access: 'https://example.org/data' }).access).toBe(
+      'https://example.org/data',
+    )
+    expect(mapCollectionSummary({ id: 1, access: '' }).access).toBeNull()
   })
 
   it('drops blank entries so the card does not render empty chips', () => {

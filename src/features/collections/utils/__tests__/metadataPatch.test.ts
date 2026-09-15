@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  buildCollectionCreatePayload,
-  buildMetadataPatch,
-  toMetadataDraft,
-} from '../metadataPatch'
+import { buildCollectionCreatePayload, buildMetadataPatch, toMetadataDraft } from '../metadataPatch'
 import type { CollectionMetadata } from '../../types/collection'
 
 const current: CollectionMetadata = {
@@ -30,6 +26,13 @@ describe('toMetadataDraft', () => {
     draft.organism.push('rat')
 
     expect(current.organism).toEqual(['mouse'])
+  })
+
+  it('keeps legacy scalar list metadata when opening the editor', () => {
+    const legacy = { name: 'X', member_type: 'MSI' } as unknown as CollectionMetadata
+
+    expect(toMetadataDraft(legacy).member_type).toEqual(['MSI'])
+    expect(buildMetadataPatch(legacy, toMetadataDraft(legacy))).toEqual({})
   })
 })
 

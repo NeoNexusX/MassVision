@@ -162,7 +162,7 @@ const emit = defineEmits<{
   (e: 'update:intensityScale', v: string): void
   (e: 'searchMz', v: string): void
   (e: 'reset'): void
-  /** processed 模式：点击像素 */
+  /** 点击像素（两种模式都加载该像素的谱） */
   (e: 'select-pixel', col: number, row: number): void
 }>()
 
@@ -264,7 +264,6 @@ function onContainerMouseDown(e: MouseEvent) {
 function onContainerClick(e: MouseEvent) {
   if (mouseMoved) return  // 拖拽不触发点击
   if (props.drawMode) return
-  if (props.dataMode !== 'processed') return  // 仅 processed 模式
 
   const container = containerRef.value
   if (!container) return

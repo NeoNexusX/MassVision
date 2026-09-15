@@ -6,6 +6,12 @@ import type {
   CollectionPatchPayload,
 } from '../types/collection'
 
+/** 把后端可能返回的标量/空值统一成草稿使用的 string[]。 */
+export function normalizeMetadataList(value: unknown): string[] {
+  const values = Array.isArray(value) ? value : value == null ? [] : [value]
+  return values.map((item) => String(item).trim()).filter(Boolean)
+}
+
 /**
  * 集合元数据的编辑草稿 ⇄ PATCH 载荷转换（纯函数，便于单测）。
  *
@@ -21,7 +27,7 @@ export function toMetadataDraft(metadata: CollectionMetadata): CollectionMetadat
   const draft: Record<string, string | string[]> = {}
   for (const field of METADATA_FIELDS) {
     const v = metadata?.[field.key]
-    draft[field.key] = field.type === 'list' ? (Array.isArray(v) ? [...v] : []) : (v ?? '')
+    draft[field.key] = field.type === 'list' ? normalizeMetadataList(v) : (v ?? '')
   }
   return draft as CollectionMetadataDraft
 }
@@ -37,9 +43,10 @@ export function buildMetadataPatch(
   const patch: CollectionPatchPayload = {}
   for (const field of METADATA_FIELDS) {
     const raw = current?.[field.key]
-    const normalized = field.type === 'list' ? (Array.isArray(raw) ? raw : []) : (raw ?? '')
-    if (JSON.stringify(normalized) !== JSON.stringify(draft[field.key])) {
-      ;(patch as Record<string, unknown>)[field.key] = draft[field.key]
+    const normalized = field.type === 'list' ? normalizeMetadataList(raw) : (raw ?? '')
+    const next = field.type === 'list' ? normalizeMetadataList(draft[field.key]) : draft[field.key]
+    if (JSON.stringify(normalized) !== JSON.stringify(next)) {
+      ;(patch as Record<string, unknown>)[field.key] = next
     }
   }
   return patch
@@ -59,7 +66,7 @@ export function buildCollectionCreatePayload(
   for (const field of METADATA_FIELDS) {
     const value = draft[field.key]
     if (field.type === 'list') {
-      const list = value as string[]
+      const list = normalizeMetadataList(value)
       if (list.length) payload[field.key] = list
       continue
     }

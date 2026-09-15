@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import TagInput from '../TagInput.vue'
 import { i18n, loadCoreMessages } from '@/i18n'
 
@@ -9,7 +10,6 @@ const mountTags = (modelValue: string[] = []) =>
 async function type(wrapper: ReturnType<typeof mountTags>, value: string) {
   await wrapper.find('input').setValue(value)
 }
-
 
 // 组件模板用 $t：挂载时装上 i18n 实例，并预先加载英文语言包（断言保持英文原文）
 beforeAll(() => Promise.all([loadCoreMessages('en')]))
@@ -27,6 +27,19 @@ describe('TagInput', () => {
     await wrapper.find('input').trigger('keydown.enter')
 
     expect(wrapper.emitted('update:modelValue')).toEqual([[['mouse', 'Rat']]])
+  })
+
+  it('hints Enter for free text, but pick-or-type when a vocabulary exists', () => {
+    const free = mountTags()
+    expect(free.find('input').attributes('placeholder')).toBe('Type and press Enter')
+
+    const withOptions = mount(TagInput, {
+      props: { modelValue: [], options: ['Positive'] },
+      global: { plugins: [i18n] },
+    })
+    expect(withOptions.find('input').attributes('placeholder')).toBe(
+      'Pick from the list, or type your own and press Enter',
+    )
   })
 
   it('does not emit when the value is a duplicate (case-insensitive)', async () => {
@@ -83,10 +96,7 @@ describe('TagInput with options', () => {
   const LABELS: Record<string, string> = { Positive: '正离子', Negative: '负离子' }
 
   // 下拉 Teleport 到 body：挂到 document 上，从 body 查询
-  const mountWithOptions = (
-    modelValue: string[] = [],
-    extra: Record<string, unknown> = {},
-  ) =>
+  const mountWithOptions = (modelValue: string[] = [], extra: Record<string, unknown> = {}) =>
     mount(TagInput, {
       props: { modelValue, options: OPTIONS, labelOf: (v: string) => LABELS[v] ?? v, ...extra },
       global: { plugins: [i18n] },
@@ -112,11 +122,16 @@ describe('TagInput with options', () => {
   it('clicking an option toggles it (select, then deselect)', async () => {
     const wrapper = mountWithOptions(['Negative'])
     await wrapper.find('input').trigger('focus')
-
     ;(optionEls()[0] as HTMLElement).click()
+    await nextTick()
     ;(optionEls()[1] as HTMLElement).click()
-    expect(wrapper.emitted('update:modelValue')).toEqual([[['Negative', 'Positive']], [[]]])
-    expect(optionEls()[1]!.getAttribute('aria-selected')).toBe('true')
+    await nextTick()
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([
+      [['Negative', 'Positive']],
+      [['Positive']],
+    ])
+    expect(optionEls()[1]!.getAttribute('aria-selected')).toBe('false')
     wrapper.unmount()
   })
 
@@ -160,7 +175,10 @@ describe('TagInput with options', () => {
     await wrapper.find('input').trigger('keydown.enter')
     await type(wrapper, 'Positive')
     await wrapper.find('input').trigger('keydown.enter')
-    expect(wrapper.emitted('update:modelValue')).toEqual([[['10.1000/xyz']], [['Positive']]])
+    expect(wrapper.emitted('update:modelValue')).toEqual([
+      [['10.1000/xyz']],
+      [['10.1000/xyz', 'Positive']],
+    ])
     wrapper.unmount()
   })
 })
