@@ -86,7 +86,15 @@
     },
     "metaForm": {
       "editedByHand": "Edited by hand.",
-      "resetToDetected": "Reset to detected"
+      "resetToDetected": "Reset to detected",
+      "placeholder": {
+        "title": "Enter the article title",
+        "journal": "Enter the journal name",
+        "citation": "Enter the article citation (ACS or RSC style recommended)",
+        "abstract": "Enter the article abstract",
+        "memberType": "Data types, e.g. MSI, H&E, ST",
+        "collectionType": "Composition, e.g. serial sections, time series"
+      }
     },
     "panel": {
       "title": "Collection Metadata",
@@ -139,6 +147,26 @@
       "nameRequired": "Name is required.",
       "nameTooLong": "Name must be at most 80 characters.",
       "descriptionTooLong": "Description must be at most 300 characters."
+    },
+    "vocab": {
+      "memberType": {
+        "msi": "MSI (Mass spectrometry imaging)",
+        "he": "H&E (Hematoxylin and eosin staining)",
+        "st": "ST (Spatial transcriptomics)",
+        "ihc": "IHC (Immunohistochemistry)",
+        "if": "IF (Immunofluorescence)",
+        "opticalImage": "Optical image"
+      },
+      "collectionType": {
+        "serialSections": "Serial sections",
+        "reconstruction3d": "3D reconstruction",
+        "timeSeries": "Time series",
+        "cohort": "Multi-sample cohort",
+        "replicates": "Biological replicates",
+        "caseControl": "Case-control",
+        "multimodal": "Multimodal",
+        "tissueMicroarray": "Tissue microarray"
+      }
     }
   }
 }

@@ -58,7 +58,7 @@
           :draft="metadata"
           :exclude-keys="['name', 'description']"
           :auto-keys="derivedKeys"
-          :locked-keys="lockedKeys"
+          :edited-keys="editedKeys"
           @reset-field="resetDerivedField"
         />
       </section>
@@ -141,7 +141,7 @@ const {
   // 表单（name/description 与学术元数据共用一份草稿）
   metadata,
   derivedKeys,
-  lockedKeys,
+  editedKeys,
   resetDerivedField,
   canCreate,
   // 动作

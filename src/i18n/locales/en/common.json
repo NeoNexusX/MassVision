@@ -130,7 +130,8 @@
       "selectShort": "Select...",
       "all": "All",
       "other": "Other",
-      "example": "e.g. {value}"
+      "example": "e.g. {value}",
+      "patternMismatch": "\"{value}\" is not in a valid format."
     },
     "assistant": {
       "title": "AI Assistant",
