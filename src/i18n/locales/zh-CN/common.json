@@ -130,7 +130,8 @@
       "selectShort": "请选择...",
       "all": "全部",
       "other": "其他",
-      "example": "例如 {value}"
+      "example": "例如 {value}",
+      "patternMismatch": "“{value}” 格式不正确"
     },
     "assistant": {
       "title": "AI 助手",

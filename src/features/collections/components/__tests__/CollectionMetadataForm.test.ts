@@ -38,20 +38,20 @@ describe('CollectionMetadataForm', () => {
   })
 
   it('offers a reset entry only for auto-managed fields the user has taken over', () => {
-    const untouched = mountForm({ autoKeys: ['organism'], lockedKeys: [] })
+    const untouched = mountForm({ autoKeys: ['organism'], editedKeys: [] })
     expect(untouched.text()).not.toContain('Reset to detected')
 
-    const locked = mountForm({ autoKeys: ['organism'], lockedKeys: ['organism'] })
+    const locked = mountForm({ autoKeys: ['organism'], editedKeys: ['organism'] })
     expect(locked.text()).toContain('Reset to detected')
 
     // 不在 autoKeys 里的字段即使被标记也不显示（citation 是人工著录）
-    const manual = mountForm({ autoKeys: ['organism'], lockedKeys: ['organism', 'doi'] })
+    const manual = mountForm({ autoKeys: ['organism'], editedKeys: ['organism', 'doi'] })
     expect(manual.text()).toContain('Reset to detected')
     expect(manual.findAll('button').map((b) => b.text())).toEqual(['Reset to detected'])
   })
 
   it('emits reset-field with the field key', async () => {
-    const wrapper = mountForm({ autoKeys: ['organism'], lockedKeys: ['organism'] })
+    const wrapper = mountForm({ autoKeys: ['organism'], editedKeys: ['organism'] })
 
     await wrapper.find('button').trigger('click')
 
@@ -60,7 +60,7 @@ describe('CollectionMetadataForm', () => {
 
   // 重置按钮不能夹在 <label> 里：点它会把焦点/激活传给同一个 label 的控件
   it('keeps the reset button outside the field label', () => {
-    const wrapper = mountForm({ autoKeys: ['organism'], lockedKeys: ['organism'] })
+    const wrapper = mountForm({ autoKeys: ['organism'], editedKeys: ['organism'] })
     const button = wrapper.find('button')
 
     expect(button.element.closest('label')).toBeNull()

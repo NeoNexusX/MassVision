@@ -79,7 +79,15 @@
     },
     "metaForm": {
       "editedByHand": "已手动修改。",
-      "resetToDetected": "恢复为自动识别值"
+      "resetToDetected": "恢复为自动识别值",
+      "placeholder": {
+        "title": "填写文章标题",
+        "journal": "填写期刊名称",
+        "citation": "填写文章引用信息，推荐 ACS 或 RSC 格式",
+        "abstract": "填写文章摘要 (Abstract)",
+        "memberType": "集合包含的数据类型，如 MSI、H&E、ST",
+        "collectionType": "数据的构成方式，如连续切片、时间序列"
+      }
     },
     "panel": {
       "title": "集合元数据",
@@ -132,6 +140,26 @@
       "nameRequired": "请填写名称。",
       "nameTooLong": "名称最多 80 个字符。",
       "descriptionTooLong": "简介最多 300 个字符。"
+    },
+    "vocab": {
+      "memberType": {
+        "msi": "质谱成像 (MSI)",
+        "he": "H&E 染色 (H&E)",
+        "st": "空间转录组 (ST)",
+        "ihc": "免疫组化 (IHC)",
+        "if": "免疫荧光 (IF)",
+        "opticalImage": "光学图像 (Optical image)"
+      },
+      "collectionType": {
+        "serialSections": "连续切片 (Serial sections)",
+        "reconstruction3d": "三维重建 (3D reconstruction)",
+        "timeSeries": "时间序列 (Time series)",
+        "cohort": "多样本队列 (Multi-sample cohort)",
+        "replicates": "生物学重复 (Biological replicates)",
+        "caseControl": "病例-对照 (Case-control)",
+        "multimodal": "多模态 (Multimodal)",
+        "tissueMicroarray": "组织芯片 (Tissue microarray)"
+      }
     }
   }
 }

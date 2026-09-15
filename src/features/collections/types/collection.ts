@@ -70,8 +70,8 @@ export interface CollectionMember {
 export interface CollectionMetadata {
   name: string
   description?: string | null
-  member_type?: string | null
-  collection_type?: string | null
+  member_type?: string[]
+  collection_type?: string[]
   title?: string | null
   doi?: string[]
   access?: string[]

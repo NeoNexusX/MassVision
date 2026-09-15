@@ -47,7 +47,7 @@
                 :key="String(item)"
                 class="inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
               >
-                {{ vocabLabel(String(item)) }}
+                {{ collectionVocabLabel(String(item)) }}
               </span>
             </dd>
             <dd
@@ -70,7 +70,7 @@
 import { computed } from 'vue'
 import type { PropType } from 'vue'
 import CollectionMetadataForm from './CollectionMetadataForm.vue'
-import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { collectionVocabLabel } from '../constants/collectionVocab'
 import {
   METADATA_FIELDS,
   METADATA_GROUPS,
