@@ -1,6 +1,17 @@
 /* 所有 md 文档正文中的图片默认居中显示
    覆盖两种写法：markdown 的 ![]()（在 <p> 内）与原生 <img>（不在 <p> 内）。
    .vp-doc 为 markdown 内容容器，不影响导航栏/侧边栏等界面图片。 */
+/* medium-zoom 放大图层置顶：
+   VitePress 导航栏 z-index 最高约 60（侧边栏/导航），
+   medium-zoom 默认遮罩 z-index 999、放大图 999，已高于导航；
+   此处显式拉高一层，确保放大图片与遮罩永远位于所有 UI 之上。 */
+.medium-zoom-overlay {
+  z-index: 9999 !important;
+}
+.medium-zoom-image--opened {
+  z-index: 10000 !important;
+}
+
 .vp-doc img {
   display: block;
   margin-inline: auto;
