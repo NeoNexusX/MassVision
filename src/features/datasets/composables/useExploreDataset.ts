@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router'
 import { rawConvertProcess } from '@/features/datasets/api/datasetApi'
 import { parseAlgorithms } from '@/shared/utils/methodsNormalize'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 import { useAuthStore } from '@/shared/auth/authStore'
 import { extractBackendError } from '@/shared/api/httpClient'
 import type { File } from '@/features/datasets/types/dataset'
@@ -41,7 +42,7 @@ export function useExploreDataset() {
       const isOwner = currentUserId != null && result.user_id === currentUserId
 
       // 不管是首次还是重复调用，成功提示都一样
-      showToast('Task is in progress, please wait.', 'success')
+      showToast(t('datasets.explore.inProgress'), 'success')
 
       if (isOwner) {
         // 创建者 → 跳转到 Workspace
@@ -51,7 +52,7 @@ export function useExploreDataset() {
         })
       }
     } catch (error) {
-      const message = extractBackendError(error, 'Failed to create visualization task')
+      const message = extractBackendError(error, t('common.feedback.createFailed'))
       showToast(message, 'error')
       console.error('raw-convert failed:', error)
     } finally {

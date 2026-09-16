@@ -7,8 +7,8 @@
     <div
       tabindex="0"
       role="button"
-      class="btn btn-circle btn-primary"
-      aria-label="Open menu"
+      class="btn btn-circle btn-primary kawaru-text-87"
+      :aria-label="$t('common.nav.openMenu')"
       @mousedown="open = true"
     >
       <SvgIcon :type="(fab.main.iconClosed as IconType)" />
@@ -17,8 +17,8 @@
     <!-- 展开态主按钮：显示 iconOpen，点击收起 drawer。
          点击后需要主动 blur，否则该按钮仍持有焦点、:focus-within 仍为真，视觉不会收起。 -->
     <button
-      class="fab-main-action btn btn-circle btn-primary"
-      aria-label="Close menu"
+      class="fab-main-action btn btn-circle btn-primary kawaru-text-87"
+      :aria-label="$t('common.nav.closeMenu')"
       @click="closeMenu"
     >
       <SvgIcon :type="(fab.main.iconOpen as IconType)" />
@@ -29,26 +29,30 @@
       <router-link
         v-if="item.kind === 'link'"
         :to="item.to"
-        class="btn btn-circle child-btn tooltip tooltip-left"
-        :data-tip="item.label"
+        class="btn btn-circle child-btn tooltip tooltip-left kawaru-text-87"
+        :data-tip="localized(item.label)"
       >
         <SvgIcon :type="(item.icon as IconType)" />
       </router-link>
 
-      <!-- action：触发事件；toggle-theme 的图标随 isDark 切换，其余按配置图标渲染 -->
-      <button
+      <!-- action：触发事件；toggle-theme 的图标随 isDark 切换，toggle-locale 显示将要切到的
+           语言简称（EN / 中），其余按配置图标渲染 -->
+      <button class="kawaru-text-87"
         v-else
         :class="[
           'btn btn-circle child-btn tooltip tooltip-left',
           item.action === 'logout' ? 'btn-error' : '',
         ]"
-        :data-tip="item.label"
+        :data-tip="localized(item.label)"
         @click="onAction(item.action)"
       >
         <template v-if="item.action === 'toggle-theme'">
           <SvgIcon v-if="!isDark" type="sun" class="text-yellow-400" />
           <SvgIcon v-else type="moon" class="text-indigo-300" />
         </template>
+        <span v-else-if="item.action === 'toggle-locale'" class="locale-short">{{
+          nextLocale.short
+        }}</span>
         <SvgIcon v-else :type="(item.icon as IconType)" />
       </button>
     </template>
@@ -60,6 +64,8 @@ import { computed } from 'vue'
 import type { User } from '@/shared/auth/types'
 import type { IconType } from '@/shared/components/svgIcons'
 import { getConfig, isNavVisible } from '@/shared/config/runtimeConfig'
+import { localized } from '@/shared/config/localizedText'
+import { useLocale } from '@/shared/composables/useLocale'
 import type { FabActionKind, FabItem, NavVisibility } from '@/shared/config/runtimeConfig'
 
 const props = defineProps<{
@@ -70,6 +76,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'toggle-theme'): void
+  (e: 'toggle-locale'): void
   (e: 'toggle-ai'): void
   (e: 'logout'): void
 }>()
@@ -77,6 +84,8 @@ const emit = defineEmits<{
 const open = defineModel<boolean>('open', { default: false })
 
 const fab = computed(() => getConfig().fab!)
+
+const { nextLocale } = useLocale()
 
 const visible = (i: NavVisibility): boolean =>
   isNavVisible(i, { isAuthenticated: !!props.user, isAdmin: props.isAdmin })
@@ -92,6 +101,9 @@ const onAction = (action: FabActionKind) => {
   switch (action) {
     case 'toggle-theme':
       emit('toggle-theme')
+      break
+    case 'toggle-locale':
+      emit('toggle-locale')
       break
     case 'toggle-ai':
       emit('toggle-ai')
@@ -130,5 +142,12 @@ const onAction = (action: FabActionKind) => {
 .fab .btn :deep(svg) {
   width: calc(var(--fab-size) / 2);
   height: calc(var(--fab-size) / 2);
+}
+
+/* 语言简称与图标同一视觉重量：字号取按钮直径的 1/3（「中」比 EN 宽，1/3 两者都放得下） */
+.locale-short {
+  font-size: calc(var(--fab-size) / 3);
+  font-weight: 600;
+  line-height: 1;
 }
 </style>

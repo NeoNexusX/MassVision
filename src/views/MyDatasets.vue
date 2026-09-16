@@ -1,55 +1,55 @@
 <template>
-  <div class="min-h-screen bg-base-200 p-4 md:p-8 page-type">
-    <div class="max-w-[1680px] mx-auto">
-      <h1 class="page-title font-bold text-base-content mb-6 px-3">My Datasets</h1>
+  <div class="min-h-screen bg-base-200">
+    <div class="max-w-[1680px] mx-auto p-4 md:p-8 kawaru-text-100">
+      <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mb-6 px-3">{{ $t('common.page.myDatasets') }}</h1>
 
       <div
         v-if="quota"
-        class="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-3 md:gap-6 mb-4 text-[1em] text-base-content/80"
+        class="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-3 md:gap-6 mb-4 kawaru-text-100 text-base-content/80"
       >
         <span class="px-3 whitespace-nowrap"
-          >Storage
+          >{{ $t('datasets.my.storage') }}
           <strong class="text-base-content"
             >{{ quota.uploadUsed }} / {{ quota.uploadMax }}</strong
           ></span
         >
         <span class="px-3 whitespace-nowrap"
-          >Files
+          >{{ $t('common.stat.files') }}
           <strong class="text-base-content"
             >{{ quota.fileCount }} / {{ quota.maxFiles }}</strong
           ></span
         >
         <span class="px-3 whitespace-nowrap"
-          >Processing
+          >{{ $t('common.stat.processing') }}
           <strong class="text-base-content"
             >{{ quota.procUsed }} / {{ quota.procMax }}</strong
           ></span
         >
         <span class="px-3 whitespace-nowrap"
-          >Downloads
+          >{{ $t('common.stat.downloads') }}
           <strong class="text-base-content"
             >{{ quota.downloadUsed }} / {{ quota.downloadMax }}</strong
           ></span
         >
         <button
-          class="btn btn-ghost text-[1em] md:ml-auto"
+          class="btn btn-ghost kawaru-text-100 md:ml-auto"
           :class="{ loading: checkingFiles }"
           :disabled="checkingFiles"
           @click="refreshFileStatus"
-          title="Check file processing status"
+:title="$t('datasets.my.refreshStatusHint')"
         >
           <SvgIcon v-if="!checkingFiles" type="refresh" class="w-[1.2em] h-[1.2em]" />
-          Refresh Status
+          {{ $t('datasets.my.refreshStatus') }}
         </button>
       </div>
 
       <DatasetFilterBar
         :show-add-filter="true"
         :show-upload="true"
-        search-placeholder="Search my datasets"
+        :show-collections-link="true"
+        :search-placeholder="$t('datasets.my.searchPlaceholder')"
         @upload="handleUpload"
         @search="handleSearch"
-        @filter-status="handleStatusFilter"
         @apply-filters="handleApplyFilters"
         @sort="handleSort"
       />
@@ -64,9 +64,9 @@
       <!-- Delete Confirmation Modal -->
       <ConfirmDialog
         :open="deleteConfirm.isOpen"
-        title="Delete Dataset"
-        message="Are you sure you want to delete this dataset? This action cannot be undone."
-        confirm-label="Delete"
+:title="$t('datasets.my.deleteTitle')"
+        :message="$t('datasets.my.deleteMessage')"
+        :confirm-label="$t('common.action.delete')"
         :danger="true"
         :loading="deleteConfirm.deleting"
         @confirm="deleteConfirm.confirm"
@@ -79,6 +79,14 @@
         :loading="isConverting"
         @confirm="explore.confirmExplore"
         @cancel="explore.cancelExplore"
+      />
+
+      <!-- 元信息编辑弹窗：由卡片右侧的 Edit 触发（Overview 页已移除该入口，避免两处入口） -->
+      <FileMetadataDialog
+        :open="!!editingDataset"
+        :dataset="editingDataset"
+        @close="editingDataset = null"
+        @saved="handleMetadataSaved"
       />
 
       <DatasetList
@@ -95,10 +103,11 @@
         @download="handleDownloadRaw"
         @delete="handleDelete"
         @explore="handleExplore"
+        @edit="handleEdit"
         @change-size="changeSize"
         @go-to-page="goToPage"
       >
-        <template #empty> You have no datasets yet matching your filters. </template>
+        <template #empty>{{ $t('datasets.list.myEmpty') }}</template>
       </DatasetList>
     </div>
   </div>
@@ -111,7 +120,9 @@ import DatasetList from '@/features/datasets/components/DatasetList.vue'
 import DatasetFilterBar from '@/features/datasets/components/DatasetFilterBar.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import ExploreConfirmDialog from '@/features/datasets/components/ExploreConfirmDialog.vue'
-import { listUserFiles, deleteFile } from '@/features/datasets/api/datasetApi'
+import FileMetadataDialog from '@/features/datasets/components/FileMetadataDialog.vue'
+import type { File } from '@/features/datasets/types/dataset'
+import { listUserFiles, deleteFile, type FileListSort } from '@/features/datasets/api/datasetApi'
 import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
 import { useDatasetListPage } from '@/features/datasets/composables/useDatasetListPage'
@@ -131,11 +142,11 @@ const initialFilters = createDefaultDatasetFilters()
 
 const auth = useAuthStore()
 
-const fetcher = async (f: Record<string, any>, p: number, s: number) => {
+const fetcher = async (f: Record<string, any>, p: number, s: number, sort?: FileListSort) => {
   // ensure username is set for MyDatasets
   const username = auth.user?.username || ''
   const body = { ...f, username }
-  return await listUserFiles(body, p, s)
+  return await listUserFiles(body, p, s, sort)
 }
 
 // Quota
@@ -153,7 +164,6 @@ const {
   fetchFiles,
   handleSort,
   handleSearch,
-  handleStatusFilter,
   handleApplyFilters,
   goToPage,
   changeSize,
@@ -223,11 +233,22 @@ const deleteConfirm = useConfirmDelete({
       deletingId.value = null
     }
   },
-  successMessage: 'Dataset deleted successfully',
 })
 
 const explore = useExploreDataset()
 const { showExploreConfirm, isConverting } = explore
+
+// ---- 元信息编辑：卡片 Edit → 弹窗，保存后按 id 就地替换该行（不整页重拉）----
+const editingDataset = ref<File | null>(null)
+
+function handleEdit(id: string) {
+  editingDataset.value = datasets.value.find((d) => d.id === id) ?? null
+}
+
+function handleMetadataSaved(file: File) {
+  const index = datasets.value.findIndex((d) => d.id === file.id)
+  if (index !== -1) datasets.value[index] = file
+}
 
 const handleExplore = (id?: string) => {
   if (!id) return

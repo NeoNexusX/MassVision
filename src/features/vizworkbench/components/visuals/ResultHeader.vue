@@ -1,9 +1,9 @@
 <template>
   <div class="flex min-w-0 items-start gap-3 sm:items-center">
-    <h1 class="min-w-0 break-words text-[1.5em] font-bold">
+    <h1 class="min-w-0 break-words kawaru-text-112 font-bold">
       {{ datasetName }}
     </h1>
-    <StatusBadge v-if="status" :status="status" class="shrink-0 text-[1em]" />
+    <StatusBadge v-if="status" :status="status" class="shrink-0 kawaru-text-75" />
   </div>
 </template>
 

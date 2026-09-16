@@ -142,4 +142,19 @@ export function extractBackendError(error: any, fallback?: string): string {
   return formatErrorMessage(candidate)
 }
 
+/**
+ * 是否为「无权操作」错误（403，或后端 detail 写着 permission denied）。
+ * 后端 detail 原文对用户没有意义（也不随资源变化），调用方据此换成自己的文案。
+ */
+export function isPermissionDenied(error: any): boolean {
+  if (error?.response?.status === 403) return true
+  // 不走 extractBackendError：它对非 axios 错误会直接返回 fallback，绕过后端文本
+  const detail =
+    error?.response?.data?.detail ??
+    error?.response?.data?.message ??
+    error?.response?.data?.msg ??
+    error?.message
+  return /permission\s+denied|forbidden|not\s+(the\s+)?owner/i.test(formatErrorMessage(detail))
+}
+
 export { auth_api, api }

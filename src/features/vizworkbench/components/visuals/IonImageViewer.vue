@@ -11,6 +11,7 @@
       :normalization-error="normalizationError"
       :has-tic="hasTic"
       :title="imageTitle"
+      :channels-mode="channelsMode"
       @update:mz-tolerance="$emit('update:mzTolerance', $event)"
       @update:colormap="$emit('update:colormap', $event)"
       @update:intensity-scale="$emit('update:intensityScale', $event)"
@@ -46,13 +47,26 @@
         class="absolute pointer-events-none bg-base-100/90 backdrop-blur-sm px-2 py-1 rounded shadow border border-base-300 font-mono"
         :style="{ left: hoverPixel.x + 12 + 'px', top: hoverPixel.y + 12 + 'px' }"
       >
-        <template v-if="dataMode === 'processed'">
-          ({{ hoverPixel.col + 1 }}, {{ hoverPixel.row + 1 }})
+        <div>({{ hoverPixel.col + 1 }}, {{ hoverPixel.row + 1 }})</div>
+        <!-- 多离子叠加：逐通道列出该像素的强度（色块即通道色） -->
+        <template v-if="channelsMode && hoverPixel.channelValues?.length">
+          <div
+            v-for="cv in hoverPixel.channelValues"
+            :key="cv.id"
+            class="flex items-center gap-1.5"
+          >
+            <span
+              class="w-2 h-2 rounded-sm shrink-0"
+              :style="{ backgroundColor: `rgb(${cv.color.r},${cv.color.g},${cv.color.b})` }"
+            ></span>
+            <span class="text-base-content/60">{{ cv.mz.toFixed(6) }}</span>
+            <span>{{ cv.intensity.toExponential(2) }}</span>
+          </div>
+        </template>
+        <template v-else-if="dataMode === 'processed'">
           {{ hoverPixel.intensity.toExponential(2) }}
         </template>
-        <template v-else>
-          ({{ hoverPixel.col + 1 }}, {{ hoverPixel.row + 1 }}) — {{ hoverPixel.intensity.toExponential(2) }}
-        </template>
+        <template v-else> — {{ hoverPixel.intensity.toExponential(2) }} </template>
       </div>
       <!-- 缩放控件 -->
       <div
@@ -63,8 +77,8 @@
         <button
           type="button"
           class="zoom-control-button flex items-center justify-center hover:bg-base-300 text-base-content/70"
-          title="Zoom out"
-          aria-label="Zoom out"
+          :title="$t('vizworkbench.toolbar.zoomOut')"
+          :aria-label="$t('vizworkbench.toolbar.zoomOut')"
           @click="zoomOut"
         >
           <SvgIcon type="minus" class="zoom-control-icon" />
@@ -75,8 +89,8 @@
         <button
           type="button"
           class="zoom-control-button flex items-center justify-center hover:bg-base-300 text-base-content/70"
-          title="Zoom in"
-          aria-label="Zoom in"
+          :title="$t('vizworkbench.toolbar.zoomIn')"
+          :aria-label="$t('vizworkbench.toolbar.zoomIn')"
           @click="zoomIn"
         >
           <SvgIcon type="plus" class="zoom-control-icon" />
@@ -85,8 +99,8 @@
           v-if="zoom > 1"
           type="button"
           class="zoom-control-button ms-[0.125em] flex items-center justify-center hover:bg-base-300 text-base-content/50"
-          title="Reset zoom"
-          aria-label="Reset zoom"
+          :title="$t('vizworkbench.toolbar.resetZoom')"
+          :aria-label="$t('vizworkbench.toolbar.resetZoom')"
           @click="resetZoom"
         >
           1:1
@@ -103,6 +117,8 @@ import IonImageToolbar from './IonImageToolbar.vue'
 import { useZoomPan } from '../../composables/useZoomPan'
 import { useCanvasRenderer } from '../../composables/useCanvasRenderer'
 import { computeFitTransform, fitPointToMatrixCell } from '../../utils/fitTransform'
+import { type BlendChannel } from '../../utils/ionChannelBlend'
+import type { ViewIonChannel } from '../../composables/useIonChannels'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
 const props = defineProps({
@@ -131,7 +147,13 @@ const props = defineProps({
   /** zarr 是否预存 stats/tic（TIC 归一化可用） */
   hasTic: { type: Boolean, default: false },
   /** 图片区域标题 */
-  imageTitle: { type: String, default: 'Ion Image' },
+  imageTitle: { type: String, default: '' },
+  /** 多离子叠加模式：为 true 时矩阵走通道合成渲染，colormap 等不适用 */
+  channelsMode: { type: Boolean, default: false },
+  /** 可见且已加载的叠加通道（渲染 + 悬停读数） */
+  channels: { type: Array as PropType<ViewIonChannel[]>, default: () => [] },
+  /** ROI 并集掩膜（1 = 保留），叠加模式下按此裁剪每个通道 */
+  roiMask: { type: Object as PropType<Uint8Array | null>, default: null },
 })
 
 const emit = defineEmits<{
@@ -140,14 +162,25 @@ const emit = defineEmits<{
   (e: 'update:intensityScale', v: string): void
   (e: 'searchMz', v: string): void
   (e: 'reset'): void
-  /** processed 模式：点击像素 */
+  /** 点击像素（两种模式都加载该像素的谱） */
   (e: 'select-pixel', col: number, row: number): void
 }>()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
 const hoverPixel = ref<{
-  x: number; y: number; row: number; col: number; intensity: number
+  x: number
+  y: number
+  row: number
+  col: number
+  intensity: number
+  /** Per-channel readout while the multi-ion overlay is active. */
+  channelValues?: {
+    id: number
+    mz: number
+    color: { r: number; g: number; b: number }
+    intensity: number
+  }[]
 } | null>(null)
 const containerW = ref(0)
 const containerH = ref(0)
@@ -162,6 +195,13 @@ const { zoom, panX, panY, resetZoom, zoomIn, zoomOut, onWheel, onPanStart } = us
   () => containerW.value,
   () => containerH.value,
 )
+
+/** Channels as the renderer expects them (visible + loaded, color attached). */
+const blendChannels = computed<BlendChannel[]>(() =>
+  (props.channels ?? []).map((c) => ({ matrix: c.matrix, color: c.color })),
+)
+const channelsModeRef = computed(() => props.channelsMode)
+const roiMaskRef = computed(() => props.roiMask)
 
 const { scheduleRender, observeContainer, exportTransparentCanvas } = useCanvasRenderer({
   canvasRef,
@@ -178,6 +218,9 @@ const { scheduleRender, observeContainer, exportTransparentCanvas } = useCanvasR
   overlayData: computed(() => props.overlayData),
   overlayWidth: computed(() => props.overlayWidth),
   overlayHeight: computed(() => props.overlayHeight),
+  channels: blendChannels,
+  channelsMode: channelsModeRef,
+  roiMask: roiMaskRef,
 })
 
 /** 容器光标样式 */
@@ -221,7 +264,6 @@ function onContainerMouseDown(e: MouseEvent) {
 function onContainerClick(e: MouseEvent) {
   if (mouseMoved) return  // 拖拽不触发点击
   if (props.drawMode) return
-  if (props.dataMode !== 'processed') return  // 仅 processed 模式
 
   const container = containerRef.value
   if (!container) return
@@ -254,7 +296,8 @@ function onHover(e: MouseEvent) {
   const data = props.matrix
   const cols = props.matrixCols
   const rows = props.matrixRows
-  if (!data || !data.length || !cols || !rows) return
+  if (!cols || !rows) return
+  if (!props.channelsMode && (!data || !data.length)) return
   const W = rect.width, H = rect.height
   const t = computeFitTransform(W, H, cols, rows)
   const mx = e.clientX - rect.left
@@ -263,7 +306,23 @@ function onHover(e: MouseEvent) {
   const cy = (my - panY.value) / zoom.value
   const { col, row } = fitPointToMatrixCell(cx, cy, t, cols, rows)
   if (row >= 0 && row < rows && col >= 0 && col < cols) {
-    hoverPixel.value = { x: mx, y: my, row, col, intensity: data[row * cols + col]! }
+    const i = row * cols + col
+    const channelValues = props.channelsMode
+      ? (props.channels ?? []).map((c) => ({
+          id: c.id,
+          mz: c.mz,
+          color: c.color,
+          intensity: c.matrix[i] ?? 0,
+        }))
+      : undefined
+    hoverPixel.value = {
+      x: mx,
+      y: my,
+      row,
+      col,
+      intensity: data?.[i] ?? 0,
+      channelValues,
+    }
   } else {
     hoverPixel.value = null
   }
@@ -296,6 +355,9 @@ watch(
     props.displayMin,
     props.displayMax,
     props.overlayData,
+    props.channels,
+    props.channelsMode,
+    props.roiMask,
   ],
   () => scheduleRender(),
 )
@@ -306,10 +368,13 @@ function exportPng() {
   if (!canvas) return
   const dataUrl = canvas.toDataURL('image/png')
   const link = document.createElement('a')
-  const mzLabel = props.dataMode === 'continuous'
-    ? `_mz_${props.selectedMz.toFixed(4)}`
-    : ''
-  link.download = `ion_image${mzLabel}.png`
+  // m/z at the same 6-decimal precision as the rest of the UI
+  const label = props.channelsMode
+    ? `_channels_${(props.channels ?? []).map((c) => c.mz.toFixed(6)).join('_')}`
+    : props.dataMode === 'continuous'
+      ? `_mz_${props.selectedMz.toFixed(6)}`
+      : ''
+  link.download = `ion_image${label}.png`
   link.href = dataUrl
   link.click()
 }

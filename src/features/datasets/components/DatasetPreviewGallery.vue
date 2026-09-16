@@ -1,27 +1,46 @@
 <template>
-  <!-- DaisyUI hover-gallery：3 个直接子元素 → 自动产生 2 列悬停区域 -->
-  <figure
-    class="hover-gallery w-full h-full rounded-lg"
-    @pointerenter="revealRest"
-  >
-    <div v-for="(img, i) in images" :key="i" class="overflow-hidden bg-base-200">
-      <img
-        v-if="img.src && !img.error"
-        :src="img.src"
-        :alt="`Preview ${i + 1}`"
-        class="w-full h-full object-contain"
-        loading="lazy"
-        @error="img.error = true"
-      />
-      <!-- 图片加载失败（404）时用 SVG 占位图填充 -->
-      <div
-        v-else-if="img.error"
-        class="w-full h-full flex items-center justify-center text-base-content"
-        v-html="img.placeholder"
-      />
-      <!-- 尚未悬停过：不给 src，只占住格子，保持 hover-gallery 的三分栏布局 -->
-      <div v-else class="w-full h-full bg-base-200" />
-    </div>
+  <!-- @pointerenter 挂在外层 figure：processed 分支不需要 revealRest，但
+       挂外层也能避免里层 hover-gallery 被透传事件错过（悬停热区是整图）。 -->
+  <figure class="w-full h-full rounded-lg" @pointerenter="revealRest">
+    <!-- Processed 数据没有离子图，只显示 TIC（preview.jpg），不做 hover-gallery -->
+    <template v-if="storageMode === 'processed'">
+      <div class="w-full h-full overflow-hidden bg-base-200">
+        <img
+          v-if="tic.src && !tic.error"
+          :src="tic.src"
+          :alt="t('datasets.card.ticPreviewAlt')"
+          class="w-full h-full object-contain"
+          loading="lazy"
+          @error="tic.error = true"
+        />
+        <div
+          v-else-if="tic.error"
+          class="w-full h-full flex items-center justify-center text-base-content"
+          v-html="tic.placeholder"
+        />
+        <div v-else class="w-full h-full bg-base-200" />
+      </div>
+    </template>
+
+    <!-- Continuous 或未知类型：hover-gallery，默认 TIC，左右悬停显示两张离子图 -->
+    <figure v-else class="hover-gallery w-full h-full rounded-lg">
+      <div v-for="(img, i) in images" :key="i" class="overflow-hidden bg-base-200">
+        <img
+          v-if="img.src && !img.error"
+          :src="img.src"
+          :alt="t('datasets.card.previewAlt', { n: i + 1 })"
+          class="w-full h-full object-contain"
+          loading="lazy"
+          @error="img.error = true"
+        />
+        <div
+          v-else-if="img.error"
+          class="w-full h-full flex items-center justify-center text-base-content"
+          v-html="img.placeholder"
+        />
+        <div v-else class="w-full h-full bg-base-200" />
+      </div>
+    </figure>
   </figure>
 </template>
 
@@ -29,16 +48,27 @@
 import { reactive, ref } from 'vue'
 import { buildPreviewImageUrls } from '@/features/datasets/utils/imageUtils'
 import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlaceholder'
+// 模板里直接用导入的 t（而不是 $t）：本组件的单测不安装 i18n 插件，alt 文字也无需断言
+import { t } from '@/i18n'
 
-const props = defineProps<{ fileId: string }>()
+const props = defineProps<{ fileId: string; storageMode?: string }>()
+
+const urls = buildPreviewImageUrls(props.fileId)
+const ticUrl = urls[0]!
+
+const tic = reactive({
+  url: ticUrl,
+  src: ticUrl,
+  error: false,
+  placeholder: getDatasetPlaceholderSvg({ showGuides: true }),
+})
 
 const images = reactive(
-  buildPreviewImageUrls(props.fileId).map((url, i) => ({
+  urls.map((url, i) => ({
     url,
-    // 只有第 1 张挂载时就带 src；第 2/3 张留空，等首次悬停再赋值。
+    // 只有第 1 张（TIC）挂载时就带 src；第 2/3 张留空，等首次悬停再赋值。
     src: i === 0 ? url : '',
     error: false,
-    // 每格独立生成随机色占位 SVG，视觉上可区分
     placeholder: getDatasetPlaceholderSvg({ showGuides: true }),
   })),
 )

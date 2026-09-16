@@ -1,57 +1,54 @@
 <template>
-  <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto scrollbar-thin overflow-x-hidden pr-4 lg:pr-[1em]">
+  <div class="flex flex-col select-none lg:h-full lg:overflow-y-auto scrollbar-thin overflow-x-hidden pr-4 lg:pr-[1em] kawaru-text-87">
     <!-- ─── Info ─── -->
-    <div class="pt-3 border-t border-base-content/50">
-      <div class="text-[1.3em] font-semibold text-base-content mb-2">Info</div>
-      <div class="space-y-1.5 text-[1.1em] text-base-content">
+    <CollapsibleSection :title="$t('vizworkbench.info.info')">
+      <div class="space-y-1.5 kawaru-text-81 text-base-content">
         <div v-for="row in infoRows" :key="row.label" class="flex justify-between">
           <span>{{ row.label }}</span>
           <span class="font-mono text-base-content">{{ row.value }}</span>
         </div>
       </div>
-    </div>
+    </CollapsibleSection>
 
     <!-- ─── Display Range ─── -->
-    <div class="mt-5 pt-4 border-t border-base-content/50">
-      <div class="text-[1.2em] font-semibold text-base-content mb-2">Display range</div>
+    <CollapsibleSection :title="$t('vizworkbench.info.displayRange')" class="mt-5">
       <!-- The two fixed columns keep their width on the wrapper, which sits at the
-           section's base font size: an em width on the same element as text-[1.125em]
+           section's base font size: an em width on the same element as kawaru-text-81
            would resolve against that larger size instead (1.75em -> 1.97em). -->
       <div class="space-y-2">
         <div class="flex items-center gap-2">
           <div class="w-[2em] text-right">
-            <span class="text-[1.125em] text-base-content">Max</span>
+            <span class="kawaru-text-81 text-base-content">{{ $t('vizworkbench.info.max') }}</span>
           </div>
           <input
             type="text"
-            class="input input-sm input-bordered flex-1 text-[1.125em] font-mono"
+            class="input input-sm input-bordered flex-1 kawaru-text-81 font-mono"
             :value="formatValue(localMax)"
             @change="onMaxInput($event)"
           />
           <div class="w-[4em] text-right">
-            <span class="text-[1.125em] text-base-content font-bold">{{ pctLabel(displayMax) }}</span>
+            <span class="kawaru-text-81 text-base-content font-bold">{{ pctLabel(displayMax) }}</span>
           </div>
         </div>
         <div class="flex items-center gap-2">
           <div class="w-[2em] text-right">
-            <span class="text-[1.125em] text-base-content">Min</span>
+            <span class="kawaru-text-81 text-base-content">{{ $t('vizworkbench.info.min') }}</span>
           </div>
           <input
             type="text"
-            class="input input-sm input-bordered flex-1 text-[1.125em] font-mono"
+            class="input input-sm input-bordered flex-1 kawaru-text-81 font-mono"
             :value="formatValue(localMin)"
             @change="onMinInput($event)"
           />
           <div class="w-[4em] text-right">
-            <span class="text-[1.125em] text-base-content font-bold">{{ pctLabel(displayMin) }}</span>
+            <span class="kawaru-text-81 text-base-content font-bold">{{ pctLabel(displayMin) }}</span>
           </div>
         </div>
       </div>
-    </div>
+    </CollapsibleSection>
 
     <!-- ─── Statistic ─── -->
-    <div class="mt-5 pt-4 border-t border-base-content/50">
-      <div class="text-[1.3em] font-semibold text-base-content mb-2">Statistic</div>
+    <CollapsibleSection :title="$t('vizworkbench.info.statistic')" class="mt-5">
       <div class="space-y-2 p-2">
         <div class="relative h-[5em] rounded border border-base-content/50 bg-base-200">
           <canvas ref="histCanvasRef" class="absolute inset-0 w-full h-full" />
@@ -64,30 +61,29 @@
             :style="{ left: markerLeft(displayMax) + '%' }"
           />
         </div>
-        <div class="space-y-1.5 text-[1.2em] text-base-content">
+        <div class="space-y-1.5 kawaru-text-87 text-base-content">
           <div v-for="row in statisticRows" :key="row.label" class="flex justify-between">
             <span>{{ row.label }}</span>
             <span class="font-mono text-base-content">{{ row.value }}</span>
           </div>
         </div>
       </div>
-    </div>
+    </CollapsibleSection>
 
     <!-- ─── Preprocessing ─── -->
-    <div v-if="methods.length" class="mt-5 pt-4 border-t border-base-content/50">
-      <div class="text-[1.2em] font-semibold text-base-content mb-2">Preprocessing</div>
+    <CollapsibleSection v-if="methods.length" :title="$t('common.preprocessing.title')" class="mt-5">
       <div class="space-y-1">
         <div
           v-for="m in methods"
           :key="m"
-          :title="m"
-          class="text-[1em] text-base-content flex items-center gap-1.5 min-w-0"
+          :title="methodLabel(m)"
+          class="kawaru-text-75 text-base-content flex items-center gap-1.5 min-w-0"
         >
           <span class="shrink-0 w-[0.25em] h-[0.25em] rounded-full bg-blue-400"></span>
-          <span class="truncate">{{ m }}</span>
+          <span class="truncate">{{ methodLabel(m) }}</span>
         </div>
       </div>
-    </div>
+    </CollapsibleSection>
 
     <slot name="actions" />
   </div>
@@ -95,6 +91,10 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onBeforeUnmount, watch, type PropType } from 'vue'
+import CollapsibleSection from '@/shared/components/CollapsibleSection.vue'
+import { methodLabel } from '@/shared/utils/methodsNormalize'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { t } from '@/i18n'
 
 const props = defineProps({
   globalMin: { type: Number, required: true },
@@ -149,22 +149,31 @@ function pctLabel(v: number): string {
 
 const statisticRows = computed(() => {
   const items: { label: string; value: string }[] = []
-  if (props.info.pixels) items.push({ label: 'Dimensions', value: props.info.pixels })
-  if (props.info.nonZero) items.push({ label: 'Non-zero', value: props.info.nonZero })
+  if (props.info.pixels) items.push({ label: t('vizworkbench.info.dimensions'), value: props.info.pixels })
+  if (props.info.nonZero) items.push({ label: t('vizworkbench.info.nonZero'), value: props.info.nonZero })
   if (props.info.totalIon) items.push({ label: 'TIC', value: props.info.totalIon })
   return items
 })
 
 const infoRows = computed(() => {
   const items: { label: string; value: string }[] = []
-  if (props.info.polarity) items.push({ label: 'Polarity', value: props.info.polarity })
-  if (props.info.analyzer) items.push({ label: 'Analyzer', value: props.info.analyzer })
-  if (props.info.ionisationSource) items.push({ label: 'Ionisation Source', value: props.info.ionisationSource })
-  if (props.info.pixelSize) items.push({ label: 'Pixel Size', value: props.info.pixelSize })
-  if (props.info.spectrumMode) items.push({ label: 'Spectrum Mode', value: props.info.spectrumMode })
-  if (props.info.storageMode) items.push({ label: 'Storage Mode', value: props.info.storageMode })
+  const { polarity, analyzer, ionisationSource, pixelSize, spectrumMode, storageMode } = props.info
+  // zarr 属性里的极性可能是小写（positive），词表按首字母大写的原值查显示文字
+  if (polarity)
+    items.push({ label: t('common.meta.polarity'), value: vocabLabel(capitalize(polarity)) })
+  if (analyzer) items.push({ label: t('common.meta.analyzer'), value: analyzer })
+  if (ionisationSource)
+    items.push({ label: t('common.meta.ionisationSource'), value: ionisationSource })
+  if (pixelSize) items.push({ label: t('common.meta.pixelSize'), value: pixelSize })
+  // 谱图 / 存储模式的取值是专业术语，原样显示
+  if (spectrumMode) items.push({ label: t('common.meta.spectrumMode'), value: spectrumMode })
+  if (storageMode) items.push({ label: t('common.meta.storageMode'), value: storageMode })
   return items
 })
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
 
 function onMinInput(e: Event) {
   const v = parseFloat((e.target as HTMLInputElement).value)
@@ -183,6 +192,10 @@ function drawHistogram() {
   const bins = props.histogram
   if (!bins.length) return
   const rect = canvas.getBoundingClientRect()
+  // Collapsed section: display:none reports a 0×0 box. Skip so the canvas
+  // keeps its last good bitmap until the section is reopened (the observer
+  // fires again with the real size).
+  if (!rect.width || !rect.height) return
   const dpr = window.devicePixelRatio || 1
   canvas.width = rect.width * dpr
   canvas.height = rect.height * dpr

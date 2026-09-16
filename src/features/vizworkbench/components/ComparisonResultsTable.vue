@@ -11,6 +11,7 @@ import SvgIcon from '@/shared/components/SvgIcon.vue'
 import type { IconType } from '@/shared/components/svgIcons'
 import type { IonComparison, ComparisonCategory } from '@/features/vizworkbench/composables/useRegionComparison'
 import { scrollIntoContainer } from '@/features/vizworkbench/utils/scrollIntoContainer'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   results: IonComparison[]
@@ -33,28 +34,29 @@ function toggle() {
 }
 
 const categoryFilter = ref<ComparisonCategory | 'all'>('all')
-const sortKey = ref<'ratio' | 'meanA' | 'meanB' | 'mz' | 'detA' | 'detB'>('ratio')
+const sortKey = ref<'ratio' | 'meanA' | 'meanB' | 'mz' | 'detA' | 'detB' | 'detRatio'>('detRatio')
 const sortDir = ref<'desc' | 'asc'>('desc')
 const page = ref(0)
 const PAGE_SIZE = 30
 
 // ---------- category meta ----------
 
-const CATEGORY_META: Record<ComparisonCategory, { label: string; badge: string }> = {
-  'a-only': { label: 'A only', badge: 'badge-success badge-outline' },
-  'b-only': { label: 'B only', badge: 'badge-info badge-outline' },
-  'a-enriched': { label: 'A ↑', badge: 'badge-success' },
-  'b-enriched': { label: 'B ↑', badge: 'badge-info' },
-  shared: { label: 'Shared', badge: 'badge-ghost' },
+// label 写成 getter：常量表只求值一次，模板里调用才会随语言切换刷新
+const CATEGORY_META: Record<ComparisonCategory, { label: () => string; badge: string }> = {
+  'a-only': { label: () => t('vizworkbench.compare.aOnly'), badge: 'badge-success badge-outline' },
+  'b-only': { label: () => t('vizworkbench.compare.bOnly'), badge: 'badge-info badge-outline' },
+  'a-enriched': { label: () => 'A ↑', badge: 'badge-success' },
+  'b-enriched': { label: () => 'B ↑', badge: 'badge-info' },
+  shared: { label: () => t('vizworkbench.compare.shared'), badge: 'badge-ghost' },
 }
 
-const FILTER_OPTIONS: { value: ComparisonCategory | 'all'; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'a-only', label: 'A only' },
-  { value: 'b-only', label: 'B only' },
-  { value: 'a-enriched', label: 'A enriched' },
-  { value: 'b-enriched', label: 'B enriched' },
-  { value: 'shared', label: 'Shared' },
+const FILTER_OPTIONS: { value: ComparisonCategory | 'all'; label: () => string }[] = [
+  { value: 'all', label: () => t('common.input.all') },
+  { value: 'a-only', label: () => t('vizworkbench.compare.aOnly') },
+  { value: 'b-only', label: () => t('vizworkbench.compare.bOnly') },
+  { value: 'a-enriched', label: () => t('vizworkbench.compare.aEnriched') },
+  { value: 'b-enriched', label: () => t('vizworkbench.compare.bEnriched') },
+  { value: 'shared', label: () => t('vizworkbench.compare.shared') },
 ]
 
 // ---------- counts per category ----------
@@ -86,6 +88,12 @@ const sortedResults = computed(() => {
       case 'ratio': {
         const logA = a.ratio === Infinity ? Infinity : a.ratio === 0 ? -Infinity : Math.log2(a.ratio)
         const logB = b.ratio === Infinity ? Infinity : b.ratio === 0 ? -Infinity : Math.log2(b.ratio)
+        cmp = Math.abs(logA) - Math.abs(logB)
+        break
+      }
+      case 'detRatio': {
+        const logA = a.detRatio === Infinity ? Infinity : a.detRatio === 0 ? -Infinity : Math.log2(a.detRatio)
+        const logB = b.detRatio === Infinity ? Infinity : b.detRatio === 0 ? -Infinity : Math.log2(b.detRatio)
         cmp = Math.abs(logA) - Math.abs(logB)
         break
       }
@@ -148,6 +156,20 @@ function formatRatio(v: number): string {
   if (v >= 100) return '>100×'
   if (v >= 1) return v.toFixed(2) + '×'
   return v.toFixed(2) + '×'
+}
+
+/**
+ * 比值列的定向显示：富集方（数值更大的一方）做分子，B 强时显示 B/A 的倒数，
+ * 这样所有比值都 >= 1，方向由旁边的小标签（A/B 或 B/A）+ 区域颜色标明。
+ * 原始值仍保存在 row 上，排序继续用 |log2|（方向无关），不受显示方向影响。
+ */
+function orientedLabel(v: number): 'A/B' | 'B/A' {
+  return v >= 1 ? 'A/B' : 'B/A'
+}
+
+function orientedValue(v: number): number {
+  if (v === Infinity || v === 0) return Infinity // 0 = 对侧独占，反向比值为 ∞
+  return v >= 1 ? v : 1 / v
 }
 
 function formatDet(v: number): string {
@@ -236,21 +258,21 @@ watch(
     :class="expanded ? 'h-full' : 'h-auto self-start'">
     <!-- Collapsible header bar -->
     <div
-      class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-200/60 select-none"
+      class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-200/60 select-none kawaru-text-87"
       @click.stop="toggle"
     >
       <SvgIcon
         :type="expanded ? 'chevron_down' : 'chevron_right'"
         class="text-base-content/60"
       />
-      <span class="font-semibold text-base-content whitespace-nowrap shrink-0 text-[1.2em]">
-         Comparison results
+      <span class="font-semibold text-base-content whitespace-nowrap shrink-0 kawaru-text-87">
+        {{ $t('vizworkbench.compare.results') }}
       </span>
-      <span class="text-[1.125em] text-base-content whitespace-nowrap shrink-0">
-        {{ results.length }} ions
+      <span class="kawaru-text-81 text-base-content whitespace-nowrap shrink-0">
+        {{ $t('vizworkbench.compare.ionCount', { count: results.length }) }}
       </span>
-      <span v-if="filterStats.filtered > 0" class="text-[1.125em] text-base-content whitespace-nowrap overflow-hidden text-ellipsis min-w-0" :title="`(${filterStats.filtered} filtered from ${filterStats.total})`">
-        ({{ filterStats.filtered }} filtered from {{ filterStats.total }})
+      <span v-if="filterStats.filtered > 0" class="kawaru-text-81 text-base-content whitespace-nowrap overflow-hidden text-ellipsis min-w-0" :title="$t('vizworkbench.compare.filteredFrom', filterStats)">
+        {{ $t('vizworkbench.compare.filteredFrom', filterStats) }}
       </span>
     </div>
 
@@ -261,27 +283,34 @@ watch(
         <div class="flex items-center gap-3 flex-wrap mb-3">
         <!-- Category filter -->
         <div class="flex items-center gap-1.5">
-          <span class="text-base-content">Filter</span>
+          <span class="text-base-content whitespace-nowrap">{{ $t('vizworkbench.compare.filter') }}</span>
           <select
             :value="categoryFilter"
-            class="select select-bordered select-sm text-[1em]"
+            class="select select-bordered select-sm kawaru-text-75"
             @change="onFilterChange"
           >
             <option v-for="opt in FILTER_OPTIONS" :key="opt.value" :value="opt.value">
-              {{ opt.label }}{{ opt.value !== 'all' ? ` (${categoryCounts[opt.value] ?? 0})` : '' }}
+              {{
+                opt.value === 'all'
+                  ? opt.label()
+                  : $t('vizworkbench.compare.optionCount', {
+                      label: opt.label(),
+                      count: categoryCounts[opt.value] ?? 0,
+                    })
+              }}
             </option>
           </select>
         </div>
 
         <span class="text-base-content">
-          Showing {{ filteredResults.length }} of {{ results.length }}
+          {{ $t('vizworkbench.compare.showing', { shown: filteredResults.length, total: results.length }) }}
         </span>
 
         <!-- Pagination -->
         <div v-if="totalPages > 1" class="ml-auto flex items-center gap-1">
-          <button class="btn btn-sm btn-square btn-ghost" :disabled="page === 0" @click="prevPage"><SvgIcon type="chevron_left" /></button>
-          <span class="text-[1.125em] text-base-content font-mono">{{ page + 1 }}/{{ totalPages }}</span>
-          <button class="btn btn-sm btn-square btn-ghost" :disabled="page >= totalPages - 1" @click="nextPage"><SvgIcon type="chevron_right" /></button>
+          <button class="btn btn-sm btn-square btn-ghost kawaru-text-75" :disabled="page === 0" @click="prevPage"><SvgIcon type="chevron_left" /></button>
+          <span class="kawaru-text-81 text-base-content font-mono">{{ page + 1 }}/{{ totalPages }}</span>
+          <button class="btn btn-sm btn-square btn-ghost kawaru-text-75" :disabled="page >= totalPages - 1" @click="nextPage"><SvgIcon type="chevron_right" /></button>
         </div>
       </div>
 
@@ -290,26 +319,29 @@ watch(
         <table class="table table-sm text-center">
            <!-- Table  head part -->
           <thead class="sticky top-0 z-10 bg-base-200 text-base-content/70">
-            <tr class="text-[1.2em]">
+            <tr class="kawaru-text-87">
               <th :class="TH_SORT" @click="setSort('mz')">
                 <i>m/z</i><SvgIcon v-if="sortIcon('mz')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
-              <th :class="TH_SORT" @click="setSort('meanA')">
-                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionAColor ?? 'currentColor' }"></span>Mean A</span><SvgIcon v-if="sortIcon('meanA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
-              </th>
-              <th :class="TH_SORT" @click="setSort('meanB')">
-                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionBColor ?? 'currentColor' }"></span>Mean B</span><SvgIcon v-if="sortIcon('meanB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
-              </th>
-              <th :class="TH_SORT" @click="setSort('ratio')">
-                A/B<SvgIcon v-if="sortIcon('ratio')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
-              </th>
               <th :class="TH_SORT" @click="setSort('detA')">
-                Det A<SvgIcon v-if="sortIcon('detA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionAColor ?? 'currentColor' }"></span>{{ $t('vizworkbench.compare.detA') }}</span><SvgIcon v-if="sortIcon('detA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
               <th :class="TH_SORT" @click="setSort('detB')">
-                Det B<SvgIcon v-if="sortIcon('detB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionBColor ?? 'currentColor' }"></span>{{ $t('vizworkbench.compare.detB') }}</span><SvgIcon v-if="sortIcon('detB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
               </th>
-              <th class="whitespace-nowrap">Category</th>
+              <th :class="TH_SORT" @click="setSort('detRatio')" :title="$t('vizworkbench.compare.detRatioHint')">
+                {{ $t('vizworkbench.compare.detRatio') }}<SvgIcon v-if="sortIcon('detRatio')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
+              </th>
+              <th :class="TH_SORT" @click="setSort('meanA')">
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionAColor ?? 'currentColor' }"></span>{{ $t('vizworkbench.compare.meanA') }}</span><SvgIcon v-if="sortIcon('meanA')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
+              </th>
+              <th :class="TH_SORT" @click="setSort('meanB')">
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ backgroundColor: regionBColor ?? 'currentColor' }"></span>{{ $t('vizworkbench.compare.meanB') }}</span><SvgIcon v-if="sortIcon('meanB')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
+              </th>
+              <th :class="TH_SORT" @click="setSort('ratio')" :title="$t('vizworkbench.compare.meanRatioHint')">
+                {{ $t('vizworkbench.compare.meanRatio') }}<SvgIcon v-if="sortIcon('ratio')" :type="sortDir === 'desc' ? 'chevron_down' : 'chevron_up'" class="inline text-base-content/40" />
+              </th>
+              <th class="whitespace-nowrap">{{ $t('vizworkbench.compare.category') }}</th>
             </tr>
           </thead>
           <tbody ref="tableBodyRef">
@@ -317,22 +349,28 @@ watch(
               v-for="row in pagedResults"
               :key="row.ionIndex"
               :data-ion-index="row.ionIndex"
-              class="hover:bg-base-200/70 cursor-pointer text-[1.2em]"
+              class="hover:bg-base-200/70 cursor-pointer kawaru-text-87"
               :class="{ 'bg-primary/15': row.ionIndex === selectedMzIndex }"
               @click="emit('select-mz', row.ionIndex)"
             >
               <td :class="TD_NUM">{{ row.mz.toFixed(6) }}</td>
-              <td :class="TD_NUM">{{ formatMean(row.meanA) }}</td>
-              <td :class="TD_NUM">{{ formatMean(row.meanB) }}</td>
-              <td :class="TD_NUM" :style="{ color: row.ratio > 1 ? (regionAColor ?? undefined) : row.ratio < 1 && row.ratio > 0 ? (regionBColor ?? undefined) : undefined }">
-                <span v-if="row.ratio === Infinity" class="text-[1.2em] font-bold leading-none align-middle">∞</span>
-                <template v-else>{{ formatRatio(row.ratio) }}</template>
-              </td>
               <td :class="TD_NUM">{{ formatDet(row.detA) }}</td>
               <td :class="TD_NUM">{{ formatDet(row.detB) }}</td>
+              <td :class="TD_NUM" :style="{ color: row.detRatio >= 1 ? (regionAColor ?? undefined) : (regionBColor ?? undefined) }">
+                <span v-if="orientedValue(row.detRatio) === Infinity" class="kawaru-text-112 font-bold leading-none align-middle">∞</span>
+                <template v-else>{{ formatRatio(orientedValue(row.detRatio)) }}</template>
+                <span class="ml-1 kawaru-text-68 text-base-content/50">{{ orientedLabel(row.detRatio) }}</span>
+              </td>
+              <td :class="TD_NUM">{{ formatMean(row.meanA) }}</td>
+              <td :class="TD_NUM">{{ formatMean(row.meanB) }}</td>
+              <td :class="TD_NUM" :style="{ color: row.ratio >= 1 ? (regionAColor ?? undefined) : (regionBColor ?? undefined) }">
+                <span v-if="orientedValue(row.ratio) === Infinity" class="kawaru-text-112 font-bold leading-none align-middle">∞</span>
+                <template v-else>{{ formatRatio(orientedValue(row.ratio)) }}</template>
+                <span class="ml-1 kawaru-text-68 text-base-content/50">{{ orientedLabel(row.ratio) }}</span>
+              </td>
               <td class="text-center whitespace-nowrap">
-                <span class="badge badge-sm whitespace-nowrap text-[1em]" :class="CATEGORY_META[row.category].badge" :style="categoryStyle(row.category)">
-                  {{ CATEGORY_META[row.category].label }}
+                <span class="badge badge-sm whitespace-nowrap kawaru-text-87" :class="CATEGORY_META[row.category].badge" :style="categoryStyle(row.category)">
+                  {{ CATEGORY_META[row.category].label() }}
                 </span>
               </td>
             </tr>

@@ -1,6 +1,12 @@
 import { onBeforeUnmount, type Ref } from 'vue'
 import { buildLUT } from '../utils/colormapLut'
 import { computeFitTransform } from '../utils/fitTransform'
+import {
+  CHANNEL_BACKGROUND,
+  blendChannelImage,
+  createRangeCache,
+  type BlendChannel,
+} from '../utils/ionChannelBlend'
 
 interface CanvasRendererOptions {
   canvasRef: Ref<HTMLCanvasElement | null>
@@ -17,6 +23,14 @@ interface CanvasRendererOptions {
   overlayData: Ref<Uint8ClampedArray | null>
   overlayWidth: Ref<number>
   overlayHeight: Ref<number>
+  /** Multi-ion overlay: visible, loaded channels. When `channelsMode` is on and
+   *  this is non-empty, the base image is the additive channel composite
+   *  instead of the single `matrix` + colormap path. */
+  channels?: Ref<BlendChannel[]>
+  /** Whether the multi-ion overlay is currently active. */
+  channelsMode?: Ref<boolean>
+  /** ROI union mask (1 = keep) applied to the channel composite. */
+  roiMask?: Ref<Uint8Array | null>
 }
 
 export function useCanvasRenderer(
@@ -36,6 +50,9 @@ export function useCanvasRenderer(
   let overlayCanvas: HTMLCanvasElement | null = null
   // Cached ImageData buffer for the offscreen canvas — reused while dims match
   let imageData: ImageData | null = null
+  // Per-matrix P1–P95 cache for the multi-channel blend (keyed by Float32Array
+  // identity, so removed channels become GC-eligible).
+  const channelRangeCache = createRangeCache()
 
   function updateCachedData(data: Float32Array) {
     if (cachedData === data) return
@@ -79,12 +96,16 @@ export function useCanvasRenderer(
     H: number,
     transparentBg: boolean,
   ) {
-    const data = opts.matrix.value
     const cols = opts.matrixCols.value
     const rows = opts.matrixRows.value
-    if (!data || !data.length || !cols || !rows) return
+    if (!cols || !rows) return
 
-    updateCachedData(data)
+    const channels = opts.channels?.value ?? []
+    const useChannels = !!(opts.channelsMode?.value && channels.length)
+    const data = opts.matrix.value
+    if (!useChannels && (!data || !data.length)) return
+
+    if (!useChannels) updateCachedData(data!)
 
     ctx.imageSmoothingEnabled = false
     ctx.clearRect(0, 0, W, H)
@@ -92,15 +113,6 @@ export function useCanvasRenderer(
       ctx.fillStyle = '#0a0a0f'
       ctx.fillRect(0, 0, W, H)
     }
-
-    const dispMin = opts.displayMin.value ?? cachedP1
-    const dispMax = opts.displayMax.value ?? cachedP95
-    const range = dispMax - dispMin || 1
-
-    const lut = buildLUT(opts.colormap.value)
-    const useLog = opts.intensityScale.value === 'log'
-
-    const gamma = opts.gamma.value
 
     // Fit image into container with shared geometry (padding, scale, origin)
     const { scaleVal, drawW, drawH, ox, oy } = computeFitTransform(W, H, cols, rows)
@@ -118,39 +130,63 @@ export function useCanvasRenderer(
     if (!imageData) imageData = offCtx.createImageData(cols, rows)
     const buf = imageData.data
 
-    // Pre-fill with background (or leave transparent when exporting)
-    for (let i = 0; i < buf.length; i += 4) {
-      buf[i] = 0x0a
-      buf[i + 1] = 0x0a
-      buf[i + 2] = 0x0f
-      buf[i + 3] = transparentBg ? 0 : 255
-    }
+    if (useChannels) {
+      // Multi-ion overlay: one additive composite of every visible channel,
+      // each normalized by its own P1–P95 (see ionChannelBlend). Colormap,
+      // gamma and the display-range controls deliberately do NOT apply here —
+      // they are greyed out while the overlay is active.
+      const blended = blendChannelImage(channels, cols, rows, {
+        background: transparentBg ? null : CHANNEL_BACKGROUND,
+        mask: opts.roiMask?.value ?? null,
+        rangeCache: channelRangeCache,
+      })
+      buf.set(blended)
+      offCtx.putImageData(imageData, 0, 0)
+      ctx.drawImage(offscreen, ox, oy, drawW, drawH)
+    } else {
+      const dispMin = opts.displayMin.value ?? cachedP1
+      const dispMax = opts.displayMax.value ?? cachedP95
+      const range = dispMax - dispMin || 1
 
-    for (let r = 0; r < rows; r++) {
-      const rowOff = r * cols
-      for (let c = 0; c < cols; c++) {
-        const srcIdx = rowOff + c
-        const rawVal = data[srcIdx] ?? 0
-        if (rawVal === 0) continue
+      const lut = buildLUT(opts.colormap.value)
+      const useLog = opts.intensityScale.value === 'log'
 
-        let norm = (rawVal - dispMin) / range
-        if (gamma !== 1) norm = Math.pow(Math.max(0, norm), gamma)
-        if (useLog) norm = Math.log1p(norm * 9) / Math.log1p(9)
-        norm = Math.max(0, Math.min(1, norm))
-        const lutIdx = Math.round(norm * 255)
-        const [cr, cg, cb] = lut[lutIdx] ?? [0, 0, 0]
+      const gamma = opts.gamma.value
 
-        const pi = (r * cols + c) * 4
-        buf[pi] = cr
-        buf[pi + 1] = cg
-        buf[pi + 2] = cb
-        buf[pi + 3] = 255
+      // Pre-fill with background (or leave transparent when exporting)
+      for (let i = 0; i < buf.length; i += 4) {
+        buf[i] = 0x0a
+        buf[i + 1] = 0x0a
+        buf[i + 2] = 0x0f
+        buf[i + 3] = transparentBg ? 0 : 255
       }
-    }
-    offCtx.putImageData(imageData, 0, 0)
 
-    // Blit offscreen → main canvas: drawImage handles DPR, centering, scaling.
-    ctx.drawImage(offscreen, ox, oy, drawW, drawH)
+      for (let r = 0; r < rows; r++) {
+        const rowOff = r * cols
+        for (let c = 0; c < cols; c++) {
+          const srcIdx = rowOff + c
+          const rawVal = data![srcIdx] ?? 0
+          if (rawVal === 0) continue
+
+          let norm = (rawVal - dispMin) / range
+          if (gamma !== 1) norm = Math.pow(Math.max(0, norm), gamma)
+          if (useLog) norm = Math.log1p(norm * 9) / Math.log1p(9)
+          norm = Math.max(0, Math.min(1, norm))
+          const lutIdx = Math.round(norm * 255)
+          const [cr, cg, cb] = lut[lutIdx] ?? [0, 0, 0]
+
+          const pi = (r * cols + c) * 4
+          buf[pi] = cr
+          buf[pi + 1] = cg
+          buf[pi + 2] = cb
+          buf[pi + 3] = 255
+        }
+      }
+      offCtx.putImageData(imageData, 0, 0)
+
+      // Blit offscreen → main canvas: drawImage handles DPR, centering, scaling.
+      ctx.drawImage(offscreen, ox, oy, drawW, drawH)
+    }
 
     // Overlay: paint the RGBA buffer into its own 1:1 canvas, then blit once.
     // The old per-pixel fillRect used ceil(scaleVal)-sized rects at
@@ -184,7 +220,9 @@ export function useCanvasRenderer(
   function exportTransparentCanvas(): HTMLCanvasElement | null {
     const W = opts.containerW.value
     const H = opts.containerH.value
-    if (!W || !H || !opts.matrix.value?.length) return null
+    const hasSingle = !!opts.matrix.value?.length
+    const hasChannels = !!(opts.channelsMode?.value && opts.channels?.value.length)
+    if (!W || !H || (!hasSingle && !hasChannels)) return null
     const canvas = document.createElement('canvas')
     canvas.width = W
     canvas.height = H

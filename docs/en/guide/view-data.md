@@ -32,10 +32,10 @@ Small screens stack these sections vertically. The annotation panel and region c
 
 | Mode | Image | Spectrum | Advanced features |
 |---|---|---|---|
-| Continuous | Ion-intensity image for one m/z | Mean spectrum; click to change m/z | UMAP and KMeans; annotation and region comparison for Centroid data |
+| Continuous | Ion-intensity image for one m/z | Mean spectrum or a clicked pixel's spectrum; click a peak to change m/z | UMAP and KMeans; annotation and region comparison for Centroid data |
 | Processed | TIC image | Per-pixel spectrum after clicking the image | ROIs; two or more ROIs can be compared for Centroid data |
 
-The Zarr `row_axis` and `encoding` determine the mode automatically.
+The Zarr `row_axis` and `encoding` determine the mode automatically. Only MassFlow MSI Zarr v1.1 is supported; a legacy v1.0 result (a single `data/` group) shows an incompatible-format message in Image View.
 
 ## Image View
 
@@ -44,7 +44,7 @@ The Zarr `row_axis` and `encoding` determine the mode automatically.
 - Use the wheel to zoom around the pointer. Above 1×, drag with the primary button to pan.
 - The bottom-right `− / scale / +` control changes zoom; a reset button appears when zoomed in.
 - Hover displays 1-based pixel coordinates and intensity.
-- In Processed mode, clicking a pixel shows its coordinates in the toolbar and loads its spectrum.
+- Clicking a pixel loads its spectrum in Spectrum View. Processed mode shows the coordinates in the toolbar; Continuous mode shows them in the spectrum header. If no acquired pixel lies within 1.5 pixels of the click, a notice appears and the spectrum stays unchanged.
 
 ### Toolbar
 
@@ -69,9 +69,11 @@ TIC norm divides each pixel by precomputed `stats/tic`. If loading fails, the or
 
 ## Spectrum View
 
-Continuous mode shows the result mean spectrum:
+Continuous mode shows the result mean spectrum by default; the **Mean / Pixel** buttons in the header switch between the mean and pixel spectra:
 
-- Click to select the nearest m/z and refresh Image View.
+- Clicking a pixel in Image View switches to **Pixel**, reads that pixel's spectrum from the `spectra` group, and shows its coordinates in the middle of the header. Clicking another pixel updates it in place.
+- Once a pixel has been selected, **Mean / Pixel** can be toggled at any time; both toggling and changing pixels keep the current m/z zoom range.
+- Click the spectrum to select the nearest m/z and refresh Image View (in both the mean and pixel spectra).
 - A marker tracks the current m/z; selections from annotation and comparison tables use the same m/z index.
 - Centroid data uses peak bars, while Profile data uses a continuous line.
 

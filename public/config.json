@@ -1,6 +1,6 @@
 {
   "appName": "SpatialXomics",
-  "version": "0.6.1",
+  "version": "0.7.1",
   "zarr": {
     "spectraChunkCacheSize": 100,
     "spectraConcurrency": 16
@@ -27,37 +27,63 @@
   "nav": {
     "mode": "navbar",
     "modeByPath": {
-      "/": "none",
+      "/": "drawer",
       "/login": "drawer",
       "/register": "drawer",
       "/vizworkbench": "drawer"
     },
     "themeToggle": true,
-    "guestHint": "Sign in",
+    "localeToggle": true,
+    "guestHint": {
+      "en": "Sign in",
+      "zh-CN": "登录"
+    },
     "items": [
       {
         "kind": "link",
         "to": "/",
         "icon": "home",
-        "label": "Home",
+        "label": {
+          "en": "Home",
+          "zh-CN": "首页"
+        },
         "active": true
       },
       {
         "kind": "group",
         "icon": "circle_stack",
-        "label": "Datahub",
+        "label": {
+          "en": "Datahub",
+          "zh-CN": "数据中心"
+        },
         "active": true,
         "children": [
           {
             "to": "/datasets",
             "icon": "queue_list",
-            "label": "Public Datasets",
+            "label": {
+              "en": "Public Datasets",
+              "zh-CN": "公开数据集"
+            },
             "active": true
           },
           {
             "to": "/mydatasets",
             "icon": "folder",
-            "label": "My Datasets",
+            "label": {
+              "en": "My Datasets",
+              "zh-CN": "我的数据集"
+            },
+            "active": true,
+            "requireAuth": true
+          },
+          {
+            "to": "/collections",
+            "icon": "circle_stack",
+            "label": {
+              "en": "Collections",
+              "zh-CN": "数据集合"
+            },
             "active": true,
             "requireAuth": true
           }
@@ -66,19 +92,28 @@
       {
         "kind": "group",
         "icon": "code-bracket",
-        "label": "Workspace",
+        "label": {
+          "en": "Workspace",
+          "zh-CN": "工作台"
+        },
         "active": true,
         "children": [
           {
             "to": "/workspace",
             "icon": "code-bracket",
-            "label": "Workspace",
+            "label": {
+              "en": "Workspace",
+              "zh-CN": "工作台"
+            },
             "active": true
           },
           {
             "to": "/workspace/new",
             "icon": "plus",
-            "label": "New Analysis",
+            "label": {
+              "en": "New Analysis",
+              "zh-CN": "新建分析"
+            },
             "active": true
           }
         ]
@@ -87,7 +122,10 @@
         "kind": "link",
         "to": "/docs/",
         "icon": "book",
-        "label": "Documentation",
+        "label": {
+          "en": "Documentation",
+          "zh-CN": "文档"
+        },
         "active": true,
         "external": true
       }
@@ -97,21 +135,30 @@
         "kind": "link",
         "to": "/profile",
         "icon": "user-circle",
-        "label": "Profile",
+        "label": {
+          "en": "Profile",
+          "zh-CN": "个人资料"
+        },
         "active": true
       },
       {
         "kind": "link",
         "to": "/users",
         "icon": "users",
-        "label": "Users",
+        "label": {
+          "en": "Users",
+          "zh-CN": "用户管理"
+        },
         "active": true,
         "requireAdmin": true
       },
       {
         "kind": "action",
         "action": "logout",
-        "label": "Sign out",
+        "label": {
+          "en": "Sign out",
+          "zh-CN": "退出登录"
+        },
         "active": true
       }
     ],
@@ -119,13 +166,19 @@
       {
         "to": "/login",
         "icon": "signin",
-        "label": "Sign in",
+        "label": {
+          "en": "Sign in",
+          "zh-CN": "登录"
+        },
         "active": true
       },
       {
         "to": "/register",
         "icon": "user_plus",
-        "label": "Create account",
+        "label": {
+          "en": "Create account",
+          "zh-CN": "创建账号"
+        },
         "active": true,
         "primary": true
       }
@@ -141,14 +194,30 @@
         "kind": "action",
         "action": "toggle-theme",
         "icon": "sun",
-        "label": "Toggle theme",
+        "label": {
+          "en": "Toggle theme",
+          "zh-CN": "切换主题"
+        },
+        "active": true
+      },
+      {
+        "kind": "action",
+        "action": "toggle-locale",
+        "icon": "region",
+        "label": {
+          "en": "Switch language",
+          "zh-CN": "切换语言"
+        },
         "active": true
       },
       {
         "kind": "action",
         "action": "toggle-ai",
         "icon": "sparkles",
-        "label": "AI Assistant",
+        "label": {
+          "en": "AI Assistant",
+          "zh-CN": "AI 助手"
+        },
         "active": false,
         "requireAuth": true
       },
@@ -156,7 +225,10 @@
         "kind": "action",
         "action": "logout",
         "icon": "signin",
-        "label": "Sign out",
+        "label": {
+          "en": "Sign out",
+          "zh-CN": "退出登录"
+        },
         "active": true,
         "requireAuth": true
       }

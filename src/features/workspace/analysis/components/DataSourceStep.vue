@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import PaginationBar from '@/shared/components/PaginationBar.vue'
+import SearchInput from '@/shared/components/SearchInput.vue'
 import { formatBytes } from '@/shared/utils/format'
 
 defineProps<{
@@ -25,35 +26,40 @@ const emit = defineEmits<{
 
 <template>
   <section class="bg-base-100 rounded-lg border border-base-200 p-4 sm:p-6 shadow-sm">
-    <h2 class="text-[1.5em] font-medium mb-4">Step 1: Data Source</h2>
+    <h2 class="kawaru-text-150 font-medium mb-4">{{ $t('workspace.source.title') }}</h2>
     <div class="tabs mb-4">
       <a
         :class="['tab', activeTab === 'my' ? 'tab-active' : '']"
         @click.prevent="emit('update:activeTab', 'my')"
-        >My Datasets</a
+        >{{ $t('common.page.myDatasets') }}</a
       >
       <a
         :class="['tab', activeTab === 'public' ? 'tab-active' : '']"
         @click.prevent="emit('update:activeTab', 'public')"
-        >Public Datasets</a
+        >{{ $t('common.page.publicDatasets') }}</a
       >
     </div>
 
     <div v-if="activeTab === 'my' || activeTab === 'public'">
       <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
-        <input
-          :value="datasetQuery"
-          @input="emit('update:datasetQuery', ($event.target as HTMLInputElement).value)"
-          placeholder="Search..."
-          class="input input-bordered w-full sm:w-48"
+        <SearchInput
+          :model-value="datasetQuery"
+          :placeholder="$t('common.input.searchDatasets')"
+          class="w-full sm:w-48"
+          @update:model-value="emit('update:datasetQuery', $event)"
         />
         <div
           v-if="meta.total_pages > 0"
           class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full sm:w-auto sm:ml-auto"
         >
-          <span class="text-[1em] text-base-content/60 whitespace-nowrap tabular-nums"
-            >Page {{ meta.current_page }} / {{ meta.total_pages }} &mdash;
-            {{ meta.total_records }} records</span
+          <span class="kawaru-text-100 text-base-content/60 whitespace-nowrap tabular-nums"
+            >{{
+              $t('common.pagination.summary', {
+                page: meta.current_page,
+                total: meta.total_pages,
+                count: meta.total_records,
+              })
+            }}</span
           >
           <PaginationBar
             :current-page="meta.current_page"
@@ -71,7 +77,7 @@ const emit = defineEmits<{
           <span class="loading loading-spinner loading-md"></span>
         </div>
         <div v-else>
-          <div v-if="error" class="text-lg text-error p-3">{{ error }}</div>
+          <div v-if="error" class="kawaru-text-112 text-error p-3">{{ error }}</div>
           <ul>
             <li
               v-for="dataset in datasets"
@@ -85,11 +91,11 @@ const emit = defineEmits<{
               <div class="flex-1 mr-4">
                 <div class="flex items-center justify-between gap-4">
                   <div class="font-medium truncate">{{ dataset.name }}</div>
-                  <div class="text-lg text-base-content/60 ml-2">
+                  <div class="kawaru-text-112 text-base-content/60 ml-2">
                     {{ formatBytes(dataset.sizeBytes) }}
                   </div>
                 </div>
-                <div class="text-base text-base-content/60">
+                <div class="kawaru-text-100 text-base-content/60">
                   {{ dataset.filename || dataset.submitTime || '–' }}
                 </div>
               </div>
@@ -100,8 +106,8 @@ const emit = defineEmits<{
               />
             </li>
           </ul>
-          <div v-if="datasets.length === 0" class="text-lg text-base-content/60 p-3">
-            No datasets found.
+          <div v-if="datasets.length === 0" class="kawaru-text-112 text-base-content/60 p-3">
+            {{ $t('workspace.source.empty') }}
           </div>
         </div>
       </div>

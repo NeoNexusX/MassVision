@@ -1,0 +1,168 @@
+{
+  "collections": {
+    "meta": {
+      "description": "Description",
+      "memberType": "Member Type",
+      "collectionType": "Collection Type",
+      "title": "Title",
+      "doi": "DOI",
+      "access": "Access",
+      "journal": "Journal",
+      "citation": "Citation",
+      "abstract": "Abstract"
+    },
+    "group": {
+      "general": "General",
+      "citation": "Citation",
+      "sample": "Sample",
+      "acquisition": "Acquisition"
+    },
+    "unit": {
+      "dataset": "dataset | datasets",
+      "organism": "organism | organisms"
+    },
+    "card": {
+      "coversAria": "{name} covers",
+      "prev": "Previous dataset",
+      "next": "Next dataset",
+      "moreAria": "More metadata for {name}",
+      "more": "More (+{count})",
+      "owner": "Owner: {name}",
+      "updated": "Updated {date}",
+      "memberCountTitle": "{count} dataset in this collection | {count} datasets in this collection",
+      "viewCollection": "View Collection",
+      "deleteTitle": "Delete collection"
+    },
+    "list": {
+      "emptyTitle": "No collections yet",
+      "emptyDesc": "Organize related datasets into curated collections to share and revisit them.",
+      "create": "Create Collection",
+      "noResultsTitle": "No collections found",
+      "noResultsDesc": "No collections match “{query}”. Try a different keyword.",
+      "clearSearch": "Clear Search",
+      "target": "collections"
+    },
+    "toolbar": {
+      "searchPlaceholder": "Search collections",
+      "mineOnly": "My collections only",
+      "sortAria": "Sort order",
+      "sortUpdated": "Sort by updated time"
+    },
+    "form": {
+      "step3": "Step 3: Collection Details",
+      "optional": "(optional)",
+      "namePlaceholder": "e.g. Human Kidney MALDI Atlas",
+      "descriptionPlaceholder": "What datasets does this collection bring together?"
+    },
+    "picker": {
+      "step1": "Step 1: Choose Datasets",
+      "selected": "{count} selected",
+      "searchPlaceholder": "Search public datasets",
+      "selectAria": "Select {name}",
+      "previewAlt": "Preview of {name}",
+      "alreadyIn": "Already in collection",
+      "empty": "No public datasets found."
+    },
+    "selected": {
+      "step2": "Step 2: Arrange Order",
+      "dragHint": "Drag to reorder",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "moveUpAria": "Move {name} up",
+      "moveDownAria": "Move {name} down",
+      "removeTitle": "Remove from collection",
+      "removeAria": "Remove {name}",
+      "empty": "No datasets selected yet — pick datasets from the list above."
+    },
+    "thumb": {
+      "defaultAlt": "Dataset preview"
+    },
+    "metaForm": {
+      "editedByHand": "Edited by hand.",
+      "resetToDetected": "Reset to detected",
+      "doiInvalid": "Enter a DOI such as 10.1000/xyz123, doi:10.1000/xyz123 or https://doi.org/10.1000/xyz123.",
+      "placeholder": {
+        "doi": "e.g. 10.1000/xyz123 or https://doi.org/10.1000/xyz123",
+        "access": "Where the data can be accessed, e.g. https://example.org/data",
+        "title": "Enter the article title",
+        "journal": "Enter the journal name",
+        "citation": "Enter the article citation (ACS or RSC style recommended)",
+        "abstract": "Enter the article abstract",
+        "memberType": "Data types, e.g. MSI, H&E, ST",
+        "collectionType": "Composition, e.g. serial sections, time series"
+      }
+    },
+    "panel": {
+      "title": "Collection Metadata",
+      "fieldsCount": "{filled}/{total} fields"
+    },
+    "members": {
+      "title": "Members",
+      "countBadge": "{count}/{limit} datasets",
+      "add": "Add Members",
+      "removeSelected": "Remove Selected",
+      "removeSelectedCount": "Remove Selected ({count})",
+      "downloadAria": "Download {name}",
+      "emptyManage": "No members yet — add public imzML datasets to this collection.",
+      "empty": "This collection has no members."
+    },
+    "view": {
+      "subtitle": "Organize related datasets into curated collections.",
+      "deleteTitle": "Delete collection?",
+      "deleteMessage": "The collection will be removed. Member datasets are not affected."
+    },
+    "create": {
+      "title": "Create Collection",
+      "subtitle": "Pick public datasets and organize them into a curated collection.",
+      "step4": "Step 4: Metadata",
+      "step4Hint": "Sample and acquisition fields are pre-filled from the selected datasets. Edit any of them and it stops updating automatically.",
+      "leaveTitle": "Discard unsaved changes?",
+      "leaveMessage": "Your dataset selection and collection details will be lost."
+    },
+    "overview": {
+      "sessionLostDesc": "Please navigate from Collections to view details.",
+      "backToCollections": "Back to Collections",
+      "notFound": "Collection not found",
+      "target": "collection",
+      "addMembers": "Add Members",
+      "addButton": "Add datasets | Add {count} dataset | Add {count} datasets",
+      "shareLink": "Share link: {url}"
+    },
+    "public": {
+      "notFoundDesc": "This collection does not exist or is no longer public.",
+      "backHome": "Back to Home",
+      "badge": "Public Collection"
+    },
+    "toast": {
+      "removedCount": "Removed {count}",
+      "skippedCount": "{count} were no longer in the collection",
+      "separator": " · ",
+      "reorderConflict": "Members were changed elsewhere. Refreshed to the latest order."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "nameTooLong": "Name must be at most 80 characters.",
+      "descriptionTooLong": "Description must be at most 300 characters."
+    },
+    "vocab": {
+      "memberType": {
+        "msi": "MSI (Mass spectrometry imaging)",
+        "he": "H&E (Hematoxylin and eosin staining)",
+        "st": "ST (Spatial transcriptomics)",
+        "ihc": "IHC (Immunohistochemistry)",
+        "if": "IF (Immunofluorescence)",
+        "opticalImage": "Optical image"
+      },
+      "collectionType": {
+        "serialSections": "Serial sections",
+        "reconstruction3d": "3D reconstruction",
+        "timeSeries": "Time series",
+        "cohort": "Multi-sample cohort",
+        "replicates": "Biological replicates",
+        "caseControl": "Case-control",
+        "multimodal": "Multimodal",
+        "tissueMicroarray": "Tissue microarray"
+      }
+    }
+  }
+}

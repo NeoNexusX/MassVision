@@ -11,6 +11,8 @@ import { extractBackendError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
 import { useUserQuota } from '@/shared/composables/useUserQuota'
 import { buildProcessPayload } from '@/features/workspace/analysis/services/buildProcessPayload'
+import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { t } from '@/i18n'
 
 export function useAnalysisBuilder(
   // Arguments
@@ -47,7 +49,7 @@ export function useAnalysisBuilder(
     pixelSize: false,
   })
 
-  // 配额状态复用共享的 useUserQuota（取数逻辑一致）；quotaTasks 在此派生
+  // 配额状态复用共享的 useUserQuota（取数逻辑一致）
   const { quotaData: quota, loading: quotaLoading, fetchQuota } = useUserQuota()
   const submitting = ref(false)
 
@@ -73,7 +75,7 @@ export function useAnalysisBuilder(
       const selected = selectedMethods[group.key]
       return {
         key: group.key,
-        title: group.title,
+        title: group.title(),
         method: selected ? getMethodLabel(group.key, selected) : '',
         present: !!selected,
       }
@@ -85,36 +87,48 @@ export function useAnalysisBuilder(
     if (analysisForm.polarity) {
       list.push({
         key: 'polarity',
-        label: 'Polarity',
-        value: analysisForm.polarity === 'positive' ? 'Positive' : 'Negative',
+        label: t('common.meta.polarity'),
+        value: vocabLabel(analysisForm.polarity === 'positive' ? 'Positive' : 'Negative'),
       })
     }
     if (analysisForm.ionSource) {
-      list.push({ key: 'source', label: 'Ionisation Source', value: analysisForm.ionSource })
+      list.push({ key: 'source', label: t('common.meta.ionisationSource'), value: analysisForm.ionSource })
     }
     if (analysisForm.analyzer) {
-      list.push({ key: 'analyzer', label: 'Analyzer', value: analysisForm.analyzer })
+      list.push({ key: 'analyzer', label: t('common.meta.analyzer'), value: analysisForm.analyzer })
     }
 
     const px = analysisForm.pixelSizeX || ''
     const py = analysisForm.pixelSizeY || ''
-    if (px && py) list.push({ key: 'pixel', label: 'Pixel', value: `${px}×${py} μm` })
-    else if (px) list.push({ key: 'pixel', label: 'Pixel', value: `${px} μm` })
-    else if (py) list.push({ key: 'pixel', label: 'Pixel', value: `${py} μm` })
+    if (px && py) list.push({ key: 'pixel', label: t('common.meta.pixelSize'), value: `${px}×${py} μm` })
+    else if (px) list.push({ key: 'pixel', label: t('common.meta.pixelSize'), value: `${px} μm` })
+    else if (py) list.push({ key: 'pixel', label: t('common.meta.pixelSize'), value: `${py} μm` })
 
     const dataset = selectedDataset.value
     if (dataset?.organism)
-      list.push({ key: 'organism', label: 'Organism', value: dataset.organism })
+      list.push({
+        key: 'organism',
+        label: t('common.meta.organism'),
+        value: vocabLabel(dataset.organism),
+      })
     if (dataset?.organismPart) {
-      list.push({ key: 'organismPart', label: 'Organism Part', value: dataset.organismPart })
+      list.push({
+        key: 'organismPart',
+        label: t('common.meta.organismPart'),
+        value: vocabLabel(dataset.organismPart),
+      })
     }
     if (dataset?.condition)
-      list.push({ key: 'condition', label: 'Condition', value: dataset.condition })
+      list.push({
+        key: 'condition',
+        label: t('common.meta.condition'),
+        value: vocabLabel(dataset.condition),
+      })
     if (spectrumMode.value) {
-      list.push({ key: 'spectrumMode', label: 'Spectrum Mode', value: spectrumMode.value })
+      list.push({ key: 'spectrumMode', label: t('common.meta.spectrumMode'), value: spectrumMode.value })
     }
     if (storageMode.value) {
-      list.push({ key: 'storageMode', label: 'Storage Mode', value: storageMode.value })
+      list.push({ key: 'storageMode', label: t('common.meta.storageMode'), value: storageMode.value })
     }
     return list
   })
@@ -128,14 +142,9 @@ export function useAnalysisBuilder(
   })
 
   const statusBadge = computed(() => ({
-    text: summaryReady.value ? 'Ready' : 'Incomplete',
+    text: summaryReady.value ? t('workspace.summary.ready') : t('workspace.summary.incomplete'),
     cls: summaryReady.value ? 'badge badge-success' : 'badge badge-warning',
   }))
-
-  const quotaTasks = computed(() => {
-    if (!quota.value) return '—'
-    return `${quota.value.file_count} / ${quota.value.max_files_per_user}`
-  })
 
   // Methods （buildParamKey 由 usePreprocessingMethods 导入，与默认值生成、载荷构建同源）
   const getParam = (groupKey: string, methodId: string, paramKey: string) =>
@@ -245,10 +254,10 @@ export function useAnalysisBuilder(
         methodGroups: allMethodGroups,
       })
       await createProcess(payload)
-      showToast('Analysis started', 'success')
+      showToast(t('workspace.analysis.started'), 'success')
       router.push('/workspace')
     } catch (error) {
-      showToast(extractBackendError(error) || 'Failed to start analysis', 'error')
+      showToast(extractBackendError(error) || t('workspace.analysis.startFailed'), 'error')
     } finally {
       submitting.value = false
     }

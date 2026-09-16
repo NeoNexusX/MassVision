@@ -39,6 +39,7 @@ export const ICON_SETS = {
     'arrow-top-right-on-square',
     'trash',
     'document-duplicate',
+    'document-text',
     'check',
     'bolt',
     'sparkles',

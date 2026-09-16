@@ -17,6 +17,30 @@ declare module 'ali-oss' {
     timeout?: number
     /** v4 签名(推荐开启) */
     authorizationV4?: boolean
+    /** 自定义 endpoint(自建/加速域名),不填则由 region 推导 */
+    endpoint?: string
+  }
+
+  // ---------- 分片上传 ----------
+
+  interface OssInitMultipartResult {
+    bucket: string
+    name: string
+    uploadId: string
+  }
+
+  interface OssUploadPartResult {
+    /** 形如 `"D41D8CD98F00B204E9800998ECF8427E"`,带引号 */
+    etag: string
+    res: {
+      status: number
+      headers: Record<string, string>
+    }
+  }
+
+  interface OssCompletedPart {
+    number: number
+    etag: string
   }
 
   // ---------- 通用返回 ----------
@@ -61,22 +85,42 @@ declare module 'ali-oss' {
     /** 上传 object */
     put(name: string, file: Blob | File | Buffer | string, options?: object): Promise<unknown>
 
-    /** 分片上传 */
-    multipartUpload(
+    /** 分片上传(一次性传入完整文件,内部自行切片) */
+    multipartUpload(name: string, file: Blob | File | Buffer, options?: object): Promise<unknown>
+
+    /** 初始化分片上传,返回 uploadId */
+    initMultipartUpload(name: string, options?: object): Promise<OssInitMultipartResult>
+
+    /**
+     * 上传单个分片。浏览器端 `file` 接受 File/Blob,内部按 [start, end) 切片。
+     * 流式上传时直接传入已经切好的 Blob,配 start=0 / end=blob.size。
+     */
+    uploadPart(
       name: string,
+      uploadId: string,
+      partNo: number,
       file: Blob | File | Buffer,
+      start: number,
+      end: number,
+      options?: object,
+    ): Promise<OssUploadPartResult>
+
+    /** 合并分片,完成上传 */
+    completeMultipartUpload(
+      name: string,
+      uploadId: string,
+      parts: OssCompletedPart[],
       options?: object,
     ): Promise<unknown>
 
     /** 取消分片上传 */
-    abortMultipartUpload(
-      name: string,
-      uploadId: string,
-      options?: object,
-    ): Promise<unknown>
+    abortMultipartUpload(name: string, uploadId: string, options?: object): Promise<unknown>
 
     /** 获取 object 元信息 */
-    head(name: string, options?: object): Promise<{
+    head(
+      name: string,
+      options?: object,
+    ): Promise<{
       res: {
         status: number
         statusCode: number

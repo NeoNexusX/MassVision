@@ -9,6 +9,7 @@ import { kmeansColor } from '@/features/vizworkbench/utils/regionPalette'
 import { dataModeRef } from '@/features/vizworkbench/composables/useZarrIonImage'
 import { useToast } from '@/shared/composables/useToast'
 import { extractBackendError } from '@/shared/api/httpClient'
+import { t } from '@/i18n'
 
 export type OverlayKind = 'umap' | 'kmeans'
 
@@ -315,14 +316,14 @@ export function useOverlayData(
     if (s === 'completed') {
       stopPolling()
       const ok = await loadClusteringData()
-      if (ok) showToast('UMAP/KMeans overlays are ready.', 'success')
+      if (ok) showToast(t('vizworkbench.overlay.ready'), 'success')
       // else: overlayError + Retry already surfaced by loadClusteringData.
       return
     }
     if (s.includes('fail') || task.error_message) {
       stopPolling()
       clusteringComputing.value = false
-      overlayError.value = task.error_message || `Clustering task ${s || 'failed'}.`
+      overlayError.value = task.error_message || t('vizworkbench.overlay.taskStatus', { status: s || 'failed' })
       return
     }
     clusteringComputing.value = true
@@ -345,10 +346,10 @@ export function useOverlayData(
       const task = await createClustering(runId.value)
       await applyTaskStatus(task)
       if (clusteringComputing.value) {
-        showToast('Clustering task started - status is checked automatically every 5s.', 'info')
+        showToast(t('vizworkbench.overlay.taskStarted'), 'info')
       }
     } catch (e) {
-      showToast(extractBackendError(e, 'Failed to create clustering task'), 'error')
+      showToast(extractBackendError(e, t('vizworkbench.overlay.createFailed')), 'error')
     } finally {
       clusteringCreating.value = false
     }
@@ -366,10 +367,10 @@ export function useOverlayData(
       const task = await createClustering(runId.value)
       await applyTaskStatus(task)
       if (clusteringComputing.value) {
-        showToast('Clustering is still computing…', 'info')
+        showToast(t('vizworkbench.overlay.stillComputing'), 'info')
       }
     } catch (e) {
-      showToast(extractBackendError(e, 'Failed to refresh clustering status'), 'error')
+      showToast(extractBackendError(e, t('vizworkbench.overlay.refreshFailed')), 'error')
     } finally {
       clusteringRefreshing.value = false
     }
@@ -404,7 +405,10 @@ export function useOverlayData(
     const cols = ionCols.value
     if (!rows || !cols) return null
     if (height !== rows || width !== cols) {
-      overlayError.value = `Clustering image (${height}×${width}) does not match the ion image (${rows}×${cols}).`
+      overlayError.value = t('vizworkbench.overlay.sizeMismatch', {
+        clusterSize: `${height}×${width}`,
+        ionSize: `${rows}×${cols}`,
+      })
       return null
     }
     const rgba = new Uint8ClampedArray(rows * cols * 4)
@@ -598,11 +602,6 @@ export function useOverlayData(
     return kmeansLabels
   }
 
-  /** Dimensions of the cached KMeans/UMAP raster grid, or null if not loaded. */
-  function getKmeansDims(): { width: number; height: number } | null {
-    return dims ? { width: dims.width, height: dims.height } : null
-  }
-
   /**
    * Export an RGB raster (H×W×3 uint8) as a scaled-up PNG download.
    * Background pixels (0,0,0) become transparent. Used by the UMAP/KMeans
@@ -693,8 +692,6 @@ export function useOverlayData(
     clearKmeansClusters,
     /** Current KMeans labels (Int32Array, -1 = background) or null. */
     getKmeansLabels,
-    /** Dimensions of the cached KMeans/UMAP raster grid, or null. */
-    getKmeansDims,
     /** Set/clear a comparison overlay (region A/B highlight) that overrides UMAP/KMeans. */
     setComparisonOverlay,
     /** Export the UMAP RGB image as a standalone PNG. */

@@ -28,8 +28,10 @@ test.describe('mobile responsive layout', () => {
 
     await expect(page.getByRole('link', { name: 'Join to start' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'View Datasets' })).toBeVisible()
-    await expectInsideViewport(page, 'a[href="/register"]')
-    await expectInsideViewport(page, 'a[href="/datasets"]')
+    // 限定在 Hero 内：首页现在是 drawer 导航，抽屉菜单里也有指向 /datasets 的链接（收起时隐藏但在 DOM 里），
+    // 不加范围会同时匹配两个元素，触发 Playwright 的 strict mode 报错
+    await expectInsideViewport(page, '#hero a[href="/register"]')
+    await expectInsideViewport(page, '#hero a[href="/datasets"]')
     await expectNoHorizontalPageOverflow(page)
   })
 
@@ -41,9 +43,11 @@ test.describe('mobile responsive layout', () => {
     await expect(page.getByRole('button', { name: 'Add filter' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Upload New Dataset' })).toBeVisible()
 
+    // 排序下拉的 option value 是「字段:方向」复合值（DatasetFilterBar），
+    // 不再是裸的 submission_time；用前缀匹配避免方向字面量写死在这里。
     const sort = page
       .locator('select')
-      .filter({ has: page.locator('option[value="submission_time"]') })
+      .filter({ has: page.locator('option[value^="submission_time"]') })
     await expect(sort).toBeVisible()
     expect((await sort.boundingBox())!.width).toBeGreaterThan(120)
     await expectNoHorizontalPageOverflow(page)

@@ -58,4 +58,16 @@ describe('DatasetPreviewGallery', () => {
     expect(slots[1]!.find('img').attributes('src')).toBe(urls[1])
     expect(slots[2]!.find('img').attributes('src')).toBe(urls[2])
   })
+
+  it('shows only the TIC preview for processed data', () => {
+    const wrapper = mount(DatasetPreviewGallery, {
+      props: { fileId: '42', storageMode: 'processed' },
+    })
+
+    // No hover-gallery, just one slot
+    expect(wrapper.findAll('figure.hover-gallery').length).toBe(0)
+    const imgs = wrapper.findAll('img')
+    expect(imgs).toHaveLength(1)
+    expect(imgs[0]!.attributes('src')).toBe(urls[0])
+  })
 })

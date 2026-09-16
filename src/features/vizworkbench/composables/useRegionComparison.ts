@@ -5,8 +5,9 @@
  * ROIs) by OR-combining the member masks into one raster per side, then
  * streaming through the entire intensity array once and accumulating per-ion
  * statistics (sum, sum-of-squares, non-zero count) for each side. From these
- * it derives mean intensity, detection rate, fold-change ratio, and a
- * category (A-only / B-only / A-enriched / B-enriched / shared). The
+ * it derives mean intensity, detection rate, both ratios (mean and detection),
+ * and a category (A-only / B-only / A-enriched / B-enriched / shared, where
+ * "enriched" means a >= 2x detection-rate ratio). The
  * streaming/stats pipeline only ever sees two masks, so group semantics live
  * entirely in mask construction.
  *
@@ -37,6 +38,7 @@ import {
   type RGB,
 } from '@/features/vizworkbench/utils/regionPalette'
 import type { DataMode } from '@/services/zarr/types/zarr'
+import { t } from '@/i18n'
 
 // ---------- types ----------
 
@@ -53,6 +55,8 @@ export interface IonComparison {
   detA: number
   /** Detection rate (0-1) in region B. */
   detB: number
+  /** detA / detB. Infinity = A-only, 0 = B-only. Drives the enriched category. */
+  detRatio: number
   category: ComparisonCategory
 }
 
@@ -79,7 +83,7 @@ export interface RegionThumbnailRegion {
 
 // ---------- constants ----------
 
-/** Fold-change threshold for "enriched" (>= 2x stronger). */
+/** Detection-rate ratio threshold for "enriched" (>= 2x higher detection rate). */
 const ENRICHMENT_RATIO = 2
 
 /** m/z bin width (Da) for processed-mode region comparison. */
@@ -133,7 +137,7 @@ export function useRegionComparison(deps: {
       for (const c of deps.kmeansClusters.value) {
         regions.push({
           value: `cluster:${c.id}`,
-          label: `Cluster ${c.id}`,
+          label: t('vizworkbench.kmeans.cluster', { id: c.id }),
           source: { type: 'cluster', id: c.id },
           color: rgbCss({ r: c.color[0], g: c.color[1], b: c.color[2] }),
         })
@@ -324,15 +328,17 @@ export function useRegionComparison(deps: {
 
       const aPresent = detA >= minRate
       const bPresent = detB >= minRate
+      const detRatio = detB > 0 ? detA / detB : detA > 0 ? Infinity : 0
       let category: ComparisonCategory
       if (aPresent && !bPresent) {
         category = 'a-only'
       } else if (!aPresent && bPresent) {
         category = 'b-only'
       } else {
-        if (meanB > 0 && meanA / meanB >= ENRICHMENT_RATIO) {
+        // 富集标准：检出率比值（detA/detB 或反向）≥ 2
+        if (detRatio >= ENRICHMENT_RATIO) {
           category = 'a-enriched'
-        } else if (meanA > 0 && meanB / meanA >= ENRICHMENT_RATIO) {
+        } else if (detRatio > 0 && 1 / detRatio >= ENRICHMENT_RATIO) {
           category = 'b-enriched'
         } else {
           category = 'shared'
@@ -349,6 +355,7 @@ export function useRegionComparison(deps: {
         ratio,
         detA,
         detB,
+        detRatio,
         category,
       })
     }
@@ -359,9 +366,10 @@ export function useRegionComparison(deps: {
       filtered: filteredByDetection + filteredByIntensity,
     }
 
+    // 初始排序：检出率比值偏离 1 最多的排最前（富集标准即检出率比值）
     comparisons.sort((a, b) => {
-      const logA = a.ratio === Infinity ? Infinity : a.ratio === 0 ? -Infinity : Math.log2(a.ratio)
-      const logB = b.ratio === Infinity ? Infinity : b.ratio === 0 ? -Infinity : Math.log2(b.ratio)
+      const logA = a.detRatio === Infinity ? Infinity : a.detRatio === 0 ? -Infinity : Math.log2(a.detRatio)
+      const logB = b.detRatio === Infinity ? Infinity : b.detRatio === 0 ? -Infinity : Math.log2(b.detRatio)
       return Math.abs(logB) - Math.abs(logA)
     })
 
@@ -373,7 +381,7 @@ export function useRegionComparison(deps: {
     const ctx = getSharedZarrContext()
     const store = ctx.store
     if (!store) {
-      error.value = 'Data not loaded yet'
+      error.value = t('vizworkbench.compare.dataNotLoaded')
       return
     }
 
@@ -398,7 +406,7 @@ export function useRegionComparison(deps: {
       const membersA = buildMemberRasters(sourcesA)
       const membersB = buildMemberRasters(sourcesB)
       if (!membersA || !membersB) {
-        error.value = 'Failed to build region masks - ensure KMeans/ROI data is available'
+        error.value = t('vizworkbench.compare.maskBuildFailed')
         return
       }
 
@@ -419,7 +427,7 @@ export function useRegionComparison(deps: {
       if (cancelled) return
 
       if (maskA.pixelCount === 0 || maskB.pixelCount === 0) {
-        error.value = 'One or both regions contain no pixels'
+        error.value = t('vizworkbench.compare.emptyRegion')
         return
       }
 
@@ -439,7 +447,7 @@ export function useRegionComparison(deps: {
         )
         if (cancelled) return
         if (binCount === 0) {
-          error.value = 'No m/z bins found in the selected regions'
+          error.value = t('vizworkbench.compare.noBins')
           return
         }
 
@@ -465,8 +473,7 @@ export function useRegionComparison(deps: {
         )
       } else {
         // ---- Continuous mode: shared m/z axis ----
-        // v1.1 双组布局：只取选中区域内像素的谱，工作量与区域大小成正比。
-        // （v1.0 单组布局没有 spectra 组，不在此适配。）
+        // 按 spectra 组只取选中区域内像素的谱，工作量与区域大小成正比。
         const stats = await store.streamRegionStatsBySpectra(
           [maskA.mask, maskB.mask],
           (done, total) => {
@@ -476,13 +483,13 @@ export function useRegionComparison(deps: {
         )
         if (cancelled) return
         if (!stats) {
-          error.value = 'Region comparison requires the pixel-major spectra group (zarr v1.1)'
+          error.value = t('vizworkbench.compare.needsPixelMajor')
           return
         }
 
         const mzAxis = ctx.mzAxis
         if (!mzAxis) {
-          error.value = 'm/z axis not available'
+          error.value = t('vizworkbench.compare.noMzAxis')
           return
         }
 
