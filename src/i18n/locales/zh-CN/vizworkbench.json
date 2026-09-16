@@ -9,7 +9,8 @@
       "nothingToExport": "未选择要导出的区域",
       "invalidMz": "请输入有效的 m/z 值。",
       "mzAxisNotLoaded": "m/z 轴尚未加载。",
-      "noPeakInTolerance": "{target} 的 ±{tolerance} 范围内没有峰：最近的是 {nearest}（Δ {delta}）。请放宽容差或换一个值。"
+      "noPeakInTolerance": "{target} 的 ±{tolerance} 范围内没有峰：最近的是 {nearest}（Δ {delta}）。请放宽容差或换一个值。",
+      "noPixelAtPosition": "该位置没有采集数据"
     },
     "ionImage": {
       "title": "图像视图",
@@ -19,6 +20,7 @@
       "noResult": "未选择结果",
       "noResultHint": "请从工作台进入以查看结果。",
       "loadFailed": "离子图加载失败",
+      "incompatibleFormat": "结果数据格式不兼容：仅支持 Zarr v1.1",
       "updating": "正在更新离子图…",
       "updateFailed": "离子图更新失败：{error}",
       "rangeDisabled": "多离子叠加模式下不使用",
@@ -36,6 +38,10 @@
       "pixel": "像素",
       "title": "谱图视图",
       "loadingAverage": "正在加载平均谱…",
+      "loadingPixel": "正在加载像素谱…",
+      "viewMean": "平均谱",
+      "viewPixel": "像素谱",
+      "selectPixelHint": "点击图像上的像素查看像素谱",
       "peakCount": "{count} 个峰",
       "loadFailed": "数据加载失败",
       "meanUnavailable": "平均谱不可用",

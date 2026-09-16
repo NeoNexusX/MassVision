@@ -119,6 +119,7 @@
     "input": {
       "selectPlaceholder": "Select an option",
       "tagPlaceholder": "Type and press Enter",
+      "tagSelectPlaceholder": "Pick from the list, or type your own and press Enter",
       "addTag": "Add tag",
       "addNamedTag": "Add {name}",
       "removeTag": "Remove {tag}",
@@ -130,7 +131,8 @@
       "selectShort": "Select...",
       "all": "All",
       "other": "Other",
-      "example": "e.g. {value}"
+      "example": "e.g. {value}",
+      "patternMismatch": "\"{value}\" is not in a valid format."
     },
     "assistant": {
       "title": "AI Assistant",

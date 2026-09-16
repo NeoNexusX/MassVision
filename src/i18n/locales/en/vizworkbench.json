@@ -9,7 +9,8 @@
       "nothingToExport": "Nothing selected to export",
       "invalidMz": "Please enter a valid m/z value.",
       "mzAxisNotLoaded": "m/z axis is not loaded yet.",
-      "noPeakInTolerance": "No peak within ±{tolerance} of {target}: nearest is {nearest} (Δ {delta}). Widen the tolerance or try another value."
+      "noPeakInTolerance": "No peak within ±{tolerance} of {target}: nearest is {nearest} (Δ {delta}). Widen the tolerance or try another value.",
+      "noPixelAtPosition": "No data was acquired at this position"
     },
     "ionImage": {
       "title": "Image View",
@@ -19,6 +20,7 @@
       "noResult": "No result selected",
       "noResultHint": "Navigate from the Workspace dashboard to view a result.",
       "loadFailed": "Failed to load ion image",
+      "incompatibleFormat": "Incompatible result data format: only Zarr v1.1 is supported",
       "updating": "Updating ion image…",
       "updateFailed": "Failed to update ion image: {error}",
       "rangeDisabled": "Not used in multi-ion overlay mode",
@@ -36,6 +38,10 @@
       "pixel": "Pixel",
       "title": "Spectrum View",
       "loadingAverage": "Loading average spectrum...",
+      "loadingPixel": "Loading pixel spectrum...",
+      "viewMean": "Mean",
+      "viewPixel": "Pixel",
+      "selectPixelHint": "Click a pixel on the image to view its spectrum",
       "peakCount": "{count} peaks",
       "loadFailed": "Failed to load data",
       "meanUnavailable": "Mean spectrum not available",

@@ -38,7 +38,7 @@ function makeDetail(ids: number[]): CollectionDetail {
     publicId: null,
     doi: [],
     journalName: null,
-    access: [],
+    access: null,
     organismPart: [],
     ionisationSource: [],
     metadata: { name: 'X' },
@@ -59,7 +59,6 @@ function apiError(status: number, backendMessage: string): CollectionApiError {
   e.backendMessage = backendMessage
   return e
 }
-
 
 // 被测代码用 t() 取文案：预先加载英文语言包，断言保持英文原文
 beforeAll(() => Promise.all([loadCoreMessages('en'), loadFeatureMessages('collections')]))

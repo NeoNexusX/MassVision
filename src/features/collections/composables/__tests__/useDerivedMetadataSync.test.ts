@@ -5,7 +5,15 @@ import { DERIVED_METADATA_KEYS } from '../../utils/deriveCollectionMetadata'
 import type { File } from '@/features/datasets/types/dataset'
 
 const file = (over: Partial<File>): File =>
-  ({ id: '1', name: '', submitTime: '', submitter: '', status: 'completed', isPublic: true, ...over }) as File
+  ({
+    id: '1',
+    name: '',
+    submitTime: '',
+    submitter: '',
+    status: 'completed',
+    isPublic: true,
+    ...over,
+  }) as File
 
 function setup() {
   const files = ref<File[]>([])
@@ -73,6 +81,20 @@ describe('useDerivedMetadataSync', () => {
     expect(lockedKeys.value).toEqual([])
   })
 
+  it('does not let in-place draft edits mutate the detected snapshot', async () => {
+    const { files, draft, lockedKeys } = setup()
+
+    files.value = [file({ organism: 'Mouse (Mus musculus)' })]
+    await nextTick()
+
+    draft.organism!.push('My own label')
+
+    expect(lockedKeys.value).toContain('organism')
+    files.value = [file({ organism: 'Rat (Rattus norvegicus)' })]
+    await nextTick()
+    expect(draft.organism).toEqual(['Mouse (Mus musculus)', 'My own label'])
+  })
+
   it('reset hands the field back to auto-detection', async () => {
     const { files, draft, lockedKeys, resetDerivedField } = setup()
 
@@ -90,5 +112,63 @@ describe('useDerivedMetadataSync', () => {
     await nextTick()
 
     expect(draft.organism).toEqual(['Rat (Rattus norvegicus)'])
+  })
+
+  it('releases the lock when the edit ends up equal to the detected value', async () => {
+    const { files, draft, lockedKeys } = setup()
+
+    files.value = [file({ organism: 'Mouse (Mus musculus)' })]
+    await nextTick()
+
+    draft.organism = []
+    expect(lockedKeys.value).toContain('organism')
+
+    // 改回识别值：不再算手改，并重新跟随选择
+    draft.organism = ['Mouse (Mus musculus)']
+    expect(lockedKeys.value).not.toContain('organism')
+
+    files.value = [file({ organism: 'Rat (Rattus norvegicus)' })]
+    await nextTick()
+    expect(draft.organism).toEqual(['Rat (Rattus norvegicus)'])
+  })
+
+  it('treats a reorder (or case change) of the detected values as unedited', async () => {
+    const { files, draft, lockedKeys } = setup()
+
+    files.value = [
+      file({ organism: 'Mouse (Mus musculus)' }),
+      file({ id: '2', organism: 'Rat (Rattus norvegicus)' }),
+    ]
+    await nextTick()
+
+    draft.organism = ['rat (rattus norvegicus)', 'Mouse (Mus musculus)']
+    expect(lockedKeys.value).not.toContain('organism')
+  })
+
+  it('unlocks when a selection change makes detection match the hand-edited value', async () => {
+    const { files, draft, lockedKeys } = setup()
+
+    files.value = [file({ organism: 'Mouse (Mus musculus)' })]
+    await nextTick()
+    draft.organism = ['Rat (Rattus norvegicus)']
+    expect(lockedKeys.value).toContain('organism')
+
+    files.value = [file({ organism: 'Rat (Rattus norvegicus)' })]
+    await nextTick()
+    expect(lockedKeys.value).not.toContain('organism')
+  })
+
+  it('keeps typed values before any selection, but does not report them as edited', async () => {
+    const { files, draft, lockedKeys, editedKeys } = setup()
+
+    draft.organism = ['My own label']
+    // 没有可识别的来源：不提示「已手动修改」，但仍锁住，之后选数据集不覆盖用户填写
+    expect(editedKeys.value).toEqual([])
+
+    files.value = [file({ organism: 'Mouse (Mus musculus)' })]
+    await nextTick()
+    expect(draft.organism).toEqual(['My own label'])
+    expect(lockedKeys.value).toContain('organism')
+    expect(editedKeys.value).toEqual(['organism'])
   })
 })

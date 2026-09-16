@@ -92,7 +92,7 @@ export function useCreateCollection() {
   // 可从选中数据集推导的 8 个 list 字段：自动预填，用户手改后该字段被接管。
   // 取去重并集，成员取值不同就多个值——集合元数据的语义是「涵盖的取值集合」。
   const derivedDraft = metadata as unknown as Record<string, string[]>
-  const { lockedKeys, resetDerivedField } = useDerivedMetadataSync(selected, derivedDraft)
+  const { editedKeys, resetDerivedField } = useDerivedMetadataSync(selected, derivedDraft)
 
   const isDirty = computed(
     () =>
@@ -189,7 +189,8 @@ export function useCreateCollection() {
     metadata,
     /** 当前由选中数据集自动推导的字段键 */
     derivedKeys: DERIVED_METADATA_KEYS,
-    lockedKeys,
+    /** 与识别值不一致（用户手改）的字段键，驱动「恢复为自动识别值」提示 */
+    editedKeys,
     resetDerivedField,
     isDirty,
     canCreate,

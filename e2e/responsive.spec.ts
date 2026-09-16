@@ -28,8 +28,10 @@ test.describe('mobile responsive layout', () => {
 
     await expect(page.getByRole('link', { name: 'Join to start' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'View Datasets' })).toBeVisible()
-    await expectInsideViewport(page, 'a[href="/register"]')
-    await expectInsideViewport(page, 'a[href="/datasets"]')
+    // 限定在 Hero 内：首页现在是 drawer 导航，抽屉菜单里也有指向 /datasets 的链接（收起时隐藏但在 DOM 里），
+    // 不加范围会同时匹配两个元素，触发 Playwright 的 strict mode 报错
+    await expectInsideViewport(page, '#hero a[href="/register"]')
+    await expectInsideViewport(page, '#hero a[href="/datasets"]')
     await expectNoHorizontalPageOverflow(page)
   })
 

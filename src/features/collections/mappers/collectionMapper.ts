@@ -1,5 +1,6 @@
 import type { FilePublicResponse } from '@/features/datasets/types/dataset'
 import { METADATA_FIELDS } from '../constants/metadataFields'
+import { normalizeMetadataList } from '../utils/metadataPatch'
 import type {
   CollectionDetail,
   CollectionMember,
@@ -30,11 +31,16 @@ function mapFilePublicToMember(raw: FilePublicResponse): CollectionMember {
  */
 function toMetadata(raw: any): CollectionMetadata {
   const nested = raw?.metadata
-  const source =
-    nested && typeof nested === 'object' && Object.keys(nested).length > 0 ? nested : raw
+  const source = {
+    ...(raw && typeof raw === 'object' ? raw : {}),
+    ...(nested && typeof nested === 'object' ? nested : {}),
+  }
   const out: Record<string, unknown> = {}
   for (const field of METADATA_FIELDS) {
-    if (source?.[field.key] !== undefined) out[field.key] = source[field.key]
+    if (source?.[field.key] !== undefined) {
+      out[field.key] =
+        field.type === 'list' ? normalizeMetadataList(source[field.key]) : source[field.key]
+    }
   }
   if (!out.name) out.name = raw?.name || ''
   return out as unknown as CollectionMetadata
@@ -42,13 +48,9 @@ function toMetadata(raw: any): CollectionMetadata {
 
 /** 顶层优先、其次元数据块；统一成 string[] 便于卡片直接渲染 */
 function toStringList(raw: any, metadata: CollectionMetadata, key: string): string[] {
-  const top = raw?.[key]
-  if (Array.isArray(top)) return top.filter((v) => v != null && String(v).trim() !== '')
-  const fromMeta = (metadata as unknown as Record<string, unknown>)[key]
-  if (Array.isArray(fromMeta)) {
-    return fromMeta.filter((v) => v != null && String(v).trim() !== '')
-  }
-  return []
+  const top = normalizeMetadataList(raw?.[key])
+  if (top.length) return top
+  return normalizeMetadataList((metadata as unknown as Record<string, unknown>)[key])
 }
 
 function toSummary(raw: any): CollectionSummary {
@@ -67,12 +69,10 @@ function toSummary(raw: any): CollectionSummary {
     publicId: raw.public_id ?? null,
     doi: toStringList(raw, metadata, 'doi'),
     journalName: raw.journal_name ?? metadata.journal_name ?? null,
-    access: toStringList(raw, metadata, 'access'),
+    access: raw.access || metadata.access || null,
     organismPart: toStringList(raw, metadata, 'organism_part'),
     ionisationSource: toStringList(raw, metadata, 'ionisation_source'),
-    members: Array.isArray(raw?.members)
-      ? raw.members.map(mapFilePublicToMember)
-      : undefined,
+    members: Array.isArray(raw?.members) ? raw.members.map(mapFilePublicToMember) : undefined,
   }
 }
 

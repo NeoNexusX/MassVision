@@ -56,7 +56,7 @@
           <button
             type="button"
             class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800 kawaru-text-68"
-:aria-label="$t('collections.card.prev')"
+            :aria-label="$t('collections.card.prev')"
             @click.stop="goPrev"
           >
             <SvgIcon type="chevron_left" class="w-[1em] h-[1em]" />
@@ -64,7 +64,7 @@
           <button
             type="button"
             class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-base-100/85 dark:bg-slate-800/85 border border-base-300 shadow-sm hover:bg-base-100 dark:hover:bg-slate-800 kawaru-text-68"
-:aria-label="$t('collections.card.next')"
+            :aria-label="$t('collections.card.next')"
             @click.stop="goNext"
           >
             <SvgIcon type="chevron_right" class="w-[1em] h-[1em]" />
@@ -99,7 +99,9 @@
         <!-- 左列：Title / DOI / Access / Journal（无值统一显示 —，卡片高度对齐） -->
         <div class="flex flex-col gap-2.5 min-w-0">
           <div class="min-w-0">
-            <div class="kawaru-text-75 font-medium text-base-content/45">{{ $t('collections.meta.title') }}</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">
+              {{ $t('collections.meta.title') }}
+            </div>
             <p
               v-if="collection.title"
               class="mt-1 kawaru-text-95 font-medium text-base-content/85 leading-snug line-clamp-2"
@@ -111,7 +113,9 @@
           </div>
 
           <div class="min-w-0">
-            <div class="kawaru-text-75 font-medium text-base-content/45">{{ $t('collections.meta.doi') }}</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">
+              {{ $t('collections.meta.doi') }}
+            </div>
             <div v-if="collection.doi.length" class="mt-1 flex flex-col gap-0.5">
               <a
                 v-for="doi in collection.doi"
@@ -132,32 +136,34 @@
 
           <!-- 后端 access 字段原样透传，可能是 URL 也可能是标签文本 -->
           <div class="min-w-0">
-            <div class="kawaru-text-75 font-medium text-base-content/45">{{ $t('collections.meta.access') }}</div>
-            <div v-if="collection.access.length" class="mt-1 flex flex-col gap-0.5">
+            <div class="kawaru-text-75 font-medium text-base-content/45">
+              {{ $t('collections.meta.access') }}
+            </div>
+            <div v-if="collection.access" class="mt-1">
               <a
-                v-for="entry in collection.access"
-                :key="entry"
-                :href="isUrl(entry) ? entry : undefined"
-                :target="isUrl(entry) ? '_blank' : undefined"
-                :rel="isUrl(entry) ? 'noopener noreferrer' : undefined"
+                :href="isUrl(collection.access) ? collection.access : undefined"
+                :target="isUrl(collection.access) ? '_blank' : undefined"
+                :rel="isUrl(collection.access) ? 'noopener noreferrer' : undefined"
                 class="flex items-center gap-1.5 min-w-0 kawaru-text-87"
                 :class="
-                  isUrl(entry)
+                  isUrl(collection.access)
                     ? 'text-primary hover:underline'
                     : 'cursor-default text-base-content/70'
                 "
-                :title="entry"
+                :title="collection.access"
                 @click.stop
               >
                 <SvgIcon type="link" class="w-[1em] h-[1em] shrink-0" />
-                <span class="truncate">{{ entry }}</span>
+                <span class="truncate">{{ collection.access }}</span>
               </a>
             </div>
             <p v-else class="mt-1 kawaru-text-95 text-base-content/40">—</p>
           </div>
 
           <div class="min-w-0">
-            <div class="kawaru-text-75 font-medium text-base-content/45">{{ $t('collections.meta.journal') }}</div>
+            <div class="kawaru-text-75 font-medium text-base-content/45">
+              {{ $t('collections.meta.journal') }}
+            </div>
             <p
               v-if="collection.journalName"
               class="mt-1 kawaru-text-95 text-base-content/80 italic truncate"
@@ -237,7 +243,9 @@
           <SvgIcon type="user" class="w-[1.05em] h-[1.05em] shrink-0" />
           <span class="truncate">{{ collection.ownerUsername }}</span>
         </span>
-        <span class="whitespace-nowrap">{{ $t('collections.card.updated', { date: formattedDate }) }}</span>
+        <span class="whitespace-nowrap">{{
+          $t('collections.card.updated', { date: formattedDate })
+        }}</span>
       </div>
     </div>
 
@@ -272,7 +280,7 @@
       <button
         v-if="canEdit"
         class="flex items-center gap-2 kawaru-text-100 font-medium p-1 rounded text-base-content/80 hover:text-error transition-colors"
-:title="$t('collections.card.deleteTitle')"
+        :title="$t('collections.card.deleteTitle')"
         @click.stop="$emit('delete', collection.id)"
       >
         <SvgIcon type="trash" class="w-[1.1em] h-[1.1em] shrink-0" />
@@ -394,12 +402,16 @@ const morePopoverId = computed(() => `collection-${props.collection.id}-more-met
 // 闪一下内容。显式 anchor-name / position-anchor 不随 open 状态丢失，位置全程不动。
 const moreAnchorName = computed(() => `--collection-${props.collection.id}-more-anchor`)
 
-// ---- DOI / Access：值是裸 doi 时补 https://doi.org 前缀，已是 URL 就原样用 ----
+// ---- DOI / Access 链接 ----
 function isUrl(value: string): boolean {
   return /^https?:\/\//i.test(value)
 }
 function doiHref(doi: string): string {
-  return isUrl(doi) ? doi : `https://doi.org/${doi}`
+  const value = doi.trim().replace(
+    /^(?:(?:https?:\/\/)?(?:dx\.|www\.)?doi\.org\/|doi:\s*)/i,
+    '',
+  )
+  return isUrl(value) ? value : `https://doi.org/${value}`
 }
 
 const unitLabel = computed(() => t('collections.unit.dataset', props.collection.memberCount))

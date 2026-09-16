@@ -1,16 +1,15 @@
 <template>
   <!-- 集合元数据编辑表单：由 metadataFields 定义表驱动（与只读面板同一张表，
-       单一事实来源）。list 字段用 TagInput，long 字段用 textarea，其余 input。
+       单一事实来源）。list 字段用 TagInput（带词表的字段同时有下拉建议），long 字段用 textarea，其余 input。
        草稿由父级（CollectionOverviewView / CreateCollectionView）持有并传入，
        本组件只做字段绑定与「自动推导」提示，不做提交。
        excludeKeys：创建页把 name/description 交给专门的卡片，这里不重复渲染；
-       autoKeys/lockedKeys：可从选中数据集推导的字段及其被用户接管的状态。 -->
+       autoKeys/editedKeys：可从选中数据集推导的字段，及其中与识别值不一致（用户手改）的字段。 -->
   <div class="flex flex-col gap-5">
     <section v-for="group in METADATA_GROUPS" :key="group.id">
       <h4
         v-if="fieldsOf(group.id).length"
-        class="kawaru-text-87 font-semibold uppercase tracking-wide text-base-content/50
-          border-b border-base-200 dark:border-slate-700 pb-1 mb-3"
+        class="kawaru-text-87 font-semibold uppercase tracking-wide text-base-content/50 border-b border-base-200 dark:border-slate-700 pb-1 mb-3"
       >
         {{ group.label() }}
       </h4>
@@ -21,7 +20,12 @@
           class="flex flex-col gap-1 min-w-0"
           :class="field.type === 'long' ? 'sm:col-span-2' : ''"
         >
-          <label class="flex flex-col gap-1 min-w-0">
+          <!-- list 字段不能包在 <label> 里：label 会把点击转发给首个可标注的后代，
+               也就是第一个 chip 的 ✕ 按钮，点字段名就会误删标签 -->
+          <component
+            :is="field.type === 'list' ? 'div' : 'label'"
+            class="flex flex-col gap-1 min-w-0"
+          >
             <span class="kawaru-text-81 font-medium text-base-content/70">
               {{ field.label() }}
               <span v-if="field.key === 'name'" class="text-error">*</span>
@@ -48,14 +52,18 @@
             <TagInput
               v-else
               v-model="d[field.key]"
-:name="field.label()"
+              :name="field.label()"
+              :options="field.options"
+              :label-of="collectionVocabLabel"
+              :pattern="field.pattern"
+              :pattern-message="field.patternMessage?.()"
               :placeholder="placeholderOf(field)"
             />
-          </label>
+          </component>
 
           <!-- 用户接管了自动推导的字段后，给一个回到「按数据集识别」的入口 -->
           <div
-            v-if="autoKeys.includes(field.key) && lockedKeys.includes(field.key)"
+            v-if="autoKeys.includes(field.key) && editedKeys.includes(field.key)"
             class="flex items-center gap-1.5 kawaru-text-75 text-base-content/50"
           >
             <span>{{ $t('collections.metaForm.editedByHand') }}</span>
@@ -74,8 +82,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue'
+import { computed } from 'vue'
 import TagInput from '@/shared/components/TagInput.vue'
+import { collectionVocabLabel } from '../constants/collectionVocab'
 import {
   METADATA_FIELDS,
   METADATA_GROUPS,
@@ -84,23 +93,29 @@ import {
 } from '../constants/metadataFields'
 import type { CollectionMetadataDraft } from '../types/collection'
 
-const props = defineProps({
+interface Props {
   /** 父级持有的草稿（reactive），本组件直接绑定其字段 */
-  draft: { type: Object as PropType<CollectionMetadataDraft>, required: true },
+  draft: CollectionMetadataDraft
   /** 由父级另行渲染、本表单跳过的字段键 */
-  excludeKeys: { type: Array as PropType<readonly string[]>, default: () => [] },
+  excludeKeys?: readonly string[]
   /** 当前由选中数据集自动推导（预填）的字段键 */
-  autoKeys: { type: Array as PropType<readonly string[]>, default: () => [] },
-  /** 已被用户手改、停止自动同步的字段键 */
-  lockedKeys: { type: Array as PropType<readonly string[]>, default: () => [] },
+  autoKeys?: readonly string[]
+  /** 与识别值不一致（用户手改）的字段键：显示「已手动修改 / 恢复为自动识别值」 */
+  editedKeys?: readonly string[]
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  excludeKeys: () => [],
+  autoKeys: () => [],
+  editedKeys: () => [],
 })
 
 const emit = defineEmits<{
   (e: 'reset-field', key: string): void
 }>()
 
-// v-model 到「联合键」的索引写入在 TS 下不可赋值，松化一层仅用于模板绑定；
-// 对外 API 仍以 CollectionMetadataDraft 强类型约束。
+// 字段定义的联合键在模板中按控件分支使用；此处只在边界统一索引类型，
+// 对外 API 仍由 CollectionMetadataDraft 约束。
 const d = computed(() => props.draft as Record<string, any>)
 
 function fieldsOf(group: MetadataGroupId) {
@@ -110,9 +125,6 @@ function fieldsOf(group: MetadataGroupId) {
 }
 
 function placeholderOf(field: MetadataFieldDef): string | undefined {
-  if (field.key === 'doi') return '10.1000/xyz123'
-  // list 字段交给 TagInput 的缺省占位（「输入后按回车添加」），不再逐字段拼 "Add xxx"
-  if (field.type === 'list') return undefined
-  return ''
+  return field.placeholder?.()
 }
 </script>

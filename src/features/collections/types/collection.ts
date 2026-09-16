@@ -31,7 +31,7 @@ export interface CollectionSummary {
   doi: string[]
   journalName: string | null
   /** 卡片右侧的 Access 链接；后端原样透传，可能是 URL 或标签文本 */
-  access: string[]
+  access: string | null
   organismPart: string[]
   ionisationSource: string[]
   /**
@@ -70,11 +70,11 @@ export interface CollectionMember {
 export interface CollectionMetadata {
   name: string
   description?: string | null
-  member_type?: string | null
-  collection_type?: string | null
+  member_type?: string[]
+  collection_type?: string[]
   title?: string | null
   doi?: string[]
-  access?: string[]
+  access?: string | null
   journal_name?: string | null
   abstract?: string | null
   cite_information?: string | null
