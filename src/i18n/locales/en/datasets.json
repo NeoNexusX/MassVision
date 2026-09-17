@@ -139,7 +139,9 @@
       "publicTitle": "Make Dataset Public",
       "publicMessage": "This dataset will be moved to Public Data and become visible to other users. This action cannot be undone.",
       "madePublic": "Dataset is now public",
-      "shareUnavailable": "Unable to create a share link for this dataset."
+      "shareUnavailable": "Unable to create a share link for this dataset.",
+      "loginRequired": "Sign in to view dataset details",
+      "loginRequiredDesc": "Viewing dataset details requires an account. Don't have one? Register to continue."
     },
     "download": {
       "preparing": "Preparing download, please wait...",

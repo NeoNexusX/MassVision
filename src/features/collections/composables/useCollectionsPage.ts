@@ -17,8 +17,8 @@ import { t } from '@/i18n'
  * Collections 列表页装配：取数（服务端分页）/ 范围切换 / 搜索 / 删除。
  *
  * 数据源（均按 updated_at 倒序，服务端分页 {meta, data}）：
- * - 默认 GET /collections/all —— 全库集合（浏览全部，含他人集合）；
- * - 勾选「My collections only」后走 GET /collections —— 仅当前登录用户的集合。
+ * - 默认 POST /collections/list_all —— 全库集合（浏览全部，含他人集合）；
+ * - 勾选「My collections only」后走 POST /collections/list —— 仅当前登录用户的集合。
  * 后端未提供集合搜索/排序参数：排序固定 updated_at 倒序（无控件），
  * search 是**本地**逻辑，只作用于当前页；后端补上参数后可挪进请求。
  * 写操作（删除）仅对 owner/admin 开放（canEdit）。Create 走独立页面 /collections/new；

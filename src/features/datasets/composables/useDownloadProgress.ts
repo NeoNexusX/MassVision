@@ -11,18 +11,18 @@ export function useDownloadProgress() {
   const { showToast, removeToast } = useToast()
   const downloadStore = useDownloadStore()
 
-  const isPacking = (id: string) => packingIds.has(id)
+  const isPacking = (publicId: string) => packingIds.has(publicId)
 
   const handleDownload = async (
-    id?: string,
+    publicId?: string,
     options?: { getFallbackFilename?: () => string | undefined },
   ) => {
-    if (!id) return
-    if (packingIds.has(id)) return
-    packingIds.add(id)
+    if (!publicId) return
+    if (packingIds.has(publicId)) return
+    packingIds.add(publicId)
     const toastId = showToast(t('datasets.download.preparing'), 'info', 0)
     try {
-      await ossDownloadAndSave(id, options)
+      await ossDownloadAndSave(publicId, options)
       removeToast(toastId)
     } catch (error) {
       removeToast(toastId)
@@ -30,21 +30,21 @@ export function useDownloadProgress() {
       showToast(message, 'error')
       console.error('Download error:', error)
     } finally {
-      packingIds.delete(id)
+      packingIds.delete(publicId)
     }
   }
 
   /**
-   * RAW pre-signed download: imzML + ibd from /files/{file_id}/download_raw.
+   * RAW pre-signed download: imzML + ibd from /files/{public_id}/download_raw.
    * Zero polling — pre-signed URLs are returned immediately.
    * Rate-limited: one download per cooldown window (60s default).
    */
   const handleDownloadRaw = async (
-    id?: string,
+    publicId?: string,
     options?: { getFallbackFilename?: () => string | undefined, isPublic?: boolean },
   ) => {
-    if (!id) return
-    if (packingIds.has(id)) return
+    if (!publicId) return
+    if (packingIds.has(publicId)) return
 
     // Rate-limit check（登录和未登录都限制，防止刷带宽）
     if (!downloadStore.canDownload()) {
@@ -58,11 +58,11 @@ export function useDownloadProgress() {
       return
     }
 
-    packingIds.add(id)
-    downloadStore.startDownload(id)
+    packingIds.add(publicId)
+    downloadStore.startDownload(publicId)
     const toastId = showToast(t('datasets.download.downloading'), 'info', 0)
     try {
-      await ossDownloadRaw(id, { ...options, isPublic: options?.isPublic ?? false })
+      await ossDownloadRaw(publicId, { ...options, isPublic: options?.isPublic ?? false })
       downloadStore.completeDownload()
       removeToast(toastId)
       showToast(t('datasets.download.started'), 'success')
@@ -73,17 +73,17 @@ export function useDownloadProgress() {
       showToast(message, 'error')
       console.error('Download error:', error)
     } finally {
-      packingIds.delete(id)
+      packingIds.delete(publicId)
     }
   }
 
   /**
    * RAW no-auth download for the public collection page:
-   * /files/{file_id}/download_raw_noauth (backend serves is_public files only).
+   * /files/{public_id}/download_raw_noauth (backend serves is_public files only).
    */
-  const handleDownloadPublicRaw = async (id?: string) => {
-    if (!id) return
-    if (packingIds.has(id)) return
+  const handleDownloadPublicRaw = async (publicId?: string) => {
+    if (!publicId) return
+    if (packingIds.has(publicId)) return
 
     if (!downloadStore.canDownload()) {
       if (downloadStore.downloading) {
@@ -95,11 +95,11 @@ export function useDownloadProgress() {
       return
     }
 
-    packingIds.add(id)
-    downloadStore.startDownload(id)
+    packingIds.add(publicId)
+    downloadStore.startDownload(publicId)
     const toastId = showToast(t('datasets.download.downloading'), 'info', 0)
     try {
-      await ossDownloadRawNoauth(id)
+      await ossDownloadRawNoauth(publicId)
       downloadStore.completeDownload()
       removeToast(toastId)
       showToast(t('datasets.download.started'), 'success')
@@ -110,7 +110,7 @@ export function useDownloadProgress() {
       showToast(message, 'error')
       console.error('Download error:', error)
     } finally {
-      packingIds.delete(id)
+      packingIds.delete(publicId)
     }
   }
 

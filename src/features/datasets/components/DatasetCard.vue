@@ -7,7 +7,7 @@
       bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md
       transition-shadow duration-200 border border-base-300
       cursor-pointer relative overflow-hidden"
-    @click="$emit('view-overview', dataset.id)"
+    @click="$emit('view-overview', dataset.publicId)"
   >
     <!-- 左侧容器：文件名 + 图片 + 中间信息 -->
     <div class="flex flex-1 min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
@@ -23,7 +23,7 @@
           class="truncate cursor-pointer min-w-0
             hover:text-primary dark:hover:text-indigo-400 transition-colors"
           :title="dataset.filename || dataset.name"
-          @click.stop="$emit('view-overview', dataset.id)"
+          @click.stop="$emit('view-overview', dataset.publicId)"
         >
           {{ dataset.name }}
         </span>
@@ -39,7 +39,7 @@
 
       <!-- 图片 -->
       <div class="w-full max-w-[250px] min-w-[120px] aspect-square rounded-lg overflow-hidden border border-base-300">
-        <DatasetPreviewGallery :file-id="dataset.id" :storage-mode="dataset.storageMode" />
+        <DatasetPreviewGallery :image-path="dataset.imagePath" :storage-mode="dataset.storageMode" />
       </div>
 
       <!-- 中间信息：以左容器为基准，在图片与右侧容器之间居中 -->
@@ -115,11 +115,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'view-overview', id: string): void
-  (e: 'download', id: string): void
-  (e: 'delete', id: string): void
-  (e: 'explore', id: string): void
-  (e: 'edit', id: string): void
+  (e: 'view-overview', publicId: string): void
+  (e: 'download', publicId: string): void
+  (e: 'delete', publicId: string): void
+  (e: 'explore', publicId: string): void
+  (e: 'edit', publicId: string): void
 }>()
 
 const submitDate = computed(() => formatDate(props.dataset.submitTime))
@@ -166,7 +166,7 @@ const actionItems = computed<ActionItem[]>(() => {
       icon: 'pencil',
       label: t('common.action.edit'),
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
-      onClick: () => emit('edit', props.dataset.id),
+      onClick: () => emit('edit', props.dataset.publicId),
     })
 
   // Action buttons
@@ -180,7 +180,7 @@ const actionItems = computed<ActionItem[]>(() => {
       icon: 'search',
       label: t('datasets.card.visualize'),
       colorClass: 'text-primary hover:text-primary-focus transition-colors',
-      onClick: () => emit('explore', props.dataset.id),
+      onClick: () => emit('explore', props.dataset.publicId),
     })
   } else {
     // 未关联可视化任务 → Explore
@@ -189,7 +189,7 @@ const actionItems = computed<ActionItem[]>(() => {
       icon: 'search',
       label: t('datasets.card.explore'),
       colorClass: 'text-primary hover:text-primary-focus transition-colors',
-      onClick: () => emit('explore', props.dataset.id),
+      onClick: () => emit('explore', props.dataset.publicId),
     })
   }
 
@@ -199,7 +199,7 @@ const actionItems = computed<ActionItem[]>(() => {
       icon: 'document-text',
       label: t('datasets.card.overview'),
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
-      onClick: () => emit('view-overview', props.dataset.id),
+      onClick: () => emit('view-overview', props.dataset.publicId),
     },
     props.packing
       ? {
@@ -213,7 +213,7 @@ const actionItems = computed<ActionItem[]>(() => {
           icon: 'download',
           label: t('common.action.download'),
           colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
-          onClick: () => emit('download', props.dataset.id),
+          onClick: () => emit('download', props.dataset.publicId),
         },
   )
 
@@ -223,7 +223,7 @@ const actionItems = computed<ActionItem[]>(() => {
       icon: 'trash',
       label: t('common.action.delete'),
       colorClass: 'text-error hover:text-error transition-colors',
-      onClick: () => emit('delete', props.dataset.id),
+      onClick: () => emit('delete', props.dataset.publicId),
     })
 
   return items

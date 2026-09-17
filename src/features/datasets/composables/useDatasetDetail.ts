@@ -1,7 +1,7 @@
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getFileMetadata, setFilePublic } from '@/features/datasets/api/datasetApi'
-import { getSharedOverviewMetadata } from '@/features/datasets/api/overviewShareApi'
+import { getShareOverviewMetadata } from '@/features/datasets/api/overviewShareApi'
 import { buildPreviewImageUrl } from '@/features/datasets/utils/imageUtils'
 import { mapItemToDataset } from '@/features/datasets/mappers/datasetMapper'
 import type { File } from '@/features/datasets/types/dataset'
@@ -17,11 +17,12 @@ import { t } from '@/i18n'
 
 export function useDatasetDetail() {
   const router = useRouter()
+  const route = useRoute()
   const { handleDownloadRaw, isPacking } = useDownloadProgress()
   const { showToast } = useToast()
 
   // 从 history.state 读取导航上下文（无路径参数，刷新后会丢失）
-  const state = history.state as { fileId?: string; source?: 'my' | 'public' } | null
+  const state = history.state as { filePublicId?: string; source?: 'my' | 'public' } | null
 
   // State
   const dataset = ref<File | null>(null)
@@ -30,24 +31,29 @@ export function useDatasetDetail() {
   const ticImageUrl = ref<string>('')
   const ticImageError = ref(false)
 
-  const { isShareView, sharedFileId, isShareCopied, shareCurrent } =
+  const { isShareView, sharedToken, isShareCopied, shareCurrent } =
     useOverviewShare(dataset)
-  const fileId = computed(() => {
-    if (isShareView.value) return sharedFileId.value ?? ''
-    return state?.fileId != null ? String(state.fileId) : ''
-  })
-  // A shared link always uses the anonymous public client, even if the viewer
-  // happens to be signed in. The backend remains responsible for is_public.
+  const filePublicId = computed(() =>
+    isShareView.value
+      ? sharedToken.value?.kind === 'publicId'
+        ? sharedToken.value.value
+        : ''
+      : state?.filePublicId ?? '',
+  )
+  // 分享页按 public 来源处理：goBack 回公开列表、需登录操作的登录回跳以 /datasets 为基准
   const source = computed<'my' | 'public'>(() =>
     isShareView.value ? 'public' : state?.source || 'my',
   )
-  const isPublic = computed(() => source.value === 'public')
-  /** Normal entry needs history state; shared entry needs a valid encoded id. */
-  const isStale = computed(() => !fileId.value)
+  /** 分享 token 既非 16 位 publicId 也非旧 Base64 数字 id → 无效链接，不发任何请求 */
+  const isInvalidShare = computed(() => isShareView.value && !sharedToken.value)
+  /** Normal entry needs history state; shared entry needs a valid token. */
+  const isStale = computed(() => (isShareView.value ? isInvalidShare.value : !filePublicId.value))
+  /** 匿名访问分享链接被 401：渲染「登录 / 注册」引导而不是错误态 */
+  const requiresAuth = ref(false)
 
   // Computed
   const placeholderSvg = computed(() => {
-    const targetId = fileId.value || (dataset.value?.filename as string)
+    const targetId = filePublicId.value || (dataset.value?.filename as string)
     return getDatasetPlaceholderSvg({
       id: targetId,
       showGuides: true,
@@ -84,13 +90,22 @@ export function useDatasetDetail() {
     }
   }
 
+  /** 匿名 401 的引导落地：登录/注册后带 redirect 回来。分享页直接回原链接；
+   * 公开列表进入的 overview 无 URL 参数（state 登录往返即失），回 /s/{public_id}
+   * 永久链接，登录后照常取数渲染 */
+  const authRedirectTarget = () =>
+    isShareView.value || !filePublicId.value ? route.fullPath : `/s/${filePublicId.value}`
+  const goLogin = () => router.push({ path: '/login', query: { redirect: authRedirectTarget() } })
+  const goRegister = () =>
+    router.push({ path: '/register', query: { redirect: authRedirectTarget() } })
+
   /** 下载需要登录：未登录则提示并跳转登录页，与公开数据集列表页行为一致 */
   const { requireAuth } = useRequireAuth(() =>
     source.value === 'public' ? '/datasets' : '/mydatasets',
   )
 
   const downloadCurrent = async () => {
-    const targetId = dataset.value?.id ? String(dataset.value.id) : ''
+    const targetId = dataset.value?.publicId ?? ''
     if (!targetId) return
     if (!requireAuth()) return
     await handleDownloadRaw(targetId, {
@@ -115,7 +130,7 @@ export function useDatasetDetail() {
   }
 
   const confirmSetPublic = async () => {
-    const targetId = dataset.value?.id ? String(dataset.value.id) : ''
+    const targetId = dataset.value?.publicId ?? ''
     if (!targetId) return
     makingPublic.value = true
     try {
@@ -139,8 +154,8 @@ export function useDatasetDetail() {
 
   const fetchDatasetDetails = async () => {
     const currentRequest = ++requestId
-    const targetFileId = fileId.value
-    if (!targetFileId) {
+    const token = isShareView.value ? sharedToken.value : null
+    if (!token && !filePublicId.value) {
       dataset.value = null
       ticImageUrl.value = ''
       loading.value = false
@@ -148,31 +163,48 @@ export function useDatasetDetail() {
     }
 
     loading.value = true
+    requiresAuth.value = false
     try {
-      const metadata = isShareView.value
-        ? await getSharedOverviewMetadata(targetFileId)
-        : await getFileMetadata(targetFileId, isPublic.value)
+      // 分享页取数走 overviewShareApi（登录态感知，见其头注释）
+      const share = token ? await getShareOverviewMetadata(token) : null
+      const metadata = share ? share.metadata : await getFileMetadata(filePublicId.value)
       if (currentRequest !== requestId) return
-      dataset.value = metadata ? mapItemToDataset(metadata) : null
-      if (dataset.value?.id) {
-        ticImageError.value = false
-        ticImageUrl.value = buildPreviewImageUrl(dataset.value.id)
+      if (share?.exchangedPublicId) {
+        // legacy 链接兑换成功：把地址栏从 Base64 旧串升级成新 publicId。
+        // replace 不入历史栈，回退行为不变；watch 会以新 token 幂等地重取一次
+        router.replace({
+          name: 'SharedDatasetOverview',
+          params: { shareToken: share.exchangedPublicId },
+        })
       }
+      dataset.value = metadata ? mapItemToDataset(metadata) : null
+      ticImageError.value = false
+      // image_path 为空 → null → 占位图；不发起注定 404 的图片请求
+      ticImageUrl.value = buildPreviewImageUrl(dataset.value?.imagePath) ?? ''
     } catch (error) {
       if (currentRequest !== requestId) return
       console.error('Error fetching dataset details', error)
+      // 匿名访问（分享链接 / 公开列表进入）→ 后端 401：转成登录/注册引导
+      // （skipAuthRedirect 已挡掉全局跳转，这里能拿到错误自行处置）
+      if ((error as { response?: { status?: number } })?.response?.status === 401) {
+        requiresAuth.value = true
+      }
       dataset.value = null
     } finally {
       if (currentRequest === requestId) loading.value = false
     }
   }
 
-  watch([fileId, isPublic], fetchDatasetDetails, { immediate: true })
+  watch([filePublicId, sharedToken], fetchDatasetDetails, { immediate: true })
 
   return {
     source,
     isShareView,
     isStale,
+    isInvalidShare,
+    requiresAuth,
+    goLogin,
+    goRegister,
     dataset,
     loading,
     isCopied,

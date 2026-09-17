@@ -81,10 +81,10 @@ const emit = defineEmits<{
           <ul>
             <li
               v-for="dataset in datasets"
-              :key="dataset.id"
+              :key="dataset.publicId"
               :class="[
                 'px-4 py-2 cursor-pointer flex items-center justify-between',
-                selectedDataset?.id === dataset.id ? 'bg-base-200' : 'hover:bg-base-100',
+                selectedDataset?.publicId === dataset.publicId ? 'bg-base-200' : 'hover:bg-base-100',
               ]"
               @click="emit('select-dataset', dataset)"
             >
@@ -102,7 +102,7 @@ const emit = defineEmits<{
               <input
                 type="radio"
                 name="selectedDataset"
-                :checked="selectedDataset?.id === dataset.id"
+                :checked="selectedDataset?.publicId === dataset.publicId"
               />
             </li>
           </ul>

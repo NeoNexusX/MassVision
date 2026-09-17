@@ -23,7 +23,7 @@ import { t } from '@/i18n'
  *    跨页选择天然持久；reorder 就是移动这个数组；
  * 3. 表单 —— name/description（集合均为公开，无可见性开关）。
  *
- * 保存调 POST /collections（file_ids 顺序 = position 1..n），成功后跳转新集合的
+ * 保存调 POST /collections（file_public_ids 顺序 = position 1..n），成功后跳转新集合的
  * overview 页。脏态离开时弹 ConfirmDialog——promise 式 onBeforeRouteLeave 守卫：
  * 确认 resolve(true) 放行，取消 resolve(false) 留在页面。
  */
@@ -103,7 +103,7 @@ export function useCreateCollection() {
   )
   const canCreate = computed(() => metadata.name.trim() !== '' && selectedCount.value > 0)
 
-  // ---- 4) 保存：file_ids 数组顺序 = position 1..n，成功跳转 overview ----
+  // ---- 4) 保存：file_public_ids 数组顺序 = position 1..n，成功跳转 overview ----
   const saving = ref(false)
   // 提交后的返回跳转不再触发离开确认（isDirty 此刻仍为 true）
   const saved = ref(false)
@@ -116,7 +116,7 @@ export function useCreateCollection() {
       const detail = await createCollection(
         buildCollectionCreatePayload(
           metadata,
-          selected.value.map((d) => Number(d.id)),
+          selected.value.map((d) => d.publicId),
         ),
       )
       showToast(t('common.feedback.created'), 'success')

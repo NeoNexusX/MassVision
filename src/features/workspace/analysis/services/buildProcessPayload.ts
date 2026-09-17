@@ -83,7 +83,8 @@ export function buildProcessPayload(options: BuildProcessPayloadOptions) {
   }
 
   return {
-    file_id: Number(options.selectedDataset?.id) ?? 0,
+    // 源文件以 public_id 标识（16 位字符串），禁止任何 Number() 转换
+    file_public_id: options.selectedDataset?.publicId ?? '',
     algorithms,
   }
 }

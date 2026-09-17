@@ -240,7 +240,7 @@ const openRow = (r: any) => {
       processName: r.name,
       datasetName: r.dataset,
       filename: r.filename,
-      fileId: r.fileId,
+      filePublicId: r.filePublicId,
       methods: r.methods,
       status: r.status,
     },

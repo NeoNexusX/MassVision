@@ -11,7 +11,8 @@ export interface ProcessItem {
   id: number
   status: string
   params_json: string
-  source_file_id: number
+  /** 源文件对外标识（16 位字符串 public_id），后端字段 source_file_public_id */
+  source_file_public_id: string
   error_message: string | null
   created_at: string
   started_at: string | null
@@ -24,7 +25,7 @@ export interface TaskRow {
   name: string
   dataset: string
   filename: string
-  fileId: number
+  filePublicId: string
   methods: string[]
   status: string
   created: string
@@ -60,7 +61,7 @@ export function useWorkspaceDashboard() {
       name: t('workspace.table.processName', { id: p.id }),
       dataset: getFileName(p),
       filename: p.filename || '',
-      fileId: p.source_file_id,
+      filePublicId: p.source_file_public_id,
       methods: parseAlgorithms(p.params_json),
       status: p.status,
       created: formatDateTime(createdDate),

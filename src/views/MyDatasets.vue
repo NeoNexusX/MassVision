@@ -242,11 +242,11 @@ const { showExploreConfirm, isConverting } = explore
 const editingDataset = ref<File | null>(null)
 
 function handleEdit(id: string) {
-  editingDataset.value = datasets.value.find((d) => d.id === id) ?? null
+  editingDataset.value = datasets.value.find((d) => d.publicId === id) ?? null
 }
 
 function handleMetadataSaved(file: File) {
-  const index = datasets.value.findIndex((d) => d.id === file.id)
+  const index = datasets.value.findIndex((d) => d.publicId === file.publicId)
   if (index !== -1) datasets.value[index] = file
 }
 

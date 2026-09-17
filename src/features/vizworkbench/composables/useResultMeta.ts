@@ -9,7 +9,7 @@ interface VizWorkbenchState {
   processName?: string
   datasetName?: string
   filename?: string
-  fileId?: number
+  filePublicId?: string
   methods?: string[]
   status?: string
 }

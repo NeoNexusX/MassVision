@@ -17,11 +17,11 @@ defineProps({
 })
 
 const emit = defineEmits<{
-  (e: 'view-overview', id: string): void
-  (e: 'download', id: string): void
-  (e: 'delete', id: string): void
-  (e: 'explore', id: string): void
-  (e: 'edit', id: string): void
+  (e: 'view-overview', publicId: string): void
+  (e: 'download', publicId: string): void
+  (e: 'delete', publicId: string): void
+  (e: 'explore', publicId: string): void
+  (e: 'edit', publicId: string): void
   (e: 'change-size', size: number): void
   (e: 'go-to-page', page: number): void
 }>()
@@ -58,14 +58,14 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
     <div v-else class="flex flex-wrap gap-6 justify-start">
       <div
         v-for="dataset in datasets"
-        :key="dataset.id"
+        :key="dataset.publicId"
         class="w-full md:w-[calc(50%-12px)] flex-shrink-0"
-        :class="{ 'opacity-50 pointer-events-none': deletingId === dataset.id }"
+        :class="{ 'opacity-50 pointer-events-none': deletingId === dataset.publicId }"
       >
         <DatasetCard
           :dataset="dataset"
           :is-my-dataset="isMyDataset"
-          :packing="packingIds.has(dataset.id)"
+          :packing="packingIds.has(dataset.publicId)"
           @view-overview="$emit('view-overview', $event)"
           @download="$emit('download', $event)"
           @delete="$emit('delete', $event)"

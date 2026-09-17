@@ -90,7 +90,7 @@ import { t } from '@/i18n'
 
 const route = useRoute()
 
-// 公开页响应不带数字 id（对外只用 public_id），成员下载用文件级 file_id
+// 公开页响应不带数字 id（对外只用 public_id），成员下载也走文件级 public_id
 const detail = ref<PublicCollectionDetail | null>(null)
 const loading = ref(false)
 const error = ref('')
@@ -115,7 +115,7 @@ const updatedDate = computed(() => formatDate(detail.value?.updatedAt))
 const { handleDownloadPublicRaw } = useDownloadProgress()
 
 function downloadMember(member: CollectionMember) {
-  handleDownloadPublicRaw(String(member.id))
+  handleDownloadPublicRaw(member.publicId)
 }
 
 watch(publicId, fetch)

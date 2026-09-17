@@ -35,10 +35,10 @@ export function useUploadResume() {
 
   const discardResume = async () => {
     const session = loadUploadSession()
-    const fileId = session?.fileId
+    const filePublicId = session?.filePublicId
     await cleanupResumable()
-    if (fileId) {
-      await deleteFile(fileId).catch(() => {})
+    if (filePublicId) {
+      await deleteFile(filePublicId).catch(() => {})
     }
     pendingResume.value = false
     pendingSource.value = null

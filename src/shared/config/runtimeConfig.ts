@@ -261,7 +261,7 @@ export interface ZarrConfig {
 export interface OssConfig {
   /**
    * 预览图直连 base（形如 https://{bucket}.oss-{region}.aliyuncs.com，末尾不带斜杠）。
-   * 完整 URL = {previewImageBase}/images/file_{id}/preview.jpg；
+   * 完整 URL = {previewImageBase}/{image_path}/preview.jpg（目录取自后端 image_path）；
    * 缺省时在 loadConfig 里回退测试环境域名。
    */
   previewImageBase?: string

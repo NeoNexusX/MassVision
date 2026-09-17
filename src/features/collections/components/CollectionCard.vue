@@ -1,6 +1,6 @@
 <template>
   <!-- 集合卡片：整行三栏 —— 左封面轮播 / 中两列元信息 / 右操作列。
-       封面图统一取成员文件的 OSS 预览图（images/file_{id}/preview.jpg），
+       封面图统一取成员文件的 OSS 预览图（目录来自后端 image_path），
        后端已按数据类型返回对应的那张（processed → TIC，continuous → UMAP），
        前端不做判断；成员超过 1 个时用左右箭头切换。
        轮播用 daisyUI carousel（帧常驻 DOM + scrollIntoView 翻页），
@@ -40,8 +40,8 @@
           :aria-label="$t('collections.card.coversAria', { name: collection.name })"
           @scroll.passive="onCoverScroll"
         >
-          <div v-for="fileId in slides" :key="fileId" class="carousel-item w-full h-full">
-            <DatasetThumb :file-id="String(fileId)" :alt="`${collection.name} preview`" />
+          <div v-for="(imagePath, i) in slides" :key="i" class="carousel-item w-full h-full">
+            <DatasetThumb :image-path="imagePath" :alt="`${collection.name} preview`" />
           </div>
         </div>
         <div
@@ -303,8 +303,8 @@ const props = defineProps<{
   collection: CollectionSummary
   /** 当前用户是 owner 或 admin（控制 Delete 显隐） */
   canEdit?: boolean
-  /** 该集合成员的 file_id（由 useCollectionCovers 逐卡补齐），决定封面轮播；只取前 5 个 */
-  memberIds?: number[]
+  /** 该集合成员的 imagePath（由 useCollectionCovers 逐卡补齐），决定封面轮播；只取前 5 个 */
+  imagePaths?: (string | null)[]
   /** 封面成员仍在拉取（拉取期间显示骨架而非占位图） */
   coverLoading?: boolean
 }>()
@@ -320,7 +320,7 @@ const placeholderSvg = getDatasetPlaceholderSvg({ showGuides: true })
 // ---- 封面轮播：一卡一帧，箭头切到下一个成员 ----
 // 只挂前 5 帧：列表页预览够用，同时封顶一次加载的图片请求数
 const MAX_FRAMES = 5
-const slides = computed(() => (props.memberIds ?? []).slice(0, MAX_FRAMES))
+const slides = computed(() => (props.imagePaths ?? []).slice(0, MAX_FRAMES))
 const slideCount = computed(() => slides.value.length)
 
 // 帧常驻 DOM，游标由实际滚动位置驱动（手动滑动也同步）

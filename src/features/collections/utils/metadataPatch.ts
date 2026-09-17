@@ -60,9 +60,9 @@ export function buildMetadataPatch(
  */
 export function buildCollectionCreatePayload(
   draft: CollectionMetadataDraft,
-  fileIds: number[],
+  filePublicIds: string[],
 ): CollectionCreatePayload {
-  const payload: Record<string, unknown> = { file_ids: fileIds }
+  const payload: Record<string, unknown> = { file_public_ids: filePublicIds }
   for (const field of METADATA_FIELDS) {
     const value = draft[field.key]
     if (field.type === 'list') {

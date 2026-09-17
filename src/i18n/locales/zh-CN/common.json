@@ -44,7 +44,9 @@
       "clearAll": "全部清除",
       "discard": "放弃",
       "uploadDataset": "上传新数据集",
-      "share": "分享"
+      "share": "分享",
+      "signIn": "登录",
+      "register": "注册"
     },
     "state": {
       "loading": "加载中…",
@@ -64,6 +66,7 @@
       "removeFailed": "移除失败",
       "copied": "已复制到剪贴板",
       "copyFailed": "复制失败",
+      "fileMissing": "文件不存在或正在删除",
       "exported": "已导出",
       "exportFailed": "导出失败",
       "loadFailed": "{target}加载失败",

@@ -14,7 +14,7 @@
       <button @click="onSearchClick" class="btn btn-primary shrink-0 kawaru-text-100">{{ $t('common.action.search') }}</button>
     </div>
 
-    <!-- 范围切换：默认浏览全部（/collections/all），勾选后仅显示自己的（/collections） -->
+    <!-- 范围切换：默认浏览全部（/collections/list_all），勾选后仅显示自己的（/collections/list） -->
     <label
       class="flex items-center gap-2 cursor-pointer select-none whitespace-nowrap
         kawaru-text-95 text-base-content/80"
@@ -51,7 +51,7 @@ import { ref, watch } from 'vue'
 import SearchInput from '@/shared/components/SearchInput.vue'
 
 const props = defineProps<{
-  /** 仅显示当前登录用户的集合（切换 /collections/all ↔ /collections） */
+  /** 仅显示当前登录用户的集合（切换 /collections/list_all ↔ /collections/list） */
   mineOnly?: boolean
   /** 当前已应用的搜索词。空态里的 Clear Search 只重置外层状态，
    *  这里跟着清空输入框，避免框里留着旧词与列表状态不一致 */

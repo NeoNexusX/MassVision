@@ -18,8 +18,8 @@ docs/
 
 The `rewrites` setting removes the source `/en` segment from English URLs, while Chinese keeps `/zh`. For example:
 
-- `docs/en/guide/view-data.md` → `/docs/guide/view-data`
-- `docs/zh/guide/view-data.md` → `/docs/zh/guide/view-data`
+- `docs/en/guide/dataset-overview.md` → `/docs/guide/dataset-overview`
+- `docs/zh/guide/4.Dataset-Overview.md` → `/docs/zh/guide/4.Dataset-Overview`
 
 ## Editing and Adding Pages
 
@@ -41,7 +41,7 @@ outline: [2, 3]
 
 ## Links and Assets
 
-- Prefer relative links in the same section, such as `[View Data](./view-data)`.
+- Prefer relative links in the same section, such as `[Dataset Overview](./dataset-overview)`.
 - Absolute English site paths omit `/en`; Chinese paths include `/zh`.
 - `ignoreDeadLinks` currently exempts only SPA paths beginning with `/mydatasets` and `/datasets`. Other dead links still fail the build; dead-link checking is not globally disabled.
 - Put documentation-only screenshots in a clearly named asset directory under `docs/` and reference them relatively, or use a stable external host. Do not place them in root `public/`, where they ship as unlisted SPA assets.
