@@ -5,8 +5,7 @@ import { useToast } from '@/shared/composables/useToast'
 import { t } from '@/i18n'
 import {
   buildOverviewShareUrl,
-  buildPublicFileShareUrl,
-  decodeOverviewFileId,
+  resolveShareToken,
 } from '@/features/datasets/utils/overviewShareLink'
 
 /** Route parsing, link creation, and clipboard state for public Overview sharing. */
@@ -16,10 +15,9 @@ export function useOverviewShare(dataset: Ref<File | null>) {
   const { showToast } = useToast()
 
   const isShareView = computed(() => route.name === 'SharedDatasetOverview')
-  const sharedFileId = computed(() =>
-    isShareView.value
-      ? decodeOverviewFileId(String(route.params.encodedId ?? ''))
-      : null,
+  // token 判别：16 位 publicId（新链接）或 Base64 数字 id（历史链接，永久兼容）
+  const sharedToken = computed(() =>
+    isShareView.value ? resolveShareToken(String(route.params.shareToken ?? '')) : null,
   )
   const isShareCopied = ref(false)
 
@@ -27,12 +25,7 @@ export function useOverviewShare(dataset: Ref<File | null>) {
     const current = dataset.value
     if (!current?.isPublic) return
 
-    // 新链接优先走 public_id（/files/{public_id}，免登录且不可枚举）；
-    // 列表/详情数据还没带上 publicId 时回退旧的 /s/{encodedId} 链接，
-    // 旧链接的解析链路不受影响
-    const shareUrl =
-      buildPublicFileShareUrl(router, current.publicId, window.location.origin) ??
-      buildOverviewShareUrl(router, current.id, window.location.origin)
+    const shareUrl = buildOverviewShareUrl(router, current.publicId, window.location.origin)
     if (!shareUrl) {
       showToast(t('datasets.overview.shareUnavailable'), 'error')
       return
@@ -53,7 +46,7 @@ export function useOverviewShare(dataset: Ref<File | null>) {
 
   return {
     isShareView,
-    sharedFileId,
+    sharedToken,
     isShareCopied,
     shareCurrent,
   }

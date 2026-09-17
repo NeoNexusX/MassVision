@@ -31,29 +31,29 @@
         <ul v-else-if="datasets.length" class="flex flex-col gap-1">
           <li
             v-for="dataset in datasets"
-            :key="dataset.id"
+            :key="dataset.publicId"
             :class="[
               'px-3 py-2 rounded-lg flex items-center gap-3 transition-colors',
-              isExcluded(dataset.id)
+              isExcluded(dataset.publicId)
                 ? 'opacity-50 cursor-not-allowed'
-                : isSelected(dataset.id)
+                : isSelected(dataset.publicId)
                   ? 'bg-primary/10 dark:bg-primary/20 cursor-pointer'
                   : 'hover:bg-base-200 dark:hover:bg-slate-700 cursor-pointer',
             ]"
-            @click="!isExcluded(dataset.id) && emit('toggle', dataset)"
+            @click="!isExcluded(dataset.publicId) && emit('toggle', dataset)"
           >
             <input
               type="checkbox"
               class="checkbox checkbox-sm checkbox-primary shrink-0"
-              :checked="isSelected(dataset.id)"
-              :disabled="isExcluded(dataset.id)"
+              :checked="isSelected(dataset.publicId)"
+              :disabled="isExcluded(dataset.publicId)"
               :aria-label="$t('collections.picker.selectAria', { name: dataset.name })"
               tabindex="-1"
               @click.stop
-              @change="!isExcluded(dataset.id) && emit('toggle', dataset)"
+              @change="!isExcluded(dataset.publicId) && emit('toggle', dataset)"
             />
             <div class="w-10 h-10 shrink-0">
-              <DatasetThumb :file-id="dataset.id" :alt="$t('collections.picker.previewAlt', { name: dataset.name })" />
+              <DatasetThumb :image-path="dataset.imagePath" :alt="$t('collections.picker.previewAlt', { name: dataset.name })" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="font-medium truncate text-base-content" :title="dataset.name">
@@ -65,7 +65,7 @@
             </div>
             <!-- 已是集合成员：禁选并标注 -->
             <span
-              v-if="isExcluded(dataset.id)"
+              v-if="isExcluded(dataset.publicId)"
               class="badge badge-sm border border-base-300 bg-base-200 text-base-content/60 whitespace-nowrap shrink-0 kawaru-text-75"
             >
               {{ $t('collections.picker.alreadyIn') }}
@@ -121,15 +121,14 @@ const props = defineProps({
   selectedCount: { type: Number, required: true },
   /** 卡片标题（Create 流程为 Step 1，overview 加成员弹窗为 Add Members） */
   title: { type: String, default: undefined },
-  /** 已在集合中的文件 id（File.id 是 string，成员 number id 统一转 string 比较）。
-   *  命中的行禁选并标注 "Already in collection"。 */
-  excludeIds: { type: Array as PropType<(number | string)[]>, default: () => [] },
+  /** 已在集合中的成员 public_id（文件域统一 16 位字符串标识）。命中的行禁选并标注 "Already in collection"。 */
+  excludePublicIds: { type: Array as PropType<string[]>, default: () => [] },
 })
 
-const excludeKeySet = computed(() => new Set(props.excludeIds.map(String)))
+const excludeKeySet = computed(() => new Set(props.excludePublicIds))
 
-function isExcluded(id: string): boolean {
-  return excludeKeySet.value.has(String(id))
+function isExcluded(publicId: string): boolean {
+  return excludeKeySet.value.has(publicId)
 }
 
 const emit = defineEmits<{

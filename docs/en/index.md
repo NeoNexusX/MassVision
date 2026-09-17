@@ -3,7 +3,7 @@ layout: home
 hero:
   name: '<span class="brand-word">Spatial</span><span class="brand-x">X</span><span class="brand-word">omics</span>'
   text: User Guide
-  tagline:  A spatial multi-omics data analysis platform
+  tagline: Spatial Multi-omics Analysis Platform
   image:
     src: https://neonexus-picture.oss-ap-southeast-1.aliyuncs.com/test/mmexport1782712507514.png
     alt: SpatialXomics
@@ -11,22 +11,41 @@ hero:
     - theme: brand
       text: Getting Started
       link: /guide/getting-started
-
 features:
-  - title: Uploading Data
-    details: Upload a paired imzML/ibd dataset, complete acquisition and sample metadata, and follow reuse, compression, and OSS multipart upload.
+  - title: Getting Started
+    details: Platform overview, core features, and quick start guide for SpatialXomics.
+    link: /guide/getting-started
+    linkText: Read Guide
+  - title: Account Management
+    details: Register, login, password recovery, and profile management.
+    link: /guide/account-management
+    linkText: Read Guide
+  - title: Finding Datasets
+    details: Browse and search public datasets, filter by various criteria.
+    link: /guide/finding-datasets
+    linkText: Read Guide
+  - title: Dataset Overview
+    details: View dataset metadata, share public links, and download original files.
+    link: /guide/dataset-overview
+    linkText: Read Guide
+  - title: Data Visualization
+    details: View ion images, TIC plots, and spectra with adjustable display settings.
+    link: /guide/data-visualization
+    linkText: Read Guide
+  - title: Upload Datasets
+    details: Upload paired imzML/ibd files with metadata and chunked upload support.
     link: /guide/upload-data
-    linkText: Read the guide
-  - title: Viewing Data
-    details: Explore ion/TIC images and spectra with UMAP, KMeans, ROIs, region comparison, and annotation CSV matching.
-    link: /guide/view-data
-    linkText: Read the guide
-  - title: Downloading Data
-    details: Download the original imzML/ibd pair from a list or overview page and understand login and cooldown requirements.
-    link: /guide/download-data
-    linkText: Read the guide
-  - title: Creating an Analysis
-    details: Select a data source and configure preprocessing methods compatible with its spectrum/storage mode before submitting a workspace task.
-    link: /guide/create-analysis
-    linkText: Read the guide
+    linkText: Read Guide
+  - title: Dataset Analysis
+    details: UMAP, KMeans, ROI, region comparison, and annotation CSV analysis.
+    link: /guide/dataset-analysis
+    linkText: Read Guide
+  - title: Workspace
+    details: Select data sources, configure preprocessing, and submit analysis tasks.
+    link: /guide/workspace
+    linkText: Read Guide
+  - title: Navigation
+    details: Platform page structure and navigation methods.
+    link: /guide/navigation
+    linkText: Read Guide
 ---

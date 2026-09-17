@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mapCollectionDetail, mapCollectionSummary } from '../collectionMapper'
 
-// 真实后端（GET /collections）把元数据平铺在顶层，没有嵌套 metadata 对象
+// 真实后端（POST /collections/list）把元数据平铺在顶层，没有嵌套 metadata 对象
 // （pixel_size_* / resolving_power / mz 已随集合级数值字段下线，不再出现在响应中）
 const flatRaw = {
   id: 7,
@@ -36,14 +36,15 @@ const detailRaw = {
   ...flatRaw,
   members: [
     {
-      file_id: 42,
+      public_id: 'qW3rT5yU7iO9pA1s',
+      image_path: 'images/file_42/',
       filename: 'kidney1.imzML',
       size: 100,
       status: 'completed',
       is_public: true,
       experiment_type: 'imzML',
     },
-    { file_id: 7 },
+    { public_id: 'zX9cV8bN6mL4kJ2h' },
   ],
 }
 
@@ -129,7 +130,8 @@ describe('mapCollectionDetail', () => {
 
     expect(d.members).toHaveLength(2)
     expect(d.members[0]).toEqual({
-      id: 42,
+      publicId: 'qW3rT5yU7iO9pA1s',
+      imagePath: 'images/file_42/',
       filename: 'kidney1.imzML',
       size: 100,
       status: 'completed',
@@ -137,13 +139,20 @@ describe('mapCollectionDetail', () => {
       experimentType: 'imzML',
     })
     expect(d.members[1]).toEqual({
-      id: 7,
+      publicId: 'zX9cV8bN6mL4kJ2h',
+      imagePath: null,
       filename: '',
       size: 0,
       status: '',
       isPublic: false,
       experimentType: null,
     })
+  })
+
+  it('throws on a member row missing public_id (contract error, no silent "undefined")', () => {
+    expect(() => mapCollectionDetail({ ...flatRaw, members: [{ filename: 'a.imzML' }] })).toThrow(
+      /public_id/,
+    )
   })
 
   it('tolerates empty payload', () => {
@@ -156,7 +165,7 @@ describe('mapCollectionDetail', () => {
 })
 
 describe('mapCollectionSummary', () => {
-  it('maps flat list rows (real GET /collections shape)', () => {
+  it('maps flat list rows (real POST /collections/list shape)', () => {
     const s = mapCollectionSummary(flatRaw)
 
     expect(s).toMatchObject({
@@ -199,10 +208,12 @@ describe('mapCollectionSummary', () => {
   it('maps members when the list row happens to carry them', () => {
     const s = mapCollectionSummary({
       ...flatRaw,
-      members: [{ file_id: 42, filename: 'a.imzML', status: 'completed', is_public: true }],
+      members: [
+        { public_id: 'qW3rT5yU7iO9pA1s', filename: 'a.imzML', status: 'completed', is_public: true },
+      ],
     })
 
-    expect(s.members?.map((m) => m.id)).toEqual([42])
+    expect(s.members?.map((m) => m.publicId)).toEqual(['qW3rT5yU7iO9pA1s'])
   })
 
   it('leaves members undefined when the list row has none', () => {

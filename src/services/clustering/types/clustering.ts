@@ -19,7 +19,8 @@ export interface ClusteringTaskResponse {
   /** ISO 8601 timestamp, null/absent until finished. */
   finished_at: string | null
   experiment_id: number
-  source_file_id: number
+  /** 源文件对外标识（16 位字符串 public_id）。 */
+  source_file_public_id: string
   user_id: number
   filename: string
 }

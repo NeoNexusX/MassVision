@@ -3,11 +3,8 @@
        右侧容器 lg 下宽 8em，public 与 my datasets 卡片几何完全一致；
        中间信息以左容器为基准居中，右侧操作列靠左、纵向均匀分布。 -->
   <div
-    class="flex flex-col lg:flex-row p-4 gap-x-4 gap-y-2
-      bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md
-      transition-shadow duration-200 border border-base-300
-      cursor-pointer relative overflow-hidden"
-    @click="$emit('view-overview', dataset.id)"
+    class="flex flex-col lg:flex-row p-4 gap-x-4 gap-y-2 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-base-300 cursor-pointer relative overflow-hidden"
+    @click="$emit('view-overview', dataset.publicId)"
   >
     <!-- 左侧容器：文件名 + 图片 + 中间信息 -->
     <div class="flex flex-1 min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
@@ -15,15 +12,13 @@
            My Datasets 才有（public 列表不展示），且只保留 svg——文字信息
            收进 title/aria-label，不占横向空间。 -->
       <h3
-        class="w-full flex items-center gap-2 min-w-0
-          font-bold text-base-content kawaru-text-112 leading-snug"
+        class="w-full flex items-center gap-2 min-w-0 font-bold text-base-content kawaru-text-112 leading-snug"
         :aria-label="$t('datasets.card.datasetName', { name: dataset.filename || dataset.name })"
       >
         <span
-          class="truncate cursor-pointer min-w-0
-            hover:text-primary dark:hover:text-indigo-400 transition-colors"
+          class="truncate cursor-pointer min-w-0 hover:text-primary dark:hover:text-indigo-400 transition-colors"
           :title="dataset.filename || dataset.name"
-          @click.stop="$emit('view-overview', dataset.id)"
+          @click.stop="$emit('view-overview', dataset.publicId)"
         >
           {{ dataset.name }}
         </span>
@@ -38,8 +33,13 @@
       </h3>
 
       <!-- 图片 -->
-      <div class="w-full max-w-[250px] min-w-[120px] aspect-square rounded-lg overflow-hidden border border-base-300">
-        <DatasetPreviewGallery :file-id="dataset.id" :storage-mode="dataset.storageMode" />
+      <div
+        class="w-full max-w-[250px] min-w-[120px] aspect-square rounded-lg overflow-hidden border border-base-300"
+      >
+        <DatasetPreviewGallery
+          :image-path="dataset.imagePath"
+          :storage-mode="dataset.storageMode"
+        />
       </div>
 
       <!-- 中间信息：以左容器为基准，在图片与右侧容器之间居中 -->
@@ -53,7 +53,6 @@
           <span>{{ field.label }}</span>
           <span class="ml-2 font-semibold">{{ field.value || '—' }}</span>
         </p>
-
       </div>
     </div>
 
@@ -64,11 +63,7 @@
          列宽用 8em 而非写死 160px：本容器自挂 kawaru-text-100 钉住字号，
          8em 恒等于「档位 × 8」，换档时列宽同步跟上，标签不会撞墙换行。 -->
     <div
-      class="cursor-default kawaru-text-100
-        flex flex-row flex-wrap gap-2 items-center justify-evenly
-        w-full border-t border-base-300 pt-3
-        lg:w-[8em] lg:flex-col lg:items-start lg:self-stretch
-        lg:border-l lg:border-t-0 lg:pt-0 lg:pl-3"
+      class="cursor-default kawaru-text-100 flex flex-row flex-wrap gap-2 items-center justify-evenly w-full border-t border-base-300 pt-3 lg:w-[8em] lg:flex-col lg:items-start lg:self-stretch lg:border-l lg:border-t-0 lg:pt-0 lg:pl-3"
       @click.stop
     >
       <template v-for="item in actionItems" :key="item.id">
@@ -136,11 +131,11 @@ const props = defineProps<{
 const { showToast } = useToast()
 
 const emit = defineEmits<{
-  (e: 'view-overview', id: string): void
-  (e: 'download', id: string): void
-  (e: 'delete', id: string): void
-  (e: 'explore', id: string): void
-  (e: 'edit', id: string): void
+  (e: 'view-overview', publicId: string): void
+  (e: 'download', publicId: string): void
+  (e: 'delete', publicId: string): void
+  (e: 'explore', publicId: string): void
+  (e: 'edit', publicId: string): void
 }>()
 
 const submitDate = computed(() => formatDate(props.dataset.submitTime))
@@ -174,7 +169,7 @@ const showShareConfirm = ref(false)
 const sharing = ref(false)
 
 const confirmShare = async () => {
-  const id = props.dataset.id
+  const id = props.dataset.publicId ?? ''
   sharing.value = true
   try {
     await setFilePublic(id)
@@ -195,8 +190,14 @@ const confirmShare = async () => {
 
 const metaFields = computed(() => [
   { label: labelColon(t('common.meta.organism')), value: vocabLabel(props.dataset.organism) },
-  { label: labelColon(t('common.meta.organismPart')), value: vocabLabel(props.dataset.organismPart) },
-  { label: labelColon(t('common.meta.ionisationSource')), value: vocabLabel(props.dataset.ionSource) },
+  {
+    label: labelColon(t('common.meta.organismPart')),
+    value: vocabLabel(props.dataset.organismPart),
+  },
+  {
+    label: labelColon(t('common.meta.ionisationSource')),
+    value: vocabLabel(props.dataset.ionSource),
+  },
   { label: labelColon(t('common.meta.analyzer')), value: vocabLabel(props.dataset.analyzer) },
   { label: labelColon(t('datasets.field.fileSize')), value: formattedSize.value },
   { label: labelColon(t('datasets.field.submittedBy')), value: props.dataset.submitter },
@@ -218,11 +219,26 @@ const actionItems = computed<ActionItem[]>(() => {
   // Upload status
   const status = props.dataset.status
   if (status === 'uploading')
-    items.push({ id: 'status', label: t('common.status.processing'), colorClass: 'text-info', spinner: true })
+    items.push({
+      id: 'status',
+      label: t('common.status.processing'),
+      colorClass: 'text-info',
+      spinner: true,
+    })
   else if (status === 'completed')
-    items.push({ id: 'status', icon: 'success', label: t('datasets.card.uploaded'), colorClass: 'text-success' })
+    items.push({
+      id: 'status',
+      icon: 'success',
+      label: t('datasets.card.uploaded'),
+      colorClass: 'text-success',
+    })
   else if (status === 'failed')
-    items.push({ id: 'status', icon: 'error', label: t('common.status.failed'), colorClass: 'text-error' })
+    items.push({
+      id: 'status',
+      icon: 'error',
+      label: t('common.status.failed'),
+      colorClass: 'text-error',
+    })
 
   // 元信息编辑（原本在 Dataset Overview 页，现收到卡片右侧；可见性标志已挪到文件名旁）
   if (props.isMyDataset)
@@ -231,7 +247,7 @@ const actionItems = computed<ActionItem[]>(() => {
       icon: 'pencil',
       label: t('common.action.edit'),
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
-      onClick: () => emit('edit', props.dataset.id),
+      onClick: () => emit('edit', props.dataset.publicId),
     })
 
   // Action buttons
@@ -245,7 +261,7 @@ const actionItems = computed<ActionItem[]>(() => {
       icon: 'search',
       label: t('datasets.card.visualize'),
       colorClass: 'text-primary hover:text-primary-focus transition-colors',
-      onClick: () => emit('explore', props.dataset.id),
+      onClick: () => emit('explore', props.dataset.publicId),
     })
   } else {
     // 未关联可视化任务 → Explore
@@ -254,7 +270,7 @@ const actionItems = computed<ActionItem[]>(() => {
       icon: 'search',
       label: t('datasets.card.explore'),
       colorClass: 'text-primary hover:text-primary-focus transition-colors',
-      onClick: () => emit('explore', props.dataset.id),
+      onClick: () => emit('explore', props.dataset.publicId),
     })
   }
 
@@ -264,7 +280,7 @@ const actionItems = computed<ActionItem[]>(() => {
       icon: 'document-text',
       label: t('datasets.card.overview'),
       colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
-      onClick: () => emit('view-overview', props.dataset.id),
+      onClick: () => emit('view-overview', props.dataset.publicId),
     },
     props.packing
       ? {
@@ -278,7 +294,7 @@ const actionItems = computed<ActionItem[]>(() => {
           icon: 'download',
           label: t('common.action.download'),
           colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
-          onClick: () => emit('download', props.dataset.id),
+          onClick: () => emit('download', props.dataset.publicId),
         },
   )
 
@@ -298,7 +314,7 @@ const actionItems = computed<ActionItem[]>(() => {
       icon: 'trash',
       label: t('common.action.delete'),
       colorClass: 'text-error hover:text-error transition-colors',
-      onClick: () => emit('delete', props.dataset.id),
+      onClick: () => emit('delete', props.dataset.publicId),
     })
 
   return items

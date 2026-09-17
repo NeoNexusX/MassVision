@@ -23,6 +23,9 @@ const addMembersMock = vi.mocked(addMembers)
 const removeMembersMock = vi.mocked(removeMembers)
 const reorderMembersMock = vi.mocked(reorderMembers)
 
+/** 造 16 位 public_id：pid + 13 位数字补齐 */
+const PID = (n: number) => `pid${String(n).padStart(13, '0')}`
+
 function makeDetail(ids: number[]): CollectionDetail {
   return {
     id: 7,
@@ -44,7 +47,8 @@ function makeDetail(ids: number[]): CollectionDetail {
     ionisationSource: [],
     metadata: { name: 'X' },
     members: ids.map((id) => ({
-      id,
+      publicId: PID(id),
+      imagePath: null,
       filename: `f${id}.imzML`,
       size: 0,
       status: 'completed',
@@ -81,10 +85,10 @@ describe('useCollectionMembers', () => {
     addMembersMock.mockResolvedValue(makeDetail([1, 2, 3, 4]))
     const ops = useCollectionMembers({ detail, refresh })
 
-    await expect(ops.add([4])).resolves.toBe(true)
+    await expect(ops.add([PID(4)])).resolves.toBe(true)
 
-    expect(addMembersMock).toHaveBeenCalledWith(7, [4])
-    expect(ops.members.value.map((m) => m.id)).toEqual([1, 2, 3, 4])
+    expect(addMembersMock).toHaveBeenCalledWith(7, [PID(4)])
+    expect(ops.members.value.map((m) => m.publicId)).toEqual([1, 2, 3, 4].map(PID))
     expect(showToastMock).toHaveBeenCalledWith('Added', 'success')
   })
 
@@ -93,19 +97,23 @@ describe('useCollectionMembers', () => {
     const ops = useCollectionMembers({ detail, refresh })
 
     // 返回 false：调用方据此保持选集弹窗打开（选择仍在，便于重试）
-    await expect(ops.add([4])).resolves.toBe(false)
+    await expect(ops.add([PID(4)])).resolves.toBe(false)
 
     expect(showToastMock).toHaveBeenCalledWith('collection member limit exceeded', 'error')
     expect(refresh).toHaveBeenCalled()
   })
 
   it('remove reports the removed/skipped reconciliation and refreshes', async () => {
-    removeMembersMock.mockResolvedValue({ collectionId: 7, removed: [1, 2], skipped: [9] })
+    removeMembersMock.mockResolvedValue({
+      collectionId: 7,
+      removed: [PID(1), PID(2)],
+      skipped: [PID(9)],
+    })
     const ops = useCollectionMembers({ detail, refresh })
 
-    await ops.remove([1, 2, 9])
+    await ops.remove([PID(1), PID(2), PID(9)])
 
-    expect(removeMembersMock).toHaveBeenCalledWith(7, [1, 2, 9])
+    expect(removeMembersMock).toHaveBeenCalledWith(7, [PID(1), PID(2), PID(9)])
     expect(showToastMock).toHaveBeenCalledWith(
       'Removed 2 · 1 were no longer in the collection',
       'success',
@@ -120,8 +128,8 @@ describe('useCollectionMembers', () => {
     await ops.reorder(2, 0)
 
     // 全量数组按乐观顺序提交
-    expect(reorderMembersMock).toHaveBeenCalledWith(7, [3, 1, 2])
-    expect(ops.members.value.map((m) => m.id)).toEqual([3, 1, 2])
+    expect(reorderMembersMock).toHaveBeenCalledWith(7, [3, 1, 2].map(PID))
+    expect(ops.members.value.map((m) => m.publicId)).toEqual([3, 1, 2].map(PID))
   })
 
   it('reorder 409 order conflict refreshes to the server order instead of keeping the optimistic one', async () => {
@@ -139,7 +147,7 @@ describe('useCollectionMembers', () => {
       'warning',
     )
     // 乐观顺序被服务端版本覆盖
-    expect(ops.members.value.map((m) => m.id)).toEqual([2, 3])
+    expect(ops.members.value.map((m) => m.publicId)).toEqual([2, 3].map(PID))
   })
 
   it('reorder network failure rolls back to the server version', async () => {
@@ -149,6 +157,6 @@ describe('useCollectionMembers', () => {
     await ops.reorder(0, 2)
 
     expect(refresh).toHaveBeenCalled()
-    expect(ops.members.value.map((m) => m.id)).toEqual([1, 2, 3])
+    expect(ops.members.value.map((m) => m.publicId)).toEqual([1, 2, 3].map(PID))
   })
 })

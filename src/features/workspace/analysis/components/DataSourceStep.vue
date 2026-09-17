@@ -57,15 +57,13 @@ const emit = defineEmits<{
           v-if="meta.total_pages > 0"
           class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full sm:w-auto sm:ml-auto"
         >
-          <span class="kawaru-text-100 text-base-content/60 whitespace-nowrap tabular-nums"
-            >{{
-              $t('common.pagination.summary', {
-                page: meta.current_page,
-                total: meta.total_pages,
-                count: meta.total_records,
-              })
-            }}</span
-          >
+          <span class="kawaru-text-100 text-base-content/60 whitespace-nowrap tabular-nums">{{
+            $t('common.pagination.summary', {
+              page: meta.current_page,
+              total: meta.total_pages,
+              count: meta.total_records,
+            })
+          }}</span>
           <PaginationBar
             :current-page="meta.current_page"
             :total-pages="meta.total_pages"
@@ -86,16 +84,21 @@ const emit = defineEmits<{
           <ul>
             <li
               v-for="dataset in datasets"
-              :key="dataset.id"
+              :key="dataset.publicId"
               :class="[
                 'px-4 py-2 cursor-pointer flex items-center justify-between',
-                selectedDataset?.id === dataset.id ? 'bg-base-200' : 'hover:bg-base-100',
+                selectedDataset?.publicId === dataset.publicId
+                  ? 'bg-base-200'
+                  : 'hover:bg-base-100',
               ]"
               @click="emit('select-dataset', dataset)"
             >
               <!-- 预览缩略图（与集合封面同一组件）：尺寸由外层 w-14 h-14 控制，失败自动回退占位 SVG -->
               <div class="w-14 h-14 shrink-0 mr-3">
-                <DatasetThumb :file-id="dataset.id" :alt="dataset.filename || dataset.name" />
+                <DatasetThumb
+                  :image-path="dataset.imagePath"
+                  :alt="dataset.filename || dataset.name"
+                />
               </div>
               <div class="flex-1 mr-4 min-w-0">
                 <div class="flex items-center justify-between gap-4">
@@ -111,7 +114,7 @@ const emit = defineEmits<{
               <input
                 type="radio"
                 name="selectedDataset"
-                :checked="selectedDataset?.id === dataset.id"
+                :checked="selectedDataset?.publicId === dataset.publicId"
               />
             </li>
           </ul>

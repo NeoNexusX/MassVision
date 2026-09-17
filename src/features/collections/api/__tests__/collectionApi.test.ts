@@ -34,7 +34,7 @@ const detailBody = {
   total_size: 10,
   owner_username: 'u',
   metadata: { name: 'X' },
-  members: [{ file_id: 42, filename: 'a.imzML' }],
+  members: [{ public_id: 'qW3rT5yU7iO9pA1s', image_path: 'images/file_42/', filename: 'a.imzML' }],
 }
 
 beforeEach(() => {
@@ -42,7 +42,7 @@ beforeEach(() => {
 })
 
 describe('collectionApi', () => {
-  it('listCollections posts to /collections/list with {} body and paginates via query params', async () => {
+  it('listCollections posts empty filter body, paginates via query, unwraps {meta, data}', async () => {
     const row = { id: 1, name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
 
     authPost.mockResolvedValueOnce({
@@ -53,7 +53,6 @@ describe('collectionApi', () => {
     })
     const res = await listCollections(2, 10)
 
-    // 后端 breaking change：必须发 body（不筛选也要 {}），不发返回 422
     expect(authPost).toHaveBeenCalledWith('/collections/list', {}, { params: { page: 2, size: 10 } })
     expect(res.meta).toEqual({
       current_page: 2,
@@ -109,7 +108,11 @@ describe('collectionApi', () => {
     })
     const res = await listAllCollections(1, 10)
 
-    expect(authPost).toHaveBeenCalledWith('/collections/list_all', {}, { params: { page: 1, size: 10 } })
+    expect(authPost).toHaveBeenCalledWith(
+      '/collections/list_all',
+      {},
+      { params: { page: 1, size: 10 } },
+    )
     expect(res.data).toHaveLength(1)
     expect(res.meta.total_records).toBe(1)
   })
@@ -119,16 +122,20 @@ describe('collectionApi', () => {
     const d = await getCollection(7)
     expect(authGet).toHaveBeenCalledWith('/collections/7')
     expect(d.id).toBe(7)
-    expect(d.members).toEqual([{ id: 42, filename: 'a.imzML', size: 0, status: '', isPublic: false, experimentType: null }])
+    expect(d.members).toEqual([{ publicId: 'qW3rT5yU7iO9pA1s', imagePath: 'images/file_42/', filename: 'a.imzML', size: 0, status: '', isPublic: false, experimentType: null }])
   })
 
   it('createCollection posts payload and returns mapped detail', async () => {
     authPost.mockResolvedValueOnce({ data: detailBody })
-    const d = await createCollection({ name: 'X', description: 'd', file_ids: [42, 7, 15] })
+    const d = await createCollection({
+      name: 'X',
+      description: 'd',
+      file_public_ids: ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h', 'pL0kJ8hG6fD4sA2w'],
+    })
     expect(authPost).toHaveBeenCalledWith('/collections', {
       name: 'X',
       description: 'd',
-      file_ids: [42, 7, 15],
+      file_public_ids: ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h', 'pL0kJ8hG6fD4sA2w'],
     })
     expect(d.memberCount).toBe(1)
   })
@@ -145,23 +152,31 @@ describe('collectionApi', () => {
     expect(r).toEqual({ collection_id: 7, deleted: true })
   })
 
-  it('addMembers posts file_ids and returns full detail', async () => {
+  it('addMembers posts file_public_ids and returns full detail', async () => {
     authPost.mockResolvedValueOnce({ data: detailBody })
-    await addMembers(7, [42, 7])
-    expect(authPost).toHaveBeenCalledWith('/collections/7/members', { file_ids: [42, 7] })
+    await addMembers(7, ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'])
+    expect(authPost).toHaveBeenCalledWith('/collections/7/members', {
+      file_public_ids: ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'],
+    })
   })
 
-  it('removeMembers sends file_ids in the DELETE body', async () => {
-    authDelete.mockResolvedValueOnce({ data: { collection_id: 7, removed: [42], skipped: [99] } })
-    const r = await removeMembers(7, [42, 99])
-    expect(authDelete).toHaveBeenCalledWith('/collections/7/members', { data: { file_ids: [42, 99] } })
-    expect(r).toEqual({ collectionId: 7, removed: [42], skipped: [99] })
+  it('removeMembers sends file_public_ids in the DELETE body', async () => {
+    authDelete.mockResolvedValueOnce({
+      data: { collection_id: 7, removed: ['qW3rT5yU7iO9pA1s'], skipped: ['zX9cV8bN6mL4kJ2h'] },
+    })
+    const r = await removeMembers(7, ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'])
+    expect(authDelete).toHaveBeenCalledWith('/collections/7/members', {
+      data: { file_public_ids: ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'] },
+    })
+    expect(r).toEqual({ collectionId: 7, removed: ['qW3rT5yU7iO9pA1s'], skipped: ['zX9cV8bN6mL4kJ2h'] })
   })
 
   it('reorderMembers patches the full-rewrite order endpoint', async () => {
     authPatch.mockResolvedValueOnce({ data: detailBody })
-    await reorderMembers(7, [42, 7, 15])
-    expect(authPatch).toHaveBeenCalledWith('/collections/7/members/order', { file_ids: [42, 7, 15] })
+    await reorderMembers(7, ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h', 'pL0kJ8hG6fD4sA2w'])
+    expect(authPatch).toHaveBeenCalledWith('/collections/7/members/order', {
+      file_public_ids: ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h', 'pL0kJ8hG6fD4sA2w'],
+    })
   })
 
   it('getPublicCollection uses the no-auth client and tolerates the missing numeric id', async () => {

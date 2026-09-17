@@ -58,8 +58,7 @@
         :pagination="pagination"
         :search-applied="search"
         :can-edit="canEdit"
-        :is-mine="isMine"
-        :member-ids="memberIds"
+        :member-image-paths="memberImagePaths"
         :cover-loading="coverLoading"
         @view="handleView"
         @delete="(id: number) => deleteConfirm.open(String(id))"
@@ -116,9 +115,9 @@ const {
 } = useCollectionsPage()
 
 // 卡片封面：列表接口不带 members，逐卡按行的 public_id 拉一次公开详情拿成员
-// file_id（按集合 id 缓存）。loading 一并下发，详情补齐期间卡片封面显示骨架
+// imagePath（按集合 id 缓存）。loading 一并下发，详情补齐期间卡片封面显示骨架
 // 而不是随机占位图
-const { memberIds, loading: coverLoading } = useCollectionCovers(collections)
+const { memberImagePaths, loading: coverLoading } = useCollectionCovers(collections)
 
 // 删除确认流：id 用 String 过桥（useConfirmDelete 以 string id 通用化）
 const deleteConfirm = useConfirmDelete({

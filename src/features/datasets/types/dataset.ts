@@ -1,5 +1,10 @@
+/** 文件对外标识：后端 16 位字符串 public_id（前后端成对迁移，前端不再消费自增数字 file_id） */
+export type FilePublicId = string
+
 export interface File {
-  id: string
+  publicId: FilePublicId
+  /** OSS 预览图目录（后端 image_path，相对 key）；null = 预览图未生成或生成失败 */
+  imagePath: string | null
   // Display name without extension
   name: string
 
@@ -26,6 +31,8 @@ export interface File {
   // Technical
   sizeBytes?: number
   storageType?: string
+  // backend returns verification code (MD5) in `file_verify_code`; frontend uses `hashMd5`
+  hashMd5?: string
 
   // Experiment / instrument
   instrumentTypes?: string[]
@@ -48,9 +55,6 @@ export interface File {
 
   status: string // 'uploading' | 'completed' | 'failed' - from backend
   isPublic: boolean
-  /** 免登录分享 id（16 位 base62，FilePublic 必返）。分享链接 /files/{public_id} 用它，
-   *  与可枚举的数字 file_id 解耦；下载仍用 id */
-  publicId?: string | null
 
   // Visualization / Zarr
   defaultRunId?: string | number | null  // 关联的可视化任务 run_id
@@ -63,7 +67,7 @@ export interface File {
 
 // ── API response types (separated from api/datasetApi.ts) ──
 
-// GET /files/{file_id}/download_raw - pre-signed URLs for imzML + ibd, zero polling
+// GET /files/{public_id}/download_raw - pre-signed URLs for imzML + ibd, zero polling
 export interface DownloadRawEntry {
   filename: string
   url: string
@@ -77,9 +81,8 @@ export interface DownloadRawResponse {
 // Collection 响应中的成员行（后端模型 FilePublic，snake_case 原样）。
 // 字段清单以接口实测为准；消费方（collectionMapper）对缺字段做默认值兜底。
 export interface FilePublicResponse {
-  file_id: number
-  /** 免登录分享 id（16 位 base62）；下载仍用 file_id */
-  public_id?: string | null
+  public_id: string
+  image_path?: string | null
   filename?: string | null
   size?: number | null
   status?: string | null

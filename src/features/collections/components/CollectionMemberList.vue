@@ -46,7 +46,7 @@
     <div v-if="members.length" class="flex flex-col gap-1 border border-base-200 dark:border-slate-700 rounded-md p-2">
       <div class="kawaru-text-100"
         v-for="(member, i) in members"
-        :key="member.id"
+        :key="member.publicId"
         :draggable="manageMode && armed"
         :class="[
           'relative px-3 py-3 rounded-lg flex items-center gap-4 select-none transition-opacity',
@@ -64,9 +64,9 @@
           v-if="manageMode"
           type="checkbox"
           class="checkbox checkbox-sm checkbox-primary shrink-0"
-          :checked="selectedIds.has(member.id)"
+          :checked="selectedIds.has(member.publicId)"
           :aria-label="$t('collections.picker.selectAria', { name: member.filename })"
-          @change="toggleSelect(member.id)"
+          @change="toggleSelect(member.publicId)"
         />
 
         <!-- 序号 + 拖拽手柄（管理模式） -->
@@ -83,9 +83,8 @@
           <SvgIcon type="bars3" class="w-[1em] h-[1em]" />
         </div>
 
-        <!-- 缩略图：16（64px）——40px 太小看不清组织结构 -->
-        <div class="w-16 h-16 shrink-0">
-          <DatasetThumb :file-id="String(member.id)" :alt="$t('collections.picker.previewAlt', { name: member.filename })" />
+        <div class="w-10 h-10 shrink-0">
+          <DatasetThumb :image-path="member.imagePath" :alt="$t('collections.picker.previewAlt', { name: member.filename })" />
         </div>
 
         <div class="flex-1 min-w-0">
@@ -171,7 +170,7 @@ const props = defineProps({
 
 const emit = defineEmits<{
   (e: 'add'): void
-  (e: 'remove', ids: number[]): void
+  (e: 'remove', publicIds: string[]): void
   (e: 'reorder', from: number, to: number): void
   (e: 'download', member: CollectionMember): void
 }>()
@@ -185,11 +184,11 @@ function statusLabel(status: string | null | undefined): string {
 }
 
 // ---- 多选（仅管理模式）----
-const selectedIds = reactive(new Set<number>())
+const selectedIds = reactive(new Set<string>())
 
-function toggleSelect(id: number) {
-  if (selectedIds.has(id)) selectedIds.delete(id)
-  else selectedIds.add(id)
+function toggleSelect(publicId: string) {
+  if (selectedIds.has(publicId)) selectedIds.delete(publicId)
+  else selectedIds.add(publicId)
 }
 
 function confirmRemove() {
@@ -201,7 +200,7 @@ function confirmRemove() {
 watch(
   () => props.members,
   (members) => {
-    const valid = new Set(members.map((m) => m.id))
+    const valid = new Set(members.map((m) => m.publicId))
     for (const id of [...selectedIds]) {
       if (!valid.has(id)) selectedIds.delete(id)
     }

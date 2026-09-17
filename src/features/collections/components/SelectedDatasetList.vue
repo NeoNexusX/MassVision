@@ -31,7 +31,7 @@
     >
       <div class="kawaru-text-87"
         v-for="(dataset, i) in selected"
-        :key="dataset.id"
+        :key="dataset.publicId"
         :draggable="armed"
         :class="[
           'relative px-3 py-2 rounded-lg flex items-center gap-3 select-none transition-opacity',
@@ -59,7 +59,7 @@
         </div>
 
         <div class="w-10 h-10 shrink-0">
-          <DatasetThumb :file-id="dataset.id" :alt="$t('collections.picker.previewAlt', { name: dataset.name })" />
+          <DatasetThumb :image-path="dataset.imagePath" :alt="$t('collections.picker.previewAlt', { name: dataset.name })" />
         </div>
 
         <div class="flex-1 min-w-0">
@@ -95,7 +95,7 @@
             class="btn btn-ghost btn-sm btn-square kawaru-text-100 text-error"
 :title="$t('collections.selected.removeTitle')"
             :aria-label="$t('collections.selected.removeAria', { name: dataset.name })"
-            @click="emit('remove', dataset.id)"
+            @click="emit('remove', dataset.publicId)"
           >
             <SvgIcon type="close" class="w-[1em] h-[1em]" />
           </button>
@@ -129,7 +129,7 @@ const emit = defineEmits<{
   (e: 'reorder', from: number, to: number): void
   (e: 'move-up', index: number): void
   (e: 'move-down', index: number): void
-  (e: 'remove', id: string): void
+  (e: 'remove', publicId: string): void
   (e: 'clear-all'): void
 }>()
 

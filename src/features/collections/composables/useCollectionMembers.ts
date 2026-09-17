@@ -41,11 +41,11 @@ export function useCollectionMembers(options: UseCollectionMembersOptions) {
 
   // ---- 添加成员：响应即完整 CollectionDetail，直接回写。
   // 返回是否成功——调用方据此决定是否关闭选集弹窗（失败时保留用户的选择便于重试）----
-  async function add(fileIds: number[]): Promise<boolean> {
-    if (!detail.value || !fileIds.length || adding.value) return false
+  async function add(filePublicIds: string[]): Promise<boolean> {
+    if (!detail.value || !filePublicIds.length || adding.value) return false
     adding.value = true
     try {
-      detail.value = await addMembers(detail.value.id, fileIds)
+      detail.value = await addMembers(detail.value.id, filePublicIds)
       syncFromServer()
       showToast(t('common.feedback.added'), 'success')
       return true
@@ -60,11 +60,11 @@ export function useCollectionMembers(options: UseCollectionMembersOptions) {
   }
 
   // ---- 移除成员：消费 removed/skipped 对账后重拉 ----
-  async function remove(ids: number[]) {
-    if (!detail.value || !ids.length || removing.value) return
+  async function remove(publicIds: string[]) {
+    if (!detail.value || !publicIds.length || removing.value) return
     removing.value = true
     try {
-      const result = await removeMembers(detail.value.id, ids)
+      const result = await removeMembers(detail.value.id, publicIds)
       const parts = [t('collections.toast.removedCount', { count: result.removed.length })]
       if (result.skipped.length) {
         parts.push(t('collections.toast.skippedCount', { count: result.skipped.length }))
@@ -94,7 +94,7 @@ export function useCollectionMembers(options: UseCollectionMembersOptions) {
       // 全量重写：数组必须恰好等于当前成员全集
       detail.value = await reorderMembers(
         detail.value.id,
-        optimistic.map((m) => m.id),
+        optimistic.map((m) => m.publicId),
       )
       syncFromServer()
     } catch (err: any) {

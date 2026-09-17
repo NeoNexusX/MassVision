@@ -14,11 +14,15 @@
         class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
       >
         <SvgIcon type="circle_stack" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-        <h3 class="kawaru-text-112 font-bold text-base-content">{{ $t('collections.overview.notFound') }}</h3>
+        <h3 class="kawaru-text-112 font-bold text-base-content">
+          {{ $t('collections.overview.notFound') }}
+        </h3>
         <p class="mt-2 text-base-content/60">
           {{ $t('collections.public.notFoundDesc') }}
         </p>
-        <router-link to="/" class="btn btn-primary mt-6 kawaru-text-100">{{ $t('collections.public.backHome') }}</router-link>
+        <router-link to="/" class="btn btn-primary mt-6 kawaru-text-100">{{
+          $t('collections.public.backHome')
+        }}</router-link>
       </div>
 
       <template v-else-if="detail">
@@ -46,9 +50,7 @@
 
         <!-- 统计条 -->
         <div
-          class="flex flex-wrap items-center gap-x-6 gap-y-2 bg-base-100 dark:bg-slate-800
-            rounded-xl shadow-sm border border-base-300 px-4 py-3 mb-6
-            kawaru-text-87 text-base-content/70"
+          class="flex flex-wrap items-center gap-x-6 gap-y-2 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 px-4 py-3 mb-6 kawaru-text-87 text-base-content/70"
         >
           <span class="inline-flex items-center gap-1.5">
             <SvgIcon type="queue_list" class="w-[1.1em] h-[1.1em]" />
@@ -59,7 +61,10 @@
             <SvgIcon type="folder" class="w-[1.1em] h-[1.1em]" />
             {{ formatBytes(detail.totalSize) }}
           </span>
-          <span class="inline-flex items-center gap-1.5" :title="$t('collections.card.owner', { name: detail.ownerUsername })">
+          <span
+            class="inline-flex items-center gap-1.5"
+            :title="$t('collections.card.owner', { name: detail.ownerUsername })"
+          >
             <SvgIcon type="user" class="w-[1.1em] h-[1.1em]" />
             {{ detail.ownerUsername }}
           </span>
@@ -86,16 +91,21 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import CollectionMetadataPanel from '@/features/collections/components/CollectionMetadataPanel.vue'
 import CollectionMemberList from '@/features/collections/components/CollectionMemberList.vue'
-import { collectionErrorMessage, getPublicCollection } from '@/features/collections/api/collectionApi'
-import type { CollectionMember, PublicCollectionDetail } from '@/features/collections/types/collection'
+import {
+  collectionErrorMessage,
+  getPublicCollection,
+} from '@/features/collections/api/collectionApi'
+import type {
+  CollectionMember,
+  PublicCollectionDetail,
+} from '@/features/collections/types/collection'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
-import { useRequireAuth } from '@/shared/composables/useRequireAuth'
 import { formatBytes, formatDate } from '@/shared/utils/format'
 import { t } from '@/i18n'
 
 const route = useRoute()
 
-// 公开页响应不带数字 id（对外只用 public_id），成员下载用文件级 file_id
+// 公开页响应不带数字 id（对外只用 public_id），成员下载也走文件级 public_id
 const detail = ref<PublicCollectionDetail | null>(null)
 const loading = ref(false)
 const error = ref('')
@@ -116,13 +126,11 @@ async function fetch() {
 
 const updatedDate = computed(() => formatDate(detail.value?.updatedAt))
 
-// 公开页可匿名浏览，但下载统一走鉴权端点。
-const { handleDownloadRaw } = useDownloadProgress()
-const { requireAuth } = useRequireAuth(() => route.fullPath)
+// 公开页下载走 noauth 端点（后端仅对 is_public 文件放行）
+const { handleDownloadPublicRaw } = useDownloadProgress()
 
 function downloadMember(member: CollectionMember) {
-  if (!requireAuth()) return
-  handleDownloadRaw(String(member.id))
+  handleDownloadPublicRaw(member.publicId)
 }
 
 watch(publicId, fetch)

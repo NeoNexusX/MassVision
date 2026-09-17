@@ -66,7 +66,7 @@ function toListMeta(meta: any): CollectionListMeta {
   }
 }
 
-/** POST /collections/list 与 /collections/list_all 的分页响应（{meta, data}，与文件列表一致） */
+/** POST /collections/list 与 POST /collections/list_all 的分页响应（{meta, data}，与文件列表一致） */
 export interface CollectionListResponse {
   meta: CollectionListMeta
   data: CollectionSummary[]
@@ -80,8 +80,8 @@ export interface CollectionListResponse {
  */
 export type CollectionListFilters = Record<string, any>
 
-// POST /collections/list?page=&size= — 当前登录用户的集合（owner 过滤），updated_at 倒序。
-// 原 GET /collections 已移除（breaking）：分页仍在 query，筛选体必发
+// POST /collections/list?page=&size= — 当前登录用户的集合（owner 过滤），updated_at 倒序；
+// 筛选条件走 body（CollectionFilter，不筛选也发 {}），分页走 query
 export async function listCollections(
   page: number,
   size: number,
@@ -94,7 +94,7 @@ export async function listCollections(
 }
 
 // POST /collections/list_all?page=&size= — 全库集合（任意登录用户，不做 owner 过滤），
-// 用于「浏览全部」；分页/排序与 /collections/list 完全一致
+// 用于「浏览全部」；筛选/分页契约与 /collections/list 完全一致
 export async function listAllCollections(
   page: number,
   size: number,
@@ -112,8 +112,10 @@ export async function getCollection(id: number): Promise<CollectionDetail> {
   return mapCollectionDetail(body)
 }
 
-// POST /collections — 创建；file_ids 顺序 = position，响应为完整 CollectionDetail
-export async function createCollection(payload: CollectionCreatePayload): Promise<CollectionDetail> {
+// POST /collections — 创建；file_public_ids 顺序 = position，响应为完整 CollectionDetail
+export async function createCollection(
+  payload: CollectionCreatePayload,
+): Promise<CollectionDetail> {
   const body = await unwrap(() => auth_api.post('/collections', payload))
   return mapCollectionDetail(body)
 }
@@ -128,20 +130,27 @@ export async function updateCollection(
 }
 
 // DELETE /collections/{id} — 删除集合（不动文件）
-export async function deleteCollection(id: number): Promise<{ collection_id: number; deleted: boolean }> {
+export async function deleteCollection(
+  id: number,
+): Promise<{ collection_id: number; deleted: boolean }> {
   return unwrap(() => auth_api.delete(`/collections/${id}`))
 }
 
-// POST /collections/{id}/members — 批量追加到末尾（幂等：已有/重复 id 跳过）
-export async function addMembers(id: number, fileIds: number[]): Promise<CollectionDetail> {
-  const body = await unwrap(() => auth_api.post(`/collections/${id}/members`, { file_ids: fileIds }))
+// POST /collections/{id}/members — 批量追加到末尾（幂等：已有/重复 public_id 跳过）
+export async function addMembers(id: number, filePublicIds: string[]): Promise<CollectionDetail> {
+  const body = await unwrap(() =>
+    auth_api.post(`/collections/${id}/members`, { file_public_ids: filePublicIds }),
+  )
   return mapCollectionDetail(body)
 }
 
-// DELETE /collections/{id}/members — 批量移除；响应 removed/skipped 供对账
-export async function removeMembers(id: number, fileIds: number[]): Promise<MemberRemovalResult> {
+// DELETE /collections/{id}/members — 批量移除；响应 removed/skipped（public_id 列表）供对账
+export async function removeMembers(
+  id: number,
+  filePublicIds: string[],
+): Promise<MemberRemovalResult> {
   const body = await unwrap<any>(() =>
-    auth_api.delete(`/collections/${id}/members`, { data: { file_ids: fileIds } }),
+    auth_api.delete(`/collections/${id}/members`, { data: { file_public_ids: filePublicIds } }),
   )
   return {
     collectionId: body?.collection_id ?? id,
@@ -151,9 +160,12 @@ export async function removeMembers(id: number, fileIds: number[]): Promise<Memb
 }
 
 // PATCH /collections/{id}/members/order — 全量重写调序；数组必须恰好等于当前成员全集
-export async function reorderMembers(id: number, fileIds: number[]): Promise<CollectionDetail> {
+export async function reorderMembers(
+  id: number,
+  filePublicIds: string[],
+): Promise<CollectionDetail> {
   const body = await unwrap(() =>
-    auth_api.patch(`/collections/${id}/members/order`, { file_ids: fileIds }),
+    auth_api.patch(`/collections/${id}/members/order`, { file_public_ids: filePublicIds }),
   )
   return mapCollectionDetail(body)
 }

@@ -11,9 +11,10 @@ vi.mock('@/shared/config/runtimeConfig', () => ({
   }),
 }))
 
-const urls = buildPreviewImageUrls('42')
+const urls = buildPreviewImageUrls('images/file_42/')
 
-const mountGallery = () => mount(DatasetPreviewGallery, { props: { fileId: '42' } })
+const mountGallery = (props: Record<string, unknown> = {}) =>
+  mount(DatasetPreviewGallery, { props: { imagePath: 'images/file_42/', ...props } })
 
 describe('DatasetPreviewGallery', () => {
   it('always renders three slots so the hover-gallery keeps its columns', () => {
@@ -36,14 +37,24 @@ describe('DatasetPreviewGallery', () => {
     expect(wrapper.findAll('img').map((img) => img.attributes('src'))).toEqual(urls)
   })
 
-  it('builds its slots from the fileId prop', async () => {
-    const wrapper = mount(DatasetPreviewGallery, { props: { fileId: '7' } })
+  it('builds its slots from the imagePath prop', async () => {
+    const wrapper = mount(DatasetPreviewGallery, { props: { imagePath: 'images/file_7/' } })
 
     await wrapper.find('figure').trigger('pointerenter')
 
     expect(wrapper.findAll('img').map((img) => img.attributes('src'))).toEqual(
-      buildPreviewImageUrls('7'),
+      buildPreviewImageUrls('images/file_7/'),
     )
+  })
+
+  it('renders the placeholder for every slot when image_path is empty', () => {
+    // image_path 为空（预览未生成）：三槽位直接占位图，不发起任何图片请求
+    const wrapper = mount(DatasetPreviewGallery, { props: { imagePath: null } })
+
+    expect(wrapper.findAll('img')).toHaveLength(0)
+    for (const slot of wrapper.findAll('figure.hover-gallery > div')) {
+      expect(slot.html()).toContain('<svg')
+    }
   })
 
   it('degrades only the failing slot to the placeholder svg', async () => {
@@ -61,7 +72,7 @@ describe('DatasetPreviewGallery', () => {
 
   it('shows only the TIC preview for processed data', () => {
     const wrapper = mount(DatasetPreviewGallery, {
-      props: { fileId: '42', storageMode: 'processed' },
+      props: { imagePath: 'images/file_42/', storageMode: 'processed' },
     })
 
     // No hover-gallery, just one slot
@@ -69,5 +80,18 @@ describe('DatasetPreviewGallery', () => {
     const imgs = wrapper.findAll('img')
     expect(imgs).toHaveLength(1)
     expect(imgs[0]!.attributes('src')).toBe(urls[0])
+  })
+
+  it('resets slot states when imagePath changes', async () => {
+    const wrapper = mountGallery()
+
+    // 先让第 1 槽位进入失败态，再换目录：失败态应被清掉，新 URL 正常渲染
+    await wrapper.find('img').trigger('error')
+    await wrapper.setProps({ imagePath: 'images/file_7/' })
+    await wrapper.find('figure').trigger('pointerenter')
+
+    expect(wrapper.findAll('img').map((img) => img.attributes('src'))).toEqual(
+      buildPreviewImageUrls('images/file_7/'),
+    )
   })
 })

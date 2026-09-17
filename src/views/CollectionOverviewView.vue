@@ -172,7 +172,7 @@
           :is-selected="pickerSelection.isSelected"
           :selected-count="pickerSelection.selected.value.length"
 :title="$t('collections.overview.addMembers')"
-          :exclude-ids="memberIds"
+          :exclude-public-ids="memberPublicIds"
           @update:query="pickerQuery = $event"
           @toggle="pickerSelection.toggle"
           @go-to-page="pickerGoToPage"
@@ -247,15 +247,15 @@ const {
 const memberOps = useCollectionMembers({ detail, refresh: fetch })
 const { members, adding, removing, reordering, add } = memberOps
 
-const memberIds = computed(() => members.value.map((m) => String(m.id)))
+const memberPublicIds = computed(() => members.value.map((m) => m.publicId))
 
 const updatedDate = computed(() => formatDate(detail.value?.updatedAt))
 
 // ---- 下载（复用数据集下载链：限流 + 逐文件 iframe 触发）----
 const { handleDownloadRaw } = useDownloadProgress()
 
-function downloadMember(member: { id: number; filename: string }) {
-  handleDownloadRaw(String(member.id), {
+function downloadMember(member: { publicId: string; filename: string }) {
+  handleDownloadRaw(member.publicId, {
     getFallbackFilename: () => member.filename,
   })
 }
@@ -342,10 +342,10 @@ function closeAddMembers() {
 }
 
 async function confirmAddMembers() {
-  const ids = pickerSelection.selected.value.map((f) => Number(f.id))
-  if (!ids.length) return
+  const publicIds = pickerSelection.selected.value.map((f) => f.publicId)
+  if (!publicIds.length) return
   // 失败（409 等）时保持弹窗打开：选择仍留在 pickerSelection 里，可直接重试
-  if (await add(ids)) addOpen.value = false
+  if (await add(publicIds)) addOpen.value = false
 }
 </script>
 

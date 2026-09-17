@@ -66,7 +66,7 @@ const mismatchedSource = () => t('upload.error.mismatchedSource')
  * 一次上传失败之后，会话和 OSS 分片该怎么处置。
  *
  *   discard-session  zip 字节不可复现 —— 这一轮 multipart 已不可信，全部丢弃
- *   reset-parts      用户主动放弃 —— 作废 OSS 分片并清空分片轮次，保留 file_id/STS
+ *   reset-parts      用户主动放弃 —— 作废 OSS 分片并清空分片轮次，保留 filePublicId/STS
  *   keep-session     组件卸载 / 网络失败 / STS 过期 —— 原样保留，供续传
  *
  * 抽成纯函数是为了能单独测：三者的差别只在「保留什么」，混在 catch 里写很容易
@@ -92,7 +92,7 @@ export function tooLargeMessage(sourceBytes: number): string {
  * imzML → OSS 上传流水线（边压边传，不落本地磁盘）。
  *
  *   1. Worker 读源文件算 MD5，停在压缩之前
- *   2. 用「原始大小 + 哈希」preflight → file_id；命中秒传直接返回
+ *   2. 用「原始大小 + 哈希」preflight → public_id；命中秒传直接返回
  *   3. 取 STS 凭证并 initMultipartUpload —— 必须在压缩之前，因为压缩即上传
  *   4. worker 产出分片 → PartQueue 缓冲 → k 个消费者并发传 OSS。
  *      背压走信用额度（出队即归还），所以单片重试不会冻住压缩
@@ -150,7 +150,7 @@ export async function uploadImzmlZipFileOSS({
   })
   const fileHash = prep.fileHash
 
-  let fileId: string
+  let filePublicId: string
   let normalizedFilename: string
   let entryNames: { imzmlName: string; ibdName: string }
   let ossData: OssUploadResponse
@@ -161,7 +161,7 @@ export async function uploadImzmlZipFileOSS({
     if (session) {
       // 哈希是「是不是同一对文件」的最终判据
       if (fileHash !== session.fileHash) throw new Error(mismatchedSource())
-      fileId = session.fileId
+      filePublicId = session.filePublicId
       normalizedFilename = session.datasetName || String(datasetName || 'mass_dataset')
       entryNames = session.entryNames
       ossData = {
@@ -203,8 +203,8 @@ export async function uploadImzmlZipFileOSS({
         { signal },
       )
       const preflightData = preflightRes.data || preflightRes
-      fileId = preflightData.file_id
-      if (!fileId) throw new Error('Preflight did not return file_id')
+      filePublicId = preflightData.public_id
+      if (!filePublicId) throw new Error('Preflight did not return public_id')
 
       if (preflightData.is_reuse) {
         prep.dispose()
@@ -214,7 +214,7 @@ export async function uploadImzmlZipFileOSS({
           message: t('upload.progress.reusedOnServer'),
         })
         return {
-          upload_id: String(fileId),
+          public_id: filePublicId,
           fileHash,
           oss_path: '',
           reused: true,
@@ -228,7 +228,7 @@ export async function uploadImzmlZipFileOSS({
       onProgress?.({ stage: 'preflight', percent: 100, message: t('upload.progress.fetchingCredentials') })
       const uploadRes = await auth_api.post(
         '/files/upload',
-        new URLSearchParams({ filename: normalizedFilename, pre_file_id: String(fileId) }),
+        new URLSearchParams({ filename: normalizedFilename, pre_public_id: filePublicId }),
       )
       ossData = uploadRes.data || uploadRes
 
@@ -346,7 +346,7 @@ export async function uploadImzmlZipFileOSS({
     saveUploadSession({
       datasetName: normalizedFilename,
       fileHash,
-      fileId,
+      filePublicId,
       source: sourceIdentityOf(files),
       entryNames,
       ossPath: ossData.oss_path,
@@ -504,7 +504,7 @@ export async function uploadImzmlZipFileOSS({
     await cleanupResumable()
 
     return {
-      upload_id: String(fileId),
+      public_id: filePublicId,
       fileHash,
       oss_path: ossData.oss_path,
       reused: false,

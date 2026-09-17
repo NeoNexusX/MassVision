@@ -136,14 +136,18 @@
       "publicTitle": "将数据集设为公开",
       "publicMessage": "该数据集将移入公开数据，其他用户都可以看到。此操作无法撤销。",
       "madePublic": "数据集已设为公开",
-      "shareUnavailable": "无法为该数据集生成分享链接。"
+      "shareUnavailable": "无法为该数据集生成分享链接。",
+      "loginRequired": "登录后查看数据集详情",
+      "loginRequiredDesc": "查看数据集详情需要登录。还没有账号？注册后即可查看。"
     },
     "download": {
+      "preparing": "正在准备下载，请稍候...",
       "inProgress": "已有下载正在进行。",
       "limited": "下载受限，请等待 {seconds} 秒。",
       "downloading": "下载中...",
       "started": "已开始下载",
       "failed": "下载失败",
+      "timeout": "下载准备超时，请稍后重试",
       "limitReached": "下载次数已达上限",
       "noUrls": "未获取到下载地址"
     },

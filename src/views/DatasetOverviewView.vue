@@ -11,6 +11,9 @@ const {
   source,
   isShareView,
   isStale,
+  requiresAuth,
+  goLogin,
+  goRegister,
   dataset,
   loading,
   isShareCopied,
@@ -116,28 +119,44 @@ const statusBadge = computed(() => {
         </div>
       </template>
 
-      <!-- Empty Data State -->
+      <!-- Empty Data State：匿名被 401（分享链接 / 公开列表进入）→ 登录/注册引导；其余为无效链接/无数据 -->
       <template v-else-if="!dataset">
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200 p-12 text-center">
-          <svg-icon type="duplicate" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
+          <svg-icon
+            :type="requiresAuth ? 'password' : 'duplicate'"
+            class="h-12 w-12 mx-auto text-base-content/30 mb-4"
+          />
           <h3 class="kawaru-text-112 font-bold text-base-content">
             {{
-              isShareView && isStale
-                ? $t('datasets.overview.invalidShare')
-                : isStale
-                  ? $t('common.state.sessionLost')
-                  : $t('datasets.overview.noData')
+              requiresAuth
+                ? $t('datasets.overview.loginRequired')
+                : isShareView && isStale
+                  ? $t('datasets.overview.invalidShare')
+                  : isStale
+                    ? $t('common.state.sessionLost')
+                    : $t('datasets.overview.noData')
             }}
           </h3>
           <p class="text-base-content/60 mt-1">
             {{
-              isShareView && isStale
-                ? $t('datasets.overview.invalidShareDesc')
-                : isStale
-                  ? $t('datasets.overview.sessionLostDesc')
-                  : $t('datasets.overview.noDataDesc')
+              requiresAuth
+                ? $t('datasets.overview.loginRequiredDesc')
+                : isShareView && isStale
+                  ? $t('datasets.overview.invalidShareDesc')
+                  : isStale
+                    ? $t('datasets.overview.sessionLostDesc')
+                    : $t('datasets.overview.noDataDesc')
             }}
           </p>
+          <!-- 登录/注册后经 redirect 回来（分享原链接，或 /s/{public_id} 永久链接） -->
+          <div v-if="requiresAuth" class="mt-6 flex justify-center gap-3">
+            <button class="btn btn-primary kawaru-text-95" @click="goLogin">
+              {{ $t('common.action.signIn') }}
+            </button>
+            <button class="btn btn-outline border-base-300 kawaru-text-95" @click="goRegister">
+              {{ $t('common.action.register') }}
+            </button>
+          </div>
         </div>
       </template>
 
@@ -178,15 +197,12 @@ const statusBadge = computed(() => {
               <button
                 @click="downloadCurrent"
                 class="btn btn-sm h-8 min-h-8 btn-primary kawaru-text-75"
-                :disabled="isPacking(String(dataset?.id ?? ''))"
+                :disabled="isPacking(String(dataset?.publicId ?? ''))"
               >
-                <span
-                  v-if="isPacking(String(dataset?.id ?? ''))"
-                  class="loading loading-spinner loading-xs"
-                ></span>
+                <span v-if="isPacking(String(dataset?.publicId ?? ''))" class="loading loading-spinner loading-xs"></span>
                 <svg-icon v-else type="download" class="w-4 h-4" />
                 {{
-                  isPacking(String(dataset?.id ?? ''))
+                  isPacking(String(dataset?.publicId ?? ''))
                     ? $t('datasets.card.packing')
                     : $t('common.action.download')
                 }}

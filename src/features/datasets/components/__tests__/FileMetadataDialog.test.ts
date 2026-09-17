@@ -20,8 +20,11 @@ import SolventPicker from '@/features/upload/components/SolventPicker.vue'
 import type { File } from '@/features/datasets/types/dataset'
 import { i18n, loadCoreMessages, loadFeatureMessages } from '@/i18n'
 
+const PUBLIC_ID = 'qW3rT5yU7iO9pA1s'
+
 const dataset = {
-  id: '7',
+  publicId: PUBLIC_ID,
+  imagePath: 'images/file_7/',
   name: 'kidney',
   submitTime: '2026-09-10T00:00:00',
   submitter: 'u',
@@ -103,7 +106,7 @@ describe('FileMetadataDialog', () => {
     await saveButton.trigger('click')
     await flushPromises()
 
-    expect(patchFileMetadata).toHaveBeenCalledWith('7', { organism: 'Rat' })
+    expect(patchFileMetadata).toHaveBeenCalledWith(PUBLIC_ID, { organism: 'Rat' })
     expect(showToast).toHaveBeenCalledWith(
       'You do not own this dataset, so you cannot modify it.',
       'error',

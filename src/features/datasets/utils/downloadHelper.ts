@@ -1,5 +1,55 @@
-import { getDownloadRaw } from '@/features/datasets/api/datasetApi'
+import { getDownloadMetadata, getDownloadRaw, getDownloadRawNoauth } from '@/features/datasets/api/datasetApi'
 import { t } from '@/i18n'
+
+async function pollDownloadUrl(
+  publicId: string,
+  options?: {
+    interval?: number
+    maxRetries?: number
+  },
+): Promise<{ ossUrl: string; rawFilename?: string }> {
+  const interval = options?.interval ?? 2000
+  const maxRetries = options?.maxRetries ?? 30
+
+  for (let i = 0; i <= maxRetries; i++) {
+    // getDownloadMetadata 已返回解包后的响应体；轮询期 oss_download_url 可能是 '<PACKING>'
+    const meta = await getDownloadMetadata(publicId)
+    const ossUrl = meta.oss_download_url
+
+    if (ossUrl && ossUrl !== '<PACKING>') {
+      return { ossUrl, rawFilename: meta.filename ?? undefined }
+    }
+
+    if (i < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, interval))
+    }
+  }
+
+  throw new Error(t('datasets.download.timeout'))
+}
+
+/**
+ * OSS download: poll for oss_download_url → trigger browser download.
+ */
+export async function ossDownloadAndSave(
+  publicId: string,
+  options?: { getFallbackFilename?: () => string | undefined },
+) {
+  const { ossUrl, rawFilename } = await pollDownloadUrl(publicId)
+
+  const filename: string = rawFilename
+    ? rawFilename.toLowerCase().endsWith('.zip')
+      ? rawFilename
+      : `${rawFilename}.zip`
+    : options?.getFallbackFilename?.() || `${publicId}.zip`
+
+  const link = document.createElement('a')
+  link.href = ossUrl
+  link.setAttribute('download', filename)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
 
 /**
  * Trigger a browser download inside its own browsing context via a hidden iframe.
@@ -27,15 +77,31 @@ function triggerIframeDownload(url: string): void {
 }
 
 /**
- * RAW pre-signed download: GET /files/{file_id}/download_raw → imzML + ibd URLs.
+ * RAW pre-signed download: GET /files/{public_id}/download_raw → imzML + ibd URLs.
  * No polling — pre-signed URLs are returned immediately.
  * Each file downloads in its own hidden iframe so they can't cancel each other.
  */
 export async function ossDownloadRaw(
-  fileId: string,
-  _options?: { getFallbackFilename?: () => string | undefined },
+  publicId: string,
+  options?: { getFallbackFilename?: () => string | undefined, isPublic?: boolean },
 ) {
-  const { files } = await getDownloadRaw(fileId)
+  const { files } = await getDownloadRaw(publicId, options?.isPublic ?? false)
+
+  if (!files || !files.length) {
+    throw new Error(t('datasets.download.noUrls'))
+  }
+
+  for (const entry of files) {
+    triggerIframeDownload(entry.url)
+  }
+}
+
+/**
+ * RAW pre-signed download via the no-auth endpoint (public collection page).
+ * Same iframe strategy; backend only serves is_public files.
+ */
+export async function ossDownloadRawNoauth(publicId: string) {
+  const { files } = await getDownloadRawNoauth(publicId)
 
   if (!files || !files.length) {
     throw new Error(t('datasets.download.noUrls'))

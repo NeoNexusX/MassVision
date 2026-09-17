@@ -64,8 +64,8 @@ export function useDatasetListPage(
   /** 上传成功后刷新当前页；弹窗关闭、配额刷新等由页面各自处理 */
   const refreshCurrentPage = () => fetchFiles({ page: page.value, size: size.value })
 
-  const viewOverview = (fileId: string) => {
-    router.push({ name: 'DatasetOverview', state: { fileId, source: opts.source } })
+  const viewOverview = (publicId: string) => {
+    router.push({ name: 'DatasetOverview', state: { filePublicId: publicId, source: opts.source } })
   }
 
   return {

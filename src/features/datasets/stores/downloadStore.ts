@@ -5,8 +5,8 @@ import { DOWNLOAD_LIMIT } from '@/shared/config/defaults'
 export const useDownloadStore = defineStore('download', () => {
   /** Timestamp of the last successful download (ms) — cooldown only after success */
   const lastDownloadTime = ref(0)
-  /** File ID of the last download */
-  const lastDownloadId = ref('')
+  /** File public id of the last download */
+  const lastDownloadPublicId = ref('')
   /** Whether a download is currently in progress */
   const downloading = ref(false)
 
@@ -24,9 +24,9 @@ export const useDownloadStore = defineStore('download', () => {
   }
 
   /** Record that a download has started */
-  function startDownload(fileId: string) {
+  function startDownload(publicId: string) {
     downloading.value = true
-    lastDownloadId.value = fileId
+    lastDownloadPublicId.value = publicId
   }
 
   /** Record that a download has completed successfully — starts the cooldown */
@@ -42,7 +42,7 @@ export const useDownloadStore = defineStore('download', () => {
 
   return {
     lastDownloadTime,
-    lastDownloadId,
+    lastDownloadPublicId,
     downloading,
     cooldownRemaining,
     canDownload,

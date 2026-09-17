@@ -34,9 +34,12 @@ const collection = (over: Partial<CollectionSummary> = {}): CollectionSummary =>
     ...over,
   }) as CollectionSummary
 
+/** 造成员 imagePath 列表（封面轮播数据源，与 useCollectionCovers 的缓存值同构） */
+const paths = (ids: number[]) => ids.map((id) => `images/file_${id}/`)
+
 const mountCard = (props: Record<string, unknown> = {}) =>
   mount(CollectionCard, {
-    props: { collection: collection(), memberIds: [498, 496, 467], ...props },
+    props: { collection: collection(), imagePaths: paths([498, 496, 467]), ...props },
     global: { plugins: [i18n], stubs: { SvgIcon: true } },
   })
 
@@ -78,7 +81,7 @@ describe('CollectionCard cover carousel', () => {
   const scrollIntoView = () => Element.prototype.scrollIntoView as Mock
 
   it('mounts member frames in order and caps them at five', () => {
-    const wrapper = mountCard({ memberIds: [1, 2, 3, 4, 5, 6, 7] })
+    const wrapper = mountCard({ imagePaths: paths([1, 2, 3, 4, 5, 6, 7]) })
 
     // 7 个成员只挂前 5 帧（封顶图片请求数），每帧 lazy，帧计数按 5 计
     const imgs = wrapper.findAll('.carousel-item img')
@@ -119,7 +122,7 @@ describe('CollectionCard cover carousel', () => {
   })
 
   it('hides the arrows when there is at most one dataset', () => {
-    const wrapper = mountCard({ memberIds: [498] })
+    const wrapper = mountCard({ imagePaths: paths([498]) })
 
     expect(wrapper.find('button[aria-label="Next dataset"]').exists()).toBe(false)
     expect(wrapper.find('button[aria-label="Previous dataset"]').exists()).toBe(false)
@@ -131,7 +134,7 @@ describe('CollectionCard cover carousel', () => {
     await nextTick()
     expect(wrapper.text()).toContain('2/3')
 
-    await wrapper.setProps({ memberIds: [500, 501] })
+    await wrapper.setProps({ imagePaths: paths([500, 501]) })
 
     expect(wrapper.text()).toContain('1/2')
     expect(Element.prototype.scrollTo).toHaveBeenCalledWith({ left: 0 })
@@ -140,13 +143,13 @@ describe('CollectionCard cover carousel', () => {
 
 describe('CollectionCard cover fallbacks', () => {
   it('falls back to the placeholder when members are not loaded yet', () => {
-    const wrapper = mountCard({ memberIds: undefined })
+    const wrapper = mountCard({ imagePaths: undefined })
 
     expect(wrapper.find('img').exists()).toBe(false)
   })
 
   it('shows a pulsing skeleton instead of the placeholder while covers load', () => {
-    const wrapper = mountCard({ memberIds: undefined, coverLoading: true })
+    const wrapper = mountCard({ imagePaths: undefined, coverLoading: true })
 
     expect(wrapper.find('img').exists()).toBe(false)
     expect(wrapper.find('.animate-pulse').exists()).toBe(true)

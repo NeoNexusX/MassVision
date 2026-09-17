@@ -1,5 +1,9 @@
 import { reactive } from 'vue'
-import { ossDownloadRaw } from '@/features/datasets/utils/downloadHelper'
+import {
+  ossDownloadAndSave,
+  ossDownloadRaw,
+  ossDownloadRawNoauth,
+} from '@/features/datasets/utils/downloadHelper'
 import { useDownloadStore } from '@/features/datasets/stores/downloadStore'
 import { useToast } from '@/shared/composables/useToast'
 import { extractBackendError } from '@/shared/api/httpClient'
@@ -11,19 +15,40 @@ export function useDownloadProgress() {
   const { showToast, removeToast } = useToast()
   const downloadStore = useDownloadStore()
 
-  const isPacking = (id: string) => packingIds.has(id)
+  const isPacking = (publicId: string) => packingIds.has(publicId)
+
+  const handleDownload = async (
+    publicId?: string,
+    options?: { getFallbackFilename?: () => string | undefined },
+  ) => {
+    if (!publicId) return
+    if (packingIds.has(publicId)) return
+    packingIds.add(publicId)
+    const toastId = showToast(t('datasets.download.preparing'), 'info', 0)
+    try {
+      await ossDownloadAndSave(publicId, options)
+      removeToast(toastId)
+    } catch (error) {
+      removeToast(toastId)
+      const message = extractBackendError(error, t('datasets.download.failed'))
+      showToast(message, 'error')
+      console.error('Download error:', error)
+    } finally {
+      packingIds.delete(publicId)
+    }
+  }
 
   /**
-   * RAW pre-signed download: imzML + ibd from /files/{file_id}/download_raw.
+   * RAW pre-signed download: imzML + ibd from /files/{public_id}/download_raw.
    * Zero polling — pre-signed URLs are returned immediately.
    * Rate-limited: one download per cooldown window (60s default).
    */
   const handleDownloadRaw = async (
-    id?: string,
-    options?: { getFallbackFilename?: () => string | undefined },
+    publicId?: string,
+    options?: { getFallbackFilename?: () => string | undefined; isPublic?: boolean },
   ) => {
-    if (!id) return
-    if (packingIds.has(id)) return
+    if (!publicId) return
+    if (packingIds.has(publicId)) return
 
     // Client-side cooldown check to prevent repeated download requests.
     if (!downloadStore.canDownload()) {
@@ -37,11 +62,11 @@ export function useDownloadProgress() {
       return
     }
 
-    packingIds.add(id)
-    downloadStore.startDownload(id)
+    packingIds.add(publicId)
+    downloadStore.startDownload(publicId)
     const toastId = showToast(t('datasets.download.downloading'), 'info', 0)
     try {
-      await ossDownloadRaw(id, options)
+      await ossDownloadRaw(publicId, { ...options, isPublic: options?.isPublic ?? false })
       downloadStore.completeDownload()
       removeToast(toastId)
       showToast(t('datasets.download.started'), 'success')
@@ -56,9 +81,46 @@ export function useDownloadProgress() {
       showToast(message, 'error')
       console.error('Download error:', error)
     } finally {
-      packingIds.delete(id)
+      packingIds.delete(publicId)
     }
   }
 
-  return { handleDownloadRaw, isPacking, packingIds }
+  /**
+   * RAW no-auth download for the public collection page:
+   * /files/{public_id}/download_raw_noauth (backend serves is_public files only).
+   */
+  const handleDownloadPublicRaw = async (publicId?: string) => {
+    if (!publicId) return
+    if (packingIds.has(publicId)) return
+
+    if (!downloadStore.canDownload()) {
+      if (downloadStore.downloading) {
+        showToast(t('datasets.download.inProgress'), 'warning')
+      } else {
+        const remain = Math.ceil(downloadStore.cooldownRemaining())
+        showToast(t('datasets.download.limited', { seconds: remain }), 'warning')
+      }
+      return
+    }
+
+    packingIds.add(publicId)
+    downloadStore.startDownload(publicId)
+    const toastId = showToast(t('datasets.download.downloading'), 'info', 0)
+    try {
+      await ossDownloadRawNoauth(publicId)
+      downloadStore.completeDownload()
+      removeToast(toastId)
+      showToast(t('datasets.download.started'), 'success')
+    } catch (error) {
+      downloadStore.failDownload()
+      removeToast(toastId)
+      const message = extractBackendError(error, t('datasets.download.failed'))
+      showToast(message, 'error')
+      console.error('Download error:', error)
+    } finally {
+      packingIds.delete(publicId)
+    }
+  }
+
+  return { handleDownload, handleDownloadRaw, handleDownloadPublicRaw, isPacking, packingIds }
 }

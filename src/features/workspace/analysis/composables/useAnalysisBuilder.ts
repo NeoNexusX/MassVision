@@ -257,7 +257,12 @@ export function useAnalysisBuilder(
       showToast(t('workspace.analysis.started'), 'success')
       router.push('/workspace')
     } catch (error) {
-      showToast(extractBackendError(error) || t('workspace.analysis.startFailed'), 'error')
+      // 404 = 源文件已不存在或正在删除（publicId 失效），提示后让用户重新选择数据集
+      if ((error as { response?: { status?: number } })?.response?.status === 404) {
+        showToast(t('common.feedback.fileMissing'), 'error')
+      } else {
+        showToast(extractBackendError(error) || t('workspace.analysis.startFailed'), 'error')
+      }
     } finally {
       submitting.value = false
     }

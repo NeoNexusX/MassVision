@@ -89,7 +89,9 @@ const routes = [
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
   },
   {
-    path: '/s/:encodedId',
+    // 数据集分享页（免登录）。token 二选一：16 位 public_id（新链接）或
+    // Base64 数字 id（历史链接，永久兼容）——判别见 resolveShareToken。
+    path: '/s/:shareToken',
     name: 'SharedDatasetOverview',
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
   },

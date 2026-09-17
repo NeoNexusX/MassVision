@@ -37,7 +37,7 @@ export interface CollectionSummary {
   organismPart: string[]
   ionisationSource: string[]
   /**
-   * 列表响应目前**不返回** members（拿封面的 file_id 需要它）。
+   * 列表响应目前**不返回** members（拿封面预览需要成员的 imagePath）。
    * 若后端将来带上，cards 可直接用；否则由 useCollectionCovers 逐卡调详情补齐。
    */
   members?: CollectionMember[]
@@ -55,9 +55,11 @@ export interface CollectionDetail extends CollectionSummary {
  */
 export type PublicCollectionDetail = Omit<CollectionDetail, 'id'> & { id?: number }
 
-/** 集合成员（由 FilePublic 映射；id 保持后端的 number） */
+/** 集合成员（由 FilePublic 映射；文件对外标识为 16 位字符串 publicId，不再使用数字 file_id） */
 export interface CollectionMember {
-  id: number
+  publicId: string
+  /** OSS 预览图目录（后端 image_path）；null = 未生成，封面走占位图 */
+  imagePath: string | null
   filename: string
   size: number
   status: string
@@ -95,13 +97,13 @@ export interface CollectionMetadata {
 }
 
 /**
- * POST /collections 请求体；file_ids 数组顺序 = position 1..n。
+ * POST /collections 请求体；file_public_ids 数组顺序 = position 1..n。
  * 元数据字段与 PATCH 一一对应（后端 CollectionCreate 同样接收全部 18 个），
  * 所以创建时就能带上元数据，不必建完再 PATCH 一次；空值不发送。
  */
 export type CollectionCreatePayload = Partial<CollectionMetadata> & {
   name: string
-  file_ids: number[]
+  file_public_ids: string[]
 }
 
 /**
@@ -119,11 +121,11 @@ export type CollectionMetadataDraft = {
     : string
 }
 
-/** DELETE /collections/{id}/members 响应：removed/skipped 供对账 */
+/** DELETE /collections/{id}/members 响应：removed/skipped 为 public_id 列表，供对账 */
 export interface MemberRemovalResult {
   collectionId: number
-  removed: number[]
-  skipped: number[]
+  removed: string[]
+  skipped: string[]
 }
 
 /**
@@ -140,7 +142,7 @@ export function isCollectionApiError(e: unknown): e is CollectionApiError {
   return e instanceof Error && 'backendMessage' in e
 }
 
-/** 与 PaginationFooter / buildPageList 对齐的分页元信息（GET /collections(/all) 的 meta 原样） */
+/** 与 PaginationFooter / buildPageList 对齐的分页元信息（POST /collections/list(_all) 的 meta 原样） */
 export interface CollectionListMeta {
   current_page: number
   current_records: number

@@ -15,19 +15,22 @@
         class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
       >
         <SvgIcon type="document-text" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
-        <h3 class="kawaru-text-112 font-bold text-base-content">{{ $t('datasets.public.notFound') }}</h3>
+        <h3 class="kawaru-text-112 font-bold text-base-content">
+          {{ $t('datasets.public.notFound') }}
+        </h3>
         <p class="mt-2 text-base-content/60">
           {{ $t('datasets.public.notFoundDesc') }}
         </p>
-        <router-link to="/" class="btn btn-primary mt-6 kawaru-text-100">{{ $t('datasets.public.backHome') }}</router-link>
+        <router-link to="/" class="btn btn-primary mt-6 kawaru-text-100">{{
+          $t('datasets.public.backHome')
+        }}</router-link>
       </div>
 
       <template v-else>
         <!-- 页头：公开标识 + 文件名 + 下载 -->
         <div class="mb-6">
           <span
-            class="inline-flex items-center gap-1.5 badge badge-sm font-medium
-              border border-success/30 bg-success/10 text-success mb-2 kawaru-text-75"
+            class="inline-flex items-center gap-1.5 badge badge-sm font-medium border border-success/30 bg-success/10 text-success mb-2 kawaru-text-75"
           >
             <SvgIcon type="region" class="w-[0.9em] h-[0.9em]" />
             {{ $t('datasets.public.badge') }}
@@ -46,16 +49,16 @@
             >
               <span v-if="isPacking(downloadId)" class="loading loading-spinner loading-xs"></span>
               <SvgIcon v-else type="download" class="w-4 h-4" />
-              {{ isPacking(downloadId) ? $t('datasets.card.packing') : $t('common.action.download') }}
+              {{
+                isPacking(downloadId) ? $t('datasets.card.packing') : $t('common.action.download')
+              }}
             </button>
           </div>
         </div>
 
         <!-- 统计条 -->
         <div
-          class="flex flex-wrap items-center gap-x-6 gap-y-2 bg-base-100 dark:bg-slate-800
-            rounded-xl shadow-sm border border-base-300 px-4 py-3 mb-6
-            kawaru-text-87 text-base-content/70"
+          class="flex flex-wrap items-center gap-x-6 gap-y-2 bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 px-4 py-3 mb-6 kawaru-text-87 text-base-content/70"
         >
           <span class="inline-flex items-center gap-1.5">
             <SvgIcon type="folder" class="w-[1.1em] h-[1.1em]" />
@@ -76,12 +79,24 @@
             {{ $t('datasets.overview.sampleInfo') }}
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <InfoField :label="$t('common.meta.organism')">{{ formatString(dataset.organism) }}</InfoField>
-            <InfoField :label="$t('common.meta.organismPart')">{{ formatString(dataset.organismPart) }}</InfoField>
-            <InfoField :label="$t('common.meta.condition')">{{ formatString(dataset.condition) }}</InfoField>
-            <InfoField :label="$t('common.meta.growthConditions')">{{ formatString(dataset.sampleGrowthConditions) }}</InfoField>
-            <InfoField :label="$t('datasets.field.stabilization')">{{ formatString(dataset.sampleStabilization) }}</InfoField>
-            <InfoField :label="$t('common.meta.tissueModification')">{{ formatString(dataset.tissueModification) }}</InfoField>
+            <InfoField :label="$t('common.meta.organism')">{{
+              formatString(dataset.organism)
+            }}</InfoField>
+            <InfoField :label="$t('common.meta.organismPart')">{{
+              formatString(dataset.organismPart)
+            }}</InfoField>
+            <InfoField :label="$t('common.meta.condition')">{{
+              formatString(dataset.condition)
+            }}</InfoField>
+            <InfoField :label="$t('common.meta.growthConditions')">{{
+              formatString(dataset.sampleGrowthConditions)
+            }}</InfoField>
+            <InfoField :label="$t('datasets.field.stabilization')">{{
+              formatString(dataset.sampleStabilization)
+            }}</InfoField>
+            <InfoField :label="$t('common.meta.tissueModification')">{{
+              formatString(dataset.tissueModification)
+            }}</InfoField>
           </div>
         </div>
 
@@ -91,12 +106,24 @@
             {{ $t('datasets.overview.msiSettings') }}
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <InfoField :label="$t('common.meta.polarity')">{{ vocabLabel(dataset.polarity) || '—' }}</InfoField>
-            <InfoField :label="$t('common.meta.ionisationSource')">{{ vocabLabel(dataset.ionSource) || '—' }}</InfoField>
-            <InfoField :label="$t('common.meta.analyzer')">{{ vocabLabel(dataset.analyzer) || '—' }}</InfoField>
-            <InfoField :label="$t('datasets.field.matrix')">{{ formatString(dataset.maldiMatrix) }}</InfoField>
-            <InfoField :label="$t('datasets.field.matrixApplication')">{{ formatString(dataset.maldiMatrixApplication) }}</InfoField>
-            <InfoField :label="$t('common.meta.solvent')">{{ formatString(dataset.solvent) }}</InfoField>
+            <InfoField :label="$t('common.meta.polarity')">{{
+              vocabLabel(dataset.polarity) || '—'
+            }}</InfoField>
+            <InfoField :label="$t('common.meta.ionisationSource')">{{
+              vocabLabel(dataset.ionSource) || '—'
+            }}</InfoField>
+            <InfoField :label="$t('common.meta.analyzer')">{{
+              vocabLabel(dataset.analyzer) || '—'
+            }}</InfoField>
+            <InfoField :label="$t('datasets.field.matrix')">{{
+              formatString(dataset.maldiMatrix)
+            }}</InfoField>
+            <InfoField :label="$t('datasets.field.matrixApplication')">{{
+              formatString(dataset.maldiMatrixApplication)
+            }}</InfoField>
+            <InfoField :label="$t('common.meta.solvent')">{{
+              formatString(dataset.solvent)
+            }}</InfoField>
           </div>
         </div>
 
@@ -106,9 +133,15 @@
             {{ $t('datasets.overview.fileInfo') }}
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <InfoField :label="$t('datasets.field.experimentType')">{{ vocabLabel(dataset.experimentType) || '—' }}</InfoField>
-            <InfoField :label="$t('common.meta.spectrumMode')">{{ dataset.spectrumMode || '—' }}</InfoField>
-            <InfoField :label="$t('common.meta.storageMode')">{{ dataset.storageMode || '—' }}</InfoField>
+            <InfoField :label="$t('datasets.field.experimentType')">{{
+              vocabLabel(dataset.experimentType) || '—'
+            }}</InfoField>
+            <InfoField :label="$t('common.meta.spectrumMode')">{{
+              dataset.spectrumMode || '—'
+            }}</InfoField>
+            <InfoField :label="$t('common.meta.storageMode')">{{
+              dataset.storageMode || '—'
+            }}</InfoField>
           </div>
         </div>
       </template>
@@ -159,7 +192,7 @@ const uploadedDate = computed(() => formatDate(dataset.value?.submitTime))
 const { handleDownloadRaw, isPacking } = useDownloadProgress()
 const { requireAuth } = useRequireAuth(() => route.fullPath)
 
-const downloadId = computed(() => String(dataset.value?.id ?? ''))
+const downloadId = computed(() => dataset.value?.publicId ?? '')
 
 function downloadCurrent() {
   if (!downloadId.value) return

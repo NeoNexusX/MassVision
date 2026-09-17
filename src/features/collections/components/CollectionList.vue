@@ -18,14 +18,9 @@ defineProps({
     type: Function as PropType<(collection: CollectionSummary) => boolean>,
     required: true,
   },
-  /** 逐卡片判定 My Collection 徽标显隐（严格归属，不含 admin） */
-  isMine: {
-    type: Function as PropType<(collection: CollectionSummary) => boolean>,
-    required: true,
-  },
-  /** 集合 id → 成员 file_id（列表接口不带 members，由 useCollectionCovers 补） */
-  memberIds: {
-    type: Object as PropType<Record<number, number[]>>,
+  /** 集合 id → 成员 imagePath（列表接口不带 members，由 useCollectionCovers 补） */
+  memberImagePaths: {
+    type: Object as PropType<Record<number, (string | null)[]>>,
     default: () => ({}),
   },
   /** 集合 id → 封面是否仍在拉取（补齐期间卡片封面显示骨架） */
@@ -106,8 +101,7 @@ defineEmits<{
         :key="collection.id"
         :collection="collection"
         :can-edit="canEdit(collection)"
-        :is-mine="isMine(collection)"
-        :member-ids="memberIds[collection.id]"
+        :member-image-paths="memberImagePaths[collection.id]"
         :cover-loading="coverLoading[collection.id]"
         @view="$emit('view', $event)"
         @delete="$emit('delete', $event)"
