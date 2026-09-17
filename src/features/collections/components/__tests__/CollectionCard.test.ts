@@ -28,7 +28,7 @@ const collection = (over: Partial<CollectionSummary> = {}): CollectionSummary =>
     publicId: null,
     doi: ['10.1038/s41586-024-00001-x'],
     journalName: 'Nature Methods',
-    access: ['https://example.org/access'],
+    access: 'https://example.org/access',
     organismPart: ['Kidney'],
     ionisationSource: ['MALDI'],
     ...over,
@@ -49,9 +49,14 @@ const fakeSwipe = (wrapper: ReturnType<typeof mountCard>, index: number) => {
   el.dispatchEvent(new Event('scroll'))
 }
 
-
 // 组件模板用 $t：挂载时装上 i18n 实例，并预先加载英文语言包（断言保持英文原文）
-beforeAll(() => Promise.all([loadCoreMessages('en'), loadFeatureMessages('collections'), loadFeatureMessages('datasets')]))
+beforeAll(() =>
+  Promise.all([
+    loadCoreMessages('en'),
+    loadFeatureMessages('collections'),
+    loadFeatureMessages('datasets'),
+  ]),
+)
 
 describe('CollectionCard cover carousel', () => {
   // jsdom 未实现 Element.scrollIntoView / scrollTo（组件在箭头与成员重置时调用）：
@@ -149,6 +154,16 @@ describe('CollectionCard cover fallbacks', () => {
 })
 
 describe('CollectionCard info (left column)', () => {
+  it.each([
+    'doi:10.1000/abc',
+    'doi.org/10.1000/abc',
+    'http://dx.doi.org/10.1000/abc',
+  ])('resolves accepted DOI input %s without duplicating its prefix', (doi) => {
+    const wrapper = mountCard({ collection: collection({ doi: [doi] }) })
+    const link = wrapper.get('a[href="https://doi.org/10.1000/abc"]')
+    expect(link.text()).toContain(doi)
+  })
+
   it('renders title, DOI link and journal', () => {
     const wrapper = mountCard()
 
@@ -184,14 +199,14 @@ describe('CollectionCard info (left column)', () => {
   })
 
   it('renders a non-URL access entry without an href', () => {
-    const wrapper = mountCard({ collection: collection({ access: ['On request'] }) })
+    const wrapper = mountCard({ collection: collection({ access: 'On request' }) })
 
     const entry = wrapper.findAll('a').find((a) => a.text().includes('On request'))!
     expect(entry.attributes('href')).toBeUndefined()
   })
 
   it('keeps the Access row with an em dash when the field is empty', () => {
-    const wrapper = mountCard({ collection: collection({ access: [] }) })
+    const wrapper = mountCard({ collection: collection({ access: null }) })
 
     expect(wrapper.text()).toContain('Access')
     expect(wrapper.findAll('a').some((a) => a.text().includes('Access'))).toBe(false)
@@ -289,7 +304,7 @@ describe('CollectionCard info (right column)', () => {
       collection: collection({
         title: null,
         doi: [],
-        access: [],
+        access: null,
         journalName: null,
         organism: [],
         organismPart: [],

@@ -577,18 +577,19 @@ const onDisplayMaxChange = (value: number) => {
   displayMax.value = value
 }
 
-// ---- processed 模式：TIC 图点击 → 加载像素谱 ----
+// ---- 图像点击 → 加载像素谱（continuous 读 spectra 组，processed 读主数据组） ----
 
 async function onSelectPixel(col: number, row: number) {
-  if (!isProcessed.value) return
   const ctx = getSharedZarrContext()
   if (!ctx.store) return
 
-  // 在像素坐标中查找最近的像素
+  // 在像素坐标中查找最近的像素；点在未采集数据的背景上时提示，谱图保持不变
   const pixelIdx = await ctx.store.findPixelByPosition(col, row)
-  if (pixelIdx >= 0) {
-    await loadPixelSpectrum(pixelIdx)
+  if (pixelIdx < 0) {
+    showToast(t('vizworkbench.page.noPixelAtPosition'), 'warning')
+    return
   }
+  await loadPixelSpectrum(pixelIdx)
 }
 </script>
 

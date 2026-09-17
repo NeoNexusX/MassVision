@@ -11,18 +11,15 @@
          输入框同源；只把固定高度改成最小高度，让 chip 多了能换行增高 -->
     <div
       ref="boxRef"
-      class="input input-bordered w-full h-auto min-h-(--size) flex-wrap whitespace-normal
-        gap-1.5 py-1 kawaru-text-95"
+      class="input input-bordered w-full h-auto min-h-(--size) flex-wrap whitespace-normal gap-1.5 py-1 kawaru-text-95"
       :class="{ 'input-error': error }"
       :data-field="name"
       @click="inputRef?.focus()"
     >
       <span
-        v-for="(tag, i) in modelValue"
+        v-for="(tag, i) in model"
         :key="`${tag}-${i}`"
-        class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 kawaru-text-87 font-medium
-          bg-base-200/80 text-base-content/80 border border-base-300
-          dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+        class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 kawaru-text-87 font-medium bg-base-200/80 text-base-content/80 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
       >
         {{ display(tag) }}
         <button
@@ -46,7 +43,7 @@
         :aria-activedescendant="activeIndex >= 0 ? optionId(activeIndex) : undefined"
         :aria-invalid="error ? true : undefined"
         class="flex-1 min-w-[6em] h-auto kawaru-text-95"
-        :placeholder="modelValue.length ? '' : (placeholder ?? $t('common.input.tagPlaceholder'))"
+        :placeholder="model.length ? '' : (placeholder ?? defaultPlaceholder)"
         :aria-label="name ? $t('common.input.addNamedTag', { name }) : $t('common.input.addTag')"
         @focus="open = true"
         @input="onInput"
@@ -72,8 +69,7 @@
         aria-multiselectable="true"
         data-taginput-menu
         :style="menuStyle"
-        class="z-[1000] overflow-y-auto py-1 bg-base-100
-          border border-base-300 rounded-box shadow-lg"
+        class="z-[1000] overflow-y-auto py-1 bg-base-100 border border-base-300 rounded-box shadow-lg"
         @mousedown.prevent
       >
         <li
@@ -83,7 +79,11 @@
           role="option"
           :aria-selected="isSelected(option)"
           class="flex items-center gap-2 px-3 py-1.5 cursor-pointer kawaru-text-87 text-base-content"
-          :class="i === activeIndex ? 'bg-base-200 dark:bg-slate-700' : 'hover:bg-base-200/60 dark:hover:bg-slate-700/60'"
+          :class="
+            i === activeIndex
+              ? 'bg-base-200 dark:bg-slate-700'
+              : 'hover:bg-base-200/60 dark:hover:bg-slate-700/60'
+          "
           @mousemove="activeIndex = i"
           @click="toggle(option)"
         >
@@ -100,14 +100,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, useId, watch } from 'vue'
+import { computed, nextTick, shallowRef, useId, useTemplateRef, watch } from 'vue'
 import { t } from '@/i18n'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import { useAnchoredPosition } from '@/shared/composables/useAnchoredPosition'
 
 const props = withDefaults(
   defineProps<{
-    modelValue: string[]
     /** 词表（调用方提供）：有则展开下拉建议，自由输入始终可用 */
     options?: readonly string[]
     /** 选项/chip 的显示文字（如词表译文）；只影响显示，收发的始终是原值 */
@@ -124,25 +123,19 @@ const props = withDefaults(
   }>(),
   {
     options: () => [],
-    labelOf: undefined,
-    pattern: undefined,
-    patternMessage: undefined,
-    placeholder: undefined,
     name: '',
   },
 )
 
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: string[]): void
-}>()
+const model = defineModel<string[]>({ required: true })
 
-const input = ref('')
-const open = ref(false)
-const activeIndex = ref(-1)
-const error = ref('')
-const boxRef = ref<HTMLElement | null>(null)
-const inputRef = ref<HTMLInputElement | null>(null)
-const menuRef = ref<HTMLElement | null>(null)
+const input = shallowRef('')
+const open = shallowRef(false)
+const activeIndex = shallowRef(-1)
+const error = shallowRef('')
+const boxRef = useTemplateRef<HTMLElement>('boxRef')
+const inputRef = useTemplateRef<HTMLInputElement>('inputRef')
+const menuRef = useTemplateRef<HTMLElement>('menuRef')
 
 const listboxId = useId()
 const optionId = (i: number) => `${listboxId}-${i}`
@@ -154,13 +147,15 @@ const lower = (s: string) => s.toLowerCase()
 // 这里本来就能自由输入，留着它只会被当成真实取值存进去
 const vocabulary = computed(() => props.options.filter((o) => o !== 'Other'))
 const hasOptions = computed(() => vocabulary.value.length > 0)
+// 有词表时点选即生效，不需要回车；只有纯手输才需要回车确认
+const defaultPlaceholder = computed(() =>
+  hasOptions.value ? t('common.input.tagSelectPlaceholder') : t('common.input.tagPlaceholder'),
+)
 
 const filtered = computed(() => {
   const q = lower(input.value.trim())
   if (!q) return vocabulary.value
-  return vocabulary.value.filter(
-    (o) => lower(o).includes(q) || lower(display(o)).includes(q),
-  )
+  return vocabulary.value.filter((o) => lower(o).includes(q) || lower(display(o)).includes(q))
 })
 
 const menuOpen = computed(() => open.value && filtered.value.length > 0)
@@ -169,8 +164,7 @@ const { style: menuStyle } = useAnchoredPosition(boxRef, menuOpen)
 // 过滤结果变了，旧的高亮下标就不再指向同一项
 watch(filtered, () => (activeIndex.value = -1))
 
-const isSelected = (option: string) =>
-  props.modelValue.some((v) => lower(v) === lower(option))
+const isSelected = (option: string) => model.value.some((v) => lower(v) === lower(option))
 
 /** 手输值与词表对齐：值或译文忽略大小写相同即取词表原值（"positive"/"正离子" → "Positive"） */
 function canonical(text: string): string {
@@ -204,32 +198,26 @@ function commit() {
     }
   }
 
-  const next = [...props.modelValue]
+  const next = [...model.value]
   for (const p of parts) {
     if (!next.some((v) => lower(v) === lower(p))) next.push(p)
   }
   input.value = ''
   error.value = ''
-  if (next.length !== props.modelValue.length) emit('update:modelValue', next)
+  if (next.length !== model.value.length) model.value = next
 }
 
 /** 词表选项：未选则追加，已选则取消（多选下拉的常规行为） */
 function toggle(option: string) {
-  emit(
-    'update:modelValue',
-    isSelected(option)
-      ? props.modelValue.filter((v) => lower(v) !== lower(option))
-      : [...props.modelValue, option],
-  )
+  model.value = isSelected(option)
+    ? model.value.filter((v) => lower(v) !== lower(option))
+    : [...model.value, option]
   input.value = ''
   error.value = ''
 }
 
 function remove(index: number) {
-  emit(
-    'update:modelValue',
-    props.modelValue.filter((_, i) => i !== index),
-  )
+  model.value = model.value.filter((_, i) => i !== index)
 }
 
 /** 有高亮项就切换它，否则提交手输内容（不自动高亮首项，避免把手输值误吞成某个词表项） */
@@ -267,8 +255,8 @@ function onEscape(e: KeyboardEvent) {
 
 /** 输入框为空时按退格 = 移除最后一个 chip（常见标签输入习惯） */
 function onBackspace() {
-  if (input.value === '' && props.modelValue.length) {
-    emit('update:modelValue', props.modelValue.slice(0, -1))
+  if (input.value === '' && model.value.length) {
+    model.value = model.value.slice(0, -1)
   }
 }
 

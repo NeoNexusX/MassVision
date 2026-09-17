@@ -32,6 +32,13 @@ describe('toMetadataDraft', () => {
 
     expect(current.organism).toEqual(['mouse'])
   })
+
+  it('keeps legacy scalar list metadata when opening the editor', () => {
+    const legacy = { name: 'X', member_type: 'MSI' } as unknown as CollectionMetadata
+
+    expect(toMetadataDraft(legacy).member_type).toEqual(['MSI'])
+    expect(buildMetadataPatch(legacy, toMetadataDraft(legacy))).toEqual({})
+  })
 })
 
 describe('buildMetadataPatch', () => {

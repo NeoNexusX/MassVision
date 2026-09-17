@@ -33,7 +33,7 @@ export interface CollectionSummary {
   /** 文章发表时间（ISO 串）；卡片 Journal 行下展示，null 显示「—」 */
   publishTime: string | null
   /** 卡片右侧的 Access 链接；后端原样透传，可能是 URL 或标签文本 */
-  access: string[]
+  access: string | null
   organismPart: string[]
   ionisationSource: string[]
   /**
@@ -76,7 +76,7 @@ export interface CollectionMetadata {
   collection_type?: string[]
   title?: string | null
   doi?: string[]
-  access?: string[]
+  access?: string | null
   journal_name?: string | null
   /** 文章发表时间（ISO 8601）；纯展示字段，不参与筛选/聚合，未设置为 null */
   publish_time?: string | null

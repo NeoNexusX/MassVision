@@ -35,7 +35,7 @@ function makeDetail(): CollectionDetail {
     doi: [],
     journalName: null,
     publishTime: null,
-    access: [],
+    access: null,
     organismPart: [],
     ionisationSource: [],
     // metadata 里的 name 是旧值：基线应以顶层 name 为准
@@ -43,7 +43,6 @@ function makeDetail(): CollectionDetail {
     members: [],
   }
 }
-
 
 // 被测代码用 t() 取文案：预先加载英文语言包，断言保持英文原文
 beforeAll(() => Promise.all([loadCoreMessages('en'), loadFeatureMessages('collections')]))

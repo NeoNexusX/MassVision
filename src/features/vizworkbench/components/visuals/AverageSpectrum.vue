@@ -1,8 +1,9 @@
 <template>
   <div class="flex h-[320px] flex-col lg:h-full">
-    <!-- 标题区 -->
-    <div class="flex items-center gap-3 mb-3">
+    <!-- 标题区：header 插槽放附加控件（如 SpectrumSection 的平均谱 / 像素谱切换） -->
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3">
       <h3 class="kawaru-text-95 font-semibold">{{ title }}</h3>
+      <slot name="header" />
       <div
         v-if="!loading && !error && showPeakCount"
         class="ml-auto text-base-content/50 font-mono"
@@ -17,7 +18,7 @@
       class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-content/30"
     >
       <span class="loading loading-spinner loading-lg text-primary"></span>
-      <p class="kawaru-text-95 text-base-content/60">{{ loadingText }}</p>
+      <p class="kawaru-text-95 text-base-content/60">{{ resolvedLoadingText }}</p>
     </div>
 
     <!-- 错误 -->
@@ -35,13 +36,31 @@
       </button>
     </div>
 
-    <!-- 谱图 -->
+    <!-- 空态：数据已加载但没有可画的点（如 centroid 全零的像素谱） -->
     <div
-      v-else
-      data-testid="average-spectrum-chart"
-      ref="chartContainerRef"
-      class="flex-1 min-h-0 bg-base-100 overflow-hidden"
-    ></div>
+      v-else-if="emptyText && !chartData.length"
+      class="flex-1 min-h-0 flex items-center justify-center bg-base-200 rounded-lg border border-base-content/30"
+    >
+      <p class="kawaru-text-95 text-base-content/60">{{ emptyText }}</p>
+    </div>
+
+    <!-- 谱图 -->
+    <div v-else class="relative flex-1 min-h-0">
+      <div
+        data-testid="average-spectrum-chart"
+        ref="chartContainerRef"
+        class="absolute inset-0 bg-base-100 overflow-hidden"
+      ></div>
+      <!-- 更新遮罩：新数据到达前保留旧谱。变为可见时延迟淡入（缓存命中时新谱通常先到，
+           遮罩根本不出现），隐藏时不延迟；pointer-events-none 不挡谱图交互 -->
+      <div
+        aria-hidden="true"
+        class="absolute inset-0 flex items-center justify-center bg-base-100/60 pointer-events-none transition-opacity duration-150"
+        :class="updating ? 'opacity-100 delay-200' : 'opacity-0'"
+      >
+        <span v-if="updating" class="loading loading-spinner loading-md text-primary"></span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -91,6 +110,12 @@ const props = defineProps<{
   spectrumMode?: string
   /** 数据模式 */
   dataMode?: DataMode | null
+  /** 已有谱图时的更新态：保留当前图表并叠加遮罩，不整体切到加载态 */
+  updating?: boolean
+  /** 覆盖默认的加载文案 */
+  loadingText?: string
+  /** 数据为空时显示的文案；不传则保留空的图表区（如平均谱加载前） */
+  emptyText?: string
 }>()
 
 const emit = defineEmits<{
@@ -141,11 +166,13 @@ const palette = computed(() => resolveSpectrumPalette(isDark.value ? 'dark' : 'l
 /** 谱图标题 */
 const title = computed(() => t('vizworkbench.spectrum.title'))
 
-/** 加载中文本 */
-const loadingText = computed(() =>
-  props.dataMode === 'processed'
-    ? t('vizworkbench.spectrum.loading')
-    : t('vizworkbench.spectrum.loadingAverage'),
+/** 加载中文本（调用方可经 loadingText 覆盖） */
+const resolvedLoadingText = computed(
+  () =>
+    props.loadingText ??
+    (props.dataMode === 'processed'
+      ? t('vizworkbench.spectrum.loading')
+      : t('vizworkbench.spectrum.loadingAverage')),
 )
 
 /** 是否显示峰数 */
@@ -278,12 +305,51 @@ function buildShadowData(data: ChartPoint[], targetWidth: number): ChartPoint[] 
   return result
 }
 
+type ZoomWindow = [start: number, end: number]
+
+/** ECharts 未公开的 dataZoom 模型接口（与 buildSelectorGraphic 读 grid 模型同理） */
+interface DataZoomModel {
+  getPercentRange(): number[] | undefined
+  getValueRange(): number[] | undefined
+}
+
+/**
+ * 读取用户当前的 m/z 缩放窗口（null = 未缩放）。
+ * 取自 dataZoom 模型的值窗口，与图表尺寸无关：图表容器被 v-if 暂时移除、
+ * ResizeObserver 把实例缩到 0 尺寸之后，读到的仍是用户设定的窗口。
+ */
+function readZoomWindow(): ZoomWindow | null {
+  if (!chartInstance) return null
+  const chart = chartInstance as unknown as {
+    getModel(): { getComponent(type: string, index: number): DataZoomModel | undefined } | undefined
+  }
+  const dataZoom = chart.getModel()?.getComponent('dataZoom', 0)
+  const percent = dataZoom?.getPercentRange()
+  const value = dataZoom?.getValueRange()
+  if (!percent || !value) return null
+  // 滑块拖回两端时百分比可能带浮点尾差
+  if (percent[0]! <= 1e-6 && percent[1]! >= 100 - 1e-6) return null
+  const [start, end] = value
+  return Number.isFinite(start) && Number.isFinite(end) && end! > start! ? [start!, end!] : null
+}
+
+/** 把沿用的缩放窗口钳位到新数据的 m/z 范围；与新数据没有交集时回到全谱 */
+function clampZoomWindow(zoom: ZoomWindow | null, data: ChartPoint[]): ZoomWindow | null {
+  if (!zoom || !data.length) return null
+  const start = Math.max(zoom[0], data[0]![0])
+  const end = Math.min(zoom[1], data[data.length - 1]![0])
+  return end > start ? [start, end] : null
+}
+
 /**
  * 构建完整 ECharts options。提取为独立函数，每次 render 都用
  * notMerge: true 传入，确保 dataZoom 缩略图与主图完全同步。
+ * zoom 为沿用的 m/z 缩放窗口（null = 全谱）。
  */
-function buildOptions(targetWidth: number): Record<string, unknown> {
+function buildOptions(targetWidth: number, zoom: ZoomWindow | null): Record<string, unknown> {
   const isProfile = props.spectrumMode === 'profile'
+  // 沿用的窗口按 m/z 值还原（startValue/endValue），否则显示全谱
+  const zoomRange = zoom ? { startValue: zoom[0], endValue: zoom[1] } : { start: 0, end: 100 }
   const shadowData = buildShadowData(props.chartData, targetWidth)
   const colors = palette.value
   return {
@@ -337,12 +403,11 @@ function buildOptions(targetWidth: number): Record<string, unknown> {
       splitLine: { lineStyle: { color: colors.axis.splitLine, type: 'dashed' } },
     },
     dataZoom: [
-      { type: 'inside', xAxisIndex: 0, start: 0, end: 100 },
+      { type: 'inside', xAxisIndex: 0, ...zoomRange },
       {
         type: 'slider',
         xAxisIndex: 0,
-        start: 0,
-        end: 100,
+        ...zoomRange,
         height: CHART_LAYOUT.zoomHeight,
         bottom: CHART_LAYOUT.zoomBottom,
         borderColor: colors.dataZoom.border,
@@ -401,32 +466,30 @@ function renderChart() {
   }
   if (isUnmounted) return
 
-  // 同一帧内 onMounted + watch 都会触发，引用相同则跳过
-  if (lastData === props.chartData) return
+  // onMounted、容器 ref 与数据的 watch 可能在同一帧先后触发：数据相同且已画在当前
+  // 容器上则跳过。容器被 v-if 重建过（加载 / 错误 / 空态之后）时即使数据引用没变也要
+  // 重画，否则新容器是空白
+  if (
+    lastData === props.chartData &&
+    lastSpectrumMode === props.spectrumMode &&
+    chartInstance?.getDom() === container
+  ) return
   lastData = props.chartData
+  lastSpectrumMode = props.spectrumMode
 
   const isProcessed = props.dataMode === 'processed'
 
-  // 清事件
-  if (selectorTimer) {
-    clearTimeout(selectorTimer)
-    selectorTimer = 0
-  }
-  if (nativeMouseDownHandler) {
-    container.removeEventListener('mousedown', nativeMouseDownHandler, true)
-    nativeMouseDownHandler = null
-  }
-  if (nativeClickHandler) {
-    container.removeEventListener('click', nativeClickHandler, true)
-    nativeClickHandler = null
-  }
-  resizeObserver?.disconnect()
-  resizeObserver = null
+  cleanupChart()
+
+  // 数据更换（平均谱 / 像素谱切换、连续点像素、主题切换）时沿用用户的缩放窗口。
+  // 各条谱共用同一 m/z 轴，窗口按 m/z 值记录而非百分比：centroid 过滤零值后每条谱的
+  // 首尾 m/z 不同，x 轴范围（见 buildOptions 的 min/max）随之变化，百分比会错位
+  const zoom = clampZoomWindow(readZoomWindow(), props.chartData)
 
   // 彻底销毁重建，保证 dataZoom 缩略图和主图完全一致
   chartInstance?.dispose()
   chartInstance = echarts.init(container)
-  chartInstance.setOption(buildOptions(container.clientWidth || 800), { notMerge: true })
+  chartInstance.setOption(buildOptions(container.clientWidth || 800, zoom), { notMerge: true })
 
   // 注册事件（仅 continuous 模式）
 
@@ -476,6 +539,25 @@ function renderChart() {
 // ===== 生命周期 =====
 
 let lastData: ChartPoint[] | null = null
+let lastSpectrumMode: string | undefined
+
+function cleanupChart() {
+  if (selectorTimer) {
+    clearTimeout(selectorTimer)
+    selectorTimer = 0
+  }
+  if (onDataZoom) {
+    chartInstance?.off('datazoom', onDataZoom)
+    onDataZoom = null
+  }
+  const container = chartContainerRef.value
+  if (nativeMouseDownHandler && container) container.removeEventListener('mousedown', nativeMouseDownHandler, true)
+  if (nativeClickHandler && container) container.removeEventListener('click', nativeClickHandler, true)
+  nativeMouseDownHandler = null
+  nativeClickHandler = null
+  resizeObserver?.disconnect()
+  resizeObserver = null
+}
 
 onMounted(() => {
   if (!props.loading && !props.error && props.chartData.length > 0) {
@@ -485,24 +567,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   isUnmounted = true
-  if (selectorTimer) {
-    clearTimeout(selectorTimer)
-    selectorTimer = 0
-  }
-  if (onDataZoom) {
-    chartInstance?.off('datazoom', onDataZoom)
-    onDataZoom = null
-  }
-  if (nativeMouseDownHandler && chartContainerRef.value) {
-    chartContainerRef.value.removeEventListener('mousedown', nativeMouseDownHandler, true)
-    nativeMouseDownHandler = null
-  }
-  if (nativeClickHandler && chartContainerRef.value) {
-    chartContainerRef.value.removeEventListener('click', nativeClickHandler, true)
-    nativeClickHandler = null
-  }
-  resizeObserver?.disconnect()
-  resizeObserver = null
+  cleanupChart()
   chartInstance?.dispose()
   chartInstance = null
 })
@@ -512,6 +577,18 @@ watch(
   () => props.chartData,
   (data) => {
     if (data.length > 0 && !isUnmounted && !props.loading) {
+      renderChart()
+    }
+  },
+  { flush: 'post' },
+)
+
+// 图表容器（重新）挂载时渲染：加载 / 错误 / 空态结束后 v-if 会重建容器，
+// 而数据引用可能没变，上面 chartData 的 watch 不会触发
+watch(
+  chartContainerRef,
+  (el) => {
+    if (el && props.chartData.length > 0 && !isUnmounted && !props.loading) {
       renderChart()
     }
   },

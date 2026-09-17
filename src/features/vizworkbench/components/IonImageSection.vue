@@ -62,7 +62,7 @@ const emit = defineEmits<{
   (e: 'draft-updated', draft: any): void
   (e: 'draft-cleared'): void
   (e: 'roi-overlay-ref', element: InstanceType<typeof ROIOverlay> | null): void
-  /** processed 模式：点击 TIC 图像中某个像素 */
+  /** 点击图像中的某个像素（加载该像素的谱） */
   (e: 'select-pixel', col: number, row: number): void
 }>()
 

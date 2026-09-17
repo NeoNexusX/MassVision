@@ -9,8 +9,7 @@
     <section v-for="group in METADATA_GROUPS" :key="group.id">
       <h4
         v-if="fieldsOf(group.id).length"
-        class="kawaru-text-87 font-semibold uppercase tracking-wide text-base-content/50
-          border-b border-base-200 dark:border-slate-700 pb-1 mb-3"
+        class="kawaru-text-87 font-semibold uppercase tracking-wide text-base-content/50 border-b border-base-200 dark:border-slate-700 pb-1 mb-3"
       >
         {{ group.label() }}
       </h4>
@@ -65,6 +64,8 @@
               :name="field.label()"
               :options="field.options"
               :label-of="collectionVocabLabel"
+              :pattern="field.pattern"
+              :pattern-message="field.patternMessage?.()"
               :placeholder="placeholderOf(field)"
             />
           </component>
@@ -90,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue'
+import { computed } from 'vue'
 import TagInput from '@/shared/components/TagInput.vue'
 import { collectionVocabLabel } from '../constants/collectionVocab'
 import {
@@ -101,25 +102,32 @@ import {
 } from '../constants/metadataFields'
 import type { CollectionMetadataDraft } from '../types/collection'
 
-const props = defineProps({
+interface Props {
   /** 父级持有的草稿（reactive），本组件直接绑定其字段 */
-  draft: { type: Object as PropType<CollectionMetadataDraft>, required: true },
+  draft: CollectionMetadataDraft
   /** 由父级另行渲染、本表单跳过的字段键 */
-  excludeKeys: { type: Array as PropType<readonly string[]>, default: () => [] },
+  excludeKeys?: readonly string[]
   /** 当前由选中数据集自动推导（预填）的字段键 */
-  autoKeys: { type: Array as PropType<readonly string[]>, default: () => [] },
+  autoKeys?: readonly string[]
   /** 与识别值不一致（用户手改）的字段键：显示「已手动修改 / 恢复为自动识别值」 */
-  editedKeys: { type: Array as PropType<readonly string[]>, default: () => [] },
+  editedKeys?: readonly string[]
   /** 前端必填的字段键（红 * 标注）。仅创建流程传入；编辑流程不传，维持 PATCH 全可选语义 */
-  requiredKeys: { type: Array as PropType<readonly string[]>, default: () => [] },
+  requiredKeys?: readonly string[]
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  excludeKeys: () => [],
+  autoKeys: () => [],
+  editedKeys: () => [],
+  requiredKeys: () => [],
 })
 
 const emit = defineEmits<{
   (e: 'reset-field', key: string): void
 }>()
 
-// v-model 到「联合键」的索引写入在 TS 下不可赋值，松化一层仅用于模板绑定；
-// 对外 API 仍以 CollectionMetadataDraft 强类型约束。
+// 字段定义的联合键在模板中按控件分支使用；此处只在边界统一索引类型，
+// 对外 API 仍由 CollectionMetadataDraft 约束。
 const d = computed(() => props.draft as Record<string, any>)
 
 function fieldsOf(group: MetadataGroupId) {

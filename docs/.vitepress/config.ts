@@ -56,7 +56,7 @@ const en = {
 
 const zh = {
   nav: [
-    { text: '指南', link: '/zh/guide/getting-started' },
+    { text: '指南', link: '/zh/guide/1.Getting-Started' },
     { text: '开发', link: '/zh/dev/技术栈' },
   ],
   sidebar: {
@@ -64,11 +64,15 @@ const zh = {
       {
         text: '指南',
         items: [
-          { text: '快速开始', link: '/zh/guide/getting-started' },
-          { text: '上传数据', link: '/zh/guide/upload-data' },
-          { text: '下载数据', link: '/zh/guide/download-data' },
-          { text: '查看数据', link: '/zh/guide/view-data' },
-          { text: '创建分析', link: '/zh/guide/create-analysis' },
+          { text: '快速开始', link: '/zh/guide/1.Getting-Started' },
+          { text: '账户管理', link: '/zh/guide/2.Account-Management' },
+          { text: '查找数据集', link: '/zh/guide/3.Datasets-Finding' },
+          { text: '数据集总览', link: '/zh/guide/4.Dataset-Overview' },
+          { text: '数据可视化', link: '/zh/guide/5.Dataset-Visualize' },
+          { text: '上传数据集', link: '/zh/guide/6.Dataset-Upload' },
+          { text: '数据集分析', link: '/zh/guide/7.Dataset-Analysis' },
+          { text: '工作区', link: '/zh/guide/8.Workspace' },
+          { text: '导航说明', link: '/zh/guide/9.Navigation' },
         ],
       },
     ],

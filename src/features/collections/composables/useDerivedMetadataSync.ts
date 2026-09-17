@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, shallowRef, watch, type Ref } from 'vue'
 import type { File } from '@/features/datasets/types/dataset'
 import {
   DERIVED_METADATA_KEYS,
@@ -8,7 +8,8 @@ import {
 
 /** 两个取值列表是否等价：忽略顺序与大小写（TagInput 本身也按忽略大小写去重） */
 function sameValues(a: readonly string[] = [], b: readonly string[] = []): boolean {
-  const normalize = (list: readonly string[]) => [...new Set(list.map((v) => v.toLowerCase()))].sort()
+  const normalize = (list: readonly string[]) =>
+    [...new Set(list.map((v) => String(v).trim().toLowerCase()))].sort()
   return JSON.stringify(normalize(a)) === JSON.stringify(normalize(b))
 }
 
@@ -29,7 +30,7 @@ export function useDerivedMetadataSync(
 ) {
   const detected = computed(() => deriveCollectionMetadata(files.value))
   /** 与识别值不一致、停止自动同步的字段键 */
-  const lockedKeys = ref<string[]>([])
+  const lockedKeys = shallowRef<string[]>([])
   let applying = false
 
   function setLocked(key: string, locked: boolean) {
@@ -44,7 +45,8 @@ export function useDerivedMetadataSync(
       applying = true
       try {
         for (const key of DERIVED_METADATA_KEYS) {
-          if (!lockedKeys.value.includes(key)) draft[key] = values[key]
+          // 不共享识别结果数组：草稿是可编辑的，原地修改不能反向污染 detected 快照。
+          if (!lockedKeys.value.includes(key)) draft[key] = [...values[key]]
           else if (sameValues(draft[key], values[key])) setLocked(key, false)
         }
       } finally {

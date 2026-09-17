@@ -119,6 +119,7 @@
     "input": {
       "selectPlaceholder": "请选择",
       "tagPlaceholder": "输入后按回车添加",
+      "tagSelectPlaceholder": "从列表中选择，或输入自定义值后按回车",
       "addTag": "添加标签",
       "addNamedTag": "添加{name}",
       "removeTag": "移除 {tag}",

@@ -185,31 +185,28 @@
             <span v-else class="kawaru-text-95 text-base-content/40">—</span>
           </div>
 
-          <!-- 后端 access 字段原样透传，可能是 URL 也可能是标签文本 -->
+          <!-- 后端 access 字段原样透传，可能是 URL 也可能是标签文本（单值文本字段） -->
           <div class="flex items-baseline gap-2 min-w-0">
             <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
               $t('collections.meta.access')
             }}</span>
-            <div v-if="collection.access.length" class="flex-1 min-w-0 flex flex-col gap-0.5">
-              <a
-                v-for="entry in collection.access"
-                :key="entry"
-                :href="isUrl(entry) ? entry : undefined"
-                :target="isUrl(entry) ? '_blank' : undefined"
-                :rel="isUrl(entry) ? 'noopener noreferrer' : undefined"
-                class="flex items-center gap-1.5 min-w-0 kawaru-text-95"
-                :class="
-                  isUrl(entry)
-                    ? 'text-primary hover:underline'
-                    : 'cursor-default text-base-content/70'
-                "
-                :title="entry"
-                @click.stop
-              >
-                <SvgIcon type="link" class="w-[1em] h-[1em] shrink-0" />
-                <span class="truncate">{{ entry }}</span>
-              </a>
-            </div>
+            <a
+              v-if="collection.access"
+              :href="isUrl(collection.access) ? collection.access : undefined"
+              :target="isUrl(collection.access) ? '_blank' : undefined"
+              :rel="isUrl(collection.access) ? 'noopener noreferrer' : undefined"
+              class="flex-1 min-w-0 items-center gap-1.5 kawaru-text-95"
+              :class="
+                isUrl(collection.access)
+                  ? 'text-primary hover:underline'
+                  : 'cursor-default text-base-content/70'
+              "
+              :title="collection.access"
+              @click.stop
+            >
+              <SvgIcon type="link" class="w-[1em] h-[1em] shrink-0" />
+              <span class="truncate">{{ collection.access }}</span>
+            </a>
             <span v-else class="kawaru-text-95 text-base-content/40">—</span>
           </div>
 
@@ -501,7 +498,12 @@ function isUrl(value: string): boolean {
   return /^https?:\/\//i.test(value)
 }
 function doiHref(doi: string): string {
-  return isUrl(doi) ? doi : `https://doi.org/${doi}`
+  // 先剥 doi:/doi.org 前缀再拼，避免 "doi:10.x" 变成 "https://doi.org/doi:10.x"
+  const value = doi.trim().replace(
+    /^(?:(?:https?:\/\/)?(?:dx\.|www\.)?doi\.org\/|doi:\s*)/i,
+    '',
+  )
+  return isUrl(value) ? value : `https://doi.org/${value}`
 }
 
 // ---- 分享链接：复制免登录公开页 URL（与 overview 页 copyShareLink 同一方案）----
