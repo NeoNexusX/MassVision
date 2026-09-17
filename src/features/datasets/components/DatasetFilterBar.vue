@@ -26,13 +26,17 @@
           {{ $t('datasets.filter.addFilter') }}
         </button>
         <teleport to="body">
+          <!-- 面板 z 必须低于 TagInput 词表下拉的 z-[1000]（否则下拉建议被面板盖住），
+               高于页面普通内容；toast(9999)/AI 助手(10000) 仍在面板之上 -->
           <div
             v-show="showFilterPanel"
             ref="filterPanelRef"
             :style="panelStyle"
-            class="bg-base-100 dark:bg-slate-800 border border-base-300 rounded-lg p-5 shadow-2xl"
+            class="bg-base-100 dark:bg-slate-800 border border-base-300 rounded-lg p-5 shadow-2xl
+              overflow-y-auto z-[900]"
           >
             <DatasetFilterPanel
+              :show-username="usernameFilter"
               @apply="(payload) => emit('apply-filters', payload)"
               @close="closeFilterPanel"
             />
@@ -81,10 +85,11 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch } from 'vue'
 import DatasetFilterPanel from '@/features/datasets/components/DatasetFilterPanel.vue'
 import SearchInput from '@/shared/components/SearchInput.vue'
 import { useClickOutside } from '@/shared/composables/useClickOutside'
+import { useAnchoredPosition } from '@/shared/composables/useAnchoredPosition'
 import { t } from '@/i18n'
 
 interface SortOption {
@@ -98,12 +103,15 @@ withDefaults(
     showAddFilter?: boolean
     /** 在 Add filter 旁显示进入 /collections 的按钮（数据集列表 ↔ 集合列表互跳） */
     showCollectionsLink?: boolean
+    /** 筛选面板显示 username 字段：仅公开列表（/files/list_files）后端支持 */
+    usernameFilter?: boolean
     searchPlaceholder?: string
   }>(),
   {
     showUpload: false,
     showAddFilter: false,
     showCollectionsLink: false,
+    usernameFilter: false,
     searchPlaceholder: undefined,
   },
 )
@@ -130,29 +138,17 @@ const sortOptions = computed<SortOption[]>(() => [
 const showFilterPanel = ref(false)
 const filterBtn = ref<HTMLElement | null>(null)
 const filterPanelRef = ref<HTMLElement | null>(null)
-const panelStyle = ref<Record<string, string>>({})
 
-const computePanelPosition = () => {
-  const btn = filterBtn.value
-  if (!btn) return
-  const rect = btn.getBoundingClientRect()
-  const panelWidth = Math.min(650, window.innerWidth - 32)
-  const left = Math.min(Math.max(16, rect.left), window.innerWidth - panelWidth - 16)
-  const top = rect.bottom + window.scrollY + 8
-  panelStyle.value = {
-    position: 'absolute',
-    top: `${top}px`,
-    left: `${left + window.scrollX}px`,
-    width: `${panelWidth}px`,
-    zIndex: '9999',
-  }
-}
+// 面板定位：fixed 贴锚点（视口坐标系，不吃文档滚动/裁剪的坑），下方空间不足
+// 且上方更宽裕时向上翻，高度钳制在剩余空间内；滚动/缩放自动跟随
+const { style: panelStyle } = useAnchoredPosition(filterBtn, showFilterPanel, {
+  gap: 8,
+  width: 650,
+  maxHeight: Math.round(window.innerHeight * 0.75),
+})
 
 const toggleFilterPanel = () => {
   showFilterPanel.value = !showFilterPanel.value
-  if (showFilterPanel.value) {
-    setTimeout(() => computePanelPosition(), 0)
-  }
 }
 
 const closeFilterPanel = () => {
@@ -161,15 +157,8 @@ const closeFilterPanel = () => {
 
 const onSearchClick = () => emit('search', searchQuery.value)
 
-useClickOutside(filterPanelRef, closeFilterPanel, [filterBtn])
-
-onMounted(() => {
-  window.addEventListener('resize', computePanelPosition)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', computePanelPosition)
-})
+// 词表下拉 teleport 在面板 DOM 之外，选择选项不算 outside（否则面板会被误关）
+useClickOutside(filterPanelRef, closeFilterPanel, [filterBtn], '[data-taginput-menu]')
 
 watch(sortValue, (value) => emit('sort', value))
 </script>
