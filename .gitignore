@@ -33,6 +33,7 @@ docs/.vitepress/dist
 public/QQ_*.png
 public/combin.zarr/
 public/reference/
+public/前端对接说明.md
 
 *.tsbuildinfo
 
