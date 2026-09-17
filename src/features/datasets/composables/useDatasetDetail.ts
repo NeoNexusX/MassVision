@@ -20,14 +20,13 @@ export function useDatasetDetail() {
   const { handleDownloadRaw, isPacking } = useDownloadProgress()
   const { showToast } = useToast()
 
-  // Normal Overview entries use navigation state so private file ids never
-  // become part of a public URL. The /files/:publicId sharing route remains
-  // available separately through PublicFileView.
+  // 从 history.state 读取导航上下文（无路径参数，刷新后会丢失）
   const state = history.state as { fileId?: string; source?: 'my' | 'public' } | null
 
   // State
   const dataset = ref<File | null>(null)
   const loading = ref(true)
+  const isCopied = ref(false)
   const ticImageUrl = ref<string>('')
   const ticImageError = ref(false)
 
@@ -43,7 +42,7 @@ export function useDatasetDetail() {
     isShareView.value ? 'public' : state?.source || 'my',
   )
   const isPublic = computed(() => source.value === 'public')
-  /** Normal entries need history state; legacy shared entries decode their public URL id. */
+  /** Normal entry needs history state; shared entry needs a valid encoded id. */
   const isStale = computed(() => !fileId.value)
 
   // Computed
@@ -62,6 +61,19 @@ export function useDatasetDetail() {
     // 不能再做大小写变换；只有自填值沿用首字母大写的旧显示
     if (isVocabValue(val)) return vocabLabel(val)
     return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
+  }
+
+  const copyHash = async (hash: string) => {
+    if (!hash) return
+    try {
+      await navigator.clipboard.writeText(hash)
+      isCopied.value = true
+      setTimeout(() => {
+        isCopied.value = false
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to copy text: ', err)
+    }
   }
 
   const goBack = () => {
@@ -108,13 +120,9 @@ export function useDatasetDetail() {
     makingPublic.value = true
     try {
       await setFilePublic(targetId)
-      // set_public 响应不含 public_id（后端契约）：重拉一次元数据把
-      // is_public 与分享所需的 public_id 一起同步到位；失败则退回本地翻转标志
-      try {
-        const metadata = await getFileMetadata(targetId, isPublic.value)
-        if (metadata) dataset.value = mapItemToDataset(metadata)
-      } catch {
-        if (dataset.value) dataset.value.isPublic = true
+      // 直接更新本地状态，避免刷新页面
+      if (dataset.value) {
+        dataset.value.isPublic = true
       }
       showToast(t('datasets.overview.madePublic'), 'success')
     } catch (error) {
@@ -124,39 +132,6 @@ export function useDatasetDetail() {
     } finally {
       makingPublic.value = false
       showPublicConfirm.value = false
-    }
-  }
-
-  // ---- 私有文件的分享：确认「设为公开」→ 重拉拿 public_id → 复制链接 ----
-  const showShareConfirm = ref(false)
-  const sharing = ref(false)
-
-  const openShareConfirm = () => {
-    showShareConfirm.value = true
-  }
-
-  const cancelShareConfirm = () => {
-    showShareConfirm.value = false
-  }
-
-  const confirmSharePublic = async () => {
-    const targetId = dataset.value?.id ? String(dataset.value.id) : ''
-    if (!targetId) return
-    sharing.value = true
-    try {
-      await setFilePublic(targetId)
-      // set_public 响应不含 public_id（后端契约）：重拉元数据让 isPublic/publicId
-      // 同步到位，然后直接复用 shareCurrent（此刻 isPublic 已翻真，走 public_id 新链接）
-      const metadata = await getFileMetadata(targetId, isPublic.value)
-      if (metadata) dataset.value = mapItemToDataset(metadata)
-      showToast(t('datasets.overview.madePublic'), 'success')
-      await shareCurrent()
-    } catch (error) {
-      showToast(extractBackendError(error, t('common.feedback.updateFailed')), 'error')
-      console.error('Failed to share dataset', error)
-    } finally {
-      sharing.value = false
-      showShareConfirm.value = false
     }
   }
 
@@ -200,12 +175,14 @@ export function useDatasetDetail() {
     isStale,
     dataset,
     loading,
+    isCopied,
     isShareCopied,
     ticImageUrl,
     ticImageError,
     placeholderSvg,
     formatSize: formatBytes,
     formatString,
+    copyHash,
     shareCurrent,
     goBack,
     downloadCurrent,
@@ -215,10 +192,5 @@ export function useDatasetDetail() {
     openPublicConfirm,
     cancelPublicConfirm,
     confirmSetPublic,
-    showShareConfirm,
-    sharing,
-    openShareConfirm,
-    cancelShareConfirm,
-    confirmSharePublic,
   }
 }

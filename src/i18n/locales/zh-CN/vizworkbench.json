@@ -10,8 +10,6 @@
       "invalidMz": "请输入有效的 m/z 值。",
       "mzAxisNotLoaded": "m/z 轴尚未加载。",
       "noPeakInTolerance": "{target} 的 ±{tolerance} 范围内没有峰：最近的是 {nearest}（Δ {delta}）。请放宽容差或换一个值。",
-      "maskImported": "掩膜已导入并应用到图像。",
-      "maskImportFailed": "掩膜导入失败：{error}",
       "noPixelAtPosition": "该位置没有采集数据"
     },
     "ionImage": {
@@ -82,11 +80,7 @@
       "full": "已达到 {max} 个通道的上限。",
       "enableFirst": "请先开启叠加模式",
       "colorsInUse": "所有通道颜色都已占用",
-      "addHint": "将当前 m/z（{mz}）添加为通道",
-      "batchAdd": "批量添加 m/z",
-      "batchHint": "批量模式：点击谱图中的 m/z 峰即可添加",
-      "changeColor": "修改 m/z {mz} 通道颜色",
-      "opacity": "设置 m/z {mz} 通道透明度"
+      "addHint": "将当前 m/z（{mz}）添加为通道"
     },
     "roi": {
       "tools": "ROI 工具",
@@ -118,10 +112,7 @@
       "runKmeansHint": "运行 KMeans 后可将聚类一并纳入掩膜。",
       "exportHint": "下载一个掩膜文件",
       "export": "导出掩膜",
-      "all": "全选",
-      "import": "导入掩膜",
-      "clearImport": "清除导入掩膜",
-      "imported": "已导入：{name}"
+      "all": "全选"
     },
     "compare": {
       "preview": "区域预览",

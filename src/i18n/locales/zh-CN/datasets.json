@@ -8,6 +8,7 @@
       "experimentType": "实验类型",
       "size": "大小",
       "fileSize": "文件大小",
+      "md5": "MD5 哈希",
       "submittedBy": "提交者",
       "filename": "文件名"
     },
@@ -133,29 +134,22 @@
       "msiSettings": "质谱成像采集参数",
       "fileInfo": "文件信息",
       "resolvingPowerAt": "{mzLabel} {mz} 处，{rp}",
+      "copiedShort": "已复制！",
+      "copyHash": "复制哈希",
       "publicTitle": "将数据集设为公开",
       "publicMessage": "该数据集将移入公开数据，其他用户都可以看到。此操作无法撤销。",
       "madePublic": "数据集已设为公开",
       "shareUnavailable": "无法为该数据集生成分享链接。"
     },
     "download": {
+      "preparing": "正在准备下载，请稍候...",
       "inProgress": "已有下载正在进行。",
       "limited": "下载受限，请等待 {seconds} 秒。",
       "downloading": "下载中...",
       "started": "已开始下载",
       "failed": "下载失败",
-      "limitReached": "下载次数已达上限",
+      "timeout": "下载准备超时，请稍后重试",
       "noUrls": "未获取到下载地址"
-    },
-    "public": {
-      "badge": "公开数据",
-      "notFound": "文件不可用",
-      "notFoundDesc": "分享链接无效，或该文件已不可公开访问。",
-      "backHome": "返回首页"
-    },
-    "share": {
-      "publicTitle": "分享数据集",
-      "publicMessage": "分享需要先将该数据集设为公开。设为公开后所有用户可见，此操作无法撤销。确认后将自动复制分享链接。"
     }
   }
 }

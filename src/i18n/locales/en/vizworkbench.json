@@ -10,8 +10,6 @@
       "invalidMz": "Please enter a valid m/z value.",
       "mzAxisNotLoaded": "m/z axis is not loaded yet.",
       "noPeakInTolerance": "No peak within ±{tolerance} of {target}: nearest is {nearest} (Δ {delta}). Widen the tolerance or try another value.",
-      "maskImported": "Mask imported and applied to the image.",
-      "maskImportFailed": "Mask import failed: {error}",
       "noPixelAtPosition": "No data was acquired at this position"
     },
     "ionImage": {
@@ -82,11 +80,7 @@
       "full": "Maximum of {max} channels reached.",
       "enableFirst": "Enable overlay mode first",
       "colorsInUse": "All channel colors are in use",
-      "addHint": "Add the current m/z ({mz}) as a channel",
-      "batchAdd": "Batch add m/z",
-      "batchHint": "Batch mode: click m/z peaks in the spectrum to add them",
-      "changeColor": "Change color for channel m/z {mz}",
-      "opacity": "Opacity for channel m/z {mz}"
+      "addHint": "Add the current m/z ({mz}) as a channel"
     },
     "roi": {
       "tools": "ROI Tools",
@@ -118,10 +112,7 @@
       "runKmeansHint": "Run KMeans to also include clusters in the mask.",
       "exportHint": "Downloads one mask file",
       "export": "Export mask",
-      "all": "All",
-      "import": "Import mask",
-      "clearImport": "Clear imported mask",
-      "imported": "Imported: {name}"
+      "all": "All"
     },
     "compare": {
       "preview": "Region preview",

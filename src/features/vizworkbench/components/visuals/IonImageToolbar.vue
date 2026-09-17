@@ -38,9 +38,7 @@
         v-if="dataMode === 'processed' && pixelCoord"
         class="bg-base-100 border border-base-300 rounded-lg px-3 py-1 h-8 flex items-center"
       >
-        <span class="text-base-content/50 pr-[0.25em]">{{
-          $t('vizworkbench.spectrum.pixel')
-        }}</span>
+        <span class="text-base-content/50 pr-[0.25em]">{{ $t('vizworkbench.spectrum.pixel') }}</span>
         <span class="font-mono font-semibold">({{ pixelCoord.x }}, {{ pixelCoord.y }})</span>
       </div>
       <!-- m/z 容差（仅 continuous 模式） -->
@@ -95,13 +93,7 @@
         >
           <option value="linear">{{ $t('vizworkbench.toolbar.linear') }}</option>
           <option value="log">{{ $t('vizworkbench.toolbar.log') }}</option>
-          <option
-            v-if="dataMode === 'continuous' && hasTic"
-            value="tic"
-            :title="$t('vizworkbench.toolbar.ticNormHint')"
-          >
-            {{ $t('vizworkbench.toolbar.ticNorm') }}
-          </option>
+          <option v-if="dataMode === 'continuous' && hasTic" value="tic" :title="$t('vizworkbench.toolbar.ticNormHint')">{{ $t('vizworkbench.toolbar.ticNorm') }}</option>
         </select>
       </div>
       <button
@@ -113,11 +105,7 @@
       >
         {{ $t('common.action.reset') }}
       </button>
-      <button
-        class="btn btn-fluid btn-ghost"
-        :title="$t('vizworkbench.toolbar.exportPng')"
-        @click="$emit('download')"
-      >
+      <button class="btn btn-fluid btn-ghost" :title="$t('vizworkbench.toolbar.exportPng')" @click="$emit('download')">
         <SvgIcon type="download" />
         PNG
       </button>

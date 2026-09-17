@@ -5,7 +5,7 @@ import type { CollectionSummary } from '../types/collection'
 /**
  * 列表卡片封面用的成员 id。
  *
- * 列表接口（POST /collections/list_all、POST /collections/list）只返回集合本身，不带 members，
+ * 列表接口（GET /collections/all、GET /collections）只返回集合本身，不带 members，
  * 而 OSS 预览图是按成员 file_id 取的（images/file_{id}/preview.jpg）。详情读取
  * 走免登录公开接口（GET /collections/public/{public_id}，认证版
  * GET /collections/{id} 暂不使用），所以这里按列表行携带的 public_id 逐卡拉一次

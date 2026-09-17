@@ -42,10 +42,10 @@ beforeEach(() => {
 })
 
 describe('collectionApi', () => {
-  it('listCollections posts to /collections/list with {} body and paginates via query params', async () => {
+  it('listCollections paginates via query params and unwraps {meta, data}', async () => {
     const row = { id: 1, name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
 
-    authPost.mockResolvedValueOnce({
+    authGet.mockResolvedValueOnce({
       data: {
         meta: { current_page: 2, current_records: 10, total_pages: 3, total_records: 25 },
         data: [row],
@@ -53,8 +53,7 @@ describe('collectionApi', () => {
     })
     const res = await listCollections(2, 10)
 
-    // 后端 breaking change：必须发 body（不筛选也要 {}），不发返回 422
-    expect(authPost).toHaveBeenCalledWith('/collections/list', {}, { params: { page: 2, size: 10 } })
+    expect(authGet).toHaveBeenCalledWith('/collections', { params: { page: 2, size: 10 } })
     expect(res.meta).toEqual({
       current_page: 2,
       current_records: 10,
@@ -65,21 +64,10 @@ describe('collectionApi', () => {
     expect(res.data.map((r) => r.name)).toEqual(['a'])
   })
 
-  it('listCollections passes filter body through (single value or array)', async () => {
-    authPost.mockResolvedValueOnce({ data: { meta: {}, data: [] } })
-    await listCollections(1, 10, { organism: ['mouse', 'human'], name: 'brain' })
-
-    expect(authPost).toHaveBeenCalledWith(
-      '/collections/list',
-      { organism: ['mouse', 'human'], name: 'brain' },
-      { params: { page: 1, size: 10 } },
-    )
-  })
-
   it('listCollections still tolerates legacy envelopes, meta falls back to single page', async () => {
     const row = { id: 1, name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
 
-    authPost.mockResolvedValueOnce({ data: [row, row] })
+    authGet.mockResolvedValueOnce({ data: [row, row] })
     const plain = await listCollections(1, 10)
     expect(plain.data).toHaveLength(2)
     expect(plain.meta).toEqual({
@@ -89,19 +77,19 @@ describe('collectionApi', () => {
       total_records: 0,
     })
 
-    authPost.mockResolvedValueOnce({ data: { items: [row] } })
+    authGet.mockResolvedValueOnce({ data: { items: [row] } })
     const items = await listCollections(1, 10)
     expect(items.data).toHaveLength(1)
 
-    authPost.mockResolvedValueOnce({ data: {} })
+    authGet.mockResolvedValueOnce({ data: {} })
     const empty = await listCollections(1, 10)
     expect(empty.data).toEqual([])
   })
 
-  it('listAllCollections hits /collections/list_all with the same pagination contract', async () => {
+  it('listAllCollections hits /collections/all with the same pagination contract', async () => {
     const row = { id: 1, name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
 
-    authPost.mockResolvedValueOnce({
+    authGet.mockResolvedValueOnce({
       data: {
         meta: { current_page: 1, current_records: 1, total_pages: 1, total_records: 1 },
         data: [row],
@@ -109,7 +97,7 @@ describe('collectionApi', () => {
     })
     const res = await listAllCollections(1, 10)
 
-    expect(authPost).toHaveBeenCalledWith('/collections/list_all', {}, { params: { page: 1, size: 10 } })
+    expect(authGet).toHaveBeenCalledWith('/collections/all', { params: { page: 1, size: 10 } })
     expect(res.data).toHaveLength(1)
     expect(res.meta.total_records).toBe(1)
   })

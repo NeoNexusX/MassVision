@@ -44,12 +44,12 @@
     </div>
 
     <div v-if="members.length" class="flex flex-col gap-1 border border-base-200 dark:border-slate-700 rounded-md p-2">
-      <div class="kawaru-text-100"
+      <div class="kawaru-text-87"
         v-for="(member, i) in members"
         :key="member.id"
         :draggable="manageMode && armed"
         :class="[
-          'relative px-3 py-3 rounded-lg flex items-center gap-4 select-none transition-opacity',
+          'relative px-3 py-2 rounded-lg flex items-center gap-3 select-none transition-opacity',
           manageMode ? 'cursor-default' : '',
           dragFrom === i ? 'opacity-40' : '',
           dragOver === i && dragFrom !== i ? 'border-t-2 border-t-primary' : '',
@@ -83,8 +83,7 @@
           <SvgIcon type="bars3" class="w-[1em] h-[1em]" />
         </div>
 
-        <!-- 缩略图：16（64px）——40px 太小看不清组织结构 -->
-        <div class="w-16 h-16 shrink-0">
+        <div class="w-10 h-10 shrink-0">
           <DatasetThumb :file-id="String(member.id)" :alt="$t('collections.picker.previewAlt', { name: member.filename })" />
         </div>
 
@@ -92,12 +91,12 @@
           <div class="font-medium truncate text-base-content" :title="member.filename">
             {{ member.filename }}
           </div>
-          <div class="kawaru-text-95 text-base-content/60 truncate">
+          <div class="kawaru-text-87 text-base-content/60 truncate">
             {{ [member.experimentType, statusLabel(member.status)].filter(Boolean).join(' · ') || '–' }}
           </div>
         </div>
 
-        <div class="kawaru-text-95 text-base-content/60 whitespace-nowrap tabular-nums shrink-0">
+        <div class="kawaru-text-87 text-base-content/60 whitespace-nowrap tabular-nums shrink-0">
           {{ formatBytes(member.size) }}
         </div>
 
