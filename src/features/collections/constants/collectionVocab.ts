@@ -20,6 +20,7 @@ export const COLLECTION_TYPES = [
   'Case-control',
   'Multimodal',
   'Tissue microarray',
+  'Random select',
 ] as const
 
 const COLLECTION_VOCAB_LABELS: Record<string, () => string> = {
@@ -37,6 +38,7 @@ const COLLECTION_VOCAB_LABELS: Record<string, () => string> = {
   'Case-control': () => t('collections.vocab.collectionType.caseControl'),
   Multimodal: () => t('collections.vocab.collectionType.multimodal'),
   'Tissue microarray': () => t('collections.vocab.collectionType.tissueMicroarray'),
+  'Random select': () => t('collections.vocab.collectionType.randomSelect'),
 }
 
 /**

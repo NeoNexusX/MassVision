@@ -107,7 +107,7 @@
         "citation": "Enter the article citation (ACS or RSC style recommended)",
         "abstract": "Enter the article abstract",
         "memberType": "Data types, e.g. MSI, H&E, ST",
-        "collectionType": "Composition, e.g. serial sections, time series"
+        "collectionType": "Pick from the list or type a composition, e.g. serial sections, time series"
       }
     },
     "panel": {
@@ -179,7 +179,8 @@
         "replicates": "Biological replicates",
         "caseControl": "Case-control",
         "multimodal": "Multimodal",
-        "tissueMicroarray": "Tissue microarray"
+        "tissueMicroarray": "Tissue microarray",
+        "randomSelect": "Random select"
       }
     }
   }

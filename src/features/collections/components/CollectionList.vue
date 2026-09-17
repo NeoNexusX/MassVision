@@ -101,7 +101,7 @@ defineEmits<{
         :key="collection.id"
         :collection="collection"
         :can-edit="canEdit(collection)"
-        :member-image-paths="memberImagePaths[collection.id]"
+        :image-paths="memberImagePaths[collection.id]"
         :cover-loading="coverLoading[collection.id]"
         @view="$emit('view', $event)"
         @delete="$emit('delete', $event)"

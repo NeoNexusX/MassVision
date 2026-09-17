@@ -185,28 +185,31 @@
             <span v-else class="kawaru-text-95 text-base-content/40">—</span>
           </div>
 
-          <!-- 后端 access 字段原样透传，可能是 URL 也可能是标签文本（单值文本字段） -->
+          <!-- 后端 access 为 list[str]，逐项原样透传：每项可能是 URL 也可能是标签文本（与 DOI 行同构） -->
           <div class="flex items-baseline gap-2 min-w-0">
             <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
               $t('collections.meta.access')
             }}</span>
-            <a
-              v-if="collection.access"
-              :href="isUrl(collection.access) ? collection.access : undefined"
-              :target="isUrl(collection.access) ? '_blank' : undefined"
-              :rel="isUrl(collection.access) ? 'noopener noreferrer' : undefined"
-              class="flex-1 min-w-0 items-center gap-1.5 kawaru-text-95"
-              :class="
-                isUrl(collection.access)
-                  ? 'text-primary hover:underline'
-                  : 'cursor-default text-base-content/70'
-              "
-              :title="collection.access"
-              @click.stop
-            >
-              <SvgIcon type="link" class="w-[1em] h-[1em] shrink-0" />
-              <span class="truncate">{{ collection.access }}</span>
-            </a>
+            <div v-if="collection.access.length" class="flex-1 min-w-0 flex flex-col gap-0.5">
+              <a
+                v-for="entry in collection.access"
+                :key="entry"
+                :href="isUrl(entry) ? entry : undefined"
+                :target="isUrl(entry) ? '_blank' : undefined"
+                :rel="isUrl(entry) ? 'noopener noreferrer' : undefined"
+                class="flex items-center gap-1.5 min-w-0 kawaru-text-95"
+                :class="
+                  isUrl(entry)
+                    ? 'text-primary hover:underline'
+                    : 'cursor-default text-base-content/70'
+                "
+                :title="entry"
+                @click.stop
+              >
+                <SvgIcon type="link" class="w-[1em] h-[1em] shrink-0" />
+                <span class="truncate">{{ entry }}</span>
+              </a>
+            </div>
             <span v-else class="kawaru-text-95 text-base-content/40">—</span>
           </div>
 

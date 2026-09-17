@@ -107,7 +107,7 @@
         "citation": "填写文章引用信息，推荐 ACS 或 RSC 格式",
         "abstract": "填写文章摘要 (Abstract)",
         "memberType": "集合包含的数据类型，如 MSI、H&E、ST",
-        "collectionType": "数据的构成方式，如连续切片、时间序列"
+        "collectionType": "选择或键入数据的构成方式，如连续切片、时间序列"
       }
     },
     "panel": {
@@ -179,7 +179,8 @@
         "replicates": "生物学重复 (Biological replicates)",
         "caseControl": "病例-对照 (Case-control)",
         "multimodal": "多模态 (Multimodal)",
-        "tissueMicroarray": "组织芯片 (Tissue microarray)"
+        "tissueMicroarray": "组织芯片 (Tissue microarray)",
+        "randomSelect": "随机选取 (Random select)"
       }
     }
   }

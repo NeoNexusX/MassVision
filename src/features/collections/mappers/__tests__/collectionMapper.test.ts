@@ -186,16 +186,20 @@ describe('mapCollectionSummary', () => {
 
     expect(s.doi).toEqual(['10.1000/xyz'])
     expect(s.journalName).toBe('Nature')
-    expect(s.access).toBeNull()
+    expect(s.access).toEqual([])
     expect(s.organismPart).toEqual(['kidney'])
     expect(s.ionisationSource).toEqual([])
   })
 
-  it('maps access as a single string', () => {
-    expect(mapCollectionSummary({ id: 1, access: 'https://example.org/data' }).access).toBe(
+  it('maps access as a list (backend contract is list[str])', () => {
+    expect(mapCollectionSummary({ id: 1, access: ['https://example.org/data'] }).access).toEqual([
       'https://example.org/data',
-    )
-    expect(mapCollectionSummary({ id: 1, access: '' }).access).toBeNull()
+    ])
+    // 后端历史上可能回过标量：归一成单元素列表而不是穿透原值
+    expect(mapCollectionSummary({ id: 1, access: 'https://example.org/data' }).access).toEqual([
+      'https://example.org/data',
+    ])
+    expect(mapCollectionSummary({ id: 1, access: '' }).access).toEqual([])
   })
 
   it('drops blank entries so the card does not render empty chips', () => {

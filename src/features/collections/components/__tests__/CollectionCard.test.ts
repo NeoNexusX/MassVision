@@ -28,7 +28,7 @@ const collection = (over: Partial<CollectionSummary> = {}): CollectionSummary =>
     publicId: null,
     doi: ['10.1038/s41586-024-00001-x'],
     journalName: 'Nature Methods',
-    access: 'https://example.org/access',
+    access: ['https://example.org/access'],
     organismPart: ['Kidney'],
     ionisationSource: ['MALDI'],
     ...over,
@@ -202,14 +202,14 @@ describe('CollectionCard info (left column)', () => {
   })
 
   it('renders a non-URL access entry without an href', () => {
-    const wrapper = mountCard({ collection: collection({ access: 'On request' }) })
+    const wrapper = mountCard({ collection: collection({ access: ['On request'] }) })
 
     const entry = wrapper.findAll('a').find((a) => a.text().includes('On request'))!
     expect(entry.attributes('href')).toBeUndefined()
   })
 
   it('keeps the Access row with an em dash when the field is empty', () => {
-    const wrapper = mountCard({ collection: collection({ access: null }) })
+    const wrapper = mountCard({ collection: collection({ access: [] }) })
 
     expect(wrapper.text()).toContain('Access')
     expect(wrapper.findAll('a').some((a) => a.text().includes('Access'))).toBe(false)
@@ -307,7 +307,7 @@ describe('CollectionCard info (right column)', () => {
       collection: collection({
         title: null,
         doi: [],
-        access: null,
+        access: [],
         journalName: null,
         organism: [],
         organismPart: [],

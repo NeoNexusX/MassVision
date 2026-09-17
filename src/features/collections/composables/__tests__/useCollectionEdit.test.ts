@@ -35,7 +35,7 @@ function makeDetail(): CollectionDetail {
     doi: [],
     journalName: null,
     publishTime: null,
-    access: null,
+    access: [],
     organismPart: [],
     ionisationSource: [],
     // metadata 里的 name 是旧值：基线应以顶层 name 为准

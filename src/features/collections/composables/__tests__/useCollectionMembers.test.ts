@@ -42,7 +42,7 @@ function makeDetail(ids: number[]): CollectionDetail {
     doi: [],
     journalName: null,
     publishTime: null,
-    access: null,
+    access: [],
     organismPart: [],
     ionisationSource: [],
     metadata: { name: 'X' },

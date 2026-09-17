@@ -103,7 +103,7 @@ export const METADATA_FIELDS: MetadataFieldDef[] = [
   {
     key: 'access',
     label: () => t('collections.meta.access'),
-    type: 'text',
+    type: 'list',
     group: 'citation',
     placeholder: () => t('collections.metaForm.placeholder.access'),
   },

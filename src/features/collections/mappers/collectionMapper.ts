@@ -72,8 +72,8 @@ function toSummary(raw: any): CollectionSummary {
     doi: toStringList(raw, metadata, 'doi'),
     journalName: raw.journal_name ?? metadata.journal_name ?? null,
     publishTime: raw.publish_time ?? null,
-    // access 已改为文本单值（metadataFields type: 'text'），不再走 toStringList
-    access: raw.access || metadata.access || null,
+    // access 后端契约是 list[str]（Create/Patch/响应一致），与其他列表字段同走归一
+    access: toStringList(raw, metadata, 'access'),
     organismPart: toStringList(raw, metadata, 'organism_part'),
     ionisationSource: toStringList(raw, metadata, 'ionisation_source'),
     members: Array.isArray(raw?.members) ? raw.members.map(mapFilePublicToMember) : undefined,
