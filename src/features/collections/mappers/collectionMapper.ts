@@ -67,6 +67,7 @@ function toSummary(raw: any): CollectionSummary {
     publicId: raw.public_id ?? null,
     doi: toStringList(raw, metadata, 'doi'),
     journalName: raw.journal_name ?? metadata.journal_name ?? null,
+    publishTime: raw.publish_time ?? null,
     access: toStringList(raw, metadata, 'access'),
     organismPart: toStringList(raw, metadata, 'organism_part'),
     ionisationSource: toStringList(raw, metadata, 'ionisation_source'),

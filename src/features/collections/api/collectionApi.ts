@@ -66,25 +66,43 @@ function toListMeta(meta: any): CollectionListMeta {
   }
 }
 
-/** GET /collections 与 GET /collections/all 的分页响应（{meta, data}，与文件列表一致） */
+/** POST /collections/list 与 /collections/list_all 的分页响应（{meta, data}，与文件列表一致） */
 export interface CollectionListResponse {
   meta: CollectionListMeta
   data: CollectionSummary[]
 }
 
-// GET /collections?page=&size= — 当前登录用户的集合（owner 过滤），updated_at 倒序
-export async function listCollections(page: number, size: number): Promise<CollectionListResponse> {
-  const body = await unwrap<any>(() => auth_api.get('/collections', { params: { page, size } }))
+/**
+ * 集合列表筛选体（POST body）。不筛选也要发 {}——后端对缺失 body 返回 422；
+ * 字段支持单值或数组（数组 = OR），语义见后端接口文档 §4.3：
+ * name/title/journal_name/owner_username 模糊、member_type/collection_type 精确、
+ * organism 等词表字段为「集合内包含该值」。
+ */
+export type CollectionListFilters = Record<string, any>
+
+// POST /collections/list?page=&size= — 当前登录用户的集合（owner 过滤），updated_at 倒序。
+// 原 GET /collections 已移除（breaking）：分页仍在 query，筛选体必发
+export async function listCollections(
+  page: number,
+  size: number,
+  filters: CollectionListFilters = {},
+): Promise<CollectionListResponse> {
+  const body = await unwrap<any>(() =>
+    auth_api.post('/collections/list', filters, { params: { page, size } }),
+  )
   return { meta: toListMeta(body?.meta), data: normalizeList(body).map(mapCollectionSummary) }
 }
 
-// GET /collections/all?page=&size= — 全库集合（任意登录用户，不做 owner 过滤），
-// 用于「浏览全部」；分页/排序与 /collections 完全一致
+// POST /collections/list_all?page=&size= — 全库集合（任意登录用户，不做 owner 过滤），
+// 用于「浏览全部」；分页/排序与 /collections/list 完全一致
 export async function listAllCollections(
   page: number,
   size: number,
+  filters: CollectionListFilters = {},
 ): Promise<CollectionListResponse> {
-  const body = await unwrap<any>(() => auth_api.get('/collections/all', { params: { page, size } }))
+  const body = await unwrap<any>(() =>
+    auth_api.post('/collections/list_all', filters, { params: { page, size } }),
+  )
   return { meta: toListMeta(body?.meta), data: normalizeList(body).map(mapCollectionSummary) }
 }
 

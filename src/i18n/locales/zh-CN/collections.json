@@ -8,6 +8,7 @@
       "doi": "DOI",
       "access": "访问地址",
       "journal": "期刊",
+      "publishTime": "发表时间",
       "citation": "引用信息",
       "abstract": "摘要"
     },
@@ -54,6 +55,16 @@
       "mineOnly": "只看我的集合",
       "sortAria": "排序方式",
       "sortUpdated": "按更新时间排序"
+    },
+    "filter": {
+      "addFilter": "添加筛选",
+      "any": "不限",
+      "placeholder": {
+        "name": "集合名称",
+        "title": "标题",
+        "journal": "期刊名称",
+        "owner": "创建者用户名"
+      }
     },
     "form": {
       "step3": "第 3 步：集合信息",

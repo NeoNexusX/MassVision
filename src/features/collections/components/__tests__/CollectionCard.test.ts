@@ -219,7 +219,7 @@ describe('CollectionCard info (right column)', () => {
     expect(wrapper.text()).toContain('MALDI')
   })
 
-  it('caps each field at three values and tucks the rest into More', () => {
+  it('caps each field at three values and tucks the rest into the trailing ellipsis', () => {
     const wrapper = mountCard({
       collection: collection({
         organism: ['Human', 'Mouse', 'Rat', 'Zebrafish'],
@@ -235,12 +235,13 @@ describe('CollectionCard info (right column)', () => {
     const popover = wrapper.get('[popover]')
     expect(popover.text()).toContain('Zebrafish')
     expect(popover.text()).not.toContain('Human')
-    // 没超出的字段不进悬浮窗
+    // 没超出的字段没有「…」圆钮，也就没有悬浮窗
     expect(popover.text()).not.toContain('Kidney')
-    expect(wrapper.get('button[aria-label^="More metadata"]').text()).toContain('(+1)')
+    // 圆钮本身只显示省略号，计数放在 title / aria-label 里
+    expect(wrapper.get('button[aria-label^="More metadata"]').text()).toBe('…')
   })
 
-  it('keeps three values inline without a More button', () => {
+  it('keeps three values inline without a trailing ellipsis', () => {
     const wrapper = mountCard({
       collection: collection({ organism: ['Human', 'Mouse', 'Rat'] }),
     })
@@ -250,21 +251,21 @@ describe('CollectionCard info (right column)', () => {
     expect(wrapper.find('[popover]').exists()).toBe(false)
   })
 
-  it('hides the More button when no field overflows', () => {
+  it('hides the ellipsis button when no field overflows', () => {
     const wrapper = mountCard()
 
     expect(wrapper.find('button[aria-label^="More metadata"]').exists()).toBe(false)
     expect(wrapper.find('[popover]').exists()).toBe(false)
   })
 
-  it('wires the More button to the popover and keeps ids unique per card', () => {
+  it('wires the ellipsis button to the popover and keeps ids unique per card and field', () => {
     const wrapper = mountCard({
       collection: collection({ organism: ['Human', 'Mouse', 'Rat', 'Zebrafish'] }),
     })
 
     const button = wrapper.get('button[aria-label^="More metadata"]')
-    expect(button.attributes('popovertarget')).toBe('collection-1-more-metadata')
-    expect(wrapper.get('[popover]').attributes('id')).toBe('collection-1-more-metadata')
+    expect(button.attributes('popovertarget')).toBe('collection-1-more-organism')
+    expect(wrapper.get('[popover]').attributes('id')).toBe('collection-1-more-organism')
     expect(wrapper.get('[popover]').attributes('role')).toBe('dialog')
   })
 
