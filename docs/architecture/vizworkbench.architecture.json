@@ -31,7 +31,7 @@
       "items": [
         "Zarr v3 chunked reads → Float32Array ion matrix",
         "Canvas heatmap with colormap + display range slider",
-        "Multi-ion overlay: up to 4 channels blended in Worker",
+        "Multi-ion overlay: up to 10 channels with opacity, blended in Worker",
         "Processed mode: TIC image + pixel spectrum on click"
       ]
     },
@@ -42,7 +42,7 @@
         "UMAP dimensionality reduction (backend compute)",
         "KMeans clustering with interactive cluster selection",
         "Region comparison: A/B groups with volcano plot",
-        "ROI drawing: freehand/polygon/rectangle + mask export"
+        "ROI drawing: freehand/polygon/rectangle + mask import/export (SHA-256 verified)"
       ]
     }
   ]
