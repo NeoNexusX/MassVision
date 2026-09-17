@@ -31,10 +31,25 @@
           :aria-label="$t('vizworkbench.channels.show', { mz: c.mz })"
           @change="emit('toggle-visible', c.id)"
         />
-        <span
-          class="w-3 h-3 rounded-sm border border-base-content/30 shrink-0"
-          :style="{ backgroundColor: `rgb(${c.color.r},${c.color.g},${c.color.b})` }"
-        ></span>
+        <input
+          type="color"
+          class="w-5 h-5 rounded border border-base-content/30 shrink-0 cursor-pointer bg-transparent p-0"
+          :value="rgbToHex(c.color)"
+          :aria-label="$t('vizworkbench.channels.changeColor', { mz: c.mz })"
+          :disabled="!enabled"
+          @input="onColorInput(c.id, ($event.target as HTMLInputElement).value)"
+        />
+        <input
+          type="range"
+          class="range range-xs range-primary w-16 shrink-0"
+          min="0"
+          max="1"
+          step="0.01"
+          :value="c.opacity ?? 1"
+          :aria-label="$t('vizworkbench.channels.opacity', { mz: c.mz })"
+          :disabled="!enabled"
+          @input="emit('update-opacity', c.id, +($event.target as HTMLInputElement).value)"
+        />
         <span class="font-mono text-base-content truncate" :title="`m/z ${c.mz.toFixed(6)}`">
           {{ c.mz.toFixed(6) }}
         </span>
@@ -57,17 +72,31 @@
       </div>
     </div>
 
-    <!-- Actions -->
-    <div class="flex items-center gap-1">
+    <!-- Add current m/z stays on its own row. -->
+    <div class="flex items-center gap-1 mb-1">
       <button
-        class="btn btn-sm btn-primary flex-1 kawaru-text-81"
+        class="btn btn-sm btn-primary w-full kawaru-text-81"
         :disabled="!enabled || !canAdd"
         :title="addTitle"
         @click="emit('add-current')"
       >
         <span v-if="anyLoading" class="loading loading-spinner loading-xs"></span>
         <SvgIcon v-else type="plus" />
-        {{ $t('vizworkbench.channels.add', { mz: currentMz.toFixed(6) }) }}
+        <MzText :text="$t('vizworkbench.channels.add', { mz: currentMz.toFixed(6) })" />
+      </button>
+    </div>
+
+    <!-- Batch mode listens to user m/z clicks; Clear shares this row. -->
+    <div class="flex items-center gap-1">
+      <button
+        class="btn btn-sm flex-1 kawaru-text-81"
+        :class="batchAddMode ? 'btn-secondary' : 'btn-ghost'"
+        :disabled="!enabled || !canAdd"
+        :title="$t('vizworkbench.channels.batchHint')"
+        @click="emit('toggle-batch-add')"
+      >
+        <SvgIcon type="plus" />
+        <MzText :text="$t('vizworkbench.channels.batchAdd')" />
       </button>
       <button
         class="btn btn-ghost btn-sm kawaru-text-81"
@@ -78,10 +107,11 @@
       </button>
     </div>
 
-    <div v-if="!channels.length" class="text-base-content/60 mt-1.5">
-      {{ $t('vizworkbench.channels.empty') }}
+    <div v-if="batchAddMode" class="text-secondary mt-1.5">
+      <MzText :text="$t('vizworkbench.channels.batchHint')" />
     </div>
-    <div v-else-if="channels.length >= maxChannels" class="text-base-content/60 mt-1.5">
+
+    <div v-if="channels.length >= maxChannels" class="text-base-content/60 mt-1.5">
       {{ $t('vizworkbench.channels.full', { max: maxChannels }) }}
     </div>
   </div>
@@ -90,6 +120,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
+import MzText from '@/shared/components/MzText.vue'
 import type { IonChannel } from '@/features/vizworkbench/composables/useIonChannels'
 import { t } from '@/i18n'
 
@@ -104,6 +135,7 @@ const props = defineProps<{
   /** A channel is still loading. */
   anyLoading: boolean
   maxChannels: number
+  batchAddMode?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -111,8 +143,11 @@ const emit = defineEmits<{
   (e: 'add-current'): void
   (e: 'remove', id: number): void
   (e: 'toggle-visible', id: number): void
+  (e: 'update-color', id: number, color: { r: number; g: number; b: number }): void
+  (e: 'update-opacity', id: number, opacity: number): void
   (e: 'retry', id: number): void
   (e: 'clear'): void
+  (e: 'toggle-batch-add'): void
 }>()
 
 const addTitle = computed(() => {
@@ -120,4 +155,24 @@ const addTitle = computed(() => {
   if (props.channels.length >= props.maxChannels) return t('vizworkbench.channels.colorsInUse')
   return t('vizworkbench.channels.addHint', { mz: props.currentMz.toFixed(6) })
 })
+
+function rgbToHex(color: { r: number; g: number; b: number }): string {
+  return `#${[color.r, color.g, color.b]
+    .map((value) =>
+      Math.max(0, Math.min(255, Math.round(value)))
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')}`
+}
+
+function onColorInput(id: number, value: string) {
+  const hex = value.replace('#', '')
+  if (hex.length !== 6) return
+  emit('update-color', id, {
+    r: Number.parseInt(hex.slice(0, 2), 16),
+    g: Number.parseInt(hex.slice(2, 4), 16),
+    b: Number.parseInt(hex.slice(4, 6), 16),
+  })
+}
 </script>

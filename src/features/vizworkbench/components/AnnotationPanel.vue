@@ -432,7 +432,9 @@ watch(
       <!-- Header -->
       <div class="flex items-center justify-between gap-2 shrink-0">
         <div class="min-w-0">
-          <h3 class="kawaru-text-81 font-semibold text-base-content leading-tight">{{ $t('vizworkbench.annotation.title') }}</h3>
+          <h3 class="kawaru-text-81 font-semibold text-base-content leading-tight">
+            {{ $t('vizworkbench.annotation.title') }}
+          </h3>
           <p v-if="fileName" class="kawaru-text-68 text-base-content/50 truncate" :title="fileName">
             {{ fileName }}
           </p>
@@ -456,7 +458,11 @@ watch(
           >
             <SvgIcon type="trash" />
           </button>
-          <button class="btn btn-ghost btn-xs btn-square kawaru-text-68" :title="$t('vizworkbench.annotation.collapse')" @click="collapse">
+          <button
+            class="btn btn-ghost btn-xs btn-square kawaru-text-68"
+            :title="$t('vizworkbench.annotation.collapse')"
+            @click="collapse"
+          >
             <SvgIcon type="chevron_right" class="rotate-180" />
           </button>
         </div>
@@ -483,7 +489,11 @@ watch(
             aria-hidden="true"
           ></span>
           <SvgIcon v-else type="upload" class="w-4 h-4" />
-          {{ isImporting ? $t('vizworkbench.annotation.importing') : $t('vizworkbench.annotation.import') }}
+          {{
+            isImporting
+              ? $t('vizworkbench.annotation.importing')
+              : $t('vizworkbench.annotation.import')
+          }}
         </button>
 
         <div v-if="spectrumMode !== 'centroid'" class="text-warning flex items-start gap-1.5">
@@ -572,7 +582,11 @@ watch(
           :class="filter === 'unmatched' ? 'badge-warning badge-outline' : 'badge-ghost'"
           @click="filter = 'unmatched'"
         >
-          {{ $t('vizworkbench.annotation.countUnmatched', { count: counts.unmatched + counts.invalid }) }}
+          {{
+            $t('vizworkbench.annotation.countUnmatched', {
+              count: counts.unmatched + counts.invalid,
+            })
+          }}
         </button>
       </div>
 
@@ -584,14 +598,20 @@ watch(
         <div class="grid grid-cols-2 gap-2">
           <label class="flex flex-col gap-0.5 kawaru-text-75 min-w-0">
             <span class="text-base-content/60">{{ $t('vizworkbench.annotation.adduct') }}</span>
-            <select v-model="filterAdduct" class="select select-bordered select-sm w-full kawaru-text-75">
+            <select
+              v-model="filterAdduct"
+              class="select select-bordered select-sm w-full kawaru-text-75"
+            >
               <option value="">{{ $t('common.input.all') }}</option>
               <option v-for="opt in adductOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>
           </label>
           <label class="flex flex-col gap-0.5 kawaru-text-75 min-w-0">
             <span class="text-base-content/60">{{ $t('vizworkbench.annotation.formula') }}</span>
-            <select v-model="filterFormula" class="select select-bordered select-sm w-full kawaru-text-75">
+            <select
+              v-model="filterFormula"
+              class="select select-bordered select-sm w-full kawaru-text-75"
+            >
               <option value="">{{ $t('common.input.all') }}</option>
               <option v-for="opt in formulaOptions" :key="opt" :value="opt">{{ opt }}</option>
             </select>
@@ -617,7 +637,9 @@ watch(
           class="inline-block size-9 animate-spin rounded-full border-4 border-current border-t-transparent text-primary will-change-transform"
           aria-hidden="true"
         ></span>
-        <p class="kawaru-text-68 text-base-content/50">{{ $t('vizworkbench.annotation.parsing') }}</p>
+        <p class="kawaru-text-68 text-base-content/50">
+          {{ $t('vizworkbench.annotation.parsing') }}
+        </p>
       </div>
 
       <!-- Table: only Annotation + Exp. m/z (details on hover card).
@@ -666,14 +688,18 @@ watch(
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
-                <div class="font-medium kawaru-text-95 text-base-content truncate">{{ row.name }}</div>
+                <div class="font-medium kawaru-text-95 text-base-content truncate">
+                  {{ row.name }}
+                </div>
                 <!-- min-h-4 keeps one line box even when all three spans are
                      v-if'd out: the virtual scroll assumes a uniform row
                      height, and an empty subtitle would make this row ~20px
                      shorter than the measured rowH. -->
                 <div class="min-h-4 kawaru-text-81 text-base-content/50 truncate">
                   <span v-if="row.formulaIon" class="font-mono">{{ row.formulaIon }}</span>
-                  <span v-if="row.ionType" class="text-base-content/40">&nbsp;{{ row.ionType }}</span>
+                  <span v-if="row.ionType" class="text-base-content/40"
+                    >&nbsp;{{ row.ionType }}</span
+                  >
                   <span v-if="row.candidates.length > 1" class="text-primary/50">
                     &#183; +{{ row.candidates.length - 1 }}</span
                   >
@@ -695,7 +721,10 @@ watch(
             </tr>
           </tbody>
         </table>
-        <div v-if="!filteredRows.length" class="p-4 text-center kawaru-text-68 text-base-content/50">
+        <div
+          v-if="!filteredRows.length"
+          class="p-4 text-center kawaru-text-68 text-base-content/50"
+        >
           <!-- counts.total === 0 means the coarse polarity / m/z-range
                pre-filter discarded the whole file at import, not the user's
                filter/search - say so instead of blaming the wrong control. -->
@@ -718,7 +747,7 @@ watch(
         <p class="kawaru-text-68 text-base-content/40">
           {{ $t('vizworkbench.annotation.columns') }}
           <template v-for="(col, i) in CSV_COLUMNS" :key="col"
-            >{{ i ? ', ' : ' ' }}<span class="font-mono">{{ col }}</span></template
+            >{{ i ? ', ' : ' ' }}<span class="font-mono"><MzText :text="col" /></span></template
           >
         </p>
       </div>
@@ -727,11 +756,12 @@ watch(
            pointer-events-none so dragleave isn't re-triggered by the overlay itself. -->
       <div
         v-if="dragActive"
-        class="absolute inset-0 z-20 pointer-events-none flex flex-col items-center justify-center gap-2
-               rounded-lg border-2 border-dashed border-primary bg-primary/15"
+        class="absolute inset-0 z-20 pointer-events-none flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary bg-primary/15"
       >
         <SvgIcon type="upload" class="w-8 h-8 text-primary" />
-        <p class="kawaru-text-81 font-medium text-primary">{{ $t('vizworkbench.annotation.dropHint') }}</p>
+        <p class="kawaru-text-81 font-medium text-primary">
+          {{ $t('vizworkbench.annotation.dropHint') }}
+        </p>
       </div>
     </div>
   </aside>
@@ -754,7 +784,10 @@ watch(
          PubChem is the tooltip's single primary action below. -->
     <div class="mb-1">
       <div class="flex items-center gap-0.5 min-w-0">
-        <div class="min-w-0 flex-1 truncate font-semibold text-base-content" :title="tooltipRow.name">
+        <div
+          class="min-w-0 flex-1 truncate font-semibold text-base-content"
+          :title="tooltipRow.name"
+        >
           {{ tooltipRow.name }}
         </div>
         <button
@@ -805,7 +838,9 @@ watch(
         </span>
       </div>
       <div class="flex items-center justify-between gap-2">
-        <span class="text-base-content/50 shrink-0">{{ $t('vizworkbench.annotation.massDifference') }}</span>
+        <span class="text-base-content/50 shrink-0">{{
+          $t('vizworkbench.annotation.massDifference')
+        }}</span>
         <span
           class="font-mono truncate min-w-0 text-right"
           :title="`${formatMassError(tooltipRow.massError, tolMode)} ${tooltipRow.massError != null ? tolMode : ''}`"

@@ -34,6 +34,7 @@ function makeDetail(): CollectionDetail {
     publicId: null,
     doi: [],
     journalName: null,
+    publishTime: null,
     access: null,
     organismPart: [],
     ionisationSource: [],

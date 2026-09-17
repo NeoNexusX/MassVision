@@ -10,18 +10,20 @@
             {{ $t('collections.view.subtitle') }}
           </p>
         </div>
-        <!-- 与数据集列表互跳：Public ↔ My ↔ Collections 三个列表页同级 -->
+        <!-- 与数据集列表互跳：Public ↔ My ↔ Collections 三个列表页同级。
+             实底 + 边框 + 阴影（对齐 DatasetFilterBar 的跨页入口形态），
+             透明 btn-outline 在 bg-base-200 页面上几乎看不出边框 -->
         <div class="flex flex-wrap items-center gap-2 shrink-0">
           <router-link
             to="/datasets"
-            class="btn btn-outline border-base-300 kawaru-text-100 h-[2.6em] min-h-[2.6em] px-[1.2em]"
+            class="btn bg-base-100 dark:bg-slate-800 border-base-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-base-content/25 shadow-sm kawaru-text-100 h-[2.6em] min-h-[2.6em] px-[1.2em]"
           >
             <SvgIcon type="folder" class="w-[1em] h-[1em]" />
             {{ $t('common.page.publicDatasets') }}
           </router-link>
           <router-link
             to="/mydatasets"
-            class="btn btn-outline border-base-300 kawaru-text-100 h-[2.6em] min-h-[2.6em] px-[1.2em]"
+            class="btn bg-base-100 dark:bg-slate-800 border-base-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-base-content/25 shadow-sm kawaru-text-100 h-[2.6em] min-h-[2.6em] px-[1.2em]"
           >
             <SvgIcon type="folder" class="w-[1em] h-[1em]" />
             {{ $t('common.page.myDatasets') }}
@@ -41,7 +43,9 @@
       <CollectionsToolbar
         v-model:mine-only="mineOnly"
         :search-applied="search"
+        :show-owner-filter="!mineOnly"
         @search="handleSearch"
+        @apply-filters="applyFilters"
       />
 
       <!-- 列表（骨架屏 / 空态 / 单列卡片 / 分页） -->
@@ -54,6 +58,7 @@
         :pagination="pagination"
         :search-applied="search"
         :can-edit="canEdit"
+        :is-mine="isMine"
         :member-ids="memberIds"
         :cover-loading="coverLoading"
         @view="handleView"
@@ -90,7 +95,7 @@ import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 const router = useRouter()
 
 // 列表装配（取数/服务端分页/范围切换/本地搜索/删除）：
-// 默认 GET /collections/all 浏览全库集合，勾选 Mine only 切到 GET /collections
+// 默认 POST /collections/list_all 浏览全库集合，勾选 Mine only 切到 POST /collections/list
 const {
   collections,
   loading,
@@ -101,8 +106,10 @@ const {
   search,
   pagination,
   canEdit,
+  isMine,
   handleSearch,
   clearSearch,
+  applyFilters,
   goToPage,
   changeSize,
   removeCollection,
@@ -122,10 +129,8 @@ const openCreate = () => {
   router.push({ name: 'CreateCollection' })
 }
 
-// 详情页无路径参数（与数据集 overview 同方案）：详情读取走公开接口，public_id
-// 随 state 传递；数字 id 仅用于编辑/删除等写操作，一并带上
 const handleView = (id: number) => {
-  const publicId = collections.value.find((c) => c.id === id)?.publicId
+  const publicId = collections.value.find((collection) => collection.id === id)?.publicId
   router.push({ name: 'CollectionOverview', state: { collectionId: id, publicId } })
 }
 </script>

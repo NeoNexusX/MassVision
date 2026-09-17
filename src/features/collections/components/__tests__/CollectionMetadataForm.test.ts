@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import CollectionMetadataForm from '../CollectionMetadataForm.vue'
 import { toMetadataDraft } from '../../utils/metadataPatch'
+import { REQUIRED_METADATA_KEYS } from '../../constants/metadataFields'
 import { i18n, loadCoreMessages, loadFeatureMessages } from '@/i18n'
 
 const draft = () => reactive(toMetadataDraft({ name: 'Mouse kidney MSI' }))
@@ -66,6 +67,21 @@ describe('CollectionMetadataForm', () => {
     const button = wrapper.find('button')
 
     expect(button.element.closest('label')).toBeNull()
+  })
+
+  // 创建流程传 requiredKeys → 对应字段带红 *；编辑流程不传 → 无 *（PATCH 全可选）
+  it('marks required fields with an asterisk only when requiredKeys is passed', () => {
+    const requiredFields = mountForm({
+      excludeKeys: ['name', 'description'],
+      requiredKeys: REQUIRED_METADATA_KEYS,
+    })
+    const labels = requiredFields.findAll('span.text-error')
+    // member_type / collection_type / organism / organism_part / sample_stabilization
+    // + acquisition 组三字段（polarity / ionisation_source / analyzer）
+    expect(labels).toHaveLength(8)
+
+    const optional = mountForm({ excludeKeys: ['name', 'description'] })
+    expect(optional.findAll('span.text-error')).toHaveLength(0)
   })
 
   it('validates free-form DOI values before adding them', async () => {

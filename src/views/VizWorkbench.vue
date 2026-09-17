@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onUnmounted, nextTick } from 'vue'
+import { computed, ref, watch, onUnmounted, nextTick, shallowRef } from 'vue'
 import VizInfoPanel from '@/features/vizworkbench/components/visuals/VizInfoPanel.vue'
 import ResultVisualizationLayout from '@/features/vizworkbench/components/ResultVisualizationLayout.vue'
 import ResultHeader from '@/features/vizworkbench/components/visuals/ResultHeader.vue'
@@ -34,6 +34,7 @@ import { findClosestIndex } from '@/features/vizworkbench/utils/csvAnnotation'
 import {
   createMask,
   exportMask,
+  importMask,
   labelsToUnionMask,
   orMask,
   type MaskExportPayload,
@@ -63,6 +64,7 @@ const {
   analyzer,
   ionSource,
   pixelSize,
+  pixelSizeUm,
   polarity,
   spectrumMode,
   storageMode,
@@ -142,9 +144,18 @@ watch(hasTic, (v) => {
 // init/dispose 的并发守卫（代次检查）在 useZarrIonImage 内部完成：
 // init() 期间发生 disposeZarrState() 或重新 init() 时，旧的 init 会自行
 // dispose 孤儿 store 并放弃写入模块状态。
-watch(runId, (id) => {
-  zarr.init(id)
-}, { immediate: true })
+watch(
+  runId,
+  (id) => {
+    zarr.init(id)
+  },
+  { immediate: true },
+)
+
+watch(runId, () => {
+  importedMask.value = null
+  importedMaskName.value = null
+})
 
 // 离开页面时释放模块级状态，避免大数组（mzAxis、meanChartData、ticMatrix 等）
 // 和 ZarrOssStore 缓存在 SPA 导航后仍驻留内存
@@ -194,6 +205,35 @@ const {
   onDraftCleared,
 } = useResultROI(displaySourceMatrix, ionCols, ionRows)
 
+// A file-imported mask is kept separate from drawn ROIs. It is applied as an
+// additional filter, so importing never mutates the user's ROI/KMeans state.
+const importedMask = shallowRef<Uint8Array | null>(null)
+const importedMaskName = ref<string | null>(null)
+
+const visualMatrix = computed(() => {
+  const matrix = displayMatrix.value
+  const mask = importedMask.value
+  const w = ionCols.value
+  const h = ionRows.value
+  if (!matrix || !mask || !w || !h || mask.length !== w * h) return matrix
+  const filtered = new Float32Array(matrix.length)
+  const n = Math.min(matrix.length, mask.length)
+  for (let i = 0; i < n; i++) if (mask[i]) filtered[i] = matrix[i] ?? 0
+  return filtered
+})
+
+/** Intersection of the active ROI-only filter and imported mask. */
+const effectiveRoiMask = computed<Uint8Array | null>(() => {
+  const imported = importedMask.value
+  const roi = roiUnionMask.value
+  if (!imported) return roi
+  if (!roi) return imported
+  const n = Math.min(imported.length, roi.length)
+  const result = new Uint8Array(n)
+  for (let i = 0; i < n; i++) result[i] = imported[i]! && roi[i]! ? 1 : 0
+  return result
+})
+
 // ---- Multi-ion overlay ----
 
 const {
@@ -206,6 +246,8 @@ const {
   addCurrentMz: addIonChannel,
   removeChannel,
   toggleChannelVisible,
+  updateChannelColor,
+  updateChannelOpacity,
   retryChannel,
   clearChannels,
   reset: resetChannels,
@@ -217,6 +259,28 @@ const {
   ready: zarrReady,
   runId,
   loadMatrix: loadIonMatrixByIndex,
+})
+
+const batchAddMode = ref(false)
+
+function toggleBatchAdd() {
+  if (!channelsEnabled.value || !canAddChannel.value) {
+    batchAddMode.value = false
+    return
+  }
+  batchAddMode.value = !batchAddMode.value
+}
+
+function onChannelsEnabledChange(value: boolean) {
+  channelsEnabled.value = value
+  if (!value) batchAddMode.value = false
+}
+
+watch(canAddChannel, (canAdd) => {
+  if (!canAdd) batchAddMode.value = false
+})
+watch(channelsEnabled, (enabled) => {
+  if (!enabled) batchAddMode.value = false
 })
 
 const { showToast } = useToast()
@@ -264,11 +328,7 @@ const {
   toggleKmeansCluster,
   selectAllKmeansClusters,
   clearKmeansClusters,
-} = useOverlayData(
-  runId,
-  ionRows,
-  ionCols,
-)
+} = useOverlayData(runId, ionRows, ionCols)
 
 // ---- Region comparison ----
 
@@ -336,7 +396,7 @@ function handleRoiDelete(id: string) {
   roiDelete(id)
 }
 
-function handleExportMasks(payload: MaskExportPayload) {
+async function handleExportMasks(payload: MaskExportPayload) {
   const width = ionCols.value
   const height = ionRows.value
   if (!width || !height) {
@@ -366,12 +426,42 @@ function handleExportMasks(payload: MaskExportPayload) {
   }
 
   try {
-    exportMask(mask, payload.format, 'mask')
+    await exportMask(mask, payload.format, {
+      datasetName: datasetName.value,
+      pixelSizeUm: pixelSizeUm.value,
+    })
     showToast(t('common.feedback.exported'), 'success')
   } catch (err) {
     console.error('[ROI] mask export failed', err)
     showToast(t('common.feedback.exportFailed'), 'error')
   }
+}
+
+async function handleImportMask(file: File) {
+  const width = ionCols.value
+  const height = ionRows.value
+  if (!width || !height) {
+    showToast(t('vizworkbench.page.ionImageNotLoaded'), 'error')
+    return
+  }
+  try {
+    const result = await importMask(file, {
+      expectedShape: [height, width],
+      expectedDatasetName: datasetName.value,
+    })
+    importedMask.value = result.mask
+    importedMaskName.value = file.name
+    showToast(t('vizworkbench.page.maskImported'), 'success')
+  } catch (err) {
+    console.error('[Mask] import failed', err)
+    const message = err instanceof Error ? err.message : String(err)
+    showToast(t('vizworkbench.page.maskImportFailed', { error: message }), 'error')
+  }
+}
+
+function handleClearImportedMask() {
+  importedMask.value = null
+  importedMaskName.value = null
 }
 
 // ---- Reference ROI import (local mode) ----
@@ -414,8 +504,13 @@ const selectedPixelCoord = computed(() => {
 // ---- 事件处理 ----
 
 /** 切换 m/z：直接加载新离子的 slice，保持当前强度标度。 */
-async function handleSelectMzIndex(idx: number) {
-  await onSpectrumClickByIndex(idx)
+async function handleSelectMzIndex(idx: number, addToBatch = true) {
+  // `onSpectrumClickByIndex` updates selectedMzIndex synchronously before its
+  // image request yields. Starting the request first lets batch mode add the
+  // exact clicked index without waiting for a potentially slow image load.
+  const selection = onSpectrumClickByIndex(idx)
+  if (addToBatch && batchAddMode.value) addIonChannel()
+  await selection
 }
 
 /** m/z 搜索：在质量轴上二分查找最近的峰，落在容差内则切换离子，否则提示。 */
@@ -446,7 +541,7 @@ async function onSearchMz(raw: string) {
     )
     return
   }
-  await handleSelectMzIndex(idx)
+  await handleSelectMzIndex(idx, false)
 }
 
 /** 重置所有控件到默认值 */
@@ -514,7 +609,7 @@ async function onSelectPixel(col: number, row: number) {
       <IonImageSection
         :is-stale="isStale"
         :ion-matrix="displaySourceMatrix"
-        :display-matrix="displayMatrix"
+        :display-matrix="visualMatrix"
         :selected-mz="selectedMz"
         :mz-tolerance="mzTolerance"
         :colormap="colormap"
@@ -539,7 +634,7 @@ async function onSelectPixel(col: number, row: number) {
         :has-tic="hasTic"
         :channels-mode="channelsMode"
         :channels="hoverChannels"
-        :roi-mask="roiUnionMask"
+        :roi-mask="effectiveRoiMask"
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
         @update:intensity-scale="onIntensityScaleChange"
@@ -668,6 +763,8 @@ async function onSelectPixel(col: number, row: number) {
             :channels-loading="channelsLoading"
             :selected-mz="selectedMz"
             :max-ion-channels="MAX_ION_CHANNELS"
+            :batch-add-mode="batchAddMode"
+            :imported-mask-name="importedMaskName"
             @toggle-overlay="toggleOverlay"
             @retry-clustering="retryClustering"
             @enable-clustering="createClusteringTask"
@@ -684,10 +781,15 @@ async function onSelectPixel(col: number, row: number) {
             @roi-cancel="roiCancel"
             @roi-delete="handleRoiDelete"
             @export-masks="handleExportMasks"
+            @import-mask="handleImportMask"
+            @clear-imported-mask="handleClearImportedMask"
             @roi-clear-all="handleRoiClearAll"
             @update:gamma="gamma = $event"
-            @update:channels-enabled="channelsEnabled = $event"
+            @update:channels-enabled="onChannelsEnabledChange"
             @add-current-channel="onAddCurrentChannel"
+            @toggle-batch-add="toggleBatchAdd"
+            @update-channel-color="updateChannelColor"
+            @update-channel-opacity="updateChannelOpacity"
             @remove-channel="removeChannel"
             @toggle-channel-visible="toggleChannelVisible"
             @retry-channel="retryChannel"

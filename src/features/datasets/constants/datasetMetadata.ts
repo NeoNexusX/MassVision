@@ -194,9 +194,14 @@ export function createDefaultDatasetFilters() {
     organism_part: '',
     condition: '',
     sample_stabilization: '',
+    sample_growth_conditions: '',
     tissue_modification: '',
     maldi_matrix: '',
     maldi_matrix_application: '',
     solvent: '',
+    polarity: '',
+    ionisation_source: '',
+    analyzer: '',
+    first_uploaded_by: '',
   }
 }

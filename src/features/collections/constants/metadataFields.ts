@@ -20,7 +20,7 @@ import { COLLECTION_TYPES, MEMBER_TYPES } from './collectionVocab'
 
 export type MetadataGroupId = 'general' | 'citation' | 'sample' | 'acquisition'
 
-export type MetadataFieldType = 'text' | 'long' | 'list'
+export type MetadataFieldType = 'text' | 'long' | 'list' | 'date'
 
 export interface MetadataFieldDef {
   key: keyof CollectionMetadata
@@ -32,6 +32,11 @@ export interface MetadataFieldDef {
   options?: readonly string[]
   /** 输入提示（getter，理由同 label）；缺省时文本框无提示、list 字段用 TagInput 的默认提示 */
   placeholder?: () => string
+  /**
+   * 前端必填字段（创建集合时校验，仅影响前端提交门槛与星号，后端 API 不变）。
+   * Growth Conditions / Tissue Modification 保持可选。
+   */
+  required?: boolean
   /** list 字段的自由输入校验；词表选项不受约束 */
   pattern?: RegExp
   /** pattern 不匹配时的提示（getter，理由同 label）；应说明期望的格式 */
@@ -67,6 +72,7 @@ export const METADATA_FIELDS: MetadataFieldDef[] = [
     group: 'general',
     options: MEMBER_TYPES,
     placeholder: () => t('collections.metaForm.placeholder.memberType'),
+    required: true,
   },
   {
     key: 'collection_type',
@@ -75,6 +81,7 @@ export const METADATA_FIELDS: MetadataFieldDef[] = [
     group: 'general',
     options: COLLECTION_TYPES,
     placeholder: () => t('collections.metaForm.placeholder.collectionType'),
+    required: true,
   },
   // Citation
   {
@@ -107,6 +114,9 @@ export const METADATA_FIELDS: MetadataFieldDef[] = [
     group: 'citation',
     placeholder: () => t('collections.metaForm.placeholder.journal'),
   },
+  // 发表时间：date 档位走原生日期选择器（草稿/载荷统一 YYYY-MM-DD；响应可能是
+  // 完整 ISO，由 metadataPatch 的 toDateStringInput 归一）；不参与自动推导
+  { key: 'publish_time', label: () => t('collections.meta.publishTime'), type: 'date', group: 'citation' },
   {
     key: 'cite_information',
     label: () => t('collections.meta.citation'),
@@ -128,6 +138,7 @@ export const METADATA_FIELDS: MetadataFieldDef[] = [
     type: 'list',
     group: 'sample',
     options: ORGANISMS,
+    required: true,
   },
   {
     key: 'organism_part',
@@ -135,6 +146,7 @@ export const METADATA_FIELDS: MetadataFieldDef[] = [
     type: 'list',
     group: 'sample',
     options: ORGANISM_PARTS,
+    required: true,
   },
   {
     key: 'sample_stabilization',
@@ -142,6 +154,7 @@ export const METADATA_FIELDS: MetadataFieldDef[] = [
     type: 'list',
     group: 'sample',
     options: SAMPLE_STABILIZATIONS,
+    required: true,
   },
   {
     key: 'sample_growth_conditions',
@@ -165,6 +178,7 @@ export const METADATA_FIELDS: MetadataFieldDef[] = [
     type: 'list',
     group: 'acquisition',
     options: POLARITIES,
+    required: true,
   },
   {
     key: 'ionisation_source',
@@ -172,6 +186,7 @@ export const METADATA_FIELDS: MetadataFieldDef[] = [
     type: 'list',
     group: 'acquisition',
     options: ION_SOURCES,
+    required: true,
   },
   {
     key: 'analyzer',
@@ -179,8 +194,13 @@ export const METADATA_FIELDS: MetadataFieldDef[] = [
     type: 'list',
     group: 'acquisition',
     options: ANALYZERS,
+    required: true,
   },
 ]
+
+/** 创建集合时前端必填的字段键（由字段表的 required 标记派生，单一事实来源） */
+export const REQUIRED_METADATA_KEYS: readonly (keyof CollectionMetadata)[] =
+  METADATA_FIELDS.filter((f) => f.required).map((f) => f.key)
 
 /** 该字段是否有可展示的值（空串/null/undefined/空数组都视为未填写） */
 export function hasMetadataValue(metadata: CollectionMetadata, field: MetadataFieldDef): boolean {

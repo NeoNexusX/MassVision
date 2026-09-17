@@ -5,6 +5,7 @@ import { useToast } from '@/shared/composables/useToast'
 import { t } from '@/i18n'
 import {
   buildOverviewShareUrl,
+  buildPublicFileShareUrl,
   decodeOverviewFileId,
 } from '@/features/datasets/utils/overviewShareLink'
 
@@ -26,7 +27,12 @@ export function useOverviewShare(dataset: Ref<File | null>) {
     const current = dataset.value
     if (!current?.isPublic) return
 
-    const shareUrl = buildOverviewShareUrl(router, current.id, window.location.origin)
+    // 新链接优先走 public_id（/files/{public_id}，免登录且不可枚举）；
+    // 列表/详情数据还没带上 publicId 时回退旧的 /s/{encodedId} 链接，
+    // 旧链接的解析链路不受影响
+    const shareUrl =
+      buildPublicFileShareUrl(router, current.publicId, window.location.origin) ??
+      buildOverviewShareUrl(router, current.id, window.location.origin)
     if (!shareUrl) {
       showToast(t('datasets.overview.shareUnavailable'), 'error')
       return

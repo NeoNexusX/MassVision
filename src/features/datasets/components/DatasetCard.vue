@@ -30,10 +30,10 @@
         <span
           v-if="isMyDataset"
           class="shrink-0 inline-flex items-center text-slate-400"
-          :title="dataset.isPublic ? $t('datasets.card.public') : $t('datasets.card.private')"
-          :aria-label="dataset.isPublic ? $t('datasets.card.public') : $t('datasets.card.private')"
+          :title="effectivePublic ? $t('datasets.card.public') : $t('datasets.card.private')"
+          :aria-label="effectivePublic ? $t('datasets.card.public') : $t('datasets.card.private')"
         >
-          <SvgIcon :type="dataset.isPublic ? 'region' : 'password'" class="w-[1.1em] h-[1.1em]" />
+          <SvgIcon :type="effectivePublic ? 'region' : 'password'" class="w-[1.1em] h-[1.1em]" />
         </span>
       </h3>
 
@@ -92,6 +92,21 @@
         </div>
       </template>
     </div>
+
+    <!-- 私有文件的分享确认：设为公开（不可逆）后复制链接。
+         包一层 @click.stop——弹窗原地渲染，点击不能冒泡触发整卡跳转 -->
+    <div @click.stop>
+      <ConfirmDialog
+        :open="showShareConfirm"
+        :title="$t('datasets.share.publicTitle')"
+        :message="$t('datasets.share.publicMessage')"
+        :confirm-label="$t('common.action.share')"
+        :danger="true"
+        :loading="sharing"
+        @confirm="confirmShare"
+        @cancel="showShareConfirm = false"
+      />
+    </div>
   </div>
 </template>
 
@@ -100,12 +115,16 @@
 </style>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { File } from '@/features/datasets/types/dataset'
 import type { IconType } from '@/shared/components/svgIcons'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { formatBytes, formatDate } from '@/shared/utils/format'
 import DatasetPreviewGallery from '@/features/datasets/components/DatasetPreviewGallery.vue'
+import { getFileMetadata, setFilePublic } from '@/features/datasets/api/datasetApi'
 import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { useToast } from '@/shared/composables/useToast'
+import { extractBackendError } from '@/shared/api/httpClient'
 import { t } from '@/i18n'
 
 const props = defineProps<{
@@ -113,6 +132,8 @@ const props = defineProps<{
   isMyDataset?: boolean
   packing?: boolean
 }>()
+
+const { showToast } = useToast()
 
 const emit = defineEmits<{
   (e: 'view-overview', id: string): void
@@ -127,6 +148,50 @@ const submitDate = computed(() => formatDate(props.dataset.submitTime))
 const formattedSize = computed(() => formatBytes(props.dataset.sizeBytes))
 
 const labelColon = (label: string) => t('common.format.labelColon', { label })
+
+// ---- 分享：公开文件直接复制 /files/{public_id}；私有文件先确认「设为公开」再复制 ----
+// 本地覆盖位：确认设公开后 props 不会自动更新（列表数据在父级），
+// 用 localPublic/localPublicId 让卡片立刻切到公开态，列表重拉后自然对齐
+const localPublic = ref(false)
+const localPublicId = ref<string | null>(null)
+const effectivePublic = computed(() => props.dataset.isPublic || localPublic.value)
+const effectivePublicId = computed(() => props.dataset.publicId ?? localPublicId.value)
+
+// 复制免登录公开链接（与 overview 页、CollectionCard 同一方案）；
+// 剪贴板不可用时直接把 URL 弹出来供手动复制
+const copyShareLink = async () => {
+  if (!effectivePublicId.value) return
+  const url = `${location.origin}/files/${effectivePublicId.value}`
+  try {
+    await navigator.clipboard.writeText(url)
+    showToast(t('common.feedback.copied'), 'success')
+  } catch {
+    showToast(url, 'info')
+  }
+}
+
+const showShareConfirm = ref(false)
+const sharing = ref(false)
+
+const confirmShare = async () => {
+  const id = props.dataset.id
+  sharing.value = true
+  try {
+    await setFilePublic(id)
+    // set_public 响应不含 public_id（后端契约）：补拉一次元数据拿分享标识
+    const metadata = await getFileMetadata(id)
+    localPublicId.value = metadata?.public_id ?? null
+    localPublic.value = true
+    if (effectivePublicId.value) await copyShareLink()
+    else showToast(t('datasets.overview.madePublic'), 'success')
+  } catch (error) {
+    showToast(extractBackendError(error, t('common.feedback.updateFailed')), 'error')
+    console.error('Failed to share dataset', error)
+  } finally {
+    sharing.value = false
+    showShareConfirm.value = false
+  }
+}
 
 const metaFields = computed(() => [
   { label: labelColon(t('common.meta.organism')), value: vocabLabel(props.dataset.organism) },
@@ -216,6 +281,16 @@ const actionItems = computed<ActionItem[]>(() => {
           onClick: () => emit('download', props.dataset.id),
         },
   )
+
+  // 分享：放在 download 之后、delete 之前。公开文件直接复制链接；私有文件弹
+  // 「设为公开并分享」确认框。所有卡片恒有此项，同页卡片高度天然一致
+  items.push({
+    id: 'share',
+    icon: 'share',
+    label: t('common.action.share'),
+    colorClass: 'text-base-content/80 hover:text-base-content transition-colors',
+    onClick: () => (effectivePublic.value ? copyShareLink() : (showShareConfirm.value = true)),
+  })
 
   if (props.isMyDataset)
     items.push({

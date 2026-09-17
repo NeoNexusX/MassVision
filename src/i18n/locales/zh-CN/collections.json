@@ -8,6 +8,7 @@
       "doi": "DOI",
       "access": "访问地址",
       "journal": "期刊",
+      "publishTime": "发表时间",
       "citation": "引用信息",
       "abstract": "摘要"
     },
@@ -25,6 +26,13 @@
       "coversAria": "{name} 的封面",
       "prev": "上一个数据集",
       "next": "下一个数据集",
+      "mineBadge": "我的集合",
+      "label": {
+        "creator": "创建者",
+        "created": "创建时间",
+        "updated": "最后更新"
+      },
+      "copyShareLink": "复制分享链接",
       "moreAria": "{name} 的更多元数据",
       "more": "更多（+{count}）",
       "owner": "所有者：{name}",
@@ -47,6 +55,16 @@
       "mineOnly": "只看我的集合",
       "sortAria": "排序方式",
       "sortUpdated": "按更新时间排序"
+    },
+    "filter": {
+      "addFilter": "添加筛选",
+      "any": "不限",
+      "placeholder": {
+        "name": "集合名称",
+        "title": "标题",
+        "journal": "期刊名称",
+        "owner": "创建者用户名"
+      }
     },
     "form": {
       "step3": "第 3 步：集合信息",

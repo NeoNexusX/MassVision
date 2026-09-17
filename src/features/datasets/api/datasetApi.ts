@@ -7,12 +7,6 @@ import type {
 
 // 约定：本模块所有函数都返回**解包后的响应体**（res.data），调用方不再处理 axios 信封。
 
-// GET /files/{file_id}/download
-export async function getDownloadMetadata(fileId: string) {
-  const res = await auth_api.get(`/files/${fileId}/download`)
-  return res.data
-}
-
 // GET /files/{file_id}/metadata - 根据文件 ID 获取元数据
 export async function getFileMetadata(fileId: string | number, isPublic = false) {
   const client = isPublic ? api : auth_api
@@ -20,17 +14,18 @@ export async function getFileMetadata(fileId: string | number, isPublic = false)
   return res.data
 }
 
-// GET /files/{file_id}/download_raw - pre-signed URLs for imzML + ibd, zero polling
-export async function getDownloadRaw(fileId: string, isPublic = false): Promise<DownloadRawResponse> {
-  const client = isPublic ? api : auth_api
-  const res = await client.get(`/files/${fileId}/download_raw`)
+// GET /files/public/{public_id} — 免登录公开文件详情（分享页首屏）。
+// public_id 是 16 位随机串（非 file_id，不可枚举）；后端对「不存在 / 未公开 /
+// 非 completed」一律返回 404 且不区分原因，前端统一按“链接失效”处理。
+// 响应为 FilePublic，同时含 file_id（下载用）与 public_id（分享用）。
+export async function getPublicFile(publicId: string) {
+  const res = await api.get(`/files/public/${publicId}`)
   return res.data
 }
 
-// GET /files/{file_id}/download_raw_noauth — 公开集合页专用（免登录）。
-// 后端仅对 is_public 文件放行，私有文件 404。
-export async function getDownloadRawNoauth(fileId: string | number): Promise<DownloadRawResponse> {
-  const res = await api.get(`/files/${fileId}/download_raw_noauth`)
+// GET /files/{file_id}/download_raw - pre-signed URLs for imzML + ibd, zero polling
+export async function getDownloadRaw(fileId: string): Promise<DownloadRawResponse> {
+  const res = await auth_api.get(`/files/${fileId}/download_raw`)
   return res.data
 }
 
