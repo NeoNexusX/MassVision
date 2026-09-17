@@ -65,9 +65,7 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    // 集合详情页（Overview）：元数据展示 + 内嵌编辑 + 成员管理。
-    // 无路径参数：集合 id 由 router.push 的 state 携带（与数据集 /overview 同方案），
-    // 直刷/书签进入时 state 为空 → 页面显示 Session lost 引导回列表。
+    // 集合详情页沿用原有无路径参数方案，id/public_id 由 history.state 携带。
     path: '/collections/overview',
     name: 'CollectionOverview',
     component: view(() => import('../views/CollectionOverviewView.vue'), 'collections', 'datasets'),
@@ -83,6 +81,9 @@ const routes = [
     component: view(() => import('../views/PublicCollectionView.vue'), 'collections', 'datasets'),
   },
   {
+    // Normal Dataset Overview keeps the numeric id in history.state. This lets
+    // private files use the authenticated metadata endpoint without exposing
+    // their internal id in the URL.
     path: '/overview',
     name: 'DatasetOverview',
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
@@ -91,6 +92,14 @@ const routes = [
     path: '/s/:encodedId',
     name: 'SharedDatasetOverview',
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
+  },
+  {
+    // 文件公开分享页（免登录浏览）：/files/{public_id}，与 /collections/{public_id} 同一套路。
+    // public_id 是 16 位 base62，不会与静态段撞名；旧的 /s/{encodedId}（base64 file_id）
+    // 分享链接继续兼容，两者并存。
+    path: '/files/:publicId',
+    name: 'PublicFile',
+    component: view(() => import('../views/PublicFileView.vue'), 'datasets'),
   },
   {
     path: '/login',

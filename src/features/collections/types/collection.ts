@@ -10,7 +10,7 @@ import type { FilePublicResponse } from '@/features/datasets/types/dataset'
  *   避免与二期编辑表单做双向映射）；与分页 meta 的 snake 先例一致。
  */
 
-/** GET /collections（我的集合）/ GET /collections/all（全库）列表行；按 updated_at 倒序 */
+/** POST /collections/list（我的集合）/ POST /collections/list_all（全库）列表行；按 updated_at 倒序 */
 export interface CollectionSummary {
   id: number
   name: string
@@ -30,6 +30,8 @@ export interface CollectionSummary {
   // ---- 卡片直接展示的元数据（后端列表响应平铺在顶层，已有实测）----
   doi: string[]
   journalName: string | null
+  /** 文章发表时间（ISO 串）；卡片 Journal 行下展示，null 显示「—」 */
+  publishTime: string | null
   /** 卡片右侧的 Access 链接；后端原样透传，可能是 URL 或标签文本 */
   access: string | null
   organismPart: string[]
@@ -76,6 +78,8 @@ export interface CollectionMetadata {
   doi?: string[]
   access?: string | null
   journal_name?: string | null
+  /** 文章发表时间（ISO 8601）；纯展示字段，不参与筛选/聚合，未设置为 null */
+  publish_time?: string | null
   abstract?: string | null
   cite_information?: string | null
   organism?: string[]

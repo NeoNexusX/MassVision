@@ -2,36 +2,36 @@
 import { computed, ref } from 'vue'
 import TagInput from '@/shared/components/TagInput.vue'
 import {
+  COLLECTION_TYPES,
+  MEMBER_TYPES,
+  collectionVocabLabel,
+} from '../constants/collectionVocab'
+import {
   ANALYZERS,
-  CONDITIONS,
-  EXPERIMENT_TYPES,
   ION_SOURCES,
-  MALDI_MATRICES,
-  MALDI_MATRIX_APPLICATIONS,
   ORGANISMS,
   ORGANISM_PARTS,
   POLARITIES,
   SAMPLE_GROWTH_CONDITIONS,
   SAMPLE_STABILIZATIONS,
-  SOLVENTS,
   TISSUE_MODIFICATIONS,
 } from '@/features/datasets/constants/datasetMetadata'
-import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
 import { t } from '@/i18n'
 
 /**
- * 筛选面板：枚举字段多值（TagInput，词表下拉可勾选 + 自由输入），
- * 文本字段保持单值模糊匹配。字段 key 与选项值是发给后端的筛选参数
- * （英文）；label / placeholder 随界面语言变化。
- * 多值 payload 走数组（同一字段多值 = OR）；useDatasetList.normalizeFilters
- * 会把空数组归一成 ''（= 该字段不筛选），后端兼容两种写法。
+ * 集合列表筛选面板：POST /collections/list(_all) 的筛选体（后端 §4.3）。
+ * 与 DatasetFilterPanel 同构（枚举 TagInput 多选、文本单值模糊），但语义有差：
+ * member_type / collection_type 是精确匹配；organism 等词表字段是
+ * 「集合内包含该值」——集合这些字段是成员文件取值的汇总数组，不是「等于」。
+ * 多值 payload 走数组（同字段多值 = OR，字段间 AND）；空数组后端视为不筛选。
+ * doi / access 不参与筛选（后端未开放）。
  */
 const props = withDefaults(
   defineProps<{
-    /** 显示 username 筛选：仅 /files/list_files（公开列表）支持，我的数据集页后端会忽略 */
-    showUsername?: boolean
+    /** 显示 owner_username 筛选：仅 /list_all（浏览全部）有意义，我的集合 owner 恒为当前用户 */
+    showOwner?: boolean
   }>(),
-  { showUsername: false },
+  { showOwner: false },
 )
 
 const emit = defineEmits<{
@@ -48,28 +48,25 @@ interface FilterField {
   options?: readonly string[]
 }
 
-// 字段 key 与选项值是发给后端的筛选参数（英文）；label / placeholder 随界面语言变化
+// 字段 key 是发给后端的筛选参数；label / placeholder 随界面语言变化
 const fields = computed<FilterField[]>(() => {
   const list: FilterField[] = [
-    { key: 'filename', label: t('datasets.field.filename'), type: 'text', placeholder: t('datasets.field.filename') },
-    { key: 'experiment_type', label: t('datasets.field.experimentType'), type: 'multi', options: EXPERIMENT_TYPES },
+    { key: 'name', label: t('common.field.name'), type: 'text', placeholder: t('collections.filter.placeholder.name') },
+    { key: 'title', label: t('collections.meta.title'), type: 'text', placeholder: t('collections.filter.placeholder.title') },
+    { key: 'member_type', label: t('collections.meta.memberType'), type: 'multi', options: MEMBER_TYPES },
+    { key: 'collection_type', label: t('collections.meta.collectionType'), type: 'multi', options: COLLECTION_TYPES },
     { key: 'organism', label: t('common.meta.organism'), type: 'multi', options: ORGANISMS },
     { key: 'organism_part', label: t('common.meta.organismPart'), type: 'multi', options: ORGANISM_PARTS },
-    { key: 'condition', label: t('common.meta.condition'), type: 'multi', options: CONDITIONS },
     { key: 'sample_stabilization', label: t('common.meta.sampleStabilization'), type: 'multi', options: SAMPLE_STABILIZATIONS },
     { key: 'sample_growth_conditions', label: t('common.meta.growthConditions'), type: 'multi', options: SAMPLE_GROWTH_CONDITIONS },
     { key: 'tissue_modification', label: t('common.meta.tissueModification'), type: 'multi', options: TISSUE_MODIFICATIONS },
-    { key: 'maldi_matrix', label: t('common.meta.maldiMatrix'), type: 'multi', options: MALDI_MATRICES },
-    { key: 'maldi_matrix_application', label: t('datasets.field.matrixApplication'), type: 'multi', options: MALDI_MATRIX_APPLICATIONS },
-    { key: 'solvent', label: t('common.meta.solvent'), type: 'multi', options: SOLVENTS },
     { key: 'polarity', label: t('common.meta.polarity'), type: 'multi', options: POLARITIES },
     { key: 'ionisation_source', label: t('common.meta.ionisationSource'), type: 'multi', options: ION_SOURCES },
     { key: 'analyzer', label: t('common.meta.analyzer'), type: 'multi', options: ANALYZERS },
-    { key: 'first_uploaded_by', label: t('datasets.field.submittedBy'), type: 'text', placeholder: t('datasets.filter.submitterPlaceholder') },
+    { key: 'journal_name', label: t('collections.meta.journal'), type: 'text', placeholder: t('collections.filter.placeholder.journal') },
   ]
-  // username 仅公开列表（/files/list_files）支持；list_user_files 会忽略它
-  if (props.showUsername)
-    list.push({ key: 'username', label: t('common.field.username'), type: 'text', placeholder: t('datasets.filter.submitterPlaceholder') })
+  if (props.showOwner)
+    list.push({ key: 'owner_username', label: t('common.field.username'), type: 'text', placeholder: t('collections.filter.placeholder.owner') })
   return list
 })
 
@@ -78,12 +75,25 @@ const filters = ref<Record<string, string | string[]>>(
   Object.fromEntries(fields.value.map((f) => [f.key, f.type === 'text' ? '' : []])),
 )
 
+/**
+ * 提交前移除动态隐藏字段的键（如切到 Mine only 后的 owner_username）：
+ * 它们用户无法编辑，留着会以两种方式作恶——随 payload 发出成为隐藏筛选，
+ * 或切回浏览全部时显示有值但实际未生效。删除后两种状态都与列表一致。
+ */
+function dropHiddenFields() {
+  for (const key of Object.keys(filters.value)) {
+    if (!fields.value.some((f) => f.key === key)) delete filters.value[key]
+  }
+}
+
 const applyFilters = () => {
+  dropHiddenFields()
   emit('apply', { ...filters.value })
   emit('close')
 }
 
 const resetFilters = () => {
+  dropHiddenFields()
   for (const field of fields.value) {
     filters.value[field.key] = field.type === 'text' ? '' : []
   }
@@ -112,9 +122,9 @@ const resetFilters = () => {
         :model-value="filters[field.key] as string[]"
         @update:model-value="filters[field.key] = $event"
         :options="field.options ?? []"
-        :label-of="vocabLabel"
+        :label-of="collectionVocabLabel"
         :name="field.label"
-        :placeholder="$t('datasets.filter.any')"
+        :placeholder="$t('collections.filter.any')"
       />
     </div>
   </div>

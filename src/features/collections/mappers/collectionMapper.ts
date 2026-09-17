@@ -69,6 +69,8 @@ function toSummary(raw: any): CollectionSummary {
     publicId: raw.public_id ?? null,
     doi: toStringList(raw, metadata, 'doi'),
     journalName: raw.journal_name ?? metadata.journal_name ?? null,
+    publishTime: raw.publish_time ?? null,
+    // access 已改为文本单值（metadataFields type: 'text'），不再走 toStringList
     access: raw.access || metadata.access || null,
     organismPart: toStringList(raw, metadata, 'organism_part'),
     ionisationSource: toStringList(raw, metadata, 'ionisation_source'),

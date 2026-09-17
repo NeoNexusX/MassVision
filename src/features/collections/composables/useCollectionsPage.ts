@@ -17,10 +17,11 @@ import { t } from '@/i18n'
  * Collections 列表页装配：取数（服务端分页）/ 范围切换 / 搜索 / 删除。
  *
  * 数据源（均按 updated_at 倒序，服务端分页 {meta, data}）：
- * - 默认 GET /collections/all —— 全库集合（浏览全部，含他人集合）；
- * - 勾选「My collections only」后走 GET /collections —— 仅当前登录用户的集合。
- * 后端未提供集合搜索/排序参数：排序固定 updated_at 倒序（无控件），
- * search 是**本地**逻辑，只作用于当前页；后端补上参数后可挪进请求。
+ * - 默认 POST /collections/list_all —— 公共集合（浏览全库，含他人集合）；
+ * - 勾选「My collections only」后走 POST /collections/list —— 仅当前登录用户的集合。
+ * 后端未提供集合排序参数：排序固定 updated_at 倒序（无控件）。
+ * 搜索与结构化筛选都走服务端 POST body（§4.3）：搜索映射 name 模糊（跨全部分页），
+ * 筛选面板走 applyFilters；title 不参与搜索（后端字段间 AND，表达不了 name/title 的 OR）。
  * 写操作（删除）仅对 owner/admin 开放（canEdit）。Create 走独立页面 /collections/new；
  * Edit 内嵌在 overview 页。
  */
@@ -43,16 +44,25 @@ export function useCollectionsPage() {
     total_records: 0,
   })
 
+  // 服务端筛选体（§4.3）：name/title/journal_name/owner_username 模糊、
+  // member_type/collection_type 精确、词表字段「集合内包含」；多值数组 = OR。
+  // 空数组/空串后端视为不筛选，直接透传即可
+  const filters = ref<Record<string, string | string[]>>({})
+
   // 所有者或管理员才能删除/编辑（列表含他人集合，与后端写权限一致）
   const canEdit = (c: CollectionSummary) =>
     c.ownerUsername === auth.user?.username || auth.isAdmin
+
+  // 严格归属（不含 admin），卡片据此显示 My Collection 徽标
+  const isMine = (c: CollectionSummary) =>
+    !!auth.user && c.ownerUsername === auth.user.username
 
   async function fetchPage(targetPage = page.value) {
     loading.value = true
     error.value = ''
     try {
       const fetcher = mineOnly.value ? listCollections : listAllCollections
-      const res = await fetcher(targetPage, size.value)
+      const res = await fetcher(targetPage, size.value, filters.value)
       rows.value = res.data
       Object.assign(meta, res.meta)
       page.value = res.meta.current_page || targetPage
@@ -66,23 +76,28 @@ export function useCollectionsPage() {
     }
   }
 
-  // ---- 本地过滤（仅当前页数据）----
-  const collections = computed(() => {
-    const q = search.value.trim().toLowerCase()
-    if (!q) return rows.value
-    return rows.value.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) || (c.title ?? '').toLowerCase().includes(q),
-    )
-  })
+  // 搜索已走服务端（见 handleSearch），不再本地过滤
+  const collections = computed(() => rows.value)
 
   const pagination = computed(() => buildPageList(page.value, meta.total_pages))
 
+  /** 搜索走服务端 name 模糊（跨全部分页）；title 命中不再覆盖——
+   *  后端筛选字段间是 AND，表达不了 name/title 的 OR。
+   *  与筛选面板的 name 字段同源：面板 Apply 会整体替换 filters（含 name），
+   *  与数据集页 search ↔ filename 的既有行为一致 */
   const handleSearch = (q: string) => {
     search.value = q
+    filters.value = { ...filters.value, name: q || '' }
+    fetchPage(1)
   }
 
   const clearSearch = () => handleSearch('')
+
+  /** 应用筛选面板的 payload：整体替换并回第一页重新拉取 */
+  const applyFilters = (payload: Record<string, string | string[]>) => {
+    filters.value = payload
+    fetchPage(1)
+  }
 
   // 范围切换：回到第一页重新拉取（两个接口的数据集不同，页码不可比）
   watch(mineOnly, () => fetchPage(1))
@@ -117,9 +132,11 @@ export function useCollectionsPage() {
     search,
     pagination,
     canEdit,
+    isMine,
     fetchPage,
     handleSearch,
     clearSearch,
+    applyFilters,
     goToPage,
     changeSize,
     removeCollection,

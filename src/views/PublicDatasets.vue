@@ -93,6 +93,7 @@ const handleUploadSuccess = (_datasetName: string) => {
         :show-add-filter="true"
         :show-upload="true"
         :show-collections-link="true"
+        :username-filter="true"
         :search-placeholder="$t('common.input.searchDatasets')"
         @upload="handleUpload"
         @search="handleSearch"

@@ -173,6 +173,19 @@ describe('useIonChannels', () => {
     expect(c.blendChannels.value).toHaveLength(1)
   })
 
+  it('updates a channel color and clamps its opacity', () => {
+    const { deps } = makeDeps()
+    const c = useIonChannels(deps)
+    c.addCurrentMz()
+    const id = c.channels.value[0]!.id
+
+    c.updateChannelColor(id, { r: 12, g: 34, b: 56 })
+    c.updateChannelOpacity(id, 2)
+
+    expect(c.channels.value[0]!.color).toEqual({ r: 12, g: 34, b: 56 })
+    expect(c.channels.value[0]!.opacity).toBe(1)
+  })
+
   it('reports overlayActive only when enabled with a loaded channel', async () => {
     const { deps, pending } = makeDeps()
     const c = useIonChannels(deps)

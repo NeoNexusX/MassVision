@@ -27,9 +27,13 @@
       class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 bg-base-200 rounded-lg border border-base-content/30"
     >
       <SvgIcon type="warning" class="w-8 h-8 text-error" />
-      <p class="kawaru-text-95 text-error font-semibold">{{ $t('vizworkbench.spectrum.loadFailed') }}</p>
+      <p class="kawaru-text-95 text-error font-semibold">
+        {{ $t('vizworkbench.spectrum.loadFailed') }}
+      </p>
       <p class="kawaru-text-81 text-base-content/50 max-w-md text-center">{{ error }}</p>
-      <button class="btn btn-sm btn-outline mt-2 kawaru-text-75" @click="$emit('retry')">{{ $t('common.action.retry') }}</button>
+      <button class="btn btn-sm btn-outline mt-2 kawaru-text-75" @click="$emit('retry')">
+        {{ $t('common.action.retry') }}
+      </button>
     </div>
 
     <!-- 空态：数据已加载但没有可画的点（如 centroid 全零的像素谱） -->
