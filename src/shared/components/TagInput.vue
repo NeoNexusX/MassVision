@@ -70,6 +70,7 @@
         ref="menuRef"
         role="listbox"
         aria-multiselectable="true"
+        data-taginput-menu
         :style="menuStyle"
         class="z-[1000] overflow-y-auto py-1 bg-base-100
           border border-base-300 rounded-box shadow-lg"

@@ -12,10 +12,13 @@ import { onBeforeUnmount, ref, watch, type CSSProperties, type Ref } from 'vue'
 export function useAnchoredPosition(
   anchor: Ref<HTMLElement | null>,
   open: Ref<boolean>,
-  options: { gap?: number; maxHeight?: number } = {},
+  options: { gap?: number; maxHeight?: number; width?: number } = {},
 ) {
   const gap = options.gap ?? 4
   const maxHeight = options.maxHeight ?? 256
+  // 显式宽度（如筛选面板）：不再贴合锚点，而是左缘钳制在视口内的定宽浮层；
+  // 缺省沿用锚点宽度（下拉菜单语义）
+  const fixedWidth = options.width
 
   const style = ref<CSSProperties>({})
 
@@ -23,13 +26,18 @@ export function useAnchoredPosition(
     const el = anchor.value
     if (!el) return
     const rect = el.getBoundingClientRect()
+    const viewportW = window.innerWidth
+    const width = fixedWidth ? Math.min(fixedWidth, viewportW - 32) : rect.width
+    const left = fixedWidth
+      ? Math.min(Math.max(16, rect.left), viewportW - width - 16)
+      : rect.left
     const below = window.innerHeight - rect.bottom - gap
     const above = rect.top - gap
     const flip = below < maxHeight && above > below
     style.value = {
       position: 'fixed',
-      left: `${rect.left}px`,
-      width: `${rect.width}px`,
+      left: `${left}px`,
+      width: `${width}px`,
       maxHeight: `${Math.max(0, Math.min(maxHeight, flip ? above : below))}px`,
       ...(flip
         ? { bottom: `${window.innerHeight - rect.top + gap}px` }
