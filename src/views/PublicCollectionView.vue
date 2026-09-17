@@ -85,6 +85,7 @@ import CollectionMemberList from '@/features/collections/components/CollectionMe
 import { collectionErrorMessage, getPublicCollection } from '@/features/collections/api/collectionApi'
 import type { CollectionMember, PublicCollectionDetail } from '@/features/collections/types/collection'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
+import { useRequireAuth } from '@/shared/composables/useRequireAuth'
 import { formatBytes, formatDate } from '@/shared/utils/format'
 import { t } from '@/i18n'
 
@@ -111,11 +112,13 @@ async function fetch() {
 
 const updatedDate = computed(() => formatDate(detail.value?.updatedAt))
 
-// 公开页下载走 noauth 端点（后端仅对 is_public 文件放行）
-const { handleDownloadPublicRaw } = useDownloadProgress()
+// 公开页可匿名浏览，但下载统一走鉴权端点。
+const { handleDownloadRaw } = useDownloadProgress()
+const { requireAuth } = useRequireAuth(() => route.fullPath)
 
 function downloadMember(member: CollectionMember) {
-  handleDownloadPublicRaw(String(member.id))
+  if (!requireAuth()) return
+  handleDownloadRaw(String(member.id))
 }
 
 watch(publicId, fetch)

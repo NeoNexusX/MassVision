@@ -26,8 +26,6 @@ export interface File {
   // Technical
   sizeBytes?: number
   storageType?: string
-  // backend returns verification code (MD5) in `file_verify_code`; frontend uses `hashMd5`
-  hashMd5?: string
 
   // Experiment / instrument
   instrumentTypes?: string[]
@@ -50,6 +48,9 @@ export interface File {
 
   status: string // 'uploading' | 'completed' | 'failed' - from backend
   isPublic: boolean
+  /** 免登录分享 id（16 位 base62，FilePublic 必返）。分享链接 /files/{public_id} 用它，
+   *  与可枚举的数字 file_id 解耦；下载仍用 id */
+  publicId?: string | null
 
   // Visualization / Zarr
   defaultRunId?: string | number | null  // 关联的可视化任务 run_id
@@ -77,6 +78,8 @@ export interface DownloadRawResponse {
 // 字段清单以接口实测为准；消费方（collectionMapper）对缺字段做默认值兜底。
 export interface FilePublicResponse {
   file_id: number
+  /** 免登录分享 id（16 位 base62）；下载仍用 file_id */
+  public_id?: string | null
   filename?: string | null
   size?: number | null
   status?: string | null
