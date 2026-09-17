@@ -56,10 +56,6 @@
             >
               {{ metadata[field.key] }}
             </dd>
-            <!-- date 字段本地化展示，不裸显 ISO 串 -->
-            <dd v-else-if="field.type === 'date'" class="kawaru-text-95 text-base-content/80">
-              {{ formatDate(metadata[field.key] as string | null | undefined) }}
-            </dd>
             <dd v-else class="kawaru-text-95 text-base-content/80 break-words">
               {{ metadata[field.key] }}
             </dd>
@@ -75,7 +71,6 @@ import { computed } from 'vue'
 import type { PropType } from 'vue'
 import CollectionMetadataForm from './CollectionMetadataForm.vue'
 import { collectionVocabLabel } from '../constants/collectionVocab'
-import { formatDate } from '@/shared/utils/format'
 import {
   METADATA_FIELDS,
   METADATA_GROUPS,

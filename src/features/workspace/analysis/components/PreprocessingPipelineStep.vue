@@ -19,9 +19,7 @@ defineProps<{
 
 <template>
   <details open class="bg-base-100 rounded-lg border border-base-200 p-6 shadow-sm">
-    <summary class="kawaru-text-187 font-medium mb-4 list-none">
-      {{ $t('workspace.pipeline.title') }}
-    </summary>
+    <summary class="kawaru-text-187 font-medium mb-4 list-none">{{ $t('workspace.pipeline.title') }}</summary>
 
     <div class="space-y-4 mt-2">
       <div
@@ -36,9 +34,9 @@ defineProps<{
         :key="group.key"
         class="border border-base-200 rounded-md p-4"
       >
-        <div class="font-medium kawaru-text-125"><MzText :text="group.title()" /></div>
+        <div class="font-medium kawaru-text-125">{{ group.title() }}</div>
         <div v-if="group.hint" class="kawaru-text-100 text-base-content/60 mt-1">
-          <MzText :text="group.hint()" />
+          {{ group.hint() }}
         </div>
         <div class="mt-3 flex flex-wrap gap-3">
           <div v-for="method in group.methods" :key="method.id" class="flex flex-col">
@@ -61,10 +59,10 @@ defineProps<{
               <span v-if="isSelected(group.key, method.id)" class="text-blue-600 dark:text-blue-400"
                 >✔</span
               >
-              <span class="truncate"><MzText :text="method.label" /></span>
-              <span v-if="method.note" class="ml-2 kawaru-text-100 text-base-content/50">
-                <MzText :text="method.note" />
-              </span>
+              <span class="truncate">{{ method.label }}</span>
+              <span v-if="method.note" class="ml-2 kawaru-text-100 text-base-content/50">{{
+                method.note
+              }}</span>
             </label>
 
             <div

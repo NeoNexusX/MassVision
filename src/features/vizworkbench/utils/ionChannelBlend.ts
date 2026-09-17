@@ -13,7 +13,7 @@
 
 import type { RGB } from './regionPalette'
 
-/** Fixed channel colors, in assignment order. Ten slots keep layers distinct. */
+/** Fixed channel colors, in assignment order: R, G, B, C, M, Y. */
 export const ION_CHANNEL_COLORS: readonly RGB[] = [
   { r: 255, g: 0, b: 0 }, // red
   { r: 0, g: 255, b: 0 }, // green
@@ -21,10 +21,6 @@ export const ION_CHANNEL_COLORS: readonly RGB[] = [
   { r: 0, g: 255, b: 255 }, // cyan
   { r: 255, g: 0, b: 255 }, // magenta
   { r: 255, g: 255, b: 0 }, // yellow
-  { r: 255, g: 128, b: 0 }, // orange
-  { r: 128, g: 0, b: 255 }, // violet
-  { r: 128, g: 255, b: 0 }, // lime
-  { r: 255, g: 0, b: 128 }, // pink
 ]
 
 /** Hard cap on simultaneous channels (one per fixed color). */
@@ -43,8 +39,6 @@ export interface ChannelRange {
 export interface BlendChannel {
   matrix: Float32Array
   color: RGB
-  /** Per-layer contribution opacity, 0..1. Omitted means fully opaque. */
-  opacity?: number
 }
 
 /**
@@ -114,7 +108,6 @@ export function blendChannelImage(
     const { p1, p95 } = computeChannelRange(ch.matrix, opts.rangeCache)
     const span = p95 - p1 || 1
     const { r, g, b } = ch.color
-    const opacity = Math.max(0, Math.min(1, ch.opacity ?? 1))
     for (let i = 0; i < n; i++) {
       if (mask && !mask[i]) continue
       const v = ch.matrix[i]!
@@ -122,9 +115,9 @@ export function blendChannelImage(
       let norm = (v - p1) / span
       if (norm <= 0) continue
       if (norm > 1) norm = 1
-      accR[i]! += norm * opacity * r
-      accG[i]! += norm * opacity * g
-      accB[i]! += norm * opacity * b
+      accR[i]! += norm * r
+      accG[i]! += norm * g
+      accB[i]! += norm * b
     }
   }
 

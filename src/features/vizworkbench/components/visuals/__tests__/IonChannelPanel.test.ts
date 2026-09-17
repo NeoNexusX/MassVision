@@ -32,7 +32,6 @@ function mountPanel(over: Record<string, unknown> = {}) {
       canAdd: true,
       anyLoading: false,
       maxChannels: 6,
-      batchAddMode: false,
       ...over,
     },
     global: { plugins: [i18n] },
@@ -40,9 +39,9 @@ function mountPanel(over: Record<string, unknown> = {}) {
 }
 
 describe('IonChannelPanel', () => {
-  it('shows the current m/z on the add button without an empty-state hint', () => {
+  it('shows the empty-state hint and the current m/z on the add button', () => {
     const w = mountPanel()
-    expect(w.text()).not.toContain('Add the current m/z to start overlaying.')
+    expect(w.text()).toContain('Add the current m/z to start overlaying.')
     // m/z is shown at 6-decimal precision (matches the toolbar's input)
     expect(w.get('button.btn-primary').text()).toContain('445.049400')
   })
@@ -111,12 +110,5 @@ describe('IonChannelPanel', () => {
     const clear = w.findAll('button').find((b) => b.text() === 'Clear')!
     await clear.trigger('click')
     expect(w.emitted('clear')).toHaveLength(1)
-  })
-
-  it('emits toggle-batch-add from the batch button', async () => {
-    const w = mountPanel()
-    const batch = w.findAll('button').find((b) => b.text().includes('Batch add'))!
-    await batch.trigger('click')
-    expect(w.emitted('toggle-batch-add')).toHaveLength(1)
   })
 })

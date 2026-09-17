@@ -61,6 +61,7 @@ export function mapItemToDataset(item: any, index = 0): File {
     // Technical
     sizeBytes: item.size ?? undefined,
     storageType: item.storage_type || '',
+    hashMd5: item.file_verify_code || '',
 
     // Submission info
     submitTime: item.uploaded_at || '',
@@ -69,7 +70,6 @@ export function mapItemToDataset(item: any, index = 0): File {
 
     status: item.status || 'uploading',
     isPublic: !!item.is_public,
-    publicId: item.public_id ?? null,
 
     // Visualization / Zarr
     defaultRunId: item.default_run_id ?? null,

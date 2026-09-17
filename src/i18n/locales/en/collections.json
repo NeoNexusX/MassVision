@@ -8,7 +8,6 @@
       "doi": "DOI",
       "access": "Access",
       "journal": "Journal",
-      "publishTime": "Published",
       "citation": "Citation",
       "abstract": "Abstract"
     },
@@ -26,13 +25,6 @@
       "coversAria": "{name} covers",
       "prev": "Previous dataset",
       "next": "Next dataset",
-      "mineBadge": "My Collection",
-      "label": {
-        "creator": "Creator",
-        "created": "Created",
-        "updated": "Updated"
-      },
-      "copyShareLink": "Copy share link",
       "moreAria": "More metadata for {name}",
       "more": "More (+{count})",
       "owner": "Owner: {name}",
@@ -55,16 +47,6 @@
       "mineOnly": "My collections only",
       "sortAria": "Sort order",
       "sortUpdated": "Sort by updated time"
-    },
-    "filter": {
-      "addFilter": "Add filter",
-      "any": "Any",
-      "placeholder": {
-        "name": "Collection name",
-        "title": "Title",
-        "journal": "Journal name",
-        "owner": "Owner username"
-      }
     },
     "form": {
       "step3": "Step 3: Collection Details",

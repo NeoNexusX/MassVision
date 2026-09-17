@@ -28,7 +28,7 @@
           >
             <span class="kawaru-text-81 font-medium text-base-content/70">
               {{ field.label() }}
-              <span v-if="field.key === 'name' || requiredKeys.includes(field.key)" class="text-error">*</span>
+              <span v-if="field.key === 'name'" class="text-error">*</span>
             </span>
 
             <input
@@ -38,15 +38,6 @@
               class="input input-bordered w-full kawaru-text-95"
               :maxlength="field.key === 'name' ? 80 : undefined"
               :placeholder="placeholderOf(field)"
-            />
-            <!-- date 档位：原生日期选择器（点选录入，杜绝手输格式问题）。空值格式提示
-                 跟随浏览器语言、无法定制，属可接受代价；值/草稿均为 YYYY-MM-DD（ISO 8601），
-                 清空即显式置空，PATCH 会发送 '' -->
-            <input
-              v-else-if="field.type === 'date'"
-              v-model="d[field.key]"
-              type="date"
-              class="input input-bordered w-full kawaru-text-95"
             />
             <!-- 长文本统一 300 上限（与创建页 description 的 maxlength 一致；
                  后端逐字段上限确认后可再按字段细化） -->
@@ -111,15 +102,12 @@ interface Props {
   autoKeys?: readonly string[]
   /** 与识别值不一致（用户手改）的字段键：显示「已手动修改 / 恢复为自动识别值」 */
   editedKeys?: readonly string[]
-  /** 前端必填的字段键（红 * 标注）。仅创建流程传入；编辑流程不传，维持 PATCH 全可选语义 */
-  requiredKeys?: readonly string[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   excludeKeys: () => [],
   autoKeys: () => [],
   editedKeys: () => [],
-  requiredKeys: () => [],
 })
 
 const emit = defineEmits<{

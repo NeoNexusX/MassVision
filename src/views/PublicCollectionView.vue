@@ -22,26 +22,21 @@
       </div>
 
       <template v-else-if="detail">
-        <!-- 与正常进入的 Collection Overview 使用相同的页头结构。 -->
-        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-          <div class="min-w-0">
-            <router-link
-              to="/collections"
-              class="inline-flex items-center gap-1 kawaru-text-87 text-base-content/60 hover:text-primary transition-colors"
-            >
-              <SvgIcon type="back" class="w-[0.9em] h-[0.9em]" />
-              {{ $t('common.page.collections') }}
-            </router-link>
-            <h1
-              class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mt-1 truncate"
-              :title="detail.name"
-            >
-              {{ detail.name }}
-            </h1>
-            <p v-if="detail.title" class="text-base-content/70 mt-0.5 truncate">
-              {{ detail.title }}
-            </p>
-          </div>
+        <!-- 页头：公开标识 + 名称/标题 + 所有者 -->
+        <div class="mb-6">
+          <span
+            class="inline-flex items-center gap-1.5 badge badge-sm font-medium
+              border border-success/30 bg-success/10 text-success mb-2 kawaru-text-75"
+          >
+            <SvgIcon type="region" class="w-[0.9em] h-[0.9em]" />
+            {{ $t('collections.public.badge') }}
+          </span>
+          <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content truncate" :title="detail.name">
+            {{ detail.name }}
+          </h1>
+          <p v-if="detail.title" class="text-base-content/70 mt-0.5 truncate">
+            {{ detail.title }}
+          </p>
         </div>
 
         <!-- 统计条 -->
@@ -68,14 +63,15 @@
           </span>
         </div>
 
-        <!-- 与正常详情页一致：先展示成员，再展示学术元数据。 -->
+        <CollectionMetadataPanel :metadata="detail.metadata" />
+
+        <!-- 成员列表：只读模式（无选择/拖拽/管理工具条） -->
         <CollectionMemberList
+          class="mt-6"
           :members="detail.members"
           :manage-mode="false"
           @download="downloadMember"
         />
-
-        <CollectionMetadataPanel class="mt-6" :metadata="detail.metadata" />
       </template>
     </div>
   </div>
@@ -89,7 +85,6 @@ import CollectionMemberList from '@/features/collections/components/CollectionMe
 import { collectionErrorMessage, getPublicCollection } from '@/features/collections/api/collectionApi'
 import type { CollectionMember, PublicCollectionDetail } from '@/features/collections/types/collection'
 import { useDownloadProgress } from '@/features/datasets/composables/useDownloadProgress'
-import { useRequireAuth } from '@/shared/composables/useRequireAuth'
 import { formatBytes, formatDate } from '@/shared/utils/format'
 import { t } from '@/i18n'
 
@@ -116,13 +111,11 @@ async function fetch() {
 
 const updatedDate = computed(() => formatDate(detail.value?.updatedAt))
 
-// 公开页可匿名浏览，但下载统一走鉴权端点。
-const { handleDownloadRaw } = useDownloadProgress()
-const { requireAuth } = useRequireAuth(() => route.fullPath)
+// 公开页下载走 noauth 端点（后端仅对 is_public 文件放行）
+const { handleDownloadPublicRaw } = useDownloadProgress()
 
 function downloadMember(member: CollectionMember) {
-  if (!requireAuth()) return
-  handleDownloadRaw(String(member.id))
+  handleDownloadPublicRaw(String(member.id))
 }
 
 watch(publicId, fetch)

@@ -8,7 +8,8 @@
         <div class="h-64 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
       </div>
 
-      <!-- 无 state 进入（直刷/书签 /collections/overview）时，引导返回列表。 -->
+      <!-- 无 state 进入（直刷/书签 /collections/overview）：id 已丢失，
+           与数据集 overview 同策略，引导回列表而不是留白 -->
       <div
         v-else-if="isStale"
         class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
@@ -135,8 +136,12 @@
           </span>
         </div>
 
-        <!-- 成员列表（管理态 = canEdit）：置顶，先看成员再看学术元数据 -->
+        <!-- 学术元数据：编辑态整卡换成表单（同一张字段表），卡片外壳不变 -->
+        <CollectionMetadataPanel :metadata="detail.metadata" :draft="editing ? draft : null" />
+
+        <!-- 成员列表（管理态 = canEdit） -->
         <CollectionMemberList
+          class="mt-6"
           :members="members"
           :manage-mode="canEdit"
           :adding="adding"
@@ -146,13 +151,6 @@
           @remove="memberOps.remove"
           @reorder="memberOps.reorder"
           @download="downloadMember"
-        />
-
-        <!-- 学术元数据：编辑态整卡换成表单（同一张字段表），卡片外壳不变 -->
-        <CollectionMetadataPanel
-          class="mt-6"
-          :metadata="detail.metadata"
-          :draft="editing ? draft : null"
         />
       </template>
     </div>

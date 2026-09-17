@@ -21,29 +21,13 @@ export function normalizeMetadataList(value: unknown): string[] {
  * 键为后端 snake_case（与 CollectionMetadata 同键）。
  */
 
-/**
- * ISO 时间串 → <input type="date"> 绑定所需的 YYYY-MM-DD。
- * 响应可能带完整时间（2024-05-01T08:00:00Z），控件只认日期部分；
- * 不匹配日期前缀的值（脏数据）按空处理。
- */
-export function toDateStringInput(value: unknown): string {
-  if (typeof value !== 'string') return ''
-  const m = value.match(/^(\d{4}-\d{2}-\d{2})/)
-  return m?.[1] ?? ''
-}
-
-/** 当前元数据 → 表单草稿（list 字段缺省 []，text 字段缺省 ''，date 字段取日期部分） */
+/** 当前元数据 → 表单草稿（list 字段缺省 []，text 字段缺省 ''） */
 export function toMetadataDraft(metadata: CollectionMetadata): CollectionMetadataDraft {
   // 联合键索引写入在 TS 下不可赋值，先按松化 record 组装再整体断言
   const draft: Record<string, string | string[]> = {}
   for (const field of METADATA_FIELDS) {
     const v = metadata?.[field.key]
-    draft[field.key] =
-      field.type === 'list'
-        ? normalizeMetadataList(v)
-        : field.type === 'date'
-          ? toDateStringInput(v)
-          : (v ?? '')
+    draft[field.key] = field.type === 'list' ? normalizeMetadataList(v) : (v ?? '')
   }
   return draft as CollectionMetadataDraft
 }
@@ -59,12 +43,7 @@ export function buildMetadataPatch(
   const patch: CollectionPatchPayload = {}
   for (const field of METADATA_FIELDS) {
     const raw = current?.[field.key]
-    const normalized =
-      field.type === 'list'
-        ? normalizeMetadataList(raw)
-        : field.type === 'date'
-          ? toDateStringInput(raw)
-          : raw ?? ''
+    const normalized = field.type === 'list' ? normalizeMetadataList(raw) : (raw ?? '')
     const next = field.type === 'list' ? normalizeMetadataList(draft[field.key]) : draft[field.key]
     if (JSON.stringify(normalized) !== JSON.stringify(next)) {
       ;(patch as Record<string, unknown>)[field.key] = next

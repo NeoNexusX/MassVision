@@ -55,31 +55,6 @@
   "timeline": [
     {
       "date": {
-        "en": "September 17",
-        "zh-CN": "9月17日"
-      },
-      "version": "0.7.2",
-      "features": [
-        {
-          "en": "Multi-select filtering and server-side search for datasets and collections",
-          "zh-CN": "数据集与集合筛选支持多选，搜索改为服务端处理"
-        },
-        {
-          "en": "Shareable public file pages via non-enumerable links (no sign-in required)",
-          "zh-CN": "文件公开分享页：不可枚举链接，免登录访问"
-        },
-        {
-          "en": "Share private datasets in one click via make-public confirmation",
-          "zh-CN": "私有数据集一键分享（确认设为公开后自动复制链接）"
-        },
-        {
-          "en": "Visualization workbench: 10-color ion channels, per-layer opacity and mask export polish",
-          "zh-CN": "可视化工作台：离子通道扩至十色、逐层透明度与蒙版导出优化"
-        }
-      ]
-    },
-    {
-      "date": {
         "en": "September 11",
         "zh-CN": "9月11日"
       },

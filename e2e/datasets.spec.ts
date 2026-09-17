@@ -153,7 +153,9 @@ test.describe('My Datasets', () => {
     await expect(page.locator('.toast')).toContainText(/Download is limited/)
   })
 
-  /** Overview 使用原有 history.state 链路，可读取 private 数据。 */
+  /**
+   * Overview 跳转并验证内容，再 Back 返回
+   */
   test('overview — navigates, shows content, then back', async ({ page }) => {
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
@@ -177,6 +179,7 @@ test.describe('My Datasets', () => {
     const backBtn = page.getByRole('button', { name: 'Back to My Datasets' })
     await expect(backBtn).toBeVisible()
     await backBtn.click()
+
     await expect(page).toHaveURL(/\/mydatasets/)
     await expect(page.getByText('Organism:').first()).toBeVisible()
   })
@@ -581,7 +584,12 @@ test.describe('Public Datasets', () => {
     await expect(page.locator('.toast')).toContainText(/Download is limited/)
   })
 
-  /** 随机进入一张卡的 Overview，验证内容后返回。 */
+  /**
+   * 随机进一张卡的 Overview：验证内容，再 Back 返回。
+   * （原为两个独立测试——"navigates" 和 "back button"——各完整走一遍
+   * /datasets 加载 + Overview 加载，合并后省一个页面周期 × 3 浏览器。
+   * My Datasets 侧的同名测试早已是这种合并形态。）
+   */
   test('overview — navigates to a random card, shows content, then back', async ({ page }) => {
     await page.goto('/datasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
@@ -591,6 +599,7 @@ test.describe('Public Datasets', () => {
     const count = await overviewBtns.count()
     const pick = count > 1 ? Math.floor(Math.random() * count) : 0
     await overviewBtns.nth(pick).click()
+
     await expect(page).toHaveURL(/\/overview/)
     await expect(page.locator('.skeleton')).toHaveCount(0, { timeout: 15_000 })
     await expect(page.locator('h1:has-text("Dataset Overview")')).toBeVisible()
@@ -605,6 +614,7 @@ test.describe('Public Datasets', () => {
     const backBtn = page.getByRole('button', { name: 'Back to Public Datasets' })
     await expect(backBtn).toBeVisible()
     await backBtn.click()
+
     await expect(page).toHaveURL(/\/datasets/)
     await expect(page.getByText('Organism:').first()).toBeVisible()
   })

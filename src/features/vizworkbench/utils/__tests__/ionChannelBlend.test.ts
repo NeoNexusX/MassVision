@@ -68,16 +68,6 @@ describe('blendChannelImage', () => {
     expect(pixel(rgba, 50)).toEqual([255, 0, 0, 255])
   })
 
-  it('scales a layer contribution by opacity', () => {
-    const rgba = blendChannelImage(
-      [{ matrix: stepMatrix(10, 100), color: RED, opacity: 0.5 }],
-      COLS,
-      ROWS,
-      { background: CHANNEL_BACKGROUND },
-    )
-    expect(pixel(rgba, 50)).toEqual([128, 0, 0, 255])
-  })
-
   it('leaves zero pixels as the opaque background', () => {
     const rgba = blendChannelImage([{ matrix: stepMatrix(10, 100), color: RED }], COLS, ROWS, {
       background: CHANNEL_BACKGROUND,
@@ -165,9 +155,9 @@ describe('blendChannelImage', () => {
 })
 
 describe('ION_CHANNEL_COLORS', () => {
-  it('exposes ten distinct valid colors', () => {
-    expect(ION_CHANNEL_COLORS).toHaveLength(10)
-    expect(MAX_ION_CHANNELS).toBe(10)
+  it('exposes six distinct valid colors', () => {
+    expect(ION_CHANNEL_COLORS).toHaveLength(6)
+    expect(MAX_ION_CHANNELS).toBe(6)
     const seen = new Set<string>()
     for (const c of ION_CHANNEL_COLORS) {
       for (const v of [c.r, c.g, c.b]) {
@@ -176,6 +166,6 @@ describe('ION_CHANNEL_COLORS', () => {
       }
       seen.add(`${c.r},${c.g},${c.b}`)
     }
-    expect(seen.size).toBe(10)
+    expect(seen.size).toBe(6)
   })
 })
