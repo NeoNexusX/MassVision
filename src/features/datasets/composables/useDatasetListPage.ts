@@ -2,9 +2,7 @@ import { useRouter } from 'vue-router'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
 import { useDatasetListRouteState } from '@/features/datasets/composables/useDatasetListRouteState'
 import { useAuthStore } from '@/shared/auth/authStore'
-import { useToast } from '@/shared/composables/useToast'
 import type { FileListSort } from '@/features/datasets/api/datasetApi'
-import { t } from '@/i18n'
 
 type Fetcher = (
   filters: Record<string, any>,
@@ -29,7 +27,6 @@ export function useDatasetListPage(
 ) {
   const router = useRouter()
   const auth = useAuthStore()
-  const { showToast } = useToast()
 
   // Use composable for datasets (fetch/map/pagination/sort)
   const {
@@ -68,16 +65,7 @@ export function useDatasetListPage(
   const refreshCurrentPage = () => fetchFiles({ page: page.value, size: size.value })
 
   const viewOverview = (fileId: string) => {
-    const publicId = datasets.value.find((dataset) => dataset.id === fileId)?.publicId
-    if (!publicId) {
-      showToast(t('datasets.overview.shareUnavailable'), 'error')
-      return
-    }
-    const route = router.resolve({
-      name: 'PublicFile',
-      params: { publicId },
-    })
-    window.open(route.href, '_blank', 'noopener,noreferrer')
+    router.push({ name: 'DatasetOverview', state: { fileId, source: opts.source } })
   }
 
   return {

@@ -81,6 +81,14 @@ const routes = [
     component: view(() => import('../views/PublicCollectionView.vue'), 'collections', 'datasets'),
   },
   {
+    // Normal Dataset Overview keeps the numeric id in history.state. This lets
+    // private files use the authenticated metadata endpoint without exposing
+    // their internal id in the URL.
+    path: '/overview',
+    name: 'DatasetOverview',
+    component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
+  },
+  {
     path: '/s/:encodedId',
     name: 'SharedDatasetOverview',
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),

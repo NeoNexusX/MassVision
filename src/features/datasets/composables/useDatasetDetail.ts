@@ -1,5 +1,5 @@
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { getFileMetadata, setFilePublic } from '@/features/datasets/api/datasetApi'
 import { getSharedOverviewMetadata } from '@/features/datasets/api/overviewShareApi'
 import { buildPreviewImageUrl } from '@/features/datasets/utils/imageUtils'
@@ -16,10 +16,14 @@ import { isVocabValue, vocabLabel } from '@/features/datasets/constants/vocabLab
 import { t } from '@/i18n'
 
 export function useDatasetDetail() {
-  const route = useRoute()
   const router = useRouter()
   const { handleDownloadRaw, isPacking } = useDownloadProgress()
   const { showToast } = useToast()
+
+  // Normal Overview entries use navigation state so private file ids never
+  // become part of a public URL. The /files/:publicId sharing route remains
+  // available separately through PublicFileView.
+  const state = history.state as { fileId?: string; source?: 'my' | 'public' } | null
 
   // State
   const dataset = ref<File | null>(null)
@@ -31,15 +35,15 @@ export function useDatasetDetail() {
     useOverviewShare(dataset)
   const fileId = computed(() => {
     if (isShareView.value) return sharedFileId.value ?? ''
-    return String(route.params.fileId ?? '')
+    return state?.fileId != null ? String(state.fileId) : ''
   })
   // A shared link always uses the anonymous public client, even if the viewer
   // happens to be signed in. The backend remains responsible for is_public.
   const source = computed<'my' | 'public'>(() =>
-    isShareView.value || route.meta.datasetSource !== 'my' ? 'public' : 'my',
+    isShareView.value ? 'public' : state?.source || 'my',
   )
   const isPublic = computed(() => source.value === 'public')
-  /** Route params identify normal entries; shared entries decode their public URL id. */
+  /** Normal entries need history state; legacy shared entries decode their public URL id. */
   const isStale = computed(() => !fileId.value)
 
   // Computed
