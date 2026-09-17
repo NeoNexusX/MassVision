@@ -59,7 +59,9 @@
               class="w-2 h-2 rounded-sm shrink-0"
               :style="{ backgroundColor: `rgb(${cv.color.r},${cv.color.g},${cv.color.b})` }"
             ></span>
-            <span class="text-base-content/60">{{ cv.mz.toFixed(6) }}</span>
+            <span class="text-base-content/60"
+            >{{ cv.mz.toFixed(6) }}</span
+            >
             <span>{{ cv.intensity.toExponential(2) }}</span>
           </div>
         </template>
@@ -198,7 +200,11 @@ const { zoom, panX, panY, resetZoom, zoomIn, zoomOut, onWheel, onPanStart } = us
 
 /** Channels as the renderer expects them (visible + loaded, color attached). */
 const blendChannels = computed<BlendChannel[]>(() =>
-  (props.channels ?? []).map((c) => ({ matrix: c.matrix, color: c.color })),
+  (props.channels ?? []).map((c) => ({
+    matrix: c.matrix,
+    color: c.color,
+    opacity: c.opacity,
+  })),
 )
 const channelsModeRef = computed(() => props.channelsMode)
 const roiMaskRef = computed(() => props.roiMask)
@@ -262,9 +268,9 @@ function onContainerMouseDown(e: MouseEvent) {
 
 // 在容器的 click 事件中处理像素选择
 function onContainerClick(e: MouseEvent) {
-  if (mouseMoved) return  // 拖拽不触发点击
+  if (mouseMoved) return // 拖拽不触发点击
   if (props.drawMode) return
-  if (props.dataMode !== 'processed') return  // 仅 processed 模式
+  if (props.dataMode !== 'processed') return // 仅 processed 模式
 
   const container = containerRef.value
   if (!container) return
@@ -274,7 +280,8 @@ function onContainerClick(e: MouseEvent) {
   const rows = props.matrixRows
   if (!data || !data.length || !cols || !rows) return
 
-  const W = rect.width, H = rect.height
+  const W = rect.width,
+    H = rect.height
   const t = computeFitTransform(W, H, cols, rows)
 
   const mx = e.clientX - rect.left
@@ -299,7 +306,8 @@ function onHover(e: MouseEvent) {
   const rows = props.matrixRows
   if (!cols || !rows) return
   if (!props.channelsMode && (!data || !data.length)) return
-  const W = rect.width, H = rect.height
+  const W = rect.width,
+    H = rect.height
   const t = computeFitTransform(W, H, cols, rows)
   const mx = e.clientX - rect.left
   const my = e.clientY - rect.top

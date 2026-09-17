@@ -41,17 +41,19 @@ const onChangeSize = (e: Event) => {
   <div
     :class="
       variant === 'compact'
-        ? 'p-4 border-t border-base-200 bg-base-200/50'
+        ? 'p-4 border-t border-base-200 bg-base-200/50 flex flex-wrap items-center justify-end gap-4'
         : 'mt-6 flex flex-col sm:flex-row items-center justify-between gap-4'
     "
   >
     <!-- 数字加粗且在句中的位置随语言变化，用 I18nT 具名插槽嵌入 -->
+    <!-- compact：mr-auto 把摘要推向左侧，与右侧控件同处一行；窄屏自动换行 -->
     <I18nT
       v-if="showPageText"
       keypath="common.pagination.summary"
       tag="div"
       scope="global"
-      class="kawaru-text-112 text-base-content text-center sm:text-left ml-2"
+      class="kawaru-text-112 text-base-content text-center sm:text-left"
+      :class="variant === 'compact' ? 'mr-auto' : 'ml-2'"
     >
       <template #page><span class="font-medium">{{ currentPage }}</span></template>
       <template #total><span class="font-medium">{{ totalPages }}</span></template>

@@ -18,6 +18,8 @@ export interface IonChannel {
   loading: boolean
   error: string | null
   visible: boolean
+  /** Per-layer opacity, 0..1. Optional for backwards-compatible callers. */
+  opacity?: number
 }
 
 /** Why `addCurrentMz()` refused; the caller turns this into a toast. */
@@ -31,6 +33,7 @@ export interface ViewIonChannel {
   mz: number
   color: RGB
   matrix: Float32Array
+  opacity: number
 }
 
 export interface IonChannelDeps {
@@ -135,6 +138,7 @@ export function useIonChannels(deps: IonChannelDeps) {
       loading: true,
       error: null,
       visible: true,
+      opacity: 1,
     }
     replace([...list, channel])
     loadInto(channel.id, mzIndex, deps.tolerance.value)
@@ -149,6 +153,14 @@ export function useIonChannels(deps: IonChannelDeps) {
   function toggleChannelVisible(id: number) {
     const channel = channels.value.find((c) => c.id === id)
     if (channel) patch(id, { visible: !channel.visible })
+  }
+
+  function updateChannelColor(id: number, color: RGB) {
+    patch(id, { color: { ...color } })
+  }
+
+  function updateChannelOpacity(id: number, opacity: number) {
+    patch(id, { opacity: Math.max(0, Math.min(1, opacity)) })
   }
 
   function clearChannels() {
@@ -175,14 +187,20 @@ export function useIonChannels(deps: IonChannelDeps) {
   const blendChannels: ComputedRef<BlendChannel[]> = computed(() =>
     channels.value
       .filter((c) => c.visible && c.matrix)
-      .map((c) => ({ matrix: c.matrix!, color: c.color })),
+      .map((c) => ({ matrix: c.matrix!, color: c.color, opacity: c.opacity ?? 1 })),
   )
 
   /** Channels for the hover readout (visible + loaded), with their identity. */
   const hoverChannels = computed<ViewIonChannel[]>(() =>
     channels.value
       .filter((c) => c.visible && c.matrix)
-      .map((c) => ({ id: c.id, mz: c.mz, color: c.color, matrix: c.matrix! })),
+      .map((c) => ({
+        id: c.id,
+        mz: c.mz,
+        color: c.color,
+        matrix: c.matrix!,
+        opacity: c.opacity ?? 1,
+      })),
   )
 
   const canAdd = computed(
@@ -205,6 +223,8 @@ export function useIonChannels(deps: IonChannelDeps) {
     addCurrentMz,
     removeChannel,
     toggleChannelVisible,
+    updateChannelColor,
+    updateChannelOpacity,
     retryChannel,
     clearChannels,
     reset,
