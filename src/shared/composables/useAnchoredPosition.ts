@@ -12,10 +12,14 @@ import { onBeforeUnmount, ref, watch, type CSSProperties, type Ref } from 'vue'
 export function useAnchoredPosition(
   anchor: Ref<HTMLElement | null>,
   open: Ref<boolean>,
-  options: { gap?: number; maxHeight?: number; width?: number } = {},
+  options: { gap?: number; maxHeight?: number | (() => number); width?: number } = {},
 ) {
   const gap = options.gap ?? 4
-  const maxHeight = options.maxHeight ?? 256
+  // 函数形式允许按视口实时求值（如面板占视口高的比例），数字则固定
+  const resolveMaxHeight = () => {
+    const v = typeof options.maxHeight === 'function' ? options.maxHeight() : options.maxHeight
+    return v ?? 256
+  }
   // 显式宽度（如筛选面板）：不再贴合锚点，而是左缘钳制在视口内的定宽浮层；
   // 缺省沿用锚点宽度（下拉菜单语义）
   const fixedWidth = options.width
@@ -31,6 +35,7 @@ export function useAnchoredPosition(
     const left = fixedWidth
       ? Math.min(Math.max(16, rect.left), viewportW - width - 16)
       : rect.left
+    const maxHeight = resolveMaxHeight()
     const below = window.innerHeight - rect.bottom - gap
     const above = rect.top - gap
     const flip = below < maxHeight && above > below

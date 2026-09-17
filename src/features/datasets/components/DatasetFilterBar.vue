@@ -144,7 +144,8 @@ const filterPanelRef = ref<HTMLElement | null>(null)
 const { style: panelStyle } = useAnchoredPosition(filterBtn, showFilterPanel, {
   gap: 8,
   width: 650,
-  maxHeight: Math.round(window.innerHeight * 0.75),
+  // getter：窗口缩放后重开/重算时按当前视口高取值
+  maxHeight: () => Math.round(window.innerHeight * 0.75),
 })
 
 const toggleFilterPanel = () => {

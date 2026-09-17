@@ -75,12 +75,25 @@ const filters = ref<Record<string, string | string[]>>(
   Object.fromEntries(fields.value.map((f) => [f.key, f.type === 'text' ? '' : []])),
 )
 
+/**
+ * 提交前移除动态隐藏字段的键（如切到 Mine only 后的 owner_username）：
+ * 它们用户无法编辑，留着会以两种方式作恶——随 payload 发出成为隐藏筛选，
+ * 或切回浏览全部时显示有值但实际未生效。删除后两种状态都与列表一致。
+ */
+function dropHiddenFields() {
+  for (const key of Object.keys(filters.value)) {
+    if (!fields.value.some((f) => f.key === key)) delete filters.value[key]
+  }
+}
+
 const applyFilters = () => {
+  dropHiddenFields()
   emit('apply', { ...filters.value })
   emit('close')
 }
 
 const resetFilters = () => {
+  dropHiddenFields()
   for (const field of fields.value) {
     filters.value[field.key] = field.type === 'text' ? '' : []
   }
