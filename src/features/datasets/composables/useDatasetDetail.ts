@@ -12,7 +12,7 @@ import { extractBackendError } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
 import { useRequireAuth } from '@/shared/composables/useRequireAuth'
 import { useOverviewShare } from '@/features/datasets/composables/useOverviewShare'
-import { isVocabValue, vocabLabel } from '@/features/datasets/constants/vocabLabels'
+import { formatVocabOrText } from '@/features/datasets/constants/vocabLabels'
 import { t } from '@/i18n'
 
 export function useDatasetDetail() {
@@ -58,15 +58,6 @@ export function useDatasetDetail() {
       showGuides: true,
     })
   })
-
-  // Methods
-  const formatString = (val?: string) => {
-    if (!val) return '—'
-    // 词表值是规范写法（如 CHCA (α-Cyano-4-hydroxycinnamic acid)），原样或按词表译文显示，
-    // 不能再做大小写变换；只有自填值沿用首字母大写的旧显示
-    if (isVocabValue(val)) return vocabLabel(val)
-    return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
-  }
 
   const copyHash = async (hash: string) => {
     if (!hash) return
@@ -245,7 +236,7 @@ export function useDatasetDetail() {
     ticImageError,
     placeholderSvg,
     formatSize: formatBytes,
-    formatString,
+    formatString: formatVocabOrText,
     copyHash,
     shareCurrent,
     goBack,

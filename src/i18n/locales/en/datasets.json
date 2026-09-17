@@ -151,12 +151,6 @@
       "limitReached": "Download limit reached",
       "noUrls": "No download URLs returned"
     },
-    "public": {
-      "badge": "Public Data",
-      "notFound": "File not available",
-      "notFoundDesc": "This share link is invalid, or the file is no longer publicly accessible.",
-      "backHome": "Back to Home"
-    },
     "share": {
       "publicTitle": "Share Dataset",
       "publicMessage": "Sharing requires making this dataset public. Once public, it is visible to all users and this action cannot be undone. The share link will be copied automatically after confirming."

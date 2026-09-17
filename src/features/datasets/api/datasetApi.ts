@@ -50,14 +50,6 @@ export async function getDownloadRawNoauth(publicId: FilePublicId): Promise<Down
   return res.data
 }
 
-// GET /files/public/{public_id} — 免登录公开文件详情（分享页首屏）。
-// public_id 是 16 位随机串（不可枚举）；后端对「不存在 / 未公开 / 非 completed」
-// 一律返回 404 且不区分原因，前端统一按“链接失效”处理。
-export async function getPublicFile(publicId: FilePublicId) {
-  const res = await api.get(`/files/public/${publicId}`)
-  return res.data
-}
-
 // DELETE /files/{public_id} — 响应回传 public_id
 export async function deleteFile(publicId: FilePublicId): Promise<{ public_id: string }> {
   const res = await auth_api.delete(`/files/${publicId}`)

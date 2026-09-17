@@ -111,14 +111,17 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import type { File } from '@/features/datasets/types/dataset'
 import type { IconType } from '@/shared/components/svgIcons'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { formatBytes, formatDate } from '@/shared/utils/format'
 import DatasetPreviewGallery from '@/features/datasets/components/DatasetPreviewGallery.vue'
 import { getFileMetadata, setFilePublic } from '@/features/datasets/api/datasetApi'
+import { buildOverviewShareUrl } from '@/features/datasets/utils/overviewShareLink'
 import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
 import { useToast } from '@/shared/composables/useToast'
+import { useCopyToClipboard } from '@/shared/composables/useCopyToClipboard'
 import { extractBackendError } from '@/shared/api/httpClient'
 import { t } from '@/i18n'
 
@@ -128,7 +131,9 @@ const props = defineProps<{
   packing?: boolean
 }>()
 
+const router = useRouter()
 const { showToast } = useToast()
+const { copy } = useCopyToClipboard()
 
 const emit = defineEmits<{
   (e: 'view-overview', publicId: string): void
@@ -144,7 +149,7 @@ const formattedSize = computed(() => formatBytes(props.dataset.sizeBytes))
 
 const labelColon = (label: string) => t('common.format.labelColon', { label })
 
-// ---- 分享：公开文件直接复制 /files/{public_id}；私有文件先确认「设为公开」再复制 ----
+// ---- 分享：公开文件直接复制 /s/{public_id} 分享页链接；私有文件先确认「设为公开」再复制 ----
 // 本地覆盖位：确认设公开后 props 不会自动更新（列表数据在父级），
 // 用 localPublic/localPublicId 让卡片立刻切到公开态，列表重拉后自然对齐
 const localPublic = ref(false)
@@ -152,17 +157,14 @@ const localPublicId = ref<string | null>(null)
 const effectivePublic = computed(() => props.dataset.isPublic || localPublic.value)
 const effectivePublicId = computed(() => props.dataset.publicId ?? localPublicId.value)
 
-// 复制免登录公开链接（与 overview 页、CollectionCard 同一方案）；
-// 剪贴板不可用时直接把 URL 弹出来供手动复制
+// 复制 overview 分享链接（与 overview 页的 Share 按钮同一入口 buildOverviewShareUrl）；
+// 分享内容需登录后浏览（匿名打开由分享页就地引导登录），剪贴板不可用时弹 URL 供手动复制
 const copyShareLink = async () => {
-  if (!effectivePublicId.value) return
-  const url = `${location.origin}/files/${effectivePublicId.value}`
-  try {
-    await navigator.clipboard.writeText(url)
-    showToast(t('common.feedback.copied'), 'success')
-  } catch {
-    showToast(url, 'info')
-  }
+  const id = effectivePublicId.value
+  if (!id) return
+  const url = buildOverviewShareUrl(router, id, window.location.origin)
+  if (!url) return
+  await copy(url, { onError: () => showToast(url, 'info') })
 }
 
 const showShareConfirm = ref(false)

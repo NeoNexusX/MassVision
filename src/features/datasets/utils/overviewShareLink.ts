@@ -50,7 +50,10 @@ export function resolveShareToken(token: string): ShareToken | null {
   return null
 }
 
-/** Build the absolute, short public Overview share URL from a 16-char public id. */
+/**
+ * Build the absolute, short Overview share URL /s/{public_id} from a 16-char
+ * public id. 数据集分享统一走这一个入口（overview 页 Share 按钮与列表卡片分享共用）。
+ */
 export function buildOverviewShareUrl(
   router: Router,
   publicId: string,
@@ -61,26 +64,6 @@ export function buildOverviewShareUrl(
   const href = router.resolve({
     name: 'SharedDatasetOverview',
     params: { shareToken: publicId },
-  }).href
-  return new URL(href, origin).toString()
-}
-
-/**
- * Build the public file share URL /files/{public_id}（免登录公开页）。
- * public_id 是 16 位 base62，仅做宽松字符校验挡住空串/脏值；
- * 与 buildOverviewShareUrl 的 /s/{encodedId}（可枚举数字 id）并存：
- * 新链接优先用本函数，旧链接的解析链路保持不动以兼容存量分享。
- */
-export function buildPublicFileShareUrl(
-  router: Router,
-  publicId: string | null | undefined,
-  origin: string,
-): string | null {
-  if (!publicId || !/^[A-Za-z0-9_-]+$/.test(publicId)) return null
-
-  const href = router.resolve({
-    name: 'PublicFile',
-    params: { publicId },
   }).href
   return new URL(href, origin).toString()
 }

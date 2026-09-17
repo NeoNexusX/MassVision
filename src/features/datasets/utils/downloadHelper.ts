@@ -1,4 +1,5 @@
 import { getDownloadMetadata, getDownloadRaw, getDownloadRawNoauth } from '@/features/datasets/api/datasetApi'
+import type { DownloadRawEntry } from '@/features/datasets/types/dataset'
 import { t } from '@/i18n'
 
 async function pollDownloadUrl(
@@ -76,6 +77,16 @@ function triggerIframeDownload(url: string): void {
   window.setTimeout(() => iframe.remove(), 60_000)
 }
 
+/** 每个 pre-signed URL 各起一个隐藏 iframe 触发下载；无 URL 视为后端未就绪，抛错让上层提示。 */
+function downloadEntries(files: DownloadRawEntry[] | undefined) {
+  if (!files || !files.length) {
+    throw new Error(t('datasets.download.noUrls'))
+  }
+  for (const entry of files) {
+    triggerIframeDownload(entry.url)
+  }
+}
+
 /**
  * RAW pre-signed download: GET /files/{public_id}/download_raw → imzML + ibd URLs.
  * No polling — pre-signed URLs are returned immediately.
@@ -86,14 +97,7 @@ export async function ossDownloadRaw(
   options?: { getFallbackFilename?: () => string | undefined, isPublic?: boolean },
 ) {
   const { files } = await getDownloadRaw(publicId, options?.isPublic ?? false)
-
-  if (!files || !files.length) {
-    throw new Error(t('datasets.download.noUrls'))
-  }
-
-  for (const entry of files) {
-    triggerIframeDownload(entry.url)
-  }
+  downloadEntries(files)
 }
 
 /**
@@ -102,12 +106,5 @@ export async function ossDownloadRaw(
  */
 export async function ossDownloadRawNoauth(publicId: string) {
   const { files } = await getDownloadRawNoauth(publicId)
-
-  if (!files || !files.length) {
-    throw new Error(t('datasets.download.noUrls'))
-  }
-
-  for (const entry of files) {
-    triggerIframeDownload(entry.url)
-  }
+  downloadEntries(files)
 }

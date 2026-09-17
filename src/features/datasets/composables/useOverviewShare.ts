@@ -2,6 +2,7 @@ import { computed, ref, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { File } from '@/features/datasets/types/dataset'
 import { useToast } from '@/shared/composables/useToast'
+import { useCopyToClipboard } from '@/shared/composables/useCopyToClipboard'
 import { t } from '@/i18n'
 import {
   buildOverviewShareUrl,
@@ -13,6 +14,7 @@ export function useOverviewShare(dataset: Ref<File | null>) {
   const route = useRoute()
   const router = useRouter()
   const { showToast } = useToast()
+  const { copy } = useCopyToClipboard()
 
   const isShareView = computed(() => route.name === 'SharedDatasetOverview')
   // token 判别：16 位 publicId（新链接）或 Base64 数字 id（历史链接，永久兼容）
@@ -31,16 +33,11 @@ export function useOverviewShare(dataset: Ref<File | null>) {
       return
     }
 
-    try {
-      await navigator.clipboard.writeText(shareUrl)
+    if (await copy(shareUrl)) {
       isShareCopied.value = true
-      showToast(t('common.feedback.copied'), 'success')
       setTimeout(() => {
         isShareCopied.value = false
       }, 2000)
-    } catch (error) {
-      console.error('Failed to copy share link:', error)
-      showToast(t('common.feedback.copyFailed'), 'error')
     }
   }
 

@@ -217,6 +217,7 @@ import CollectionMetadataPanel from '@/features/collections/components/Collectio
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 import { useToast } from '@/shared/composables/useToast'
+import { useCopyToClipboard } from '@/shared/composables/useCopyToClipboard'
 import { formatBytes, formatDate } from '@/shared/utils/format'
 import { listFiles } from '@/features/datasets/api/datasetApi'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
@@ -231,6 +232,7 @@ import { t } from '@/i18n'
 
 const router = useRouter()
 const { showToast } = useToast()
+const { copy } = useCopyToClipboard()
 
 // ---- 详情 + 成员管理（单一数据源：detail，写操作成功后整体回写）----
 const {
@@ -284,12 +286,7 @@ const deleteConfirm = useConfirmDelete({
 async function copyShareLink() {
   if (!detail.value?.publicId) return
   const url = `${location.origin}/collections/${detail.value.publicId}`
-  try {
-    await navigator.clipboard.writeText(url)
-    showToast(t('common.feedback.copied'), 'success')
-  } catch {
-    showToast(t('collections.overview.shareLink', { url }), 'info')
-  }
+  await copy(url, { onError: () => showToast(t('collections.overview.shareLink', { url }), 'info') })
 }
 
 // ---- 添加成员弹窗：picker 直连公开 imzML/completed 列表（与创建页同一套过滤）----

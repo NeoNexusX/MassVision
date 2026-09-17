@@ -89,19 +89,12 @@ const routes = [
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
   },
   {
-    // 数据集分享页（免登录）。token 二选一：16 位 public_id（新链接）或
-    // Base64 数字 id（历史链接，永久兼容）——判别见 resolveShareToken。
+    // 数据集分享页。token 二选一：16 位 public_id（新链接）或 Base64 数字 id
+    // （历史链接，永久兼容）——判别见 resolveShareToken。路由本身不加登录守卫：
+    // 分享内容需登录浏览，匿名落地后由页面就地引导登录（见 getShareOverviewMetadata）。
     path: '/s/:shareToken',
     name: 'SharedDatasetOverview',
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
-  },
-  {
-    // 文件公开分享页（免登录浏览）：/files/{public_id}，与 /collections/{public_id} 同一套路。
-    // public_id 是 16 位 base62，不会与静态段撞名；旧的 /s/{encodedId}（base64 file_id）
-    // 分享链接继续兼容，两者并存。
-    path: '/files/:publicId',
-    name: 'PublicFile',
-    component: view(() => import('../views/PublicFileView.vue'), 'datasets'),
   },
   {
     path: '/login',

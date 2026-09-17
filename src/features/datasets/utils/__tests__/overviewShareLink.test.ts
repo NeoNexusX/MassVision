@@ -2,19 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import {
   buildOverviewShareUrl,
-  buildPublicFileShareUrl,
   decodeLegacyShareId,
   isValidPublicId,
   resolveShareToken,
 } from '../overviewShareLink'
 
-// 只复刻分享链接用到的那两条路由（与 router/index.ts 的 '/s/:shareToken'、
-// '/files/:publicId' 一致），避免为一个纯函数拉起整个应用路由表。
+// 只复刻分享链接用到的那条路由（与 router/index.ts 的 '/s/:shareToken' 一致），
+// 避免为一个纯函数拉起整个应用路由表。
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [
     { path: '/s/:shareToken', name: 'SharedDatasetOverview', component: { template: '<div/>' } },
-    { path: '/files/:publicId', name: 'PublicFile', component: { template: '<div/>' } },
   ],
 })
 
@@ -85,19 +83,5 @@ describe('buildOverviewShareUrl', () => {
     expect(
       buildOverviewShareUrl(router, 'not-a-public-id', 'https://massvision.example'),
     ).toBeNull()
-  })
-})
-
-describe('buildPublicFileShareUrl', () => {
-  it('builds an absolute /files/<publicId> link on the current origin', () => {
-    expect(buildPublicFileShareUrl(router, 'aB3xK9mPq2Lz7Rf1', 'https://massvision.example')).toBe(
-      'https://massvision.example/files/aB3xK9mPq2Lz7Rf1',
-    )
-  })
-
-  it('returns null for a missing or malformed publicId', () => {
-    for (const bad of ['', null, undefined, 'a b', 'a/b', '还測']) {
-      expect(buildPublicFileShareUrl(router, bad, 'https://massvision.example')).toBeNull()
-    }
   })
 })

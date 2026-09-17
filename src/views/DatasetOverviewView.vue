@@ -38,6 +38,9 @@ const {
   confirmSharePublic,
 } = useDatasetDetail()
 
+// 下载打包中：publicId 已是字符串，dataset 为空时按空串（isPacking 恒 false）
+const packing = computed(() => isPacking(dataset.value?.publicId ?? ''))
+
 // 元信息编辑已移到 My Datasets 卡片的 Edit（Overview 只读展示）
 
 // 状态徽章的样式与文案（completed/uploading/failed -> success/info/error，其余中性）
@@ -197,15 +200,11 @@ const statusBadge = computed(() => {
               <button
                 @click="downloadCurrent"
                 class="btn btn-sm h-8 min-h-8 btn-primary kawaru-text-75"
-                :disabled="isPacking(String(dataset?.publicId ?? ''))"
+                :disabled="packing"
               >
-                <span v-if="isPacking(String(dataset?.publicId ?? ''))" class="loading loading-spinner loading-xs"></span>
+                <span v-if="packing" class="loading loading-spinner loading-xs"></span>
                 <svg-icon v-else type="download" class="w-4 h-4" />
-                {{
-                  isPacking(String(dataset?.publicId ?? ''))
-                    ? $t('datasets.card.packing')
-                    : $t('common.action.download')
-                }}
+                {{ packing ? $t('datasets.card.packing') : $t('common.action.download') }}
               </button>
               <button
                 @click="dataset.isPublic ? shareCurrent() : openShareConfirm()"

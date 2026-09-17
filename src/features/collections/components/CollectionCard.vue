@@ -380,6 +380,7 @@ import { getDatasetPlaceholderSvg } from '@/features/datasets/utils/datasetPlace
 import { vocabLabel } from '@/features/datasets/constants/vocabLabels'
 import { formatDate } from '@/shared/utils/format'
 import { useToast } from '@/shared/composables/useToast'
+import { useCopyToClipboard } from '@/shared/composables/useCopyToClipboard'
 import { t } from '@/i18n'
 
 const props = defineProps<{
@@ -400,6 +401,7 @@ defineEmits<{
 }>()
 
 const { showToast } = useToast()
+const { copy } = useCopyToClipboard()
 
 // 占位图只生成一次（随机配色，与数据集页回退同策略）
 const placeholderSvg = getDatasetPlaceholderSvg({ showGuides: true })
@@ -511,12 +513,7 @@ function doiHref(doi: string): string {
 async function copyShareLink() {
   if (!props.collection.publicId) return
   const url = `${location.origin}/collections/${props.collection.publicId}`
-  try {
-    await navigator.clipboard.writeText(url)
-    showToast(t('common.feedback.copied'), 'success')
-  } catch {
-    showToast(t('collections.overview.shareLink', { url }), 'info')
-  }
+  await copy(url, { onError: () => showToast(t('collections.overview.shareLink', { url }), 'info') })
 }
 
 const unitLabel = computed(() => t('collections.unit.dataset', props.collection.memberCount))
