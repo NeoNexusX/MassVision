@@ -131,11 +131,13 @@ export function useCreateCollection() {
       )
       showToast(t('common.feedback.created'), 'success')
       saved.value = true
-      // 详情页是路径参数路由（/collections/manage/:collectionId）：数字 id 进路径，
-      // 刷新/书签/新标签页都不依赖 history.state；replace 让创建页不留在历史栈里
+      // 详情页无路径参数：id 走 history.state（与列表页 handleView 同一套路）。
+      // 公开路由 /collections/{public_id} 只能只读浏览（public 响应不含数字 id，
+      // 编辑/删除等写操作用不上），所以 overview 保持 state 方案：
+      // 数字 id 供写操作，publicId 供公开接口拉详情
       router.replace({
         name: 'CollectionOverview',
-        params: { collectionId: detail.id },
+        state: { collectionId: detail.id, publicId: detail.publicId ?? undefined },
       })
     } catch (err: any) {
       // 409 invalid collection members 等：CollectionApiError.message 是后端 detail 原文
