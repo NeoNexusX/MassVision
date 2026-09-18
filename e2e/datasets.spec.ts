@@ -153,8 +153,8 @@ test.describe('My Datasets', () => {
     await expect(page.locator('.toast')).toContainText(/Download is limited/)
   })
 
-  /** Overview 使用原有 history.state 链路，可读取 private 数据。 */
-  test('overview — navigates, shows content, then back', async ({ page }) => {
+  /** Overview 在新标签页打开，public_id 进路径参数（刷新不丢），可读取 private 数据。 */
+  test('overview — opens in a new tab, shows content, then back', async ({ page }) => {
     await page.goto('/mydatasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
@@ -162,23 +162,26 @@ test.describe('My Datasets', () => {
     await overviewBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
     const count = await overviewBtns.count()
     const pick = count > 1 ? Math.floor(Math.random() * count) : 0
-    await overviewBtns.nth(pick).click()
-    await expect(page).toHaveURL(/\/overview/)
-    await expect(page.locator('.skeleton')).toHaveCount(0, { timeout: 15_000 })
-    await expect(page.locator('h1:has-text("Dataset Overview")')).toBeVisible()
+    const [popup] = await Promise.all([
+      page.waitForEvent('popup'),
+      overviewBtns.nth(pick).click(),
+    ])
+    await expect(popup).toHaveURL(/\/overview\/[A-Za-z0-9_-]+/)
+    await expect(popup.locator('.skeleton')).toHaveCount(0, { timeout: 15_000 })
+    await expect(popup.locator('h1:has-text("Dataset Overview")')).toBeVisible()
 
-    const hasContent = await page.getByRole('button', { name: 'Download' }).isVisible().catch(() => false)
+    const hasContent = await popup.getByRole('button', { name: 'Download' }).isVisible().catch(() => false)
     if (hasContent) {
-      await expect(page.getByText('Size', { exact: true })).toBeVisible()
-      await expect(page.getByText(/Sample Info/)).toBeVisible()
-      await expect(page.getByText('File Information')).toBeVisible()
+      await expect(popup.getByText('Size', { exact: true })).toBeVisible()
+      await expect(popup.getByText(/Sample Info/)).toBeVisible()
+      await expect(popup.getByText('File Information')).toBeVisible()
     }
 
-    const backBtn = page.getByRole('button', { name: 'Back to My Datasets' })
+    const backBtn = popup.getByRole('button', { name: 'Back to My Datasets' })
     await expect(backBtn).toBeVisible()
     await backBtn.click()
-    await expect(page).toHaveURL(/\/mydatasets/)
-    await expect(page.getByText('Organism:').first()).toBeVisible()
+    await expect(popup).toHaveURL(/\/mydatasets/)
+    await expect(popup.getByText('Organism:').first()).toBeVisible()
   })
 
   /**
@@ -581,8 +584,8 @@ test.describe('Public Datasets', () => {
     await expect(page.locator('.toast')).toContainText(/Download is limited/)
   })
 
-  /** 随机进入一张卡的 Overview，验证内容后返回。 */
-  test('overview — navigates to a random card, shows content, then back', async ({ page }) => {
+  /** 随机进入一张卡的 Overview（新标签页），验证内容后返回。 */
+  test('overview — opens a random card in a new tab, shows content, then back', async ({ page }) => {
     await page.goto('/datasets')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
@@ -590,23 +593,26 @@ test.describe('Public Datasets', () => {
     await overviewBtns.first().waitFor({ state: 'visible', timeout: 10_000 })
     const count = await overviewBtns.count()
     const pick = count > 1 ? Math.floor(Math.random() * count) : 0
-    await overviewBtns.nth(pick).click()
-    await expect(page).toHaveURL(/\/overview/)
-    await expect(page.locator('.skeleton')).toHaveCount(0, { timeout: 15_000 })
-    await expect(page.locator('h1:has-text("Dataset Overview")')).toBeVisible()
+    const [popup] = await Promise.all([
+      page.waitForEvent('popup'),
+      overviewBtns.nth(pick).click(),
+    ])
+    await expect(popup).toHaveURL(/\/overview\/[A-Za-z0-9_-]+/)
+    await expect(popup.locator('.skeleton')).toHaveCount(0, { timeout: 15_000 })
+    await expect(popup.locator('h1:has-text("Dataset Overview")')).toBeVisible()
 
-    const hasContent = await page.getByRole('button', { name: 'Download' }).isVisible().catch(() => false)
+    const hasContent = await popup.getByRole('button', { name: 'Download' }).isVisible().catch(() => false)
     if (hasContent) {
-      await expect(page.getByText('Size', { exact: true })).toBeVisible()
-      await expect(page.getByText(/Sample Info/)).toBeVisible()
-      await expect(page.getByText('File Information')).toBeVisible()
+      await expect(popup.getByText('Size', { exact: true })).toBeVisible()
+      await expect(popup.getByText(/Sample Info/)).toBeVisible()
+      await expect(popup.getByText('File Information')).toBeVisible()
     }
 
-    const backBtn = page.getByRole('button', { name: 'Back to Public Datasets' })
+    const backBtn = popup.getByRole('button', { name: 'Back to Public Datasets' })
     await expect(backBtn).toBeVisible()
     await backBtn.click()
-    await expect(page).toHaveURL(/\/datasets/)
-    await expect(page.getByText('Organism:').first()).toBeVisible()
+    await expect(popup).toHaveURL(/\/datasets/)
+    await expect(popup.getByText('Organism:').first()).toBeVisible()
   })
 
   test('filter bar — Add filter panel opens', async ({ page }) => {

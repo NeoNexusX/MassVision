@@ -81,10 +81,10 @@ const routes = [
     component: view(() => import('../views/PublicCollectionView.vue'), 'collections', 'datasets'),
   },
   {
-    // Normal Dataset Overview keeps the numeric id in history.state. This lets
-    // private files use the authenticated metadata endpoint without exposing
-    // their internal id in the URL.
-    path: '/overview',
+    // Dataset Overview：public_id 直接进路径（入口在新标签页打开），刷新/收藏/
+    // 登录回跳都不丢；来源列表由 query ?source=my|public 控制 Back 去向。私有文件
+    // 的元数据仍走登录接口（后端强制登录），URL 只暴露不可枚举的 public_id。
+    path: '/overview/:publicId',
     name: 'DatasetOverview',
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
   },
