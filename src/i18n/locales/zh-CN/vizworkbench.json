@@ -102,6 +102,7 @@
       "rectHint": "在离子图上拖动以绘制矩形",
       "lassoHint": "在离子图上绘制自由轮廓",
       "rois": "ROI 列表",
+      "importedMask": "导入掩膜",
       "pixels": "像素数",
       "mean": "均值",
       "std": "标准差",
@@ -120,6 +121,10 @@
       "export": "导出掩膜",
       "all": "全选",
       "import": "导入掩膜",
+      "showOriginal": "显示原图",
+      "showOriginalHint": "暂时取消导入掩膜的过滤，恢复完整离子图显示（导入保留，不清除）",
+      "applyMask": "应用掩膜",
+      "applyMaskHint": "重新应用导入的掩膜过滤",
       "clearImport": "清除导入掩膜",
       "imported": "已导入：{name}"
     },

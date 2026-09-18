@@ -29,6 +29,21 @@
     >
       {{ $t('vizworkbench.mask.imported', { name: importedMaskName }) }}
     </div>
+    <!-- 显示原图 ↔ 应用掩膜：暂停/恢复导入掩膜的过滤（导入本身保留）。
+         独占一行：与导入按钮同行会把「导入掩膜」文案挤出按钮框 -->
+    <button
+      v-if="importedMaskName"
+      class="btn btn-sm w-full mb-2 kawaru-text-81"
+      :class="importedMaskActive ? 'btn-ghost' : 'btn-primary'"
+      :title="
+        importedMaskActive
+          ? $t('vizworkbench.mask.showOriginalHint')
+          : $t('vizworkbench.mask.applyMaskHint')
+      "
+      @click="emit('toggle-imported-mask')"
+    >
+      {{ importedMaskActive ? $t('vizworkbench.mask.showOriginal') : $t('vizworkbench.mask.applyMask') }}
+    </button>
 
     <!-- Format -->
     <div class="flex items-center gap-2 mb-2">
@@ -155,6 +170,8 @@ const props = defineProps<{
    *  uses, so checking a cluster here also shows it on the image. */
   selectedKmeansIds: Set<number> | null
   importedMaskName?: string | null
+  /** 导入掩膜过滤是否生效（false = 显示原图） */
+  importedMaskActive?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -164,6 +181,7 @@ const emit = defineEmits<{
   (e: 'kmeans-clear-all'): void
   (e: 'import-mask', file: File): void
   (e: 'clear-imported-mask'): void
+  (e: 'toggle-imported-mask'): void
 }>()
 
 const FORMATS: { value: ExportFormat; label: string }[] = [

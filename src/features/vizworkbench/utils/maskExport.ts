@@ -319,6 +319,59 @@ export async function importMask(
   return { mask: parsed.data, shape: [parsed.shape[0]!, parsed.shape[1]!], format, meta }
 }
 
+/**
+ * ROI 模块下展示的导入掩膜摘要：name/format 来自导入结果，统计在导入时定格
+ * （与手绘 ROI confirm 时计算一次的口径一致，不随后续 m/z 切换重算）。
+ */
+export interface ImportedMaskSummary {
+  /** 源文件名（用户认得的标识） */
+  name: string
+  format: MaskImportFormat
+  pixelCount: number
+  stats: { mean: number; std: number; min: number; max: number } | null
+}
+
+/**
+ * Summarize an imported mask for the ROI panel: pixel count always; mean/std/
+ * min/max from the current ion matrix when its length matches the raster
+ * (skips non-finite values the same way useROI.computeStats does).
+ */
+export function summarizeImportedMask(
+  result: MaskImportResult,
+  name: string,
+  matrix: Float32Array | null,
+): ImportedMaskSummary {
+  const mask = result.mask
+  let pixelCount = 0
+  for (let i = 0; i < mask.length; i++) if (mask[i]) pixelCount++
+  const base = { name, format: result.format, pixelCount }
+  if (!matrix || matrix.length !== mask.length) return { ...base, stats: null }
+
+  let sum = 0
+  let count = 0
+  let min = Infinity
+  let max = -Infinity
+  for (let i = 0; i < mask.length; i++) {
+    if (!mask[i]) continue
+    const v = matrix[i] ?? 0
+    if (!Number.isFinite(v)) continue
+    sum += v
+    count++
+    if (v < min) min = v
+    if (v > max) max = v
+  }
+  if (!count) return { ...base, stats: null }
+  const mean = sum / count
+  let sumSq = 0
+  for (let i = 0; i < mask.length; i++) {
+    if (!mask[i]) continue
+    const v = matrix[i] ?? 0
+    if (!Number.isFinite(v)) continue
+    sumSq += (v - mean) ** 2
+  }
+  return { ...base, stats: { mean, std: Math.sqrt(sumSq / count), min, max } }
+}
+
 // ── pixel payload (the canonical bytes every format shares) ───────
 
 /** Flatten the boolean raster into row-major uint8 bytes, 0 = false, 1 = true. */
