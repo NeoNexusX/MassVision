@@ -1,7 +1,8 @@
 <template>
-  <!-- 集合卡片：响应式三档 —— <md 纯堆叠（封面满宽置顶 → 中栏 → 操作行沉底）；
-       md–lg 封面与中栏并排（340px + 信息），操作行仍沉底；lg+ 整行三栏
-       （左封面轮播 400px / 中两列元信息 / 右操作列）。
+  <!-- 集合卡片：响应式三档 —— <md 纯堆叠（封面满宽置顶 → 元信息 → chips → 操作行沉底）；
+       md 起 封面与元信息并排（340px + 信息），chips 框放不下并排时换行沉到
+       整卡宽度（不堆在元信息下方撑高行、让图片下方留空）；xl 起 封面/元信息/
+       chips 同行三块，lg+ 右侧再加操作列。
        封面图统一取成员文件的 OSS 预览图（目录来自后端 image_path），
        后端已按数据类型返回对应的那张（processed → TIC，continuous → UMAP），
        前端不做判断；成员超过 1 个时用左右箭头切换。封面下方不带缩略图条。
@@ -25,81 +26,79 @@
     class="flex flex-col lg:flex-row p-4 lg:pr-10 gap-x-5 gap-y-4 h-full bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-base-300 cursor-pointer"
     @click="$emit('view', collection.id)"
   >
-    <!-- 主区包裹层（封面 + 中栏）：md–lg 中断宽度并排（封面 340px 左栏、
-         信息在右），操作列不进本层、仍沉底整行；<md 纯堆叠（封面满宽置顶）；
-         lg+ 三栏，本层占满剩余宽度，内部行为与并排时一致 -->
-    <div class="flex flex-col md:flex-row flex-1 min-w-0 gap-x-5 gap-y-4">
-    <!-- 左：封面轮播（尺寸与框体同一个元素，不再套一层纯尺寸壳）。
+    <!-- 主区包裹层（封面 + 元信息 + chips，单层 flex-wrap）：md 起封面左栏、
+         元信息占满同行剩余宽度；chips 框 xl 起并进同一行（17em 右列），不够宽时
+         整框换行沉到下一行占满层宽——不嵌套「中栏」把 chips 堆在元信息下方，
+         那会把行高撑过封面，图片下方留一大截空白。
+         <md 纯堆叠（封面满宽置顶）；操作列不进本层 -->
+    <div class="flex flex-col md:flex-row md:flex-wrap flex-1 min-w-0 gap-x-5 gap-y-4">
+      <!-- 左：封面轮播（尺寸与框体同一个元素，不再套一层纯尺寸壳）。
          <md 满宽置顶；md 起 340px 左栏（self-start 不拉伸，保持 4:3 → 255px 高）；
          lg 起 400px（高 300px，px 写死不受字号影响）。
          点击封面不进入 overview：翻看轮播时容易误触整卡跳转，
          入口收归 View Collection 按钮；cursor-default 覆盖整卡的 pointer -->
-    <div
-      class="shrink-0 w-full md:w-[340px] md:self-start lg:w-[400px] lg:self-start aspect-[4/3] relative rounded-lg overflow-hidden border border-base-300 bg-base-200 cursor-default"
-      @click.stop
-    >
-      <!-- 封面完整显示（contain）：TIC / UMAP 都按原比例缩放进框内，不裁切。
-             超宽图（TIC 条带 8500×1500）两侧会有留白，但至少内容是全的。 -->
-      <!-- 封面成员仍在拉取（列表接口不带 members）：骨架占位，
-             避免先闪随机占位图再换真图 -->
       <div
-        v-if="coverLoading"
-        class="w-full h-full animate-pulse bg-base-200 dark:bg-slate-700"
-        aria-hidden="true"
-      />
-      <!-- daisyUI carousel，官方示例同款外观（snap-mandatory + smooth scroll +
+        class="shrink-0 w-full md:w-[340px] md:self-start lg:w-[400px] lg:self-start aspect-[4/3] relative rounded-lg overflow-hidden border border-base-300 bg-base-200 cursor-default"
+        @click.stop
+      >
+        <!-- 封面完整显示（contain）：TIC / UMAP 都按原比例缩放进框内，不裁切。
+             超宽图（TIC 条带 8500×1500）两侧会有留白，但至少内容是全的。 -->
+        <!-- 封面成员仍在拉取（列表接口不带 members）：骨架占位，
+             避免先闪随机占位图再换真图 -->
+        <div
+          v-if="coverLoading"
+          class="w-full h-full animate-pulse bg-base-200 dark:bg-slate-700"
+          aria-hidden="true"
+        />
+        <!-- daisyUI carousel，官方示例同款外观（snap-mandatory + smooth scroll +
              滚动条隐藏）。官方用 <a href="#slideN"> 翻页，直接搬会污染 history 且
              要求全页唯一 id，这里换 button + scrollIntoView。帧常驻 DOM，img 各自 lazy。 -->
-      <div
-        v-else-if="slideCount"
-        ref="carouselEl"
-        class="carousel overscroll-x-contain w-full h-full"
-        role="group"
-        :aria-label="$t('collections.card.coversAria', { name: collection.name })"
-        @scroll.passive="onCoverScroll"
-      >
-        <div v-for="(imagePath, i) in slides" :key="i" class="carousel-item w-full h-full">
-          <DatasetThumb :image-path="imagePath" :alt="`${collection.name} preview`" />
+        <div
+          v-else-if="slideCount"
+          ref="carouselEl"
+          class="carousel overscroll-x-contain w-full h-full"
+          role="group"
+          :aria-label="$t('collections.card.coversAria', { name: collection.name })"
+          @scroll.passive="onCoverScroll"
+        >
+          <div v-for="(imagePath, i) in slides" :key="i" class="carousel-item w-full h-full">
+            <DatasetThumb :image-path="imagePath" :alt="`${collection.name} preview`" />
+          </div>
         </div>
-      </div>
-      <div
-        v-else
-        class="w-full h-full text-base-content"
-        aria-hidden="true"
-        v-html="placeholderSvg"
-      />
+        <div
+          v-else
+          class="w-full h-full text-base-content"
+          aria-hidden="true"
+          v-html="placeholderSvg"
+        />
 
-      <!-- 箭头 + 帧计数。箭头为半透明深色圆钮（黑底白箭头）：
+        <!-- 箭头 + 帧计数。箭头为半透明深色圆钮（黑底白箭头）：
            浅色 TIC / 深色 UMAP 封面上都稳定可见 -->
-      <template v-if="slideCount > 1">
-        <button
-          type="button"
-          class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-black/50 hover:bg-black/70 text-white border-none shadow-sm kawaru-text-68"
-          :aria-label="$t('collections.card.prev')"
-          @click.stop="goPrev"
-        >
-          <SvgIcon type="chevron_left" class="w-[1em] h-[1em]" />
-        </button>
-        <button
-          type="button"
-          class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-black/50 hover:bg-black/70 text-white border-none shadow-sm kawaru-text-68"
-          :aria-label="$t('collections.card.next')"
-          @click.stop="goNext"
-        >
-          <SvgIcon type="chevron_right" class="w-[1em] h-[1em]" />
-        </button>
-        <span
-          class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded kawaru-text-68 font-medium bg-base-100/85 dark:bg-slate-800/85 text-base-content/70 border border-base-300"
-        >
-          {{ scrollIndex + 1 }}/{{ slideCount }}
-        </span>
-      </template>
-    </div>
+        <template v-if="slideCount > 1">
+          <button
+            type="button"
+            class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-black/50 hover:bg-black/70 text-white border-none shadow-sm kawaru-text-68"
+            :aria-label="$t('collections.card.prev')"
+            @click.stop="goPrev"
+          >
+            <SvgIcon type="chevron_left" class="w-[1em] h-[1em]" />
+          </button>
+          <button
+            type="button"
+            class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-black/50 hover:bg-black/70 text-white border-none shadow-sm kawaru-text-68"
+            :aria-label="$t('collections.card.next')"
+            @click.stop="goNext"
+          >
+            <SvgIcon type="chevron_right" class="w-[1em] h-[1em]" />
+          </button>
+          <span
+            class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded kawaru-text-68 font-medium bg-base-100/85 dark:bg-slate-800/85 text-base-content/70 border border-base-300"
+          >
+            {{ scrollIndex + 1 }}/{{ slideCount }}
+          </span>
+        </template>
+      </div>
 
-    <!-- 中：左信息容器 + 右 chips 列（xl 起并排，更窄时上下堆叠）。
-         默认 stretch 撑满卡片内容高（卡片高度 = 封面 300px / 中左内容 /
-         chips 列三者的最大者），中左下半框才能沉底与封面底边对齐 -->
-    <div class="flex flex-1 min-w-0 flex-col gap-4 xl:flex-row">
       <!-- 中左：上半（名称 + 右上角归属徽标 + Creator 行）不带框；下半
            （Title/DOI/Access/Journal 标签左置行）是独立的浅背景圆角框，
            靠边框与背景色区分。
@@ -127,9 +126,7 @@
           </div>
 
           <!-- 恒一行：不换行，放不下由 creator 用户名的 truncate 省略（日期段固定宽度） -->
-          <div
-            class="flex items-center gap-x-4 min-w-0 kawaru-text-81 text-base-content/75"
-          >
+          <div class="flex items-center gap-x-4 min-w-0 kawaru-text-81 text-base-content/75">
             <span
               class="inline-flex items-center gap-1 min-w-0"
               :title="$t('collections.card.owner', { name: collection.ownerUsername })"
@@ -261,9 +258,10 @@
            每个字段恒一行：最多常显 3 个值（nowrap，放不下由 chip 内省略号截断、
            title 悬停看全称），还有剩余时行尾跟「…」圆钮，点开 popover 悬浮窗看
            剩余值（top layer，不占卡片高度）——chips 列高度恒定，各卡片不随值
-           多少变化。整列套圆角框；xl:self-start 保持内容高度，不参与拉伸对齐 -->
+           多少变化。整列套圆角框；xl 起并进封面同一行（17em 定宽），不够宽时
+           w-full 整框换行沉到下一行；xl:self-start 保持内容高度，不参与拉伸对齐 -->
       <div
-        class="xl:w-[17em] shrink-0 flex flex-col gap-2.5 min-w-0 rounded-lg border border-base-300 p-3 xl:self-start"
+        class="w-full xl:w-[17em] xl:shrink-0 flex flex-col gap-2.5 min-w-0 rounded-lg border border-base-300 p-3 xl:self-start"
       >
         <div v-for="field in basicFields" :key="field.key" class="min-w-0">
           <div class="kawaru-text-81 font-medium text-base-content/45">{{ field.label }}</div>
@@ -323,7 +321,6 @@
           <div v-else class="kawaru-text-81 text-base-content/40 mt-1">—</div>
         </div>
       </div>
-    </div>
     </div>
 
     <!-- 右：Share / View / Delete 按钮组 + 成员数（Share 需 publicId，Delete 仅
@@ -523,7 +520,9 @@ function doiHref(doi: string): string {
 async function copyShareLink() {
   if (!props.collection.publicId) return
   const url = `${location.origin}/collections/${props.collection.publicId}`
-  await copy(url, { onError: () => showToast(t('collections.overview.shareLink', { url }), 'info') })
+  await copy(url, {
+    onError: () => showToast(t('collections.overview.shareLink', { url }), 'info'),
+  })
 }
 
 const unitLabel = computed(() => t('collections.unit.dataset', props.collection.memberCount))

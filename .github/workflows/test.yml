@@ -16,9 +16,9 @@ name: Test
 
 on:
   push:
-    branches: [test]
+    branches: [feature/collections-v2]
   pull_request:
-    branches: [test]
+    branches: [feature/collections-v2]
 
 jobs:
   # ---- Job 1: 静态检查 + 单元测试 ----
