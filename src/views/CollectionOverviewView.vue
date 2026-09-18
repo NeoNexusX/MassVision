@@ -135,10 +135,11 @@
           </span>
         </div>
 
-        <!-- 成员列表（管理态 = canEdit）：置顶，先看成员再看学术元数据 -->
+        <!-- 成员列表（管理态 = canEdit；调序控件再叠加编辑态 editing）：置顶，先看成员再看学术元数据 -->
         <CollectionMemberList
           :members="members"
           :manage-mode="canEdit"
+          :edit-mode="editing"
           :adding="adding"
           :removing="removing"
           :reordering="reordering"
