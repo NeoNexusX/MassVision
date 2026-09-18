@@ -125,23 +125,29 @@
             </span>
           </div>
 
-          <!-- 恒一行：不换行，放不下由 creator 用户名的 truncate 省略（日期段固定宽度） -->
-          <div class="flex items-center gap-x-4 min-w-0 kawaru-text-81 text-base-content/75">
+          <!-- 宽度充足时恒一行；中栏被挤窄（lg/xl 断点起始段，最窄 ~230px）时三段
+               作为整段换行，标签与日期永不被 truncate 切成「Ca…/Upd…」碎片——
+               只有用户名保留 truncate（放不下由它省略） -->
+          <div
+            class="flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0 kawaru-text-81 text-base-content/75"
+          >
             <span
               class="inline-flex items-center gap-1 min-w-0"
               :title="$t('collections.card.owner', { name: collection.ownerUsername })"
             >
-              <span class="text-base-content/45">{{ $t('collections.card.label.creator') }}</span>
+              <span class="shrink-0 text-base-content/45">{{
+                $t('collections.card.label.creator')
+              }}</span>
               <SvgIcon type="user" class="w-[1.05em] h-[1.05em] shrink-0 text-base-content/60" />
               <span class="truncate font-medium">{{ collection.ownerUsername }}</span>
             </span>
-            <!-- 日期段同样 min-w-0 + truncate：极窄时跟用户名一起收缩省略，
-                 不允许把行撑出卡片（此前 nowrap 无收缩导致溢出重叠） -->
-            <span class="min-w-0 truncate">
+            <!-- 日期段整段 shrink-0 + nowrap：放不下就整体换到下一行，
+                 不收缩、不截断（日期被省略号切开等于信息全丢） -->
+            <span class="shrink-0 whitespace-nowrap">
               <span class="text-base-content/45">{{ $t('collections.card.label.created') }}</span>
               {{ formattedCreated }}
             </span>
-            <span class="min-w-0 truncate">
+            <span class="shrink-0 whitespace-nowrap">
               <span class="text-base-content/45">{{ $t('collections.card.label.updated') }}</span>
               {{ formattedUpdated }}
             </span>
