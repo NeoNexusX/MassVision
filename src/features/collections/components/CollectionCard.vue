@@ -1,5 +1,8 @@
 <template>
-  <!-- 集合卡片：整行三栏 —— 左封面轮播 / 中两列元信息 / 右操作列。
+  <!-- 集合卡片：响应式三档 —— <md 纯堆叠（封面满宽置顶 → 元信息 → chips → 操作行沉底）；
+       md 起 封面与元信息并排（340px + 信息），chips 框放不下并排时换行沉到
+       整卡宽度（不堆在元信息下方撑高行、让图片下方留空）；xl 起 封面/元信息/
+       chips 同行三块，lg+ 右侧再加操作列。
        封面图统一取成员文件的 OSS 预览图（目录来自后端 image_path），
        后端已按数据类型返回对应的那张（processed → TIC，continuous → UMAP），
        前端不做判断；成员超过 1 个时用左右箭头切换。封面下方不带缩略图条。
@@ -23,77 +26,79 @@
     class="flex flex-col lg:flex-row p-4 lg:pr-10 gap-x-5 gap-y-4 h-full bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-base-300 cursor-pointer"
     @click="$emit('view', collection.id)"
   >
-    <!-- 左：封面轮播（尺寸与框体同一个元素，不再套一层纯尺寸壳）。
-         lg:self-start：明确不参与拉伸，保持 4:3 的固定高度
-         （lg 宽 400px → 高 300px，px 写死不受字号影响）。
+    <!-- 主区包裹层（封面 + 元信息 + chips，单层 flex-wrap）：md 起封面左栏、
+         元信息占满同行剩余宽度；chips 框 xl 起并进同一行（17em 右列），不够宽时
+         整框换行沉到下一行占满层宽——不嵌套「中栏」把 chips 堆在元信息下方，
+         那会把行高撑过封面，图片下方留一大截空白。
+         <md 纯堆叠（封面满宽置顶）；操作列不进本层 -->
+    <div class="flex flex-col md:flex-row md:flex-wrap flex-1 min-w-0 gap-x-5 gap-y-4">
+      <!-- 左：封面轮播（尺寸与框体同一个元素，不再套一层纯尺寸壳）。
+         <md 满宽置顶；md 起 340px 左栏（self-start 不拉伸，保持 4:3 → 255px 高）；
+         lg 起 400px（高 300px，px 写死不受字号影响）。
          点击封面不进入 overview：翻看轮播时容易误触整卡跳转，
          入口收归 View Collection 按钮；cursor-default 覆盖整卡的 pointer -->
-    <div
-      class="shrink-0 w-full sm:w-[340px] lg:w-[400px] lg:self-start aspect-[4/3] relative rounded-lg overflow-hidden border border-base-300 bg-base-200 cursor-default"
-      @click.stop
-    >
-      <!-- 封面完整显示（contain）：TIC / UMAP 都按原比例缩放进框内，不裁切。
-             超宽图（TIC 条带 8500×1500）两侧会有留白，但至少内容是全的。 -->
-      <!-- 封面成员仍在拉取（列表接口不带 members）：骨架占位，
-             避免先闪随机占位图再换真图 -->
       <div
-        v-if="coverLoading"
-        class="w-full h-full animate-pulse bg-base-200 dark:bg-slate-700"
-        aria-hidden="true"
-      />
-      <!-- daisyUI carousel，官方示例同款外观（snap-mandatory + smooth scroll +
+        class="shrink-0 w-full md:w-[340px] md:self-start lg:w-[400px] lg:self-start aspect-[4/3] relative rounded-lg overflow-hidden border border-base-300 bg-base-200 cursor-default"
+        @click.stop
+      >
+        <!-- 封面完整显示（contain）：TIC / UMAP 都按原比例缩放进框内，不裁切。
+             超宽图（TIC 条带 8500×1500）两侧会有留白，但至少内容是全的。 -->
+        <!-- 封面成员仍在拉取（列表接口不带 members）：骨架占位，
+             避免先闪随机占位图再换真图 -->
+        <div
+          v-if="coverLoading"
+          class="w-full h-full animate-pulse bg-base-200 dark:bg-slate-700"
+          aria-hidden="true"
+        />
+        <!-- daisyUI carousel，官方示例同款外观（snap-mandatory + smooth scroll +
              滚动条隐藏）。官方用 <a href="#slideN"> 翻页，直接搬会污染 history 且
              要求全页唯一 id，这里换 button + scrollIntoView。帧常驻 DOM，img 各自 lazy。 -->
-      <div
-        v-else-if="slideCount"
-        ref="carouselEl"
-        class="carousel overscroll-x-contain w-full h-full"
-        role="group"
-        :aria-label="$t('collections.card.coversAria', { name: collection.name })"
-        @scroll.passive="onCoverScroll"
-      >
-        <div v-for="(imagePath, i) in slides" :key="i" class="carousel-item w-full h-full">
-          <DatasetThumb :image-path="imagePath" :alt="`${collection.name} preview`" />
+        <div
+          v-else-if="slideCount"
+          ref="carouselEl"
+          class="carousel overscroll-x-contain w-full h-full"
+          role="group"
+          :aria-label="$t('collections.card.coversAria', { name: collection.name })"
+          @scroll.passive="onCoverScroll"
+        >
+          <div v-for="(imagePath, i) in slides" :key="i" class="carousel-item w-full h-full">
+            <DatasetThumb :image-path="imagePath" :alt="`${collection.name} preview`" />
+          </div>
         </div>
-      </div>
-      <div
-        v-else
-        class="w-full h-full text-base-content"
-        aria-hidden="true"
-        v-html="placeholderSvg"
-      />
+        <div
+          v-else
+          class="w-full h-full text-base-content"
+          aria-hidden="true"
+          v-html="placeholderSvg"
+        />
 
-      <!-- 箭头 + 帧计数。箭头为半透明深色圆钮（黑底白箭头）：
+        <!-- 箭头 + 帧计数。箭头为半透明深色圆钮（黑底白箭头）：
            浅色 TIC / 深色 UMAP 封面上都稳定可见 -->
-      <template v-if="slideCount > 1">
-        <button
-          type="button"
-          class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-black/50 hover:bg-black/70 text-white border-none shadow-sm kawaru-text-68"
-          :aria-label="$t('collections.card.prev')"
-          @click.stop="goPrev"
-        >
-          <SvgIcon type="chevron_left" class="w-[1em] h-[1em]" />
-        </button>
-        <button
-          type="button"
-          class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-black/50 hover:bg-black/70 text-white border-none shadow-sm kawaru-text-68"
-          :aria-label="$t('collections.card.next')"
-          @click.stop="goNext"
-        >
-          <SvgIcon type="chevron_right" class="w-[1em] h-[1em]" />
-        </button>
-        <span
-          class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded kawaru-text-68 font-medium bg-base-100/85 dark:bg-slate-800/85 text-base-content/70 border border-base-300"
-        >
-          {{ scrollIndex + 1 }}/{{ slideCount }}
-        </span>
-      </template>
-    </div>
+        <template v-if="slideCount > 1">
+          <button
+            type="button"
+            class="absolute left-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-black/50 hover:bg-black/70 text-white border-none shadow-sm kawaru-text-68"
+            :aria-label="$t('collections.card.prev')"
+            @click.stop="goPrev"
+          >
+            <SvgIcon type="chevron_left" class="w-[1em] h-[1em]" />
+          </button>
+          <button
+            type="button"
+            class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-xs btn-circle bg-black/50 hover:bg-black/70 text-white border-none shadow-sm kawaru-text-68"
+            :aria-label="$t('collections.card.next')"
+            @click.stop="goNext"
+          >
+            <SvgIcon type="chevron_right" class="w-[1em] h-[1em]" />
+          </button>
+          <span
+            class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded kawaru-text-68 font-medium bg-base-100/85 dark:bg-slate-800/85 text-base-content/70 border border-base-300"
+          >
+            {{ scrollIndex + 1 }}/{{ slideCount }}
+          </span>
+        </template>
+      </div>
 
-    <!-- 中：左信息容器 + 右 chips 列（xl 起并排，更窄时上下堆叠）。
-         默认 stretch 撑满卡片内容高（卡片高度 = 封面 300px / 中左内容 /
-         chips 列三者的最大者），中左下半框才能沉底与封面底边对齐 -->
-    <div class="flex flex-1 min-w-0 flex-col gap-4 xl:flex-row">
       <!-- 中左：上半（名称 + 右上角归属徽标 + Creator 行）不带框；下半
            （Title/DOI/Access/Journal 标签左置行）是独立的浅背景圆角框，
            靠边框与背景色区分。
@@ -112,7 +117,7 @@
               {{ collection.name }}
             </h3>
             <span
-              class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 kawaru-text-75 font-medium border"
+              class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 kawaru-text-81 font-medium border"
               :class="ownershipBadge.class"
             >
               <SvgIcon type="circle_stack" class="w-[0.95em] h-[0.95em]" />
@@ -120,22 +125,29 @@
             </span>
           </div>
 
+          <!-- 宽度充足时恒一行；中栏被挤窄（lg/xl 断点起始段，最窄 ~230px）时三段
+               作为整段换行，标签与日期永不被 truncate 切成「Ca…/Upd…」碎片——
+               只有用户名保留 truncate（放不下由它省略） -->
           <div
-            class="flex flex-wrap items-center gap-x-4 gap-y-1 kawaru-text-81 text-base-content/75"
+            class="flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0 kawaru-text-81 text-base-content/75"
           >
             <span
               class="inline-flex items-center gap-1 min-w-0"
               :title="$t('collections.card.owner', { name: collection.ownerUsername })"
             >
-              <span class="text-base-content/45">{{ $t('collections.card.label.creator') }}</span>
+              <span class="shrink-0 text-base-content/45">{{
+                $t('collections.card.label.creator')
+              }}</span>
               <SvgIcon type="user" class="w-[1.05em] h-[1.05em] shrink-0 text-base-content/60" />
               <span class="truncate font-medium">{{ collection.ownerUsername }}</span>
             </span>
-            <span class="whitespace-nowrap">
+            <!-- 日期段整段 shrink-0 + nowrap：放不下就整体换到下一行，
+                 不收缩、不截断（日期被省略号切开等于信息全丢） -->
+            <span class="shrink-0 whitespace-nowrap">
               <span class="text-base-content/45">{{ $t('collections.card.label.created') }}</span>
               {{ formattedCreated }}
             </span>
-            <span class="whitespace-nowrap">
+            <span class="shrink-0 whitespace-nowrap">
               <span class="text-base-content/45">{{ $t('collections.card.label.updated') }}</span>
               {{ formattedUpdated }}
             </span>
@@ -155,12 +167,12 @@
             }}</span>
             <p
               v-if="collection.title"
-              class="flex-1 min-w-0 truncate kawaru-text-95 text-base-content/80"
+              class="flex-1 min-w-0 truncate kawaru-text-81 text-base-content/80"
               :title="collection.title"
             >
               {{ collection.title }}
             </p>
-            <span v-else class="kawaru-text-95 text-base-content/40">—</span>
+            <span v-else class="kawaru-text-81 text-base-content/40">—</span>
           </div>
 
           <div class="flex items-baseline gap-2 min-w-0">
@@ -174,7 +186,7 @@
                 :href="doiHref(doi)"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center gap-1.5 min-w-0 kawaru-text-95 text-primary hover:underline"
+                class="flex items-center gap-1.5 min-w-0 kawaru-text-81 text-primary hover:underline"
                 :title="doi"
                 @click.stop
               >
@@ -182,7 +194,7 @@
                 <span class="truncate">{{ doi }}</span>
               </a>
             </div>
-            <span v-else class="kawaru-text-95 text-base-content/40">—</span>
+            <span v-else class="kawaru-text-81 text-base-content/40">—</span>
           </div>
 
           <!-- 后端 access 为 list[str]，逐项原样透传：每项可能是 URL 也可能是标签文本（与 DOI 行同构） -->
@@ -197,7 +209,7 @@
                 :href="isUrl(entry) ? entry : undefined"
                 :target="isUrl(entry) ? '_blank' : undefined"
                 :rel="isUrl(entry) ? 'noopener noreferrer' : undefined"
-                class="flex items-center gap-1.5 min-w-0 kawaru-text-95"
+                class="flex items-center gap-1.5 min-w-0 kawaru-text-81"
                 :class="
                   isUrl(entry)
                     ? 'text-primary hover:underline'
@@ -210,7 +222,7 @@
                 <span class="truncate">{{ entry }}</span>
               </a>
             </div>
-            <span v-else class="kawaru-text-95 text-base-content/40">—</span>
+            <span v-else class="kawaru-text-81 text-base-content/40">—</span>
           </div>
 
           <div class="flex items-baseline gap-2 min-w-0">
@@ -222,12 +234,12 @@
                  这里单独放开 weight 合成（与 zh-CN 全局放开的做法一致） -->
             <p
               v-if="collection.journalName"
-              class="flex-1 min-w-0 truncate kawaru-text-95 text-base-content/80 italic font-bold [font-synthesis:weight]"
+              class="flex-1 min-w-0 truncate kawaru-text-81 text-base-content/80 italic font-bold [font-synthesis:weight]"
               :title="collection.journalName"
             >
               {{ collection.journalName }}
             </p>
-            <span v-else class="kawaru-text-95 text-base-content/40">—</span>
+            <span v-else class="kawaru-text-81 text-base-content/40">—</span>
           </div>
 
           <!-- 发表时间：跟在 Journal 行下，框多占一行，Creator 行与框之间的
@@ -238,12 +250,12 @@
             }}</span>
             <p
               v-if="collection.publishTime"
-              class="flex-1 min-w-0 truncate kawaru-text-95 text-base-content/80"
+              class="flex-1 min-w-0 truncate kawaru-text-81 text-base-content/80"
               :title="formattedPublishTime"
             >
               {{ formattedPublishTime }}
             </p>
-            <span v-else class="kawaru-text-95 text-base-content/40">—</span>
+            <span v-else class="kawaru-text-81 text-base-content/40">—</span>
           </div>
         </div>
       </div>
@@ -252,9 +264,10 @@
            每个字段恒一行：最多常显 3 个值（nowrap，放不下由 chip 内省略号截断、
            title 悬停看全称），还有剩余时行尾跟「…」圆钮，点开 popover 悬浮窗看
            剩余值（top layer，不占卡片高度）——chips 列高度恒定，各卡片不随值
-           多少变化。整列套圆角框；xl:self-start 保持内容高度，不参与拉伸对齐 -->
+           多少变化。整列套圆角框；xl 起并进封面同一行（17em 定宽），不够宽时
+           w-full 整框换行沉到下一行；xl:self-start 保持内容高度，不参与拉伸对齐 -->
       <div
-        class="xl:w-[17em] shrink-0 flex flex-col gap-2.5 min-w-0 rounded-lg border border-base-300 p-3 xl:self-start"
+        class="w-full xl:w-[17em] xl:shrink-0 flex flex-col gap-2.5 min-w-0 rounded-lg border border-base-300 p-3 xl:self-start"
       >
         <div v-for="field in basicFields" :key="field.key" class="min-w-0">
           <div class="kawaru-text-81 font-medium text-base-content/45">{{ field.label }}</div>
@@ -318,10 +331,10 @@
 
     <!-- 右：Share / View / Delete 按钮组 + 成员数（Share 需 publicId，Delete 仅
          owner/admin）。lg 下列内容整体垂直居中（justify-center），成员数在按钮
-     组下方。容器自挂 kawaru-text-100 钉住字号，lg:w-[11.5em] 恒等于
+     组下方。容器自挂 kawaru-text-81 钉住字号，lg:w-[11.5em] 恒等于
      「档位 × 11.5」，换档时同步跟上；最宽条目 "View Collection" 需单行放下。 -->
     <div
-      class="cursor-default kawaru-text-100 flex flex-row flex-wrap gap-4 items-center w-full border-t border-base-300 pt-3 lg:w-[11.5em] lg:flex-col lg:items-stretch lg:self-stretch lg:justify-center lg:border-l lg:border-t-0 lg:pt-0 lg:pl-4"
+      class="cursor-default kawaru-text-81 flex flex-row flex-wrap gap-4 items-center w-full border-t border-base-300 pt-3 lg:w-[11.5em] lg:flex-col lg:items-stretch lg:self-stretch lg:justify-center lg:border-l lg:border-t-0 lg:pt-0 lg:pl-4"
       @click.stop
     >
       <!-- 操作按钮组：Share 在前、View 在后（与最初的 View / Share 对调过） -->
@@ -329,7 +342,7 @@
         <!-- 分享：复制免登录公开链接（与 overview 页同一方案），无 publicId 时隐藏 -->
         <button
           v-if="collection.publicId"
-          class="btn btn-outline border-base-300 kawaru-text-95 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
+          class="btn btn-outline border-base-300 kawaru-text-81 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
           :title="$t('collections.card.copyShareLink')"
           @click.stop="copyShareLink"
         >
@@ -338,7 +351,7 @@
         </button>
 
         <button
-          class="btn btn-primary kawaru-text-95 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
+          class="btn btn-primary kawaru-text-81 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
           @click.stop="$emit('view', collection.id)"
         >
           <span class="whitespace-nowrap">{{ $t('collections.card.viewCollection') }}</span>
@@ -348,7 +361,7 @@
         <!-- 删除：默认浅粉底，hover 加深一档即可 -->
         <button
           v-if="canEdit"
-          class="btn btn-outline border-error/30 bg-error/15 text-error hover:bg-error/30 hover:border-error/50 kawaru-text-95 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
+          class="btn btn-outline border-error/30 bg-error/15 text-error hover:bg-error/30 hover:border-error/50 kawaru-text-81 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
           :title="$t('collections.card.deleteTitle')"
           @click.stop="$emit('delete', collection.id)"
         >
@@ -366,7 +379,7 @@
         <span class="kawaru-text-187 font-bold leading-none text-primary">{{
           collection.memberCount
         }}</span>
-        <span class="kawaru-text-100">{{ unitLabel }}</span>
+        <span class="kawaru-text-81">{{ unitLabel }}</span>
       </div>
     </div>
   </div>
@@ -513,7 +526,9 @@ function doiHref(doi: string): string {
 async function copyShareLink() {
   if (!props.collection.publicId) return
   const url = `${location.origin}/collections/${props.collection.publicId}`
-  await copy(url, { onError: () => showToast(t('collections.overview.shareLink', { url }), 'info') })
+  await copy(url, {
+    onError: () => showToast(t('collections.overview.shareLink', { url }), 'info'),
+  })
 }
 
 const unitLabel = computed(() => t('collections.unit.dataset', props.collection.memberCount))

@@ -177,12 +177,14 @@ test.describe('Collection full lifecycle', () => {
       .poll(async () => (await memberNames()).length, { timeout: 15_000 })
       .toBe(4)
 
-    // 调序：首行下移一位，前两行互换（乐观更新 + 服务端全量重写）
+    // 调序：调序控件（手柄拖拽 + 上移/下移）仅编辑态出现，先进 Edit 再操作
+    await page.getByRole('button', { name: 'Edit' }).click()
     const before = await memberNames()
     await page.getByRole('button', { name: `Move ${before[0]!} down`, exact: true }).click()
     await expect
       .poll(memberNames, { timeout: 15_000 })
       .toEqual([before[1]!, before[0]!, before[2]!, before[3]!])
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click()
 
     // 移除：勾选当前首行 → Remove Selected (1) → 对账 toast
     await page.locator('input[type="checkbox"][aria-label^="Select "]:visible').first().check()

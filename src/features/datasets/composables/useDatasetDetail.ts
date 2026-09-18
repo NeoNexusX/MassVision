@@ -21,9 +21,6 @@ export function useDatasetDetail() {
   const { handleDownloadRaw, isPacking } = useDownloadProgress()
   const { showToast } = useToast()
 
-  // 从 history.state 读取导航上下文（无路径参数，刷新后会丢失）
-  const state = history.state as { filePublicId?: string; source?: 'my' | 'public' } | null
-
   // State
   const dataset = ref<File | null>(null)
   const loading = ref(true)
@@ -32,16 +29,19 @@ export function useDatasetDetail() {
   const ticImageError = ref(false)
 
   const { isShareView, sharedToken, isShareCopied, shareCurrent } = useOverviewShare(dataset)
+  // 正常入口 public_id 来自路径参数（/overview/{public_id}，刷新不丢）；
+  // 分享页沿用 /s/{token} 解析
   const filePublicId = computed(() =>
     isShareView.value
       ? sharedToken.value?.kind === 'publicId'
         ? sharedToken.value.value
         : ''
-      : (state?.filePublicId ?? ''),
+      : ((route.params.publicId as string) ?? ''),
   )
+  // 来源列表走 query ?source=my|public（新标签页打开，history.state 不可用）；
   // 分享页按 public 来源处理：goBack 回公开列表、需登录操作的登录回跳以 /datasets 为基准
   const source = computed<'my' | 'public'>(() =>
-    isShareView.value ? 'public' : state?.source || 'my',
+    isShareView.value ? 'public' : route.query.source === 'public' ? 'public' : 'my',
   )
   /** 分享 token 既非 16 位 publicId 也非旧 Base64 数字 id → 无效链接，不发任何请求 */
   const isInvalidShare = computed(() => isShareView.value && !sharedToken.value)
@@ -80,11 +80,9 @@ export function useDatasetDetail() {
     }
   }
 
-  /** 匿名 401 的引导落地：登录/注册后带 redirect 回来。分享页直接回原链接；
-   * 公开列表进入的 overview 无 URL 参数（state 登录往返即失），回 /s/{public_id}
-   * 永久链接，登录后照常取数渲染 */
-  const authRedirectTarget = () =>
-    isShareView.value || !filePublicId.value ? route.fullPath : `/s/${filePublicId.value}`
+  /** 匿名 401 的引导落地：登录/注册后带 redirect 回来。两个入口的 URL 都自带
+   * 识别参数（/overview/{public_id} 或 /s/{token}），直接回原链接即可 */
+  const authRedirectTarget = () => route.fullPath
   const goLogin = () => router.push({ path: '/login', query: { redirect: authRedirectTarget() } })
   const goRegister = () =>
     router.push({ path: '/register', query: { redirect: authRedirectTarget() } })

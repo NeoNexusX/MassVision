@@ -1,7 +1,8 @@
 <template>
   <!-- 集合成员列表：行 = 缩略图 + 文件名 + 大小 + 下载。
        manageMode（owner/admin）下额外提供：Add Members 按钮、行复选多选 +
-       Remove Selected（批量移除）、手柄拖拽 + 上移/下移（调序，全量重写语义）。
+       Remove Selected（批量移除）。调序（手柄拖拽 + 上移/下移，全量重写语义）
+       更进一步只在 editMode（页头 Edit 进入编辑态）时出现——浏览态不打扰。
        只读模式（公开页/非 owner）隐藏全部管理控件。 -->
   <section
     class="bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6"
@@ -47,17 +48,17 @@
       <div class="kawaru-text-100"
         v-for="(member, i) in members"
         :key="member.publicId"
-        :draggable="manageMode && armed"
+        :draggable="editMode && armed"
         :class="[
           'relative px-3 py-3 rounded-lg flex items-center gap-4 select-none transition-opacity',
           manageMode ? 'cursor-default' : '',
           dragFrom === i ? 'opacity-40' : '',
           dragOver === i && dragFrom !== i ? 'border-t-2 border-t-primary' : '',
         ]"
-        @dragstart="manageMode && onDragStart($event, i)"
-        @dragover.prevent="manageMode && (dragOver = i)"
-        @drop.prevent="manageMode && onDrop()"
-        @dragend="manageMode && resetDrag()"
+        @dragstart="editMode && onDragStart($event, i)"
+        @dragover.prevent="editMode && (dragOver = i)"
+        @drop.prevent="editMode && onDrop()"
+        @dragend="editMode && resetDrag()"
       >
         <!-- 多选框（仅管理模式） -->
         <input
@@ -69,12 +70,12 @@
           @change="toggleSelect(member.publicId)"
         />
 
-        <!-- 序号 + 拖拽手柄（管理模式） -->
+        <!-- 序号 + 拖拽手柄（编辑态才有手柄） -->
         <span class="w-6 text-center tabular-nums text-base-content/50 kawaru-text-95 shrink-0">
           {{ i + 1 }}
         </span>
         <div
-          v-if="manageMode"
+          v-if="editMode"
           class="shrink-0 cursor-grab active:cursor-grabbing text-base-content/40 hover:text-base-content/70 p-1"
 :title="$t('collections.selected.dragHint')"
           aria-hidden="true"
@@ -83,7 +84,8 @@
           <SvgIcon type="bars3" class="w-[1em] h-[1em]" />
         </div>
 
-        <div class="w-10 h-10 shrink-0">
+        <!-- 缩略图：16（64px）——40px 太小看不清组织结构 -->
+        <div class="w-16 h-16 shrink-0">
           <DatasetThumb :image-path="member.imagePath" :alt="$t('collections.picker.previewAlt', { name: member.filename })" />
         </div>
 
@@ -101,8 +103,9 @@
         </div>
 
         <div class="flex items-center gap-1 shrink-0">
-          <!-- 上移/下移：触屏与键盘可用的排序通道，边界禁用（e2e 也走这里） -->
-          <template v-if="manageMode">
+          <!-- 上移/下移：触屏与键盘可用的排序通道，边界禁用（e2e 也走这里）；
+               与拖拽手柄同门槛，仅在 editMode（编辑态）出现 -->
+          <template v-if="editMode">
             <button
               class="btn btn-ghost btn-sm btn-square kawaru-text-100"
 :title="$t('collections.selected.moveUp')"
@@ -158,8 +161,10 @@ import type { CollectionMember } from '../types/collection'
 
 const props = defineProps({
   members: { type: Array as PropType<CollectionMember[]>, required: true },
-  /** owner/admin 视图：显示 Add/Remove/调序控件 */
+  /** owner/admin 视图：显示 Add/Remove 与多选控件 */
   manageMode: { type: Boolean, default: false },
+  /** 编辑态（页头 Edit 进入）：显示调序控件（手柄拖拽 + 上移/下移） */
+  editMode: { type: Boolean, default: false },
   adding: { type: Boolean, default: false },
   removing: { type: Boolean, default: false },
   reordering: { type: Boolean, default: false },

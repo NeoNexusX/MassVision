@@ -37,6 +37,8 @@ import {
   importMask,
   labelsToUnionMask,
   orMask,
+  summarizeImportedMask,
+  type ImportedMaskSummary,
   type MaskExportPayload,
 } from '@/features/vizworkbench/utils/maskExport'
 import { useToast } from '@/shared/composables/useToast'
@@ -154,7 +156,8 @@ watch(
 
 watch(runId, () => {
   importedMask.value = null
-  importedMaskName.value = null
+  importedMaskSummary.value = null
+  importedMaskActive.value = true
 })
 
 // 离开页面时释放模块级状态，避免大数组（mzAxis、meanChartData、ticMatrix 等）
@@ -208,11 +211,14 @@ const {
 // A file-imported mask is kept separate from drawn ROIs. It is applied as an
 // additional filter, so importing never mutates the user's ROI/KMeans state.
 const importedMask = shallowRef<Uint8Array | null>(null)
-const importedMaskName = ref<string | null>(null)
+// ROI 模块下展示的摘要（name/format/统计）；导出面板的「已导入」标签也取 name
+const importedMaskSummary = ref<ImportedMaskSummary | null>(null)
+// 导入掩膜过滤是否生效：false = 暂停过滤显示原图（导入保留，可随时重新应用）
+const importedMaskActive = ref(true)
 
 const visualMatrix = computed(() => {
   const matrix = displayMatrix.value
-  const mask = importedMask.value
+  const mask = importedMaskActive.value ? importedMask.value : null
   const w = ionCols.value
   const h = ionRows.value
   if (!matrix || !mask || !w || !h || mask.length !== w * h) return matrix
@@ -224,7 +230,7 @@ const visualMatrix = computed(() => {
 
 /** Intersection of the active ROI-only filter and imported mask. */
 const effectiveRoiMask = computed<Uint8Array | null>(() => {
-  const imported = importedMask.value
+  const imported = importedMaskActive.value ? importedMask.value : null
   const roi = roiUnionMask.value
   if (!imported) return roi
   if (!roi) return imported
@@ -450,7 +456,10 @@ async function handleImportMask(file: File) {
       expectedDatasetName: datasetName.value,
     })
     importedMask.value = result.mask
-    importedMaskName.value = file.name
+    // 统计以导入时的矩阵定格（与手绘 ROI 同口径），不随 m/z 切换重算
+    importedMaskSummary.value = summarizeImportedMask(result, file.name, displaySourceMatrix.value)
+    // 新导入立即生效（覆盖此前可能暂停的旧掩膜状态）
+    importedMaskActive.value = true
     showToast(t('vizworkbench.page.maskImported'), 'success')
   } catch (err) {
     console.error('[Mask] import failed', err)
@@ -461,7 +470,8 @@ async function handleImportMask(file: File) {
 
 function handleClearImportedMask() {
   importedMask.value = null
-  importedMaskName.value = null
+  importedMaskSummary.value = null
+  importedMaskActive.value = true
 }
 
 // ---- Reference ROI import (local mode) ----
@@ -764,7 +774,8 @@ async function onSelectPixel(col: number, row: number) {
             :selected-mz="selectedMz"
             :max-ion-channels="MAX_ION_CHANNELS"
             :batch-add-mode="batchAddMode"
-            :imported-mask-name="importedMaskName"
+            :imported-mask="importedMaskSummary"
+            :imported-mask-active="importedMaskActive"
             @toggle-overlay="toggleOverlay"
             @retry-clustering="retryClustering"
             @enable-clustering="createClusteringTask"
@@ -783,6 +794,7 @@ async function onSelectPixel(col: number, row: number) {
             @export-masks="handleExportMasks"
             @import-mask="handleImportMask"
             @clear-imported-mask="handleClearImportedMask"
+            @toggle-imported-mask="importedMaskActive = !importedMaskActive"
             @roi-clear-all="handleRoiClearAll"
             @update:gamma="gamma = $event"
             @update:channels-enabled="onChannelsEnabledChange"

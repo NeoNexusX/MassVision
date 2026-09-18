@@ -102,6 +102,7 @@
       "rectHint": "Drag on the ion image to draw a rectangle",
       "lassoHint": "Draw a freeform outline on the ion image",
       "rois": "ROIs",
+      "importedMask": "Imported Mask",
       "pixels": "Pixels",
       "mean": "Mean",
       "std": "Std",
@@ -120,6 +121,10 @@
       "export": "Export mask",
       "all": "All",
       "import": "Import mask",
+      "showOriginal": "Show Original",
+      "showOriginalHint": "Suspend the imported mask filter and show the full ion image (the import is kept)",
+      "applyMask": "Apply Mask",
+      "applyMaskHint": "Re-apply the imported mask filter",
       "clearImport": "Clear imported mask",
       "imported": "Imported: {name}"
     },
