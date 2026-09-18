@@ -4,14 +4,11 @@ import ROIPanel from '@/features/vizworkbench/components/visuals/ROIPanel.vue'
 import MaskExportPanel from '@/features/vizworkbench/components/visuals/MaskExportPanel.vue'
 import IonChannelPanel from '@/features/vizworkbench/components/visuals/IonChannelPanel.vue'
 import CollapsibleSection from '@/shared/components/CollapsibleSection.vue'
-import type { MaskExportPayload } from '@/features/vizworkbench/utils/maskExport'
+import type { ImportedMaskSummary, MaskExportPayload } from '@/features/vizworkbench/utils/maskExport'
 import type { IonChannel } from '@/features/vizworkbench/composables/useIonChannels'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
-import type {
-  OverlayKind,
-  KmeansCluster,
-} from '@/features/vizworkbench/composables/useOverlayData'
+import type { OverlayKind, KmeansCluster } from '@/features/vizworkbench/composables/useOverlayData'
 import type { ConfirmedROI } from '@/features/vizworkbench/composables/useROI'
 
 const props = defineProps<{
@@ -54,6 +51,11 @@ const props = defineProps<{
   channelsLoading: boolean
   selectedMz: number
   maxIonChannels: number
+  batchAddMode: boolean
+  /** 文件导入的掩膜摘要：ROI 模块展示信息卡，导出面板的「已导入」标签取其 name */
+  importedMask?: ImportedMaskSummary | null
+  /** 导入掩膜过滤是否生效（false = 显示原图） */
+  importedMaskActive?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -85,10 +87,16 @@ const emit = defineEmits<{
   /** Multi-ion overlay events (state lives in the parent). */
   (e: 'update:channelsEnabled', value: boolean): void
   (e: 'add-current-channel'): void
+  (e: 'toggle-batch-add'): void
+  (e: 'update-channel-color', id: number, color: { r: number; g: number; b: number }): void
+  (e: 'update-channel-opacity', id: number, opacity: number): void
   (e: 'remove-channel', id: number): void
   (e: 'toggle-channel-visible', id: number): void
   (e: 'retry-channel', id: number): void
   (e: 'clear-channels'): void
+  (e: 'import-mask', file: File): void
+  (e: 'clear-imported-mask'): void
+  (e: 'toggle-imported-mask'): void
 }>()
 
 // UMAP/KMeans overlays are opt-in: buttons stay grayed out until the user
@@ -200,8 +208,12 @@ function cancelEnable() {
       :can-add="canAddChannel"
       :any-loading="channelsLoading"
       :max-channels="maxIonChannels"
+      :batch-add-mode="batchAddMode"
       @update:enabled="emit('update:channelsEnabled', $event)"
       @add-current="emit('add-current-channel')"
+      @toggle-batch-add="emit('toggle-batch-add')"
+      @update-color="(id, color) => emit('update-channel-color', id, color)"
+      @update-opacity="(id, opacity) => emit('update-channel-opacity', id, opacity)"
       @remove="emit('remove-channel', $event)"
       @toggle-visible="emit('toggle-channel-visible', $event)"
       @retry="emit('retry-channel', $event)"
@@ -210,7 +222,6 @@ function cancelEnable() {
   </CollapsibleSection>
 
   <CollapsibleSection :title="$t('vizworkbench.overlay.visualization')" class="mt-5">
-
     <div class="mb-3">
       <div class="flex items-center justify-between mb-1">
         <span class="text-base-content">{{ $t('vizworkbench.overlay.gamma') }}</span>
@@ -317,7 +328,9 @@ function cancelEnable() {
       </div>
 
       <div v-if="overlayError" class="text-error mt-1.5 flex items-center gap-2">
-        <span class="flex-1">{{ $t('vizworkbench.overlay.unavailable', { error: overlayError }) }}</span>
+        <span class="flex-1">{{
+          $t('vizworkbench.overlay.unavailable', { error: overlayError })
+        }}</span>
         <button
           class="btn btn-ghost btn-sm text-error kawaru-text-75"
           @click="emit('retry-clustering')"
@@ -401,7 +414,9 @@ function cancelEnable() {
               class="w-3 h-3 rounded-sm border border-base-content/30 shrink-0"
               :style="{ backgroundColor: `rgb(${c.color[0]},${c.color[1]},${c.color[2]})` }"
             ></span>
-            <span class="text-base-content truncate">{{ $t('vizworkbench.kmeans.cluster', { id: c.id }) }}</span>
+            <span class="text-base-content truncate">{{
+              $t('vizworkbench.kmeans.cluster', { id: c.id })
+            }}</span>
           </label>
         </div>
         <div v-if="selectedClusterCount === 0" class="text-base-content/50 mt-1">
@@ -438,12 +453,14 @@ function cancelEnable() {
       :draft-ready="draftReady"
       :rois="confirmedRois"
       :viewing-roi="viewingRoi"
+      :imported-mask="importedMask"
       @update:selected-tool="emit('update:roiTool', $event)"
       @update:viewing-roi="emit('update:viewingRoi', $event)"
       @confirm="emit('roi-confirm')"
       @cancel="emit('roi-cancel')"
       @delete="emit('roi-delete', $event)"
       @clear-all="emit('roi-clear-all')"
+      @clear-imported-mask="emit('clear-imported-mask')"
     />
   </CollapsibleSection>
 
@@ -459,7 +476,12 @@ function cancelEnable() {
         :kmeans-labels-available="kmeansLabelsAvailable"
         :kmeans-k="kmeansK"
         :selected-kmeans-ids="selectedKmeansIds"
+        :imported-mask-name="importedMask?.name ?? null"
+        :imported-mask-active="importedMaskActive ?? true"
+        @toggle-imported-mask="emit('toggle-imported-mask')"
         @export-masks="(payload) => emit('export-masks', payload)"
+        @import-mask="(file) => emit('import-mask', file)"
+        @clear-imported-mask="emit('clear-imported-mask')"
         @toggle-kmeans-cluster="emit('toggle-kmeans-cluster', $event)"
         @kmeans-select-all="emit('kmeans-select-all')"
         @kmeans-clear-all="emit('kmeans-clear-all')"

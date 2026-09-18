@@ -8,7 +8,6 @@
       "experimentType": "Experiment Type",
       "size": "Size",
       "fileSize": "File Size",
-      "md5": "MD5 Hash",
       "submittedBy": "Submitted By",
       "filename": "Filename"
     },
@@ -134,12 +133,12 @@
       "msiSettings": "MSI Analysis Settings",
       "fileInfo": "File Information",
       "resolvingPowerAt": "at {mzLabel} {mz}, {rp}",
-      "copiedShort": "Copied!",
-      "copyHash": "Copy Hash",
       "publicTitle": "Make Dataset Public",
       "publicMessage": "This dataset will be moved to Public Data and become visible to other users. This action cannot be undone.",
       "madePublic": "Dataset is now public",
-      "shareUnavailable": "Unable to create a share link for this dataset."
+      "shareUnavailable": "Unable to create a share link for this dataset.",
+      "loginRequired": "Sign in to view dataset details",
+      "loginRequiredDesc": "Viewing dataset details requires an account. Don't have one? Register to continue."
     },
     "download": {
       "preparing": "Preparing download, please wait...",
@@ -149,7 +148,12 @@
       "started": "Download started",
       "failed": "Failed to download",
       "timeout": "Download preparation timed out, please try again later",
+      "limitReached": "Download limit reached",
       "noUrls": "No download URLs returned"
+    },
+    "share": {
+      "publicTitle": "Share Dataset",
+      "publicMessage": "Sharing requires making this dataset public. Once public, it is visible to all users and this action cannot be undone. The share link will be copied automatically after confirming."
     }
   }
 }

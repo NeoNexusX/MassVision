@@ -28,15 +28,18 @@ const collection = (over: Partial<CollectionSummary> = {}): CollectionSummary =>
     publicId: null,
     doi: ['10.1038/s41586-024-00001-x'],
     journalName: 'Nature Methods',
-    access: 'https://example.org/access',
+    access: ['https://example.org/access'],
     organismPart: ['Kidney'],
     ionisationSource: ['MALDI'],
     ...over,
   }) as CollectionSummary
 
+/** 造成员 imagePath 列表（封面轮播数据源，与 useCollectionCovers 的缓存值同构） */
+const paths = (ids: number[]) => ids.map((id) => `images/file_${id}/`)
+
 const mountCard = (props: Record<string, unknown> = {}) =>
   mount(CollectionCard, {
-    props: { collection: collection(), memberIds: [498, 496, 467], ...props },
+    props: { collection: collection(), imagePaths: paths([498, 496, 467]), ...props },
     global: { plugins: [i18n], stubs: { SvgIcon: true } },
   })
 
@@ -78,7 +81,7 @@ describe('CollectionCard cover carousel', () => {
   const scrollIntoView = () => Element.prototype.scrollIntoView as Mock
 
   it('mounts member frames in order and caps them at five', () => {
-    const wrapper = mountCard({ memberIds: [1, 2, 3, 4, 5, 6, 7] })
+    const wrapper = mountCard({ imagePaths: paths([1, 2, 3, 4, 5, 6, 7]) })
 
     // 7 个成员只挂前 5 帧（封顶图片请求数），每帧 lazy，帧计数按 5 计
     const imgs = wrapper.findAll('.carousel-item img')
@@ -119,7 +122,7 @@ describe('CollectionCard cover carousel', () => {
   })
 
   it('hides the arrows when there is at most one dataset', () => {
-    const wrapper = mountCard({ memberIds: [498] })
+    const wrapper = mountCard({ imagePaths: paths([498]) })
 
     expect(wrapper.find('button[aria-label="Next dataset"]').exists()).toBe(false)
     expect(wrapper.find('button[aria-label="Previous dataset"]').exists()).toBe(false)
@@ -131,7 +134,7 @@ describe('CollectionCard cover carousel', () => {
     await nextTick()
     expect(wrapper.text()).toContain('2/3')
 
-    await wrapper.setProps({ memberIds: [500, 501] })
+    await wrapper.setProps({ imagePaths: paths([500, 501]) })
 
     expect(wrapper.text()).toContain('1/2')
     expect(Element.prototype.scrollTo).toHaveBeenCalledWith({ left: 0 })
@@ -140,13 +143,13 @@ describe('CollectionCard cover carousel', () => {
 
 describe('CollectionCard cover fallbacks', () => {
   it('falls back to the placeholder when members are not loaded yet', () => {
-    const wrapper = mountCard({ memberIds: undefined })
+    const wrapper = mountCard({ imagePaths: undefined })
 
     expect(wrapper.find('img').exists()).toBe(false)
   })
 
   it('shows a pulsing skeleton instead of the placeholder while covers load', () => {
-    const wrapper = mountCard({ memberIds: undefined, coverLoading: true })
+    const wrapper = mountCard({ imagePaths: undefined, coverLoading: true })
 
     expect(wrapper.find('img').exists()).toBe(false)
     expect(wrapper.find('.animate-pulse').exists()).toBe(true)
@@ -172,13 +175,17 @@ describe('CollectionCard info (left column)', () => {
     expect(wrapper.text()).toContain('Nature Methods')
   })
 
-  it('keeps the Title row with an em dash when the title is missing', () => {
-    // 卡片高度靠 Title 行恒定（无值不塌陷）
+  it('falls back to a dash for the Title row when the title is missing', () => {
     const wrapper = mountCard({ collection: collection({ title: null }) })
 
     expect(wrapper.text()).toContain('Title')
     expect(wrapper.text()).not.toContain('Human kidney MALDI imaging atlas')
-    expect(wrapper.findAll('p').filter((p) => p.text() === '—').length).toBeGreaterThan(0)
+  })
+
+  it('never renders the description', () => {
+    const wrapper = mountCard({ collection: collection({ description: 'Curated mouse atlas.' }) })
+
+    expect(wrapper.text()).not.toContain('Curated mouse atlas.')
   })
 
   it('renders the access entry as an external link', () => {
@@ -188,24 +195,35 @@ describe('CollectionCard info (left column)', () => {
     expect(link.attributes('target')).toBe('_blank')
     expect(link.attributes('rel')).toContain('noopener')
     expect(link.text()).toContain('https://example.org/access')
-    // Access 已收进中栏左列，右栏不再有第二个入口
+    // Access 只在中栏左列出现一次
     expect(
       wrapper.findAll('a').filter((a) => a.text().includes('https://example.org/access')),
     ).toHaveLength(1)
   })
 
   it('renders a non-URL access entry without an href', () => {
-    const wrapper = mountCard({ collection: collection({ access: 'On request' }) })
+    const wrapper = mountCard({ collection: collection({ access: ['On request'] }) })
 
     const entry = wrapper.findAll('a').find((a) => a.text().includes('On request'))!
     expect(entry.attributes('href')).toBeUndefined()
   })
 
   it('keeps the Access row with an em dash when the field is empty', () => {
-    const wrapper = mountCard({ collection: collection({ access: null }) })
+    const wrapper = mountCard({ collection: collection({ access: [] }) })
 
     expect(wrapper.text()).toContain('Access')
     expect(wrapper.findAll('a').some((a) => a.text().includes('Access'))).toBe(false)
+  })
+
+  it('shows Creator / Created / Updated in the upper container', () => {
+    const wrapper = mountCard()
+
+    expect(wrapper.text()).toContain('Creator')
+    expect(wrapper.text()).toContain('lyk')
+    expect(wrapper.text()).toContain('Created')
+    expect(wrapper.text()).toContain('Updated')
+    // createdAt 为 null 时占位 —
+    expect(wrapper.text()).toContain('—')
   })
 })
 
@@ -219,41 +237,53 @@ describe('CollectionCard info (right column)', () => {
     expect(wrapper.text()).toContain('MALDI')
   })
 
-  it('caps each field at two values and tucks the rest into More', () => {
+  it('caps each field at three values and tucks the rest into the trailing ellipsis', () => {
     const wrapper = mountCard({
       collection: collection({
-        organism: ['Human', 'Mouse', 'Rat'],
+        organism: ['Human', 'Mouse', 'Rat', 'Zebrafish'],
         organismPart: ['Kidney'],
       }),
     })
 
-    // 常显区只有前两个 Organism 值
+    // 常显区只有前三个 Organism 值
     expect(wrapper.text()).toContain('Human')
     expect(wrapper.text()).toContain('Mouse')
+    expect(wrapper.text()).toContain('Rat')
 
     const popover = wrapper.get('[popover]')
-    expect(popover.text()).toContain('Rat')
+    expect(popover.text()).toContain('Zebrafish')
     expect(popover.text()).not.toContain('Human')
-    // 没超出的字段不进悬浮窗
+    // 没超出的字段没有「…」圆钮，也就没有悬浮窗
     expect(popover.text()).not.toContain('Kidney')
-    expect(wrapper.get('button[aria-label^="More metadata"]').text()).toContain('(+1)')
+    // 圆钮本身只显示省略号，计数放在 title / aria-label 里
+    expect(wrapper.get('button[aria-label^="More metadata"]').text()).toBe('…')
   })
 
-  it('hides the More button when no field overflows', () => {
+  it('keeps three values inline without a trailing ellipsis', () => {
+    const wrapper = mountCard({
+      collection: collection({ organism: ['Human', 'Mouse', 'Rat'] }),
+    })
+
+    expect(wrapper.text()).toContain('Rat')
+    expect(wrapper.find('button[aria-label^="More metadata"]').exists()).toBe(false)
+    expect(wrapper.find('[popover]').exists()).toBe(false)
+  })
+
+  it('hides the ellipsis button when no field overflows', () => {
     const wrapper = mountCard()
 
     expect(wrapper.find('button[aria-label^="More metadata"]').exists()).toBe(false)
     expect(wrapper.find('[popover]').exists()).toBe(false)
   })
 
-  it('wires the More button to the popover and keeps ids unique per card', () => {
+  it('wires the ellipsis button to the popover and keeps ids unique per card and field', () => {
     const wrapper = mountCard({
-      collection: collection({ organism: ['Human', 'Mouse', 'Rat'] }),
+      collection: collection({ organism: ['Human', 'Mouse', 'Rat', 'Zebrafish'] }),
     })
 
     const button = wrapper.get('button[aria-label^="More metadata"]')
-    expect(button.attributes('popovertarget')).toBe('collection-1-more-metadata')
-    expect(wrapper.get('[popover]').attributes('id')).toBe('collection-1-more-metadata')
+    expect(button.attributes('popovertarget')).toBe('collection-1-more-organism')
+    expect(wrapper.get('[popover]').attributes('id')).toBe('collection-1-more-organism')
     expect(wrapper.get('[popover]').attributes('role')).toBe('dialog')
   })
 
@@ -261,7 +291,7 @@ describe('CollectionCard info (right column)', () => {
     // 不给显式锚点时，popover 关闭瞬间会失去隐式锚点，position-area 失效，
     // 面板会掉到视口左上角闪一下内容（真机 Chromium 实测）。两条 style 必须成对存在。
     const wrapper = mountCard({
-      collection: collection({ organism: ['Human', 'Mouse', 'Rat'] }),
+      collection: collection({ organism: ['Human', 'Mouse', 'Rat', 'Zebrafish'] }),
     })
 
     const buttonStyle = wrapper.get('button[aria-label^="More metadata"]').attributes('style') ?? ''
@@ -277,7 +307,7 @@ describe('CollectionCard info (right column)', () => {
       collection: collection({
         title: null,
         doi: [],
-        access: null,
+        access: [],
         journalName: null,
         organism: [],
         organismPart: [],
@@ -285,7 +315,42 @@ describe('CollectionCard info (right column)', () => {
       }),
     })
 
-    // 左列 4 行 + 右列 3 行（字段名恒显示，空值也算一行）
+    // 下半 Title / DOI / Access / Journal 四个独立占位 + 右列三个字段名各一行
+    // （Created 的 — 嵌在 "Created —" 内，不是独立节点，不计入）
     expect(wrapper.findAll('*').filter((n) => n.text() === '—').length).toBeGreaterThanOrEqual(7)
+  })
+})
+
+describe('CollectionCard ownership & actions', () => {
+  it('labels own collections as My Collection', () => {
+    const text = mountCard({ isMine: true }).text()
+
+    expect(text).toContain('My Collection')
+    expect(text).not.toContain('Public Collection')
+  })
+
+  it("labels other people's collections as Public Collection", () => {
+    const text = mountCard({ isMine: false }).text()
+
+    expect(text).toContain('Public Collection')
+    expect(text).not.toContain('My Collection')
+  })
+
+  it('shows the Share button only when publicId exists', () => {
+    expect(
+      mountCard({ collection: collection({ publicId: 'aB3xK9mQ2rT7wY1z' }) }).text(),
+    ).toContain('Share')
+    expect(mountCard({ collection: collection({ publicId: null }) }).text()).not.toContain('Share')
+  })
+
+  it('renders the dataset count with singular/plural label', () => {
+    expect(mountCard({ collection: collection({ memberCount: 1 }) }).text()).toContain('1')
+    expect(mountCard({ collection: collection({ memberCount: 1 }) }).text()).toContain('dataset')
+    expect(mountCard({ collection: collection({ memberCount: 3 }) }).text()).toContain('datasets')
+  })
+
+  it('shows Delete only when canEdit', () => {
+    expect(mountCard({ canEdit: true }).text()).toContain('Delete')
+    expect(mountCard({ canEdit: false }).text()).not.toContain('Delete')
   })
 })

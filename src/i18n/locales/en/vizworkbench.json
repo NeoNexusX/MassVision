@@ -10,6 +10,8 @@
       "invalidMz": "Please enter a valid m/z value.",
       "mzAxisNotLoaded": "m/z axis is not loaded yet.",
       "noPeakInTolerance": "No peak within ±{tolerance} of {target}: nearest is {nearest} (Δ {delta}). Widen the tolerance or try another value.",
+      "maskImported": "Mask imported and applied to the image.",
+      "maskImportFailed": "Mask import failed: {error}",
       "noPixelAtPosition": "No data was acquired at this position"
     },
     "ionImage": {
@@ -80,7 +82,11 @@
       "full": "Maximum of {max} channels reached.",
       "enableFirst": "Enable overlay mode first",
       "colorsInUse": "All channel colors are in use",
-      "addHint": "Add the current m/z ({mz}) as a channel"
+      "addHint": "Add the current m/z ({mz}) as a channel",
+      "batchAdd": "Batch add m/z",
+      "batchHint": "Batch mode: click m/z peaks in the spectrum to add them",
+      "changeColor": "Change color for channel m/z {mz}",
+      "opacity": "Opacity for channel m/z {mz}"
     },
     "roi": {
       "tools": "ROI Tools",
@@ -96,6 +102,7 @@
       "rectHint": "Drag on the ion image to draw a rectangle",
       "lassoHint": "Draw a freeform outline on the ion image",
       "rois": "ROIs",
+      "importedMask": "Imported Mask",
       "pixels": "Pixels",
       "mean": "Mean",
       "std": "Std",
@@ -112,7 +119,14 @@
       "runKmeansHint": "Run KMeans to also include clusters in the mask.",
       "exportHint": "Downloads one mask file",
       "export": "Export mask",
-      "all": "All"
+      "all": "All",
+      "import": "Import mask",
+      "showOriginal": "Show Original",
+      "showOriginalHint": "Suspend the imported mask filter and show the full ion image (the import is kept)",
+      "applyMask": "Apply Mask",
+      "applyMaskHint": "Re-apply the imported mask filter",
+      "clearImport": "Clear imported mask",
+      "imported": "Imported: {name}"
     },
     "compare": {
       "preview": "Region preview",

@@ -9,7 +9,7 @@ interface VizWorkbenchState {
   processName?: string
   datasetName?: string
   filename?: string
-  fileId?: number
+  filePublicId?: string
   methods?: string[]
   status?: string
 }
@@ -19,6 +19,8 @@ export function useResultMeta(runId: Ref<string>) {
   const analyzer = ref('')
   const ionSource = ref('')
   const pixelSize = ref('')
+  /** pixelSize 的原始数值（µm），供 mask 导出等需要数字而非格式化字符串的消费方使用。 */
+  const pixelSizeUm = ref<{ x: number; y: number } | null>(null)
   const spectrumMode = ref('')
   const storageMode = ref('')
   const status = ref('')
@@ -43,6 +45,11 @@ export function useResultMeta(runId: Ref<string>) {
   function formatPixelSize(x?: number, y?: number): string {
     if (x != null && y != null) return `${x} × ${y} µm`
     return ''
+  }
+
+  /** 与 formatPixelSize 配套：保留原始数值，缺一边则为 null。 */
+  function toPixelSizeUm(x?: number | null, y?: number | null): { x: number; y: number } | null {
+    return x != null && y != null ? { x, y } : null
   }
 
   function extractBasename(filename: string): string {
@@ -89,6 +96,7 @@ export function useResultMeta(runId: Ref<string>) {
           if (!ionSource.value) ionSource.value = file.ionisation_source || ''
           if (!pixelSize.value) {
             pixelSize.value = formatPixelSize(file.pixel_size_horizontal, file.pixel_size_vertical)
+            pixelSizeUm.value = toPixelSizeUm(file.pixel_size_horizontal, file.pixel_size_vertical)
           }
           if (!polarityRef.value) polarityRef.value = file.polarity || ''
           if (!spectrumMode.value) spectrumMode.value = file.spectrum_mode || ''
@@ -130,6 +138,7 @@ export function useResultMeta(runId: Ref<string>) {
     // 像素大小
     if (attrs.pixel_size_horizontal != null && attrs.pixel_size_vertical != null) {
       pixelSize.value = formatPixelSize(attrs.pixel_size_horizontal, attrs.pixel_size_vertical)
+      pixelSizeUm.value = toPixelSizeUm(attrs.pixel_size_horizontal, attrs.pixel_size_vertical)
     }
 
     // 数据集名称（zarr 有则用，否则沿用 router state）
@@ -187,6 +196,7 @@ export function useResultMeta(runId: Ref<string>) {
     analyzer,
     ionSource,
     pixelSize,
+    pixelSizeUm,
     polarity: polarityRef,
     spectrumMode,
     storageMode,

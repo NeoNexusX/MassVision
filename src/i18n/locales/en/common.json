@@ -44,7 +44,9 @@
       "clearAll": "Clear all",
       "discard": "Discard",
       "uploadDataset": "Upload New Dataset",
-      "share": "Share"
+      "share": "Share",
+      "signIn": "Sign in",
+      "register": "Register"
     },
     "state": {
       "loading": "Loading…",
@@ -64,6 +66,7 @@
       "removeFailed": "Failed to remove",
       "copied": "Copied to clipboard",
       "copyFailed": "Failed to copy",
+      "fileMissing": "File not found or being deleted",
       "exported": "Exported",
       "exportFailed": "Failed to export",
       "loadFailed": "Failed to load {target}",

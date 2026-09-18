@@ -65,9 +65,7 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    // 集合详情页（Overview）：元数据展示 + 内嵌编辑 + 成员管理。
-    // 无路径参数：集合 id 由 router.push 的 state 携带（与数据集 /overview 同方案），
-    // 直刷/书签进入时 state 为空 → 页面显示 Session lost 引导回列表。
+    // 集合详情页沿用原有无路径参数方案，id/public_id 由 history.state 携带。
     path: '/collections/overview',
     name: 'CollectionOverview',
     component: view(() => import('../views/CollectionOverviewView.vue'), 'collections', 'datasets'),
@@ -83,12 +81,18 @@ const routes = [
     component: view(() => import('../views/PublicCollectionView.vue'), 'collections', 'datasets'),
   },
   {
-    path: '/overview',
+    // Dataset Overview：public_id 直接进路径（入口在新标签页打开），刷新/收藏/
+    // 登录回跳都不丢；来源列表由 query ?source=my|public 控制 Back 去向。私有文件
+    // 的元数据仍走登录接口（后端强制登录），URL 只暴露不可枚举的 public_id。
+    path: '/overview/:publicId',
     name: 'DatasetOverview',
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
   },
   {
-    path: '/s/:encodedId',
+    // 数据集分享页。token 二选一：16 位 public_id（新链接）或 Base64 数字 id
+    // （历史链接，永久兼容）——判别见 resolveShareToken。路由本身不加登录守卫：
+    // 分享内容需登录浏览，匿名落地后由页面就地引导登录（见 getShareOverviewMetadata）。
+    path: '/s/:shareToken',
     name: 'SharedDatasetOverview',
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
   },

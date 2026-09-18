@@ -18,6 +18,10 @@ coverage
 dist-docs
 docs/.vitepress/cache
 docs/.vitepress/dist
+docs/.vitepress/.temp
+
+# AI 审查工具的本地产物
+.codex-review/
 
 # Editor directories and files
 .vscode/*
@@ -33,6 +37,7 @@ docs/.vitepress/dist
 public/QQ_*.png
 public/combin.zarr/
 public/reference/
+public/前端对接说明.md
 
 *.tsbuildinfo
 

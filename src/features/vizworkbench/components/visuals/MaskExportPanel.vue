@@ -1,5 +1,50 @@
 <template>
   <div class="kawaru-text-81">
+    <!-- Import is available even when there are no locally-created regions. -->
+    <div class="flex items-center gap-1 mb-3">
+      <input
+        ref="importInput"
+        type="file"
+        class="hidden"
+        accept=".npz,.csv"
+        @change="onImportChange"
+      />
+      <button class="btn btn-sm btn-ghost flex-1 kawaru-text-81" @click="importInput?.click()">
+        <SvgIcon type="upload" />
+        {{ $t('vizworkbench.mask.import') }}
+      </button>
+      <button
+        v-if="importedMaskName"
+        class="btn btn-sm btn-ghost text-error kawaru-text-81"
+        :title="$t('vizworkbench.mask.clearImport')"
+        @click="emit('clear-imported-mask')"
+      >
+        <SvgIcon type="trash" />
+      </button>
+    </div>
+    <div
+      v-if="importedMaskName"
+      class="text-base-content/60 mb-2 truncate"
+      :title="importedMaskName"
+    >
+      {{ $t('vizworkbench.mask.imported', { name: importedMaskName }) }}
+    </div>
+    <!-- 显示原图 ↔ 应用掩膜：暂停/恢复导入掩膜的过滤（导入本身保留）。
+         独占一行：与导入按钮同行会把「导入掩膜」文案挤出按钮框 -->
+    <button
+      v-if="importedMaskName"
+      class="btn btn-sm w-full mb-2 kawaru-text-81"
+      :class="importedMaskActive ? 'btn-ghost' : 'btn-primary'"
+      :title="
+        importedMaskActive
+          ? $t('vizworkbench.mask.showOriginalHint')
+          : $t('vizworkbench.mask.applyMaskHint')
+      "
+      @click="emit('toggle-imported-mask')"
+    >
+      {{ importedMaskActive ? $t('vizworkbench.mask.showOriginal') : $t('vizworkbench.mask.applyMask') }}
+    </button>
+
     <!-- Format -->
     <div class="flex items-center gap-2 mb-2">
       <span class="text-base-content">{{ $t('vizworkbench.mask.format') }}</span>
@@ -27,7 +72,9 @@
 
       <!-- ROI regions -->
       <div v-if="rois.length" class="mb-2">
-        <div class="font-semibold text-base-content mb-1">{{ $t('vizworkbench.mask.roiMasks') }}</div>
+        <div class="font-semibold text-base-content mb-1">
+          {{ $t('vizworkbench.mask.roiMasks') }}
+        </div>
         <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 max-h-40 overflow-y-auto">
           <label
             v-for="roi in rois"
@@ -73,7 +120,9 @@
               class="w-3 h-3 rounded-sm border border-base-content/30 shrink-0"
               :style="{ backgroundColor: `rgb(${c.color[0]},${c.color[1]},${c.color[2]})` }"
             ></span>
-            <span class="text-base-content truncate">{{ $t('vizworkbench.kmeans.cluster', { id: c.id }) }}</span>
+            <span class="text-base-content truncate">{{
+              $t('vizworkbench.kmeans.cluster', { id: c.id })
+            }}</span>
           </label>
         </div>
       </div>
@@ -92,8 +141,12 @@
           <SvgIcon type="download" />
           {{ $t('vizworkbench.mask.export') }}
         </button>
-        <button class="btn btn-ghost btn-sm kawaru-text-81" @click="selectAll">{{ $t('vizworkbench.mask.all') }}</button>
-        <button class="btn btn-ghost btn-sm kawaru-text-81" @click="clearAll">{{ $t('common.action.clear') }}</button>
+        <button class="btn btn-ghost btn-sm kawaru-text-81" @click="selectAll">
+          {{ $t('vizworkbench.mask.all') }}
+        </button>
+        <button class="btn btn-ghost btn-sm kawaru-text-81" @click="clearAll">
+          {{ $t('common.action.clear') }}
+        </button>
       </div>
     </template>
   </div>
@@ -116,6 +169,9 @@ const props = defineProps<{
   /** Shared KMeans selection (null = all). Same state the ion-image overlay
    *  uses, so checking a cluster here also shows it on the image. */
   selectedKmeansIds: Set<number> | null
+  importedMaskName?: string | null
+  /** 导入掩膜过滤是否生效（false = 显示原图） */
+  importedMaskActive?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -123,20 +179,24 @@ const emit = defineEmits<{
   (e: 'toggle-kmeans-cluster', id: number): void
   (e: 'kmeans-select-all'): void
   (e: 'kmeans-clear-all'): void
+  (e: 'import-mask', file: File): void
+  (e: 'clear-imported-mask'): void
+  (e: 'toggle-imported-mask'): void
 }>()
 
 const FORMATS: { value: ExportFormat; label: string }[] = [
-  { value: 'npy', label: '.npy' },
+  { value: 'npz', label: '.npz' },
   { value: 'csv', label: '.csv' },
 ]
 
-const format = ref<ExportFormat>('npy')
+const format = ref<ExportFormat>('npz')
 
 // ROI selection is tracked as "deselected" rather than "selected": every ROI is
 // checked by default, so a newly confirmed ROI is included automatically
 // without a re-sync watcher. KMeans selection is NOT owned here - it is the
 // shared overlay selection, passed in and toggled via events.
 const deselectedRois = ref<Set<string>>(new Set())
+const importInput = ref<HTMLInputElement | null>(null)
 
 const hasItems = computed(() => props.rois.length > 0 || props.kmeansClusters.length > 0)
 
@@ -179,5 +239,12 @@ function onExport() {
     roiIds: selectedRoiIds.value,
     clusterIds: selectedClusterIds.value,
   })
+}
+
+function onImportChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (file) emit('import-mask', file)
 }
 </script>

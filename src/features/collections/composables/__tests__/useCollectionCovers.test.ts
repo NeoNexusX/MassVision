@@ -30,10 +30,11 @@ const summary = (over: Partial<CollectionSummary>): CollectionSummary =>
     ...over,
   }) as CollectionSummary
 
-const detailWith = (ids: number[]) => ({
-  members: ids.map((id) => ({
-    id,
-    filename: `f${id}.imzML`,
+const detailWith = (imagePaths: (string | null)[]) => ({
+  members: imagePaths.map((imagePath, i) => ({
+    publicId: `pub${i}abcdefghijk`,
+    imagePath,
+    filename: `f${i}.imzML`,
     size: 0,
     status: 'completed',
     isPublic: true,
@@ -51,55 +52,65 @@ describe('useCollectionCovers', () => {
     getPublicCollectionMock.mockReset()
   })
 
-  it('fetches members via the row public id and exposes ordered file ids', async () => {
-    getPublicCollectionMock.mockResolvedValueOnce(detailWith([42, 7]))
+  it('fetches members via the row public id and exposes ordered imagePaths', async () => {
+    getPublicCollectionMock.mockResolvedValueOnce(detailWith(['images/file_42/', 'images/file_7/']))
 
-    const { memberIds } = setup([summary({ id: 1, publicId: 'aB3xK9mQ2rT7wY1z' })])
+    const { memberImagePaths } = setup([summary({ id: 1, publicId: 'aB3xK9mQ2rT7wY1z' })])
     await flushPromises()
 
     expect(getPublicCollectionMock).toHaveBeenCalledWith('aB3xK9mQ2rT7wY1z')
-    expect(memberIds[1]).toEqual([42, 7])
+    expect(memberImagePaths[1]).toEqual(['images/file_42/', 'images/file_7/'])
+  })
+
+  // 预览未生成的成员保留 null 槽位，由卡片/DatasetThumb 走占位图
+  it('keeps null entries for members whose preview is not generated', async () => {
+    getPublicCollectionMock.mockResolvedValueOnce(detailWith(['images/file_1/', null]))
+
+    const { memberImagePaths } = setup([summary({ id: 2, publicId: 'aB3xK9mQ2rT7wY1z' })])
+    await flushPromises()
+
+    expect(memberImagePaths[2]).toEqual(['images/file_1/', null])
   })
 
   // 同一集合只请求一次：列表重渲染 / 重新赋值不应再打接口
   it('requests each collection at most once', async () => {
-    getPublicCollectionMock.mockResolvedValue(detailWith([1]))
-    const { collections, memberIds } = setup([summary({ id: 1, publicId: 'pub-1' })])
+    getPublicCollectionMock.mockResolvedValue(detailWith(['images/file_1/']))
+    const { collections, memberImagePaths } = setup([summary({ id: 1, publicId: 'aB3xK9mQ2rT7wY1z' })])
     await flushPromises()
 
-    collections.value = [summary({ id: 1, publicId: 'pub-1' })]
+    collections.value = [summary({ id: 1, publicId: 'aB3xK9mQ2rT7wY1z' })]
     await flushPromises()
 
     expect(getPublicCollectionMock).toHaveBeenCalledTimes(1)
-    expect(memberIds[1]).toEqual([1])
+    expect(memberImagePaths[1]).toEqual(['images/file_1/'])
   })
 
   // 后端将来若在列表里直接带上 members，就不该再发详情请求
   it('uses members already present on the list row without fetching', async () => {
-    const { memberIds } = setup([
-      summary({ id: 9, publicId: 'pub-9', members: detailWith([5, 6]).members }),
+    const { memberImagePaths } = setup([
+      summary({ id: 9, publicId: 'aB3xK9mQ2rT7wY1z', members: detailWith(['images/file_5/']).members }),
     ])
     await flushPromises()
 
     expect(getPublicCollectionMock).not.toHaveBeenCalled()
-    expect(memberIds[9]).toEqual([5, 6])
+    expect(memberImagePaths[9]).toEqual(['images/file_5/'])
   })
 
   it('skips fetching when the row carries no public id', async () => {
-    const { memberIds } = setup([summary({ id: 3, publicId: null })])
+    const { memberImagePaths } = setup([summary({ id: 3, publicId: null })])
     await flushPromises()
 
     expect(getPublicCollectionMock).not.toHaveBeenCalled()
     // 无键可查：留空让卡片回退占位图
-    expect(memberIds[3]).toEqual([])
+    expect(memberImagePaths[3]).toEqual([])
   })
 
   it('falls back to an empty list when the detail request fails', async () => {
     getPublicCollectionMock.mockRejectedValueOnce(new Error('boom'))
 
-    const { memberIds } = setup([summary({ id: 3, publicId: 'pub-3' })])
+    const { memberImagePaths } = setup([summary({ id: 3, publicId: 'aB3xK9mQ2rT7wY1z' })])
     await flushPromises()
 
-    expect(memberIds[3]).toEqual([])
+    expect(memberImagePaths[3]).toEqual([])
   })
 })

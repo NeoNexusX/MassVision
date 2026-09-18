@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import PaginationBar from '@/shared/components/PaginationBar.vue'
 import SearchInput from '@/shared/components/SearchInput.vue'
-import { formatBytes } from '@/shared/utils/format'
+import DatasetThumb from '@/features/collections/components/DatasetThumb.vue'
+import { formatBytes, formatDate } from '@/shared/utils/format'
+
+/** 第二行信息：提交者 · 提交时间（与数据集卡片的组合一致），都缺省时占位 */
+const secondaryOf = (dataset: any) =>
+  [dataset.submitter, formatDate(dataset.submitTime)].filter(Boolean).join(' · ') || '–'
 
 defineProps<{
   activeTab: 'my' | 'public'
@@ -52,15 +57,13 @@ const emit = defineEmits<{
           v-if="meta.total_pages > 0"
           class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full sm:w-auto sm:ml-auto"
         >
-          <span class="kawaru-text-100 text-base-content/60 whitespace-nowrap tabular-nums"
-            >{{
-              $t('common.pagination.summary', {
-                page: meta.current_page,
-                total: meta.total_pages,
-                count: meta.total_records,
-              })
-            }}</span
-          >
+          <span class="kawaru-text-100 text-base-content/60 whitespace-nowrap tabular-nums">{{
+            $t('common.pagination.summary', {
+              page: meta.current_page,
+              total: meta.total_pages,
+              count: meta.total_records,
+            })
+          }}</span>
           <PaginationBar
             :current-page="meta.current_page"
             :total-pages="meta.total_pages"
@@ -72,7 +75,7 @@ const emit = defineEmits<{
           />
         </div>
       </div>
-      <div class="max-h-48 overflow-auto border border-base-200 bg-base-100 rounded-md p-2">
+      <div class="max-h-64 overflow-auto border border-base-200 bg-base-100 rounded-md p-2">
         <div v-if="loading" class="flex items-center justify-center p-4">
           <span class="loading loading-spinner loading-md"></span>
         </div>
@@ -81,28 +84,37 @@ const emit = defineEmits<{
           <ul>
             <li
               v-for="dataset in datasets"
-              :key="dataset.id"
+              :key="dataset.publicId"
               :class="[
                 'px-4 py-2 cursor-pointer flex items-center justify-between',
-                selectedDataset?.id === dataset.id ? 'bg-base-200' : 'hover:bg-base-100',
+                selectedDataset?.publicId === dataset.publicId
+                  ? 'bg-base-200'
+                  : 'hover:bg-base-100',
               ]"
               @click="emit('select-dataset', dataset)"
             >
-              <div class="flex-1 mr-4">
+              <!-- 预览缩略图（与集合封面同一组件）：尺寸由外层 w-14 h-14 控制，失败自动回退占位 SVG -->
+              <div class="w-14 h-14 shrink-0 mr-3">
+                <DatasetThumb
+                  :image-path="dataset.imagePath"
+                  :alt="dataset.filename || dataset.name"
+                />
+              </div>
+              <div class="flex-1 mr-4 min-w-0">
                 <div class="flex items-center justify-between gap-4">
-                  <div class="font-medium truncate">{{ dataset.name }}</div>
+                  <div class="font-medium truncate">{{ dataset.filename || dataset.name }}</div>
                   <div class="kawaru-text-112 text-base-content/60 ml-2">
                     {{ formatBytes(dataset.sizeBytes) }}
                   </div>
                 </div>
-                <div class="kawaru-text-100 text-base-content/60">
-                  {{ dataset.filename || dataset.submitTime || '–' }}
+                <div class="kawaru-text-100 text-base-content/60 truncate">
+                  {{ secondaryOf(dataset) }}
                 </div>
               </div>
               <input
                 type="radio"
                 name="selectedDataset"
-                :checked="selectedDataset?.id === dataset.id"
+                :checked="selectedDataset?.publicId === dataset.publicId"
               />
             </li>
           </ul>

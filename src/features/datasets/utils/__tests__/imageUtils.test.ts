@@ -9,34 +9,53 @@ vi.mock('@/shared/config/runtimeConfig', () => ({
   }),
 }))
 
-const PREFIX = 'https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com/images'
+const BASE = 'https://kawaru-oss.oss-cn-hangzhou.aliyuncs.com'
 
 describe('buildPreviewImageUrl', () => {
-  it('points at the public OSS path with the _preview style suffix', () => {
-    expect(buildPreviewImageUrl('42')).toBe(`${PREFIX}/file_42/preview.jpg_preview`)
+  it('joins the backend image_path dir with the slot and the _preview style', () => {
+    expect(buildPreviewImageUrl('images/file_42/')).toBe(`${BASE}/images/file_42/preview.jpg_preview`)
   })
 
-  it('accepts numeric ids as well as string ids', () => {
-    expect(buildPreviewImageUrl(42)).toBe(buildPreviewImageUrl('42'))
+  it('normalizes a missing trailing slash on the dir', () => {
+    expect(buildPreviewImageUrl('images/file_42')).toBe(buildPreviewImageUrl('images/file_42/'))
+  })
+
+  it('returns null for a missing image_path (placeholder, no request)', () => {
+    expect(buildPreviewImageUrl(null)).toBeNull()
+    expect(buildPreviewImageUrl('')).toBeNull()
+    expect(buildPreviewImageUrl(undefined)).toBeNull()
+  })
+
+  it('uses an absolute image_path as-is instead of re-prefixing the base', () => {
+    expect(buildPreviewImageUrl('https://cdn.example.com/previews/abc123/')).toBe(
+      'https://cdn.example.com/previews/abc123/preview.jpg_preview',
+    )
+  })
+
+  it('builds the UMAP extra slots from the same dir', () => {
+    expect(buildPreviewImageUrl('images/file_42/', 'preview_2.jpg')).toBe(
+      `${BASE}/images/file_42/preview_2.jpg_preview`,
+    )
+    expect(buildPreviewImageUrl('images/file_42/', 'preview_3.jpg')).toBe(
+      `${BASE}/images/file_42/preview_3.jpg_preview`,
+    )
   })
 })
 
 describe('buildPreviewImageUrls', () => {
   it('returns the three gallery slots in a fixed order', () => {
-    expect(buildPreviewImageUrls('42')).toEqual([
-      `${PREFIX}/file_42/preview.jpg_preview`,
-      `${PREFIX}/file_42/preview_2.jpg_preview`,
-      `${PREFIX}/file_42/preview_3.jpg_preview`,
+    expect(buildPreviewImageUrls('images/file_42/')).toEqual([
+      `${BASE}/images/file_42/preview.jpg_preview`,
+      `${BASE}/images/file_42/preview_2.jpg_preview`,
+      `${BASE}/images/file_42/preview_3.jpg_preview`,
     ])
   })
 
   it('keeps the first slot identical to the single-image helper', () => {
-    expect(buildPreviewImageUrls('7')[0]).toBe(buildPreviewImageUrl('7'))
+    expect(buildPreviewImageUrls('images/file_7/')[0]).toBe(buildPreviewImageUrl('images/file_7/'))
   })
 
-  it('scopes every slot to the same dataset folder', () => {
-    for (const url of buildPreviewImageUrls(7)) {
-      expect(url.startsWith(`${PREFIX}/file_7/`)).toBe(true)
-    }
+  it('yields three null slots when image_path is empty', () => {
+    expect(buildPreviewImageUrls(null)).toEqual([null, null, null])
   })
 })

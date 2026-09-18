@@ -1,6 +1,6 @@
 <template>
   <!-- 数据集元信息编辑弹窗（My Datasets 卡片右侧 Edit 触发）：
-       PATCH /files/{file_id}，可改样本属性 9 个（8 个 SelectWithOther 词表下拉
+       PATCH /files/{public_id}，可改样本属性 9 个（8 个 SelectWithOther 词表下拉
        + solvent 复合选择器）+ spectrum_mode / storage_mode（枚举下拉）。
        差量提交只发变化的键；枚举字段空值（后端不接受的 ''）不发送。
        保存成功后把返回的 FilePublic 交回父级。 -->
@@ -159,7 +159,7 @@ async function save() {
 
   saving.value = true
   try {
-    const raw = await patchFileMetadata(props.dataset.id, patch)
+    const raw = await patchFileMetadata(props.dataset.publicId, patch)
     // 响应为更新后的 FilePublic（与列表行同构），复用 mapper 转成前端 File
     showToast(t('common.feedback.updated'), 'success')
     emit('saved', mapItemToDataset(raw))

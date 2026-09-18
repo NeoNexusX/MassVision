@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { buildCollectionCreatePayload, buildMetadataPatch, toMetadataDraft } from '../metadataPatch'
+import {
+  buildCollectionCreatePayload,
+  buildMetadataPatch,
+  toDateStringInput,
+  toMetadataDraft,
+} from '../metadataPatch'
 import type { CollectionMetadata } from '../../types/collection'
 
 const current: CollectionMetadata = {
@@ -90,13 +95,50 @@ describe('buildMetadataPatch', () => {
   })
 })
 
+describe('date fields (publish_time)', () => {
+  it('toDateStringInput takes the date part of an ISO string and rejects garbage', () => {
+    expect(toDateStringInput('2024-05-01T08:00:00Z')).toBe('2024-05-01')
+    expect(toDateStringInput('2024-05-01')).toBe('2024-05-01')
+    expect(toDateStringInput(null)).toBe('')
+    expect(toDateStringInput('not a date')).toBe('')
+  })
+
+  it('draft normalizes full ISO to date-only, so re-saving without edits sends nothing', () => {
+    const withDate: CollectionMetadata = { ...current, publish_time: '2024-05-01T08:00:00Z' }
+    const draft = toMetadataDraft(withDate)
+
+    expect(draft.publish_time).toBe('2024-05-01')
+    expect(buildMetadataPatch(withDate, draft)).toEqual({})
+  })
+
+  it('sends the date-only string when changed, and explicit empty when cleared', () => {
+    const withDate: CollectionMetadata = { ...current, publish_time: '2024-05-01T08:00:00Z' }
+    const draft = toMetadataDraft(withDate)
+    draft.publish_time = '2025-01-15'
+    expect(buildMetadataPatch(withDate, draft)).toEqual({ publish_time: '2025-01-15' })
+
+    const cleared = toMetadataDraft(withDate)
+    cleared.publish_time = ''
+    expect(buildMetadataPatch(withDate, cleared)).toEqual({ publish_time: '' })
+  })
+
+  it('create payload omits an unset date and carries a picked one', () => {
+    const draft = toMetadataDraft(current)
+    draft.publish_time = '2024-05-01'
+    expect(buildCollectionCreatePayload(draft, ['1']).publish_time).toBe('2024-05-01')
+
+    const empty = toMetadataDraft(current)
+    expect(buildCollectionCreatePayload(empty, ['1']).publish_time).toBeUndefined()
+  })
+})
+
 describe('buildCollectionCreatePayload', () => {
   it('omits empty fields so the backend keeps its own defaults', () => {
     const draft = toMetadataDraft({ name: 'Mouse kidney MSI' })
 
-    expect(buildCollectionCreatePayload(draft, [42, 7])).toEqual({
+    expect(buildCollectionCreatePayload(draft, ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'])).toEqual({
       name: 'Mouse kidney MSI',
-      file_ids: [42, 7],
+      file_public_ids: ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'],
     })
   })
 
@@ -108,9 +150,9 @@ describe('buildCollectionCreatePayload', () => {
       organism: ['Mouse (Mus musculus)'],
     })
 
-    expect(buildCollectionCreatePayload(draft, [42])).toEqual({
+    expect(buildCollectionCreatePayload(draft, ['qW3rT5yU7iO9pA1s'])).toEqual({
       name: 'Mouse kidney MSI',
-      file_ids: [42],
+      file_public_ids: ['qW3rT5yU7iO9pA1s'],
       description: 'A curated set',
       doi: ['10.1000/a'],
       organism: ['Mouse (Mus musculus)'],
@@ -122,9 +164,9 @@ describe('buildCollectionCreatePayload', () => {
     draft.title = '   '
     draft.journal_name = '  Nature Methods  '
 
-    expect(buildCollectionCreatePayload(draft, [1])).toEqual({
+    expect(buildCollectionCreatePayload(draft, ['zX9cV8bN6mL4kJ2h'])).toEqual({
       name: 'X',
-      file_ids: [1],
+      file_public_ids: ['zX9cV8bN6mL4kJ2h'],
       journal_name: 'Nature Methods',
     })
   })

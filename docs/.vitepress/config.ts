@@ -26,10 +26,14 @@ const en = {
         text: 'Guide',
         items: [
           { text: 'Getting Started', link: '/guide/getting-started' },
-          { text: 'Uploading Data', link: '/guide/upload-data' },
-          { text: 'Downloading Data', link: '/guide/download-data' },
-          { text: 'Viewing Data', link: '/guide/view-data' },
-          { text: 'Creating an Analysis', link: '/guide/create-analysis' },
+          { text: 'Account Management', link: '/guide/account-management' },
+          { text: 'Finding Datasets', link: '/guide/finding-datasets' },
+          { text: 'Dataset Overview', link: '/guide/dataset-overview' },
+          { text: 'Data Visualization', link: '/guide/data-visualization' },
+          { text: 'Upload Data', link: '/guide/upload-data' },
+          { text: 'Dataset Analysis', link: '/guide/dataset-analysis' },
+          { text: 'Workspace', link: '/guide/workspace' },
+          { text: 'Navigation', link: '/guide/navigation' },
         ],
       },
     ],
@@ -105,6 +109,7 @@ export default defineConfig({
   // English 为默认语言：源文件放 en/，URL 去掉 /en 前缀（服务于 /docs/）
   rewrites: { 'en/:rest*': ':rest*' },
   // ignoreDeadLinks 保持默认 false：死链即构建失败，靠修链接保证文档质量
+  // 豁免 SPA 路由路径：/mydatasets 和 /datasets 是前端路由，非文档页面
   ignoreDeadLinks: [/^\/mydatasets/, /^\/datasets/],
   lastUpdated: true,       // 启用「最后更新时间」（读取 git 提交时间）
   markdown: {

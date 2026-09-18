@@ -96,6 +96,16 @@ export function isVocabValue(value: string): boolean {
   return ALL_VOCAB_VALUES.has(value)
 }
 
+/**
+ * 元数据展示归一：空值 → 「—」；词表值原样/按译文显示；自填值沿用首字母大写。
+ * 词表值是规范写法（如 CHCA (α-Cyano-4-hydroxycinnamic acid)），不能再做大小写变换。
+ */
+export function formatVocabOrText(val?: string): string {
+  if (!val) return '—'
+  if (isVocabValue(val)) return vocabLabel(val)
+  return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
+}
+
 /** 供 IconSelect 使用的 { 显示文字: 原值 } 映射 */
 export function vocabOptionMap(values: readonly string[]): Record<string, string> {
   return Object.fromEntries(values.map((v) => [vocabLabel(v), v]))

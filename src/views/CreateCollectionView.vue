@@ -2,9 +2,17 @@
   <!-- 页面外壳与 CollectionsView 一致；pb-24 给 sticky 底部操作条留出空间 -->
   <div class="min-h-screen bg-base-200">
     <div class="max-w-[1680px] mx-auto p-4 md:p-8 pb-24 kawaru-text-100">
-      <!-- 页头：标题/说明。与 Public Datasets 等顶级页面同级，不带面包屑 -->
+      <!-- 页头：返回链接 + 标题/说明。与 Public Datasets 等顶级页面同级，不带面包屑 -->
       <div class="mb-6 px-3">
-        <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content">{{ $t('collections.create.title') }}</h1>
+        <!-- 路由跳转同样经过 onBeforeRouteLeave 脏态守卫（有未保存内容会弹确认） -->
+        <router-link
+          to="/collections"
+          class="inline-flex items-center gap-1 kawaru-text-87 text-base-content/60 hover:text-primary transition-colors"
+        >
+          <SvgIcon type="back" class="w-[0.9em] h-[0.9em]" />
+          {{ $t('collections.overview.backToCollections') }}
+        </router-link>
+        <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content mt-1">{{ $t('collections.create.title') }}</h1>
         <p class="kawaru-text-100 text-base-content/70 mt-1">
           {{ $t('collections.create.subtitle') }}
         </p>
@@ -59,6 +67,7 @@
           :exclude-keys="['name', 'description']"
           :auto-keys="derivedKeys"
           :edited-keys="editedKeys"
+          :required-keys="REQUIRED_METADATA_KEYS"
           @reset-field="resetDerivedField"
         />
       </section>
@@ -112,6 +121,7 @@ import CollectionDatasetPicker from '@/features/collections/components/Collectio
 import CollectionFormCard from '@/features/collections/components/CollectionFormCard.vue'
 import CollectionMetadataForm from '@/features/collections/components/CollectionMetadataForm.vue'
 import SelectedDatasetList from '@/features/collections/components/SelectedDatasetList.vue'
+import { REQUIRED_METADATA_KEYS } from '@/features/collections/constants/metadataFields'
 import { useCreateCollection } from '@/features/collections/composables/useCreateCollection'
 
 const router = useRouter()

@@ -1,6 +1,6 @@
 {
   "appName": "SpatialXomics",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "zarr": {
     "spectraChunkCacheSize": 100,
     "spectraConcurrency": 16

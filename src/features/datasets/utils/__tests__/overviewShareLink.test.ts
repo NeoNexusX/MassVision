@@ -2,67 +2,86 @@ import { describe, expect, it } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import {
   buildOverviewShareUrl,
-  decodeOverviewFileId,
-  encodeOverviewFileId,
+  decodeLegacyShareId,
+  isValidPublicId,
+  resolveShareToken,
 } from '../overviewShareLink'
 
-// 只复刻分享链接用到的那条路由（与 router/index.ts 的 '/s/:encodedId' 一致），
+// 只复刻分享链接用到的那条路由（与 router/index.ts 的 '/s/:shareToken' 一致），
 // 避免为一个纯函数拉起整个应用路由表。
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [
-    { path: '/s/:encodedId', name: 'SharedDatasetOverview', component: { template: '<div/>' } },
+    { path: '/s/:shareToken', name: 'SharedDatasetOverview', component: { template: '<div/>' } },
   ],
 })
 
-describe('encodeOverviewFileId', () => {
-  it('encodes a positive id as URL-safe base64 without padding', () => {
-    expect(encodeOverviewFileId(1)).toBe('MQ')
-    expect(encodeOverviewFileId('42')).toBe('NDI')
-    expect(encodeOverviewFileId(42)).toBe(encodeOverviewFileId('42'))
+describe('isValidPublicId', () => {
+  it('accepts exactly 16 alphanumeric chars', () => {
+    expect(isValidPublicId('aBcDeFgHiJkLmNoP')).toBe(true)
+    expect(isValidPublicId('0123456789abcdef')).toBe(true)
   })
 
-  it('never emits characters that need escaping in a path segment', () => {
-    for (let id = 1; id <= 2000; id++) {
-      expect(encodeOverviewFileId(id)).toMatch(/^[A-Za-z0-9_-]+$/)
-    }
-  })
-
-  it('rejects anything that is not a positive integer id', () => {
-    for (const bad of ['0', '-1', '1.5', '01', '', 'abc', '1 ']) {
-      expect(encodeOverviewFileId(bad)).toBeNull()
+  it('rejects wrong length, symbols, and non-strings', () => {
+    for (const bad of ['', 'aBcDeFgHiJkLmNo', 'aBcDeFgHiJkLmNoPQ', 'aBcDeFgHiJkLmNo-', 42, null]) {
+      expect(isValidPublicId(bad)).toBe(false)
     }
   })
 })
 
-describe('decodeOverviewFileId', () => {
-  it('round-trips every encoded id', () => {
-    for (const id of ['1', '9', '42', '100', '99999', '1234567890']) {
-      expect(decodeOverviewFileId(encodeOverviewFileId(id)!)).toBe(id)
-    }
+describe('decodeLegacyShareId', () => {
+  it('decodes URL-safe base64 numeric ids from historical links', () => {
+    expect(decodeLegacyShareId('MQ')).toBe('1')
+    expect(decodeLegacyShareId('NDI')).toBe('42')
   })
 
-  it('rejects an empty or malformed segment', () => {
-    for (const bad of ['', 'a/b', 'aa=', '@@']) {
-      expect(decodeOverviewFileId(bad)).toBeNull()
+  it('rejects segments that are not canonical base64 of a positive integer', () => {
+    for (const bad of ['', 'a/b', 'aa=', '@@', btoa('abc'), btoa('0'), btoa('1.5')]) {
+      expect(decodeLegacyShareId(bad)).toBeNull()
     }
   })
+})
 
-  it('rejects base64 that does not decode to a positive integer', () => {
-    expect(decodeOverviewFileId(btoa('abc'))).toBeNull()
-    expect(decodeOverviewFileId(btoa('0'))).toBeNull()
-    expect(decodeOverviewFileId(btoa('-1').replace(/=+$/, ''))).toBeNull()
+describe('resolveShareToken', () => {
+  it('treats a 16-char alphanumeric token as a public id (new links)', () => {
+    expect(resolveShareToken('aBcDeFgHiJkLmNoP')).toEqual({
+      kind: 'publicId',
+      value: 'aBcDeFgHiJkLmNoP',
+    })
+  })
+
+  it('treats canonical base64 numeric tokens as legacy ids (historical links)', () => {
+    expect(resolveShareToken('NDI')).toEqual({ kind: 'legacyId', value: '42' })
+    expect(resolveShareToken('MQ')).toEqual({ kind: 'legacyId', value: '1' })
+  })
+
+  it('prefers the legacy reading for a token that canonically encodes 12 digits', () => {
+    // round-trip 判别的既定行为：这类串按 legacy 处理。
+    // 真实 16 位 publicId 恰好命中 canonical base64-of-digits 的概率约 1e-19。
+    expect(resolveShareToken('MTIzNDU2Nzg5MDEy')).toEqual({
+      kind: 'legacyId',
+      value: '123456789012',
+    })
+  })
+
+  it('returns null for anything else — 无效链接直接渲染错误态，不发请求', () => {
+    for (const bad of ['', 'abc', 'aBcDeFgHiJkLmNo', 'aBcDeFgHiJkLmNoPQ', 'aBcDeFgHi$JkLmNo']) {
+      expect(resolveShareToken(bad)).toBeNull()
+    }
   })
 })
 
 describe('buildOverviewShareUrl', () => {
-  it('builds an absolute /s/<encodedId> link on the current origin', () => {
-    expect(buildOverviewShareUrl(router, 42, 'https://massvision.example')).toBe(
-      'https://massvision.example/s/NDI',
+  it('builds an absolute /s/<publicId> link on the current origin', () => {
+    expect(buildOverviewShareUrl(router, 'aBcDeFgHiJkLmNoP', 'https://massvision.example')).toBe(
+      'https://massvision.example/s/aBcDeFgHiJkLmNoP',
     )
   })
 
-  it('returns null for an id that cannot be shared', () => {
-    expect(buildOverviewShareUrl(router, 'not-an-id', 'https://massvision.example')).toBeNull()
+  it('returns null for a value that is not a 16-char public id', () => {
+    expect(buildOverviewShareUrl(router, '42', 'https://massvision.example')).toBeNull()
+    expect(
+      buildOverviewShareUrl(router, 'not-a-public-id', 'https://massvision.example'),
+    ).toBeNull()
   })
 })

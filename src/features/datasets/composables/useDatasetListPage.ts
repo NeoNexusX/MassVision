@@ -64,8 +64,16 @@ export function useDatasetListPage(
   /** 上传成功后刷新当前页；弹窗关闭、配额刷新等由页面各自处理 */
   const refreshCurrentPage = () => fetchFiles({ page: page.value, size: size.value })
 
-  const viewOverview = (fileId: string) => {
-    router.push({ name: 'DatasetOverview', state: { fileId, source: opts.source } })
+  /** 新标签页打开 /overview/{public_id}：URL 带参，刷新/收藏/登录回跳都不丢。
+   *  来源列表（my/public）走 query —— history.state 出不了本标签，Back 按钮的
+   *  去向由 query 恢复；noopener 断开 window.opener，标准新页签安全默认。 */
+  const viewOverview = (publicId: string) => {
+    const href = router.resolve({
+      name: 'DatasetOverview',
+      params: { publicId },
+      query: { source: opts.source },
+    }).href
+    window.open(href, '_blank', 'noopener')
   }
 
   return {

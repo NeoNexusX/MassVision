@@ -29,7 +29,7 @@ interface CanvasRendererOptions {
   channels?: Ref<BlendChannel[]>
   /** Whether the multi-ion overlay is currently active. */
   channelsMode?: Ref<boolean>
-  /** ROI union mask (1 = keep) applied to the channel composite. */
+  /** Active view mask (1 = keep), including ROI-only and imported masks. */
   roiMask?: Ref<Uint8Array | null>
 }
 
@@ -102,6 +102,7 @@ export function useCanvasRenderer(
 
     const channels = opts.channels?.value ?? []
     const useChannels = !!(opts.channelsMode?.value && channels.length)
+    const viewMask = opts.roiMask?.value ?? null
     const data = opts.matrix.value
     if (!useChannels && (!data || !data.length)) return
 
@@ -165,6 +166,7 @@ export function useCanvasRenderer(
         const rowOff = r * cols
         for (let c = 0; c < cols; c++) {
           const srcIdx = rowOff + c
+          if (viewMask && !viewMask[srcIdx]) continue
           const rawVal = data![srcIdx] ?? 0
           if (rawVal === 0) continue
 
@@ -207,6 +209,11 @@ export function useCanvasRenderer(
       const oCtx = overlayCanvas.getContext('2d')!
       const oData = oCtx.createImageData(ow, oh)
       oData.data.set(overlay)
+      if (viewMask && ow === cols && oh === rows) {
+        for (let i = 0; i < viewMask.length; i++) {
+          if (!viewMask[i]) oData.data[i * 4 + 3] = 0
+        }
+      }
       oCtx.putImageData(oData, 0, 0)
       ctx.drawImage(overlayCanvas, ox, oy, Math.floor(ow * scaleVal), Math.floor(oh * scaleVal))
     }

@@ -43,9 +43,7 @@ const emit = defineEmits<{
 
 // ---- continuous 模式数据 ----
 
-const totalPeaks = computed(() =>
-  mzAxisRef.value ? formatNumber(mzAxisRef.value.length) : '--',
-)
+const totalPeaks = computed(() => (mzAxisRef.value ? formatNumber(mzAxisRef.value.length) : '--'))
 
 function onSelectMz(mz: number) {
   const idx = findClosestMzIndex(mz)
@@ -180,7 +178,9 @@ const currentStats = computed(() =>
         <span class="loading loading-spinner loading-lg text-primary mr-3"></span>
         <div class="text-center">
           <div>{{ $t('vizworkbench.spectrum.loading') }}</div>
-          <div class="text-base-content/40 mt-1">{{ $t('vizworkbench.spectrum.firstLoadHint') }}</div>
+          <div class="text-base-content/40 mt-1">
+            {{ $t('vizworkbench.spectrum.firstLoadHint') }}
+          </div>
         </div>
       </template>
       <template v-else>{{ $t('vizworkbench.spectrum.clickPixelHint') }}</template>

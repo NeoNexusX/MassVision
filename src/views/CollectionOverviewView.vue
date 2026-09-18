@@ -8,8 +8,7 @@
         <div class="h-64 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
       </div>
 
-      <!-- 无 state 进入（直刷/书签 /collections/overview）：id 已丢失，
-           与数据集 overview 同策略，引导回列表而不是留白 -->
+      <!-- 无 state 进入（直刷/书签 /collections/overview）时，引导返回列表。 -->
       <div
         v-else-if="isStale"
         class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
@@ -136,14 +135,11 @@
           </span>
         </div>
 
-        <!-- 学术元数据：编辑态整卡换成表单（同一张字段表），卡片外壳不变 -->
-        <CollectionMetadataPanel :metadata="detail.metadata" :draft="editing ? draft : null" />
-
-        <!-- 成员列表（管理态 = canEdit） -->
+        <!-- 成员列表（管理态 = canEdit；调序控件再叠加编辑态 editing）：置顶，先看成员再看学术元数据 -->
         <CollectionMemberList
-          class="mt-6"
           :members="members"
           :manage-mode="canEdit"
+          :edit-mode="editing"
           :adding="adding"
           :removing="removing"
           :reordering="reordering"
@@ -151,6 +147,13 @@
           @remove="memberOps.remove"
           @reorder="memberOps.reorder"
           @download="downloadMember"
+        />
+
+        <!-- 学术元数据：编辑态整卡换成表单（同一张字段表），卡片外壳不变 -->
+        <CollectionMetadataPanel
+          class="mt-6"
+          :metadata="detail.metadata"
+          :draft="editing ? draft : null"
         />
       </template>
     </div>
@@ -170,7 +173,7 @@
           :is-selected="pickerSelection.isSelected"
           :selected-count="pickerSelection.selected.value.length"
 :title="$t('collections.overview.addMembers')"
-          :exclude-ids="memberIds"
+          :exclude-public-ids="memberPublicIds"
           @update:query="pickerQuery = $event"
           @toggle="pickerSelection.toggle"
           @go-to-page="pickerGoToPage"
@@ -215,6 +218,7 @@ import CollectionMetadataPanel from '@/features/collections/components/Collectio
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 import { useToast } from '@/shared/composables/useToast'
+import { useCopyToClipboard } from '@/shared/composables/useCopyToClipboard'
 import { formatBytes, formatDate } from '@/shared/utils/format'
 import { listFiles } from '@/features/datasets/api/datasetApi'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
@@ -229,6 +233,7 @@ import { t } from '@/i18n'
 
 const router = useRouter()
 const { showToast } = useToast()
+const { copy } = useCopyToClipboard()
 
 // ---- 详情 + 成员管理（单一数据源：detail，写操作成功后整体回写）----
 const {
@@ -245,15 +250,15 @@ const {
 const memberOps = useCollectionMembers({ detail, refresh: fetch })
 const { members, adding, removing, reordering, add } = memberOps
 
-const memberIds = computed(() => members.value.map((m) => String(m.id)))
+const memberPublicIds = computed(() => members.value.map((m) => m.publicId))
 
 const updatedDate = computed(() => formatDate(detail.value?.updatedAt))
 
 // ---- 下载（复用数据集下载链：限流 + 逐文件 iframe 触发）----
 const { handleDownloadRaw } = useDownloadProgress()
 
-function downloadMember(member: { id: number; filename: string }) {
-  handleDownloadRaw(String(member.id), {
+function downloadMember(member: { publicId: string; filename: string }) {
+  handleDownloadRaw(member.publicId, {
     getFallbackFilename: () => member.filename,
   })
 }
@@ -282,12 +287,7 @@ const deleteConfirm = useConfirmDelete({
 async function copyShareLink() {
   if (!detail.value?.publicId) return
   const url = `${location.origin}/collections/${detail.value.publicId}`
-  try {
-    await navigator.clipboard.writeText(url)
-    showToast(t('common.feedback.copied'), 'success')
-  } catch {
-    showToast(t('collections.overview.shareLink', { url }), 'info')
-  }
+  await copy(url, { onError: () => showToast(t('collections.overview.shareLink', { url }), 'info') })
 }
 
 // ---- 添加成员弹窗：picker 直连公开 imzML/completed 列表（与创建页同一套过滤）----
@@ -340,10 +340,10 @@ function closeAddMembers() {
 }
 
 async function confirmAddMembers() {
-  const ids = pickerSelection.selected.value.map((f) => Number(f.id))
-  if (!ids.length) return
+  const publicIds = pickerSelection.selected.value.map((f) => f.publicId)
+  if (!publicIds.length) return
   // 失败（409 等）时保持弹窗打开：选择仍留在 pickerSelection 里，可直接重试
-  if (await add(ids)) addOpen.value = false
+  if (await add(publicIds)) addOpen.value = false
 }
 </script>
 

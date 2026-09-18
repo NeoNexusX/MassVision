@@ -1,117 +1,211 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
 
 /**
  * Collections E2E 测试 — 真实后端
  * ==============================
- * 覆盖：列表页（搜索/排序）、创建流程（选公开 imzML → 排序 → 命名）、
- * overview（元数据/成员/编辑）、删除、公开页（免登录 404 与只读渲染）。
+ * 覆盖：列表页（加载 / 服务端搜索与清空）、创建→编辑→成员管理（添加 / 调序 /
+ * 移除）→ 删除全流程、公开页（免登录 404）。
  *
- * 创建流程依赖后端已有「public + completed + imzML」数据集；找不到时跳过，
- * 避免在空环境下误报失败（与 datasets.spec 的 skip 策略一致）。
+ * 全流程依赖后端已有 ≥4 个「public + completed + imzML」数据集（建集合选 3 个、
+ * 加成员弹窗再加 1 个）；不足时跳过，避免空环境下误报（与 datasets.spec 的
+ * skip 策略一致）。
  */
 
-/** 在创建页/加成员选择器里勾选第一个可加入的公开 imzML 数据集 */
-async function pickFirstEligibleDataset(page: Page): Promise<string | null> {
-  const rows = page.locator('li', { has: page.locator('input[type="checkbox"][aria-label^="Select "]') })
-  await expect(rows.first().or(page.getByText('No public datasets found.'))).toBeVisible({ timeout: 15_000 })
-  if ((await rows.count()) === 0) return null
+/**
+ * 选择器里可加入集合的行：跳过被禁选的「已在集合中」行（创建页与加成员弹窗共用）。
+ * 用原生 :has(> …) 而不是 filter({ has })：has 的内层 locator 会被重新挂到
+ * 候选 li 下解析，带上弹窗作用域前缀就永远匹配不到（首跑即踩坑）
+ */
+function eligibleRows(scope: Page | Locator) {
+  return scope.locator('li:has(> input[type="checkbox"][aria-label^="Select "]:not([disabled]))')
+}
 
-  const row = rows.first()
+/** 在 scope（创建页 / 加成员弹窗）里勾选第 index 个可加入的公开 imzML 数据集，返回名称 */
+async function pickEligibleDataset(scope: Page | Locator, index = 0): Promise<string | null> {
+  const rows = eligibleRows(scope)
+  await expect(rows.nth(index).or(scope.getByText('No public datasets found.'))).toBeVisible({
+    timeout: 15_000,
+  })
+  if ((await rows.count()) <= index) return null
+
+  const row = rows.nth(index)
   const label = (await row.locator('input[type="checkbox"]').getAttribute('aria-label')) || ''
   await row.click()
   return label.replace(/^Select /, '')
 }
 
+/** Step 4 元数据表单：给 list 字段（TagInput，data-field = 字段显示名）追加一个词表值 */
+async function fillTagField(page: Page, field: string, value: string) {
+  const input = page.locator(`[data-field="${field}"] input`)
+  await input.click()
+  await input.fill(value)
+  await input.press('Enter')
+}
+
+/**
+ * 必填 list 字段的词表原值。Member Type / Collection Type 不能从成员推导，
+ * 总是手填；其余 6 个字段选中数据集时会自动预填，Create 仍禁用说明后端数据
+ * 不全，逐个兜底——让用例只取决于测试可控项，而不依赖数据集元数据质量。
+ */
+const REQUIRED_FALLBACK: readonly (readonly [field: string, value: string])[] = [
+  ['Member Type', 'MSI'],
+  ['Collection Type', 'Serial sections'],
+  ['Organism', 'Human (Homo sapiens)'],
+  ['Organism Part', 'Brain'],
+  ['Sample Stabilization', 'Fresh frozen'],
+  ['Polarity', 'Positive'],
+  ['Ionisation Source', 'MALDI'],
+  ['Analyzer', 'Orbitrap Exploris 480'],
+]
+
+// ============================================================
+// 列表页
+// ============================================================
+
 test.describe('Collections list', () => {
-  test('page loads with header, search and sort controls', async ({ page }) => {
+  test('page loads with header, search and toolbar controls', async ({ page }) => {
     await page.goto('/collections')
 
     await expect(page.locator('h1:has-text("Collections")')).toBeVisible()
     await expect(page.getByPlaceholder('Search collections')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Create Collection' })).toBeVisible()
+    // 工具栏：筛选面板入口 + 范围切换（排序是 updated_at 倒序单选项，无交互可测）
+    await expect(page.getByRole('button', { name: 'Add filter' })).toBeVisible()
+    await expect(page.getByText('My collections only')).toBeVisible()
+
     // 列表或空态至少呈现一个
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
   })
 
-  test('search and sort do not error', async ({ page }) => {
-    // 暂时排除：当前后端下该用例在三种浏览器都失败（待修复后再放回）
-    test.fixme(true, 'Collection 搜索/排序当前不可用，暂时排除')
+  test('server search shows no-result state, clear restores', async ({ page }) => {
     await page.goto('/collections')
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
+    // 搜索走服务端 name 模糊（POST body），无结果空态由前端渲染。
+    // 不先等 .animate-pulse 清零再断言：骨架未挂出时 count(0) 会提前通过，
+    // 随后的空态断言就撞上加载中（firefox 上实测踩到），直接等空态本身
     await page.getByPlaceholder('Search collections').fill('zzz-no-such-collection')
     await page.getByRole('button', { name: 'Search' }).click()
-    await expect(page.getByText('No collections found')).toBeVisible()
+    await expect(page.getByText('No collections found')).toBeVisible({ timeout: 15_000 })
 
+    // Clear Search：清词重拉，输入框跟着清空（searchApplied watcher 联动）
     await page.getByRole('button', { name: 'Clear Search' }).click()
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+    await expect(page.getByPlaceholder('Search collections')).toHaveValue('', { timeout: 15_000 })
+    await expect(page.getByText('No collections found')).toHaveCount(0, { timeout: 15_000 })
   })
 })
 
-test.describe('Collection create → overview → delete', () => {
-  test('full lifecycle on a freshly created collection', async ({ page }) => {
-    // 暂时排除：当前后端下该用例在三种浏览器都失败（待修复后再放回）
-    test.fixme(true, 'Collection 创建/编辑/删除链路当前不可用，暂时排除')
+// ============================================================
+// 全流程：创建 → 编辑 → 成员管理 → 删除
+// ============================================================
+
+test.describe('Collection full lifecycle', () => {
+  test('create, edit metadata, add/reorder/remove members, then delete', async ({ page }) => {
+    test.setTimeout(120_000)
     const name = `E2E Collection ${Date.now()}`
+
+    // ---- 创建：选 3 个成员 + Step 4 必填元数据 ----
     await page.goto('/collections/new')
-
-    // Step 1 选择器：公开 imzML 数据集
     await expect(page.locator('h2:has-text("Step 1: Choose Datasets")')).toBeVisible()
-    const picked = await pickFirstEligibleDataset(page)
-    test.skip(picked === null, '没有可加入集合的公开 imzML 数据集')
 
-    // Step 2 已选排序：Checkbox 无可见性开关，这里确认已选项出现
+    const rows = eligibleRows(page)
+    await expect(rows.first().or(page.getByText('No public datasets found.'))).toBeVisible({
+      timeout: 15_000,
+    })
+    test.skip((await rows.count()) < 4, '需要 ≥4 个可加入集合的公开 imzML 数据集（建集合选 3 个 + 加成员 1 个）')
+    for (let i = 0; i < 3; i++) await pickEligibleDataset(page, i)
+
     await expect(page.locator('h2:has-text("Step 2: Arrange Order")')).toBeVisible()
-
-    // Step 3 元信息：名称必填，description 可选
     await page.getByPlaceholder('e.g. Human Kidney MALDI Atlas').fill(name)
-    await expect(page.getByText('Visibility')).toHaveCount(0)
 
-    await page.getByRole('button', { name: 'Create Collection' }).click()
+    // 两个不可推导的必填字段总填；其余按 Create 是否解禁逐个兜底（见 REQUIRED_FALLBACK）
+    await fillTagField(page, 'Member Type', 'MSI')
+    await fillTagField(page, 'Collection Type', 'Serial sections')
+    const createBtn = page.getByRole('button', { name: 'Create Collection' })
+    for (const [field, value] of REQUIRED_FALLBACK.slice(2)) {
+      if (await createBtn.isEnabled()) break
+      await fillTagField(page, field, value)
+    }
+    await expect(createBtn).toBeEnabled()
+    await createBtn.click()
 
     // 跳转 overview（无路径参数：id 走 history.state）
     await expect(page).toHaveURL(/\/collections\/overview$/, { timeout: 15_000 })
+    await expect(page.locator('.toast')).toContainText('Created', { timeout: 10_000 })
     await expect(page.locator('h1')).toContainText(name)
-    await expect(page.locator('h2:has-text("Collection Metadata")')).toBeVisible()
-    await expect(page.locator('h2:has-text("Members")')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Members' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Collection Metadata' })).toBeVisible()
 
-    // 内嵌 Edit：页内原地编辑（无弹窗），改名称后头部实时更新
+    // ---- 编辑：页内原地改元数据（改名 + 简介 + 学术字段 Title）----
+    // toast 是保存真正落到后端的信号（头部是草稿联动，不能单独作数）
     await page.getByRole('button', { name: 'Edit' }).click()
     const renamed = `${name} (edited)`
+    const newTitle = 'E2E Title Before Delete'
     await page.locator('input[maxlength="80"]').fill(renamed)
+    // 编辑表单里 Description/Citation/Abstract 三个 textarea 同为 maxlength=300，按角色+名称定位
+    await page.getByRole('textbox', { name: 'Description' }).fill('E2E description before delete')
+    await page.getByPlaceholder('Enter the article title').fill(newTitle)
     await page.getByRole('button', { name: 'Save Changes' }).click()
-    // toast 是保存真正落到后端的信号（头部是草稿联动，不能单独作数）
-    await expect(page.getByText('Updated', { exact: true })).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.toast')).toContainText('Updated', { timeout: 15_000 })
     await expect(page.locator('h1')).toContainText(renamed)
+    // 保存后只读面板回显新 Title（头部副标题同源，first() 避免双命中）
+    await expect(page.getByText(newTitle).first()).toBeVisible()
 
-    // 删除集合 → 回列表
-    await page.getByRole('button', { name: 'Delete' }).click()
-    await expect(page.getByText('Delete collection?')).toBeVisible()
-    await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
+    // ---- 成员管理 ----
+    // 可见的 Select 复选框只有成员行的：加成员弹窗关闭时不进可访问性树，
+    // 元数据面板（非编辑态）也没有复选框
+    const memberNames = () =>
+      page
+        .locator('input[type="checkbox"][aria-label^="Select "]:visible')
+        .evaluateAll((els) =>
+          els.map((e) => (e.getAttribute('aria-label') || '').replace(/^Select /, '')),
+        )
+    await expect
+      .poll(async () => (await memberNames()).length, { timeout: 15_000 })
+      .toBe(3)
+
+    // 添加：弹窗选择器自动排除已在集合中的成员（行禁选）
+    await page.getByRole('button', { name: 'Add Members' }).click()
+    const modal = page.locator('dialog.modal-open .modal-box')
+    await expect(modal).toBeVisible()
+    const added = await pickEligibleDataset(modal, 0)
+    expect(added, '加成员弹窗里应有未入集的公开 imzML 数据集').toBeTruthy()
+    await modal.getByRole('button', { name: /^Add 1 dataset$/ }).click()
+    await expect(page.locator('.toast')).toContainText('Added', { timeout: 15_000 })
+    await expect(modal).toBeHidden()
+    await expect
+      .poll(async () => (await memberNames()).length, { timeout: 15_000 })
+      .toBe(4)
+
+    // 调序：调序控件（手柄拖拽 + 上移/下移）仅编辑态出现，先进 Edit 再操作
+    await page.getByRole('button', { name: 'Edit' }).click()
+    const before = await memberNames()
+    await page.getByRole('button', { name: `Move ${before[0]!} down`, exact: true }).click()
+    await expect
+      .poll(memberNames, { timeout: 15_000 })
+      .toEqual([before[1]!, before[0]!, before[2]!, before[3]!])
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+
+    // 移除：勾选当前首行 → Remove Selected (1) → 对账 toast
+    await page.locator('input[type="checkbox"][aria-label^="Select "]:visible').first().check()
+    await page.getByRole('button', { name: 'Remove Selected (1)' }).click()
+    await expect(page.locator('.toast')).toContainText('Removed 1', { timeout: 15_000 })
+    await expect
+      .poll(async () => (await memberNames()).length, { timeout: 15_000 })
+      .toBe(3)
+
+    // ---- 删除集合 → 回列表 ----
+    await page.getByRole('button', { name: 'Delete', exact: true }).click()
+    const confirmBox = page.locator('dialog.modal-open .modal-box')
+    await expect(confirmBox).toContainText('Delete collection?')
+    await confirmBox.getByRole('button', { name: 'Delete', exact: true }).click()
     await expect(page).toHaveURL(/\/collections$/, { timeout: 15_000 })
   })
 })
 
-test.describe('Collection member manage-mode', () => {
-  test('up/down reorder controls are present for the owner', async ({ page }) => {
-    const name = `E2E Members ${Date.now()}`
-    await page.goto('/collections/new')
-    const picked = await pickFirstEligibleDataset(page)
-    test.skip(picked === null, '没有可加入集合的公开 imzML 数据集')
-    await page.getByPlaceholder('e.g. Human Kidney MALDI Atlas').fill(name)
-    await page.getByRole('button', { name: 'Create Collection' }).click()
-    await expect(page).toHaveURL(/\/collections\/overview$/, { timeout: 15_000 })
-
-    // owner 视角：Add Members / Remove Selected 工具条存在
-    await expect(page.getByRole('button', { name: 'Add Members' })).toBeVisible()
-    await expect(page.getByRole('button', { name: /Remove Selected/ })).toBeVisible()
-
-    // 清理：删除刚建的集合
-    await page.getByRole('button', { name: 'Delete' }).click()
-    await page.locator('.modal-box').getByRole('button', { name: 'Delete' }).click()
-    await expect(page).toHaveURL(/\/collections$/, { timeout: 15_000 })
-  })
-})
+// ============================================================
+// 公开页（免登录）
+// ============================================================
 
 test.describe('Public collection page', () => {
   // 免登录：清空登录态验证公开页不依赖 token

@@ -6,7 +6,8 @@ import type { File } from '@/features/datasets/types/dataset'
 
 const file = (over: Partial<File>): File =>
   ({
-    id: '1',
+    publicId: '1',
+    imagePath: null,
     name: '',
     submitTime: '',
     submitter: '',
@@ -43,7 +44,7 @@ describe('useDerivedMetadataSync', () => {
     // 选择变化 → 未接管的字段跟着刷新
     files.value = [
       ...files.value,
-      file({ id: '2', organism: 'Human (Homo sapiens)', polarity: 'Negative' }),
+      file({ publicId: '2', organism: 'Human (Homo sapiens)', polarity: 'Negative' }),
     ]
     await nextTick()
 
@@ -137,7 +138,7 @@ describe('useDerivedMetadataSync', () => {
 
     files.value = [
       file({ organism: 'Mouse (Mus musculus)' }),
-      file({ id: '2', organism: 'Rat (Rattus norvegicus)' }),
+      file({ publicId: '2', organism: 'Rat (Rattus norvegicus)' }),
     ]
     await nextTick()
 

@@ -6,6 +6,7 @@ import type { File } from '@/features/datasets/types/dataset'
 import { useToast } from '@/shared/composables/useToast'
 import { collectionErrorMessage, createCollection } from '../api/collectionApi'
 import { DERIVED_METADATA_KEYS } from '../utils/deriveCollectionMetadata'
+import { METADATA_FIELDS, hasMetadataValue } from '../constants/metadataFields'
 import { buildCollectionCreatePayload, toMetadataDraft } from '../utils/metadataPatch'
 import type { CollectionMetadataDraft } from '../types/collection'
 import { useDerivedMetadataSync } from './useDerivedMetadataSync'
@@ -23,7 +24,7 @@ import { t } from '@/i18n'
  *    跨页选择天然持久；reorder 就是移动这个数组；
  * 3. 表单 —— name/description（集合均为公开，无可见性开关）。
  *
- * 保存调 POST /collections（file_ids 顺序 = position 1..n），成功后跳转新集合的
+ * 保存调 POST /collections（file_public_ids 顺序 = position 1..n），成功后跳转新集合的
  * overview 页。脏态离开时弹 ConfirmDialog——promise 式 onBeforeRouteLeave 守卫：
  * 确认 resolve(true) 放行，取消 resolve(false) 留在页面。
  */
@@ -101,9 +102,18 @@ export function useCreateCollection() {
         Array.isArray(v) ? v.length > 0 : String(v).trim() !== '',
       ),
   )
-  const canCreate = computed(() => metadata.name.trim() !== '' && selectedCount.value > 0)
+  // 前端必填：name + 选中数据集 + 字段表标记 required 的学术字段（member_type /
+  // collection_type、sample 组与 acquisition 组；Growth Conditions / Tissue
+  // Modification 除外）。后端不变。
+  const requiredFields = METADATA_FIELDS.filter((f) => f.required)
+  const canCreate = computed(
+    () =>
+      metadata.name.trim() !== '' &&
+      selectedCount.value > 0 &&
+      requiredFields.every((f) => hasMetadataValue(metadata, f)),
+  )
 
-  // ---- 4) 保存：file_ids 数组顺序 = position 1..n，成功跳转 overview ----
+  // ---- 4) 保存：file_public_ids 数组顺序 = position 1..n，成功跳转 overview ----
   const saving = ref(false)
   // 提交后的返回跳转不再触发离开确认（isDirty 此刻仍为 true）
   const saved = ref(false)
@@ -116,13 +126,15 @@ export function useCreateCollection() {
       const detail = await createCollection(
         buildCollectionCreatePayload(
           metadata,
-          selected.value.map((d) => Number(d.id)),
+          selected.value.map((d) => d.publicId),
         ),
       )
       showToast(t('common.feedback.created'), 'success')
       saved.value = true
-      // 详情页无路径参数（replace 让创建页不留在历史栈里）：详情读取走公开
-      // 接口，public_id 随 state 传递；数字 id 留给编辑/删除等写操作
+      // 详情页无路径参数：id 走 history.state（与列表页 handleView 同一套路）。
+      // 公开路由 /collections/{public_id} 只能只读浏览（public 响应不含数字 id，
+      // 编辑/删除等写操作用不上），所以 overview 保持 state 方案：
+      // 数字 id 供写操作，publicId 供公开接口拉详情
       router.replace({
         name: 'CollectionOverview',
         state: { collectionId: detail.id, publicId: detail.publicId ?? undefined },

@@ -1,4 +1,5 @@
 import type { FilePublicResponse } from '@/features/datasets/types/dataset'
+import { toFilePublicId } from '@/features/datasets/mappers/datasetMapper'
 import { METADATA_FIELDS } from '../constants/metadataFields'
 import { normalizeMetadataList } from '../utils/metadataPatch'
 import type {
@@ -15,7 +16,8 @@ import type {
 
 function mapFilePublicToMember(raw: FilePublicResponse): CollectionMember {
   return {
-    id: raw.file_id,
+    publicId: toFilePublicId(raw.public_id),
+    imagePath: raw.image_path ?? null,
     filename: raw.filename || '',
     size: raw.size ?? 0,
     status: raw.status || '',
@@ -25,7 +27,7 @@ function mapFilePublicToMember(raw: FilePublicResponse): CollectionMember {
 }
 
 /**
- * 提取学术元数据块。后端把元数据字段**平铺在响应顶层**（实测 GET /collections：
+ * 提取学术元数据块。后端把元数据字段**平铺在响应顶层**（实测 POST /collections/list：
  * name/doi/organism/analyzer… 与 id/member_count 同级，没有嵌套的 metadata 对象），
  * 因此以 metadataFields 表为字段清单从顶层挑选；若将来改为嵌套 metadata 对象也兼容。
  */
@@ -69,7 +71,9 @@ function toSummary(raw: any): CollectionSummary {
     publicId: raw.public_id ?? null,
     doi: toStringList(raw, metadata, 'doi'),
     journalName: raw.journal_name ?? metadata.journal_name ?? null,
-    access: raw.access || metadata.access || null,
+    publishTime: raw.publish_time ?? null,
+    // access 后端契约是 list[str]（Create/Patch/响应一致），与其他列表字段同走归一
+    access: toStringList(raw, metadata, 'access'),
     organismPart: toStringList(raw, metadata, 'organism_part'),
     ionisationSource: toStringList(raw, metadata, 'ionisation_source'),
     members: Array.isArray(raw?.members) ? raw.members.map(mapFilePublicToMember) : undefined,
@@ -86,7 +90,7 @@ export function mapCollectionDetail(raw: any): CollectionDetail {
   }
 }
 
-/** GET /collections 列表行：详情 mapper 的子集（列表响应可能不带 members） */
+/** POST /collections/list 列表行：详情 mapper 的子集（列表响应可能不带 members） */
 export function mapCollectionSummary(raw: any): CollectionSummary {
   return toSummary(raw)
 }

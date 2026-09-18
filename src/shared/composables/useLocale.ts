@@ -7,7 +7,7 @@ import { i18n, loadCoreMessages, loadActiveFeatureMessages, LOCALES, type Locale
  * 挂载前初始化，任何组件 `useLocale()` 拿到的都是同一份状态，切换即全局同步。
  *
  * 语言**不进 URL**：偏好存 localStorage，首访按浏览器语言探测。这意味着分享出去的
- * 链接（/collections/:publicId、/s/:encodedId 等）不携带语言，接收者按自己的浏览器
+ * 链接（/collections/:publicId、/s/:shareToken 等）不携带语言，接收者按自己的浏览器
  * 语言自动决定看到中文还是英文——这正是期望的行为，无需为分享链接做特殊处理。
  */
 

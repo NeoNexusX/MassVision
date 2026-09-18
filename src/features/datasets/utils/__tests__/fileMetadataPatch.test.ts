@@ -3,7 +3,8 @@ import { buildFileMetadataPatch, toFileMetadataDraft } from '../fileMetadataPatc
 import type { File } from '@/features/datasets/types/dataset'
 
 const baseFile = {
-  id: '7',
+  publicId: 'qW3rT5yU7iO9pA1s',
+  imagePath: 'images/file_7/',
   name: 'kidney',
   submitTime: '2026-09-10T00:00:00',
   submitter: 'u',

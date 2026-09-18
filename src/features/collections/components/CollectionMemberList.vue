@@ -1,7 +1,8 @@
 <template>
   <!-- 集合成员列表：行 = 缩略图 + 文件名 + 大小 + 下载。
        manageMode（owner/admin）下额外提供：Add Members 按钮、行复选多选 +
-       Remove Selected（批量移除）、手柄拖拽 + 上移/下移（调序，全量重写语义）。
+       Remove Selected（批量移除）。调序（手柄拖拽 + 上移/下移，全量重写语义）
+       更进一步只在 editMode（页头 Edit 进入编辑态）时出现——浏览态不打扰。
        只读模式（公开页/非 owner）隐藏全部管理控件。 -->
   <section
     class="bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6"
@@ -44,37 +45,37 @@
     </div>
 
     <div v-if="members.length" class="flex flex-col gap-1 border border-base-200 dark:border-slate-700 rounded-md p-2">
-      <div class="kawaru-text-87"
+      <div class="kawaru-text-100"
         v-for="(member, i) in members"
-        :key="member.id"
-        :draggable="manageMode && armed"
+        :key="member.publicId"
+        :draggable="editMode && armed"
         :class="[
-          'relative px-3 py-2 rounded-lg flex items-center gap-3 select-none transition-opacity',
+          'relative px-3 py-3 rounded-lg flex items-center gap-4 select-none transition-opacity',
           manageMode ? 'cursor-default' : '',
           dragFrom === i ? 'opacity-40' : '',
           dragOver === i && dragFrom !== i ? 'border-t-2 border-t-primary' : '',
         ]"
-        @dragstart="manageMode && onDragStart($event, i)"
-        @dragover.prevent="manageMode && (dragOver = i)"
-        @drop.prevent="manageMode && onDrop()"
-        @dragend="manageMode && resetDrag()"
+        @dragstart="editMode && onDragStart($event, i)"
+        @dragover.prevent="editMode && (dragOver = i)"
+        @drop.prevent="editMode && onDrop()"
+        @dragend="editMode && resetDrag()"
       >
         <!-- 多选框（仅管理模式） -->
         <input
           v-if="manageMode"
           type="checkbox"
           class="checkbox checkbox-sm checkbox-primary shrink-0"
-          :checked="selectedIds.has(member.id)"
+          :checked="selectedIds.has(member.publicId)"
           :aria-label="$t('collections.picker.selectAria', { name: member.filename })"
-          @change="toggleSelect(member.id)"
+          @change="toggleSelect(member.publicId)"
         />
 
-        <!-- 序号 + 拖拽手柄（管理模式） -->
+        <!-- 序号 + 拖拽手柄（编辑态才有手柄） -->
         <span class="w-6 text-center tabular-nums text-base-content/50 kawaru-text-95 shrink-0">
           {{ i + 1 }}
         </span>
         <div
-          v-if="manageMode"
+          v-if="editMode"
           class="shrink-0 cursor-grab active:cursor-grabbing text-base-content/40 hover:text-base-content/70 p-1"
 :title="$t('collections.selected.dragHint')"
           aria-hidden="true"
@@ -83,26 +84,28 @@
           <SvgIcon type="bars3" class="w-[1em] h-[1em]" />
         </div>
 
-        <div class="w-10 h-10 shrink-0">
-          <DatasetThumb :file-id="String(member.id)" :alt="$t('collections.picker.previewAlt', { name: member.filename })" />
+        <!-- 缩略图：16（64px）——40px 太小看不清组织结构 -->
+        <div class="w-16 h-16 shrink-0">
+          <DatasetThumb :image-path="member.imagePath" :alt="$t('collections.picker.previewAlt', { name: member.filename })" />
         </div>
 
         <div class="flex-1 min-w-0">
           <div class="font-medium truncate text-base-content" :title="member.filename">
             {{ member.filename }}
           </div>
-          <div class="kawaru-text-87 text-base-content/60 truncate">
+          <div class="kawaru-text-95 text-base-content/60 truncate">
             {{ [member.experimentType, statusLabel(member.status)].filter(Boolean).join(' · ') || '–' }}
           </div>
         </div>
 
-        <div class="kawaru-text-87 text-base-content/60 whitespace-nowrap tabular-nums shrink-0">
+        <div class="kawaru-text-95 text-base-content/60 whitespace-nowrap tabular-nums shrink-0">
           {{ formatBytes(member.size) }}
         </div>
 
         <div class="flex items-center gap-1 shrink-0">
-          <!-- 上移/下移：触屏与键盘可用的排序通道，边界禁用（e2e 也走这里） -->
-          <template v-if="manageMode">
+          <!-- 上移/下移：触屏与键盘可用的排序通道，边界禁用（e2e 也走这里）；
+               与拖拽手柄同门槛，仅在 editMode（编辑态）出现 -->
+          <template v-if="editMode">
             <button
               class="btn btn-ghost btn-sm btn-square kawaru-text-100"
 :title="$t('collections.selected.moveUp')"
@@ -158,8 +161,10 @@ import type { CollectionMember } from '../types/collection'
 
 const props = defineProps({
   members: { type: Array as PropType<CollectionMember[]>, required: true },
-  /** owner/admin 视图：显示 Add/Remove/调序控件 */
+  /** owner/admin 视图：显示 Add/Remove 与多选控件 */
   manageMode: { type: Boolean, default: false },
+  /** 编辑态（页头 Edit 进入）：显示调序控件（手柄拖拽 + 上移/下移） */
+  editMode: { type: Boolean, default: false },
   adding: { type: Boolean, default: false },
   removing: { type: Boolean, default: false },
   reordering: { type: Boolean, default: false },
@@ -170,7 +175,7 @@ const props = defineProps({
 
 const emit = defineEmits<{
   (e: 'add'): void
-  (e: 'remove', ids: number[]): void
+  (e: 'remove', publicIds: string[]): void
   (e: 'reorder', from: number, to: number): void
   (e: 'download', member: CollectionMember): void
 }>()
@@ -184,11 +189,11 @@ function statusLabel(status: string | null | undefined): string {
 }
 
 // ---- 多选（仅管理模式）----
-const selectedIds = reactive(new Set<number>())
+const selectedIds = reactive(new Set<string>())
 
-function toggleSelect(id: number) {
-  if (selectedIds.has(id)) selectedIds.delete(id)
-  else selectedIds.add(id)
+function toggleSelect(publicId: string) {
+  if (selectedIds.has(publicId)) selectedIds.delete(publicId)
+  else selectedIds.add(publicId)
 }
 
 function confirmRemove() {
@@ -200,7 +205,7 @@ function confirmRemove() {
 watch(
   () => props.members,
   (members) => {
-    const valid = new Set(members.map((m) => m.id))
+    const valid = new Set(members.map((m) => m.publicId))
     for (const id of [...selectedIds]) {
       if (!valid.has(id)) selectedIds.delete(id)
     }

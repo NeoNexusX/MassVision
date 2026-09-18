@@ -83,7 +83,7 @@ export function useDatasetList(
         meta.total_records = data.meta.total_records || meta.current_records
       }
 
-      // 排序已由服务端完成（同值行按 file_id 倒序兜底），前端不再重排
+      // 排序已由服务端完成（同值行按 public_id 倒序兜底），前端不再重排
       datasets.value = Array.isArray(data.data)
         ? data.data.map((it: any, idx: number) => mapItemToDataset(it, idx))
         : []

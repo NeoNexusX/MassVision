@@ -11,16 +11,17 @@ const {
   source,
   isShareView,
   isStale,
+  requiresAuth,
+  goLogin,
+  goRegister,
   dataset,
   loading,
-  isCopied,
   isShareCopied,
   ticImageUrl,
   ticImageError,
   placeholderSvg,
   formatSize,
   formatString,
-  copyHash,
   shareCurrent,
   goBack,
   downloadCurrent,
@@ -30,15 +31,29 @@ const {
   openPublicConfirm,
   cancelPublicConfirm,
   confirmSetPublic,
+  showShareConfirm,
+  sharing,
+  openShareConfirm,
+  cancelShareConfirm,
+  confirmSharePublic,
 } = useDatasetDetail()
+
+// 下载打包中：publicId 已是字符串，dataset 为空时按空串（isPacking 恒 false）
+const packing = computed(() => isPacking(dataset.value?.publicId ?? ''))
 
 // 元信息编辑已移到 My Datasets 卡片的 Edit（Overview 只读展示）
 
 // 状态徽章的样式与文案（completed/uploading/failed -> success/info/error，其余中性）
 // key 是后端状态值；label 是 getter，在 computed 里按当前语言取
 const STATUS_BADGE: Record<string, { class: string; label: () => string }> = {
-  completed: { class: 'badge-success bg-success/10 text-success', label: () => t('datasets.card.uploaded') },
-  uploading: { class: 'badge-info bg-info/10 text-info', label: () => t('common.status.processing') },
+  completed: {
+    class: 'badge-success bg-success/10 text-success',
+    label: () => t('datasets.card.uploaded'),
+  },
+  uploading: {
+    class: 'badge-info bg-info/10 text-info',
+    label: () => t('common.status.processing'),
+  },
   failed: { class: 'badge-error bg-error/10 text-error', label: () => t('common.status.failed') },
 }
 const statusBadge = computed(() => {
@@ -60,9 +75,17 @@ const statusBadge = computed(() => {
           class="btn btn-ghost btn-md sm:btn-lg kawaru-text-100 text-base-content/70 hover:bg-base-300 rounded-lg shrink-0 self-start"
         >
           <svg-icon type="back" class="w-4 h-4 mr-1" />
-          {{ source === 'public' ? $t('datasets.overview.backToPublic') : $t('datasets.overview.backToMy') }}
+          {{
+            source === 'public'
+              ? $t('datasets.overview.backToPublic')
+              : $t('datasets.overview.backToMy')
+          }}
         </button>
-        <h1 class="kawaru-text-page-title leading-[1.15] font-bold text-base-content tracking-tight">{{ $t('datasets.overview.title') }}</h1>
+        <h1
+          class="kawaru-text-page-title leading-[1.15] font-bold text-base-content tracking-tight"
+        >
+          {{ $t('datasets.overview.title') }}
+        </h1>
       </div>
 
       <!-- Skeleton Loading State -->
@@ -99,28 +122,44 @@ const statusBadge = computed(() => {
         </div>
       </template>
 
-      <!-- Empty Data State -->
+      <!-- Empty Data State：匿名被 401（分享链接 / 公开列表进入）→ 登录/注册引导；其余为无效链接/无数据 -->
       <template v-else-if="!dataset">
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200 p-12 text-center">
-          <svg-icon type="duplicate" class="h-12 w-12 mx-auto text-base-content/30 mb-4" />
+          <svg-icon
+            :type="requiresAuth ? 'password' : 'duplicate'"
+            class="h-12 w-12 mx-auto text-base-content/30 mb-4"
+          />
           <h3 class="kawaru-text-112 font-bold text-base-content">
             {{
-              isShareView && isStale
-                ? $t('datasets.overview.invalidShare')
-                : isStale
-                  ? $t('common.state.sessionLost')
-                  : $t('datasets.overview.noData')
+              requiresAuth
+                ? $t('datasets.overview.loginRequired')
+                : isShareView && isStale
+                  ? $t('datasets.overview.invalidShare')
+                  : isStale
+                    ? $t('common.state.sessionLost')
+                    : $t('datasets.overview.noData')
             }}
           </h3>
           <p class="text-base-content/60 mt-1">
             {{
-              isShareView && isStale
-                ? $t('datasets.overview.invalidShareDesc')
-                : isStale
-                  ? $t('datasets.overview.sessionLostDesc')
-                  : $t('datasets.overview.noDataDesc')
+              requiresAuth
+                ? $t('datasets.overview.loginRequiredDesc')
+                : isShareView && isStale
+                  ? $t('datasets.overview.invalidShareDesc')
+                  : isStale
+                    ? $t('datasets.overview.sessionLostDesc')
+                    : $t('datasets.overview.noDataDesc')
             }}
           </p>
+          <!-- 登录/注册后经 redirect 回来（分享原链接，或 /s/{public_id} 永久链接） -->
+          <div v-if="requiresAuth" class="mt-6 flex justify-center gap-3">
+            <button class="btn btn-primary kawaru-text-95" @click="goLogin">
+              {{ $t('common.action.signIn') }}
+            </button>
+            <button class="btn btn-outline border-base-300 kawaru-text-95" @click="goRegister">
+              {{ $t('common.action.register') }}
+            </button>
+          </div>
         </div>
       </template>
 
@@ -140,38 +179,35 @@ const statusBadge = computed(() => {
               class="w-full h-full object-contain"
               @error="ticImageError = true"
             />
-            <div v-if="!ticImageUrl || ticImageError" class="w-full h-full" v-html="placeholderSvg"></div>
+            <div
+              v-if="!ticImageUrl || ticImageError"
+              class="w-full h-full"
+              v-html="placeholderSvg"
+            ></div>
           </div>
 
           <div class="flex-1 w-full min-w-0 flex flex-col justify-center gap-2">
-            <h2 class="kawaru-text-125 md:kawaru-text-150 font-bold text-base-content truncate" :title="dataset.filename">
+            <h2
+              class="kawaru-text-125 md:kawaru-text-150 font-bold text-base-content truncate"
+              :title="dataset.filename"
+            >
               {{ dataset.filename }}
             </h2>
+            <!-- 按钮行：Download / Share 恒定在左（与公开文件一致）；私有文件的
+                 Make Public 用 ml-auto 推到行右、状态徽章之前，Share 点击先弹
+                 「设为公开并分享」确认框 -->
             <div class="flex flex-wrap items-center gap-2">
-              <button
-                v-if="source === 'my' && !dataset.isPublic"
-                @click="openPublicConfirm"
-                class="btn btn-sm h-8 min-h-8 btn-outline btn-warning kawaru-text-75"
-              >
-                <svg-icon type="region" class="w-4 h-4" />
-                {{ $t('datasets.overview.makePublic') }}
-              </button>
               <button
                 @click="downloadCurrent"
                 class="btn btn-sm h-8 min-h-8 btn-primary kawaru-text-75"
-                :disabled="isPacking(String(dataset?.id ?? ''))"
+                :disabled="packing"
               >
-                <span v-if="isPacking(String(dataset?.id ?? ''))" class="loading loading-spinner loading-xs"></span>
+                <span v-if="packing" class="loading loading-spinner loading-xs"></span>
                 <svg-icon v-else type="download" class="w-4 h-4" />
-                {{
-                  isPacking(String(dataset?.id ?? ''))
-                    ? $t('datasets.card.packing')
-                    : $t('common.action.download')
-                }}
+                {{ packing ? $t('datasets.card.packing') : $t('common.action.download') }}
               </button>
               <button
-                v-if="dataset.isPublic"
-                @click="shareCurrent"
+                @click="dataset.isPublic ? shareCurrent() : openShareConfirm()"
                 class="btn btn-sm h-8 min-h-8 border shadow-sm transition-shadow hover:shadow-md kawaru-text-75"
                 :class="
                   isShareCopied
@@ -182,16 +218,26 @@ const statusBadge = computed(() => {
                 <svg-icon :type="isShareCopied ? 'check' : 'share'" class="w-4 h-4" />
                 {{ isShareCopied ? $t('datasets.overview.linkCopied') : $t('common.action.share') }}
               </button>
+              <button
+                v-if="source === 'my' && !dataset.isPublic"
+                @click="openPublicConfirm"
+                class="btn btn-sm h-8 min-h-8 btn-outline btn-warning kawaru-text-75 ml-auto"
+              >
+                <svg-icon type="region" class="w-4 h-4" />
+                {{ $t('datasets.overview.makePublic') }}
+              </button>
               <div
                 class="badge badge-soft h-8 min-h-8 shrink-0 inline-flex items-center justify-center border-0 px-3 py-0 font-medium kawaru-text-87"
-                :class="statusBadge.class"
+                :class="[
+                  statusBadge.class,
+                  !(source === 'my' && !dataset.isPublic) ? 'ml-auto' : '',
+                ]"
               >
                 {{ statusBadge.label }}
-                </div>
               </div>
             </div>
-
           </div>
+        </div>
 
         <!-- 3. Biological & Sample Info -->
         <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200/60 p-6">
@@ -199,11 +245,15 @@ const statusBadge = computed(() => {
             {{ $t('datasets.overview.sampleInfo') }}
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <InfoField :label="$t('common.meta.organism')">{{ formatString(dataset?.organism) }}</InfoField>
+            <InfoField :label="$t('common.meta.organism')">{{
+              formatString(dataset?.organism)
+            }}</InfoField>
             <InfoField :label="$t('common.meta.organismPart')">{{
               formatString(dataset?.organismPart)
             }}</InfoField>
-            <InfoField :label="$t('common.meta.condition')">{{ formatString(dataset?.condition) }}</InfoField>
+            <InfoField :label="$t('common.meta.condition')">{{
+              formatString(dataset?.condition)
+            }}</InfoField>
             <InfoField :label="$t('common.meta.growthConditions')">{{
               formatString(dataset?.sampleGrowthConditions)
             }}</InfoField>
@@ -222,11 +272,15 @@ const statusBadge = computed(() => {
             {{ $t('datasets.overview.msiSettings') }}
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <InfoField :label="$t('common.meta.polarity')">{{ vocabLabel(dataset?.polarity) || '—' }}</InfoField>
+            <InfoField :label="$t('common.meta.polarity')">{{
+              vocabLabel(dataset?.polarity) || '—'
+            }}</InfoField>
             <InfoField :label="$t('common.meta.ionisationSource')">{{
               vocabLabel(dataset?.ionSource) || '—'
             }}</InfoField>
-            <InfoField :label="$t('common.meta.analyzer')">{{ vocabLabel(dataset?.analyzer) || '—' }}</InfoField>
+            <InfoField :label="$t('common.meta.analyzer')">{{
+              vocabLabel(dataset?.analyzer) || '—'
+            }}</InfoField>
             <InfoField :label="$t('common.meta.pixelSize')">
               <template
                 v-if="dataset?.pixelSizeHorizontal != null || dataset?.pixelSizeVertical != null"
@@ -248,11 +302,15 @@ const statusBadge = computed(() => {
               </I18nT>
               <template v-else>—</template>
             </InfoField>
-            <InfoField :label="$t('datasets.field.matrix')">{{ formatString(dataset?.maldiMatrix) }}</InfoField>
+            <InfoField :label="$t('datasets.field.matrix')">{{
+              formatString(dataset?.maldiMatrix)
+            }}</InfoField>
             <InfoField :label="$t('datasets.field.matrixApplication')">{{
               formatString(dataset?.maldiMatrixApplication)
             }}</InfoField>
-            <InfoField :label="$t('common.meta.solvent')">{{ formatString(dataset?.solvent) }}</InfoField>
+            <InfoField :label="$t('common.meta.solvent')">{{
+              formatString(dataset?.solvent)
+            }}</InfoField>
           </div>
         </div>
 
@@ -262,37 +320,21 @@ const statusBadge = computed(() => {
             {{ $t('datasets.overview.fileInfo') }}
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <InfoField :label="$t('datasets.field.fileType')">{{ dataset?.fileType || '—' }}</InfoField>
+            <InfoField :label="$t('datasets.field.fileType')">{{
+              dataset?.fileType || '—'
+            }}</InfoField>
             <InfoField :label="$t('datasets.field.experimentType')">{{
               vocabLabel(dataset?.experimentType) || '—'
             }}</InfoField>
-            <InfoField :label="$t('datasets.field.size')">{{ formatSize(dataset?.sizeBytes) }}</InfoField>
-            <InfoField :label="$t('common.meta.spectrumMode')">{{ dataset?.spectrumMode || '—' }}</InfoField>
-            <InfoField :label="$t('common.meta.storageMode')">{{ dataset?.storageMode || '—' }}</InfoField>
-            <div class="flex flex-col">
-              <span class="kawaru-text-81 font-semibold tracking-wider text-base-content/40 mb-1"
-                >{{ $t('datasets.field.md5') }}</span
-              >
-              <div class="flex items-center gap-2">
-                <span
-                  class="text-base-content bg-base-200/50 px-2 py-1 rounded font-mono kawaru-text-87 truncate max-w-[200px]"
-                  >{{ dataset?.hashMd5 || '—' }}</span
-                >
-                <div
-                  class="tooltip tooltip-top"
-                  :data-tip="isCopied ? $t('datasets.overview.copiedShort') : $t('datasets.overview.copyHash')"
-                  v-if="dataset?.hashMd5"
-                >
-                  <button
-                    @click="copyHash(dataset.hashMd5)"
-                    class="btn btn-sm btn-ghost btn-square rounded-md hover:bg-base-200 shrink-0 kawaru-text-75"
-                  >
-                    <svg-icon v-if="!isCopied" type="duplicate" class="w-4 h-4" />
-                    <svg-icon v-else type="check" class="w-4 h-4 text-success" />
-                  </button>
-                </div>
-              </div>
-            </div>
+            <InfoField :label="$t('datasets.field.size')">{{
+              formatSize(dataset?.sizeBytes)
+            }}</InfoField>
+            <InfoField :label="$t('common.meta.spectrumMode')">{{
+              dataset?.spectrumMode || '—'
+            }}</InfoField>
+            <InfoField :label="$t('common.meta.storageMode')">{{
+              dataset?.storageMode || '—'
+            }}</InfoField>
             <InfoField :label="$t('datasets.field.submittedBy')">{{
               dataset?.submitter || dataset?.raw?.first_uploaded_by || '—'
             }}</InfoField>
@@ -303,13 +345,25 @@ const statusBadge = computed(() => {
       <!-- Make Public Confirmation Dialog -->
       <ConfirmDialog
         :open="showPublicConfirm"
-:title="$t('datasets.overview.publicTitle')"
+        :title="$t('datasets.overview.publicTitle')"
         :message="$t('datasets.overview.publicMessage')"
         :confirm-label="$t('datasets.overview.makePublic')"
         :danger="true"
         :loading="makingPublic"
         @confirm="confirmSetPublic"
         @cancel="cancelPublicConfirm"
+      />
+
+      <!-- Share (private) Confirmation Dialog：设为公开并复制分享链接 -->
+      <ConfirmDialog
+        :open="showShareConfirm"
+        :title="$t('datasets.share.publicTitle')"
+        :message="$t('datasets.share.publicMessage')"
+        :confirm-label="$t('common.action.share')"
+        :danger="true"
+        :loading="sharing"
+        @confirm="confirmSharePublic"
+        @cancel="cancelShareConfirm"
       />
     </div>
   </div>

@@ -106,7 +106,51 @@
       </div>
     </div>
 
-    <div v-else-if="!selectedTool" class="text-base-content">
+    <!-- Imported mask（文件导入：独立于手绘 ROI，虚线边框区分；trash = 清除导入） -->
+    <div v-if="importedMask">
+      <div class="font-semibold text-base-content mb-2 tracking-wide">
+        {{ $t('vizworkbench.roi.importedMask') }}
+      </div>
+      <div class="rounded-lg border border-dashed border-base-content/30 bg-base-content/[0.03] p-2">
+        <div class="flex items-center justify-between mb-1 gap-2">
+          <span
+            class="font-semibold text-base-content truncate"
+            :title="importedMask.name"
+          >
+            {{ importedMask.name }}
+          </span>
+          <button
+            class="text-base-content hover:text-error shrink-0"
+            :title="$t('vizworkbench.mask.clearImport')"
+            @click="$emit('clearImportedMask')"
+          >
+            <SvgIcon type="trash" />
+          </button>
+        </div>
+        <span class="text-base-content/70 uppercase">{{ importedMask.format }}</span>
+        <div class="mt-1 space-y-0.5 font-mono text-base-content">
+          <div class="flex justify-between">
+            <span>{{ $t('vizworkbench.roi.pixels') }}</span><span>{{ importedMask.pixelCount }}</span>
+          </div>
+          <template v-if="importedMask.stats">
+            <div class="flex justify-between">
+              <span>{{ $t('vizworkbench.roi.mean') }}</span><span>{{ fmt(importedMask.stats.mean) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>{{ $t('vizworkbench.roi.std') }}</span><span>{{ fmt(importedMask.stats.std) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>{{ $t('vizworkbench.roi.min') }}</span><span>{{ fmt(importedMask.stats.min) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>{{ $t('vizworkbench.roi.max') }}</span><span>{{ fmt(importedMask.stats.max) }}</span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="!rois.length && !importedMask && !selectedTool" class="text-base-content">
       {{ $t('vizworkbench.roi.empty') }}
     </div>
   </div>
@@ -116,6 +160,7 @@
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import { cssWithAlpha } from '@/features/vizworkbench/utils/regionPalette'
 import type { ConfirmedROI } from '@/features/vizworkbench/composables/useROI'
+import type { ImportedMaskSummary } from '@/features/vizworkbench/utils/maskExport'
 
 defineProps<{
   selectedTool: string | null
@@ -123,6 +168,8 @@ defineProps<{
   rois: ConfirmedROI[]
   /** When true, the ion image is filtered to the ROI union ("ROI only"). */
   viewingRoi: boolean
+  /** 文件导入的掩膜摘要（独立于 rois，只读展示；trash 清除导入） */
+  importedMask?: ImportedMaskSummary | null
 }>()
 
 defineEmits<{
@@ -131,6 +178,7 @@ defineEmits<{
   (e: 'cancel'): void
   (e: 'delete', id: string): void
   (e: 'clearAll'): void
+  (e: 'clearImportedMask'): void
   (e: 'update:viewingRoi', v: boolean): void
 }>()
 

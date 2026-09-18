@@ -1,70 +1,77 @@
-# Uploading Data
+# Upload Data
 
-This page describes the current imzML upload flow. After signing in, open **My Datasets → Upload New Dataset**.
+Upload paired imzML/ibd files, fill in metadata, and manage your private datasets.
 
-## File Requirements
+**Author:** Chen Kejiang
 
-- Select one `.imzML` file and one `.ibd` file at the same time.
-- The two files must have exactly the same base filename; extension case is ignored.
-- The frontend checks the imzML file for basic structural tags. If parsing fails, select the pair again after fixing the file.
-- For a public dataset, the `.ibd` file must be at least **10 MB**. The frontend does not apply this minimum to private datasets.
+**Feedback:** Found a bug or have a suggestion? Open a [GitHub Issue](https://github.com/NeoNexusX/MassVision/issues) or email **jydong@xmu.edu.cn**.
 
-## Metadata
+## Upload a Dataset
 
-After selection, the frontend attempts to read polarity, ion source, analyzer, pixel dimensions, Spectrum Mode, and Storage Mode from imzML. Complete anything that could not be detected. Changing a detected Spectrum/Storage Mode triggers a confirmation dialog.
+Click **Upload New Dataset** to open the upload page.
 
-The following fields are always required:
+![Upload button](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908174622409.jpg_view)
 
-| Group | Fields |
-|---|---|
-| Acquisition | Polarity, Ionisation Source, Analyzer, Pixel Size X/Y, Spectrum Mode, Storage Mode |
-| Sample | Organism, Organism Part, Condition, Sample Stabilization |
+![Upload page](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908174725075.jpg_view)
 
-Additional rules:
+### 1. Select Files
 
-- Pixel Size X/Y must be integers from `1` to `200`.
-- Sample Growth Conditions and Tissue Modification are optional.
-- The m/z and Resolving Power fields under Detector resolving power are optional; valid values are submitted as numbers.
-- Whether Solvent, MALDI Matrix, and MALDI Matrix Application are required is driven by the ion-source rules in `src/features/upload/utils/ionSourceRules.ts`. The form starts with `100% Water`; MALDI-family sources generally also require matrix details.
-- Selecting **Other** requires a concrete custom value; the literal value `Other` cannot be submitted for required select-with-other fields.
+Click **Choose Files** and select both the `.imzML` and `.ibd` files. They must share the same base filename.
 
-## Public or Private
+![File picker](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908175048689.jpg_view)
 
-**Make dataset public (visible to others)** is currently checked by default:
+### 2. Visibility
 
-- Keep it checked: confirm the public upload and ensure the `.ibd` file is at least 10 MB.
-- Uncheck it: the dataset remains visible only under your **My Datasets** page.
+Choose whether the dataset is **public** (visible to all users) or **private** (only visible to you). Public is selected by default.
 
-An existing private dataset can also be made public from its overview page. The current UI treats this action as irreversible.
+![Visibility toggle](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908175221284.jpg_view)
 
-## Actual Upload Pipeline
+### 3. Fill in Metadata
 
-After **Confirm & Upload**, the frontend performs these steps:
+Fields marked with \* are required.
 
-1. Compute a combined MD5 for the two original files in a Web Worker.
-2. Send the original size and MD5 to the preflight endpoint to check for existing data.
-3. If the backend can reuse the data, finish immediately without compression or upload.
-4. Otherwise, check storage quota and create a ZIP64 archive in browser OPFS.
-5. Obtain temporary OSS STS credentials from the backend and upload the archive with `ali-oss` multipart upload.
-6. Remove the local resume session and temporary OPFS ZIP after success.
+![Metadata form](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908193210320.jpg_view)
 
-The progress panel reports the stage, percentage, speed, and ETA. **Abort Upload** aborts the active OSS multipart upload but keeps the local archive so a later attempt can reuse it.
+#### Acquisition Parameters
 
-## Resume
+| Field | Required | Description | Values |
+|---|---|---|---|
+| **Polarity** | Yes | Ion polarity | Positive / Negative |
+| **Ionisation Source** | Yes | Ionization method | MALDI family, DESI family, or Other (see dynamic fields below) |
+| **Analyzer** | Yes | Mass analyzer | Orbitrap Exploris 480/240/120, Q Exactive HF, timsTOF fleX, Orbitrap, etc. |
+| **Pixel Size X (μm)** | Yes | Horizontal pixel size | Integer, 1–200 |
+| **Pixel Size Y (μm)** | Yes | Vertical pixel size | Integer, 1–200 |
+| **Spectrum Mode** | Yes | Spectrum type | profile (continuous) / centroid (peak-picked) |
+| **Storage Mode** | Yes | imzML storage mode | continuous / processed |
+| **Solvent** | Depends | Solvent composition | Pre-filled "100% Water"; options: Water, ACN, MeOH, Ethanol, IPA, Acetone, etc. |
+| **MALDI Matrix** | Depends | Matrix compound | CHCA, DHB, NEDC, Sinapinic acid, 9-AA, Norharmane, DAN, etc. |
+| **Matrix Application** | Depends | How matrix was applied | Spraying, Airbrush, Automated sprayer, Sublimation, Spotting, etc. |
+| **m/z** | No | Reference m/z for resolution | Number |
+| **Resolving Power** | No | Resolution value | Number |
 
-Session metadata is stored in this site's `localStorage`, while the compressed ZIP is stored in this browser's OPFS:
+#### Dynamic Fields by Ion Source
 
-- **Resume / Discard** appears only after both an upload session and local ZIP have been established.
-- Resume requires the same browser, site origin, and browser profile. Clearing site data removes the resumable archive.
-- An expired STS session cannot resume; the frontend removes it and asks you to start again.
-- **Resume** restores the saved multipart checkpoint. After an explicit abort, the next attempt starts a new multipart upload while reusing the local ZIP.
-- **Discard** deletes both session metadata and the OPFS file.
+Whether Solvent, MALDI Matrix, and Matrix Application are required depends on the selected ion source:
 
-An OSS failure is retried once automatically (two attempts total). If the second attempt fails, the recoverable state is kept and an error is shown.
+| Ion Source Family | Solvent | Matrix | Matrix Application |
+|---|---|---|---|
+| MALDI / MALDI-2 / AP-MALDI / AP-SMALDI | Required | Required | Required |
+| DESI / nano-DESI / IR-MALDESI | Required | Optional | Optional |
+| SIMS / LDI / SALDI / LAESI / Other / (none) | Optional | Optional | Optional |
 
-## Troubleshooting
+#### Sample Information
 
-- **Files cannot be selected**: select both files together and verify their base filenames match.
-- **Metadata cannot be submitted**: check starred fields, pixel dimensions, and dynamic ion-source fields. Replace `Other` with a concrete value.
-- **Public upload rejected**: verify that the `.ibd` file is at least 10 MB.
-- **No Resume prompt**: preparation may not have reached the persisted upload stage, or site data, the OPFS file, or the STS session has expired.
+| Field | Required | Description | Example Values |
+|---|---|---|---|
+| **Organism** | Yes | Species | Human, Mouse, Rat, Zebrafish, Fruit fly, Arabidopsis, etc. |
+| **Organism Part** | Yes | Tissue location | Brain, Heart, Liver, Lung, Kidney, Spleen, Pancreas, etc. |
+| **Condition** | Yes | Experimental condition | Control, Disease, Cancer, Infection, Drug-treated, Genetic modification, etc. |
+| **Sample Stabilization** | Yes | Preservation method | Fresh, Fresh frozen, Snap frozen, FFPE, Fixed (formalin), etc. |
+| **Sample Growth Conditions** | No | How sample was grown | In vivo, Ex vivo, In vitro, Cell culture, 2D culture, 3D culture, etc. |
+| **Tissue Modification** | No | Tissue pre-processing | None, Sectioned, Cryosectioned, Microdissected, Washed, Digested, Stained, etc. |
+
+## My Datasets
+
+After uploading, your dataset appears under **Datahub > My Datasets**. See [Dataset Overview](./dataset-overview) for how to view details, download, and share.
+
+![My Datasets](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908203828434.jpg_view)
