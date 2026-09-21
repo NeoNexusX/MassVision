@@ -2,10 +2,10 @@
   <div class="min-h-screen bg-base-200">
     <div class="max-w-[1680px] mx-auto p-4 md:p-8 kawaru-text-100">
       <!-- Loading -->
-      <div v-if="loading" class="animate-pulse flex flex-col gap-6">
-        <div class="h-16 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
-        <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
-        <div class="h-64 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
+      <div v-if="loading" class="flex flex-col gap-6">
+        <div class="skeleton h-16 rounded-xl"></div>
+        <div class="skeleton h-40 rounded-xl"></div>
+        <div class="skeleton h-64 rounded-xl"></div>
       </div>
 
       <!-- 错误态：链接无效 / 集合不存在（后端对非公开集合也返回 404，不暴露存在性） -->

@@ -483,11 +483,7 @@ watch(
           :disabled="isImporting"
           @click="fileInput?.click()"
         >
-          <span
-            v-if="isImporting"
-            class="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent will-change-transform"
-            aria-hidden="true"
-          ></span>
+          <span v-if="isImporting" class="loading loading-spinner loading-xs" aria-hidden="true"></span>
           <SvgIcon v-else type="upload" class="w-4 h-4" />
           {{
             isImporting
@@ -633,10 +629,7 @@ watch(
         v-if="isImporting"
         class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-lg border border-base-300 bg-base-100"
       >
-        <span
-          class="inline-block size-9 animate-spin rounded-full border-4 border-current border-t-transparent text-primary will-change-transform"
-          aria-hidden="true"
-        ></span>
+        <span class="loading loading-spinner loading-lg text-primary" aria-hidden="true"></span>
         <p class="kawaru-text-68 text-base-content/50">
           {{ $t('vizworkbench.annotation.parsing') }}
         </p>

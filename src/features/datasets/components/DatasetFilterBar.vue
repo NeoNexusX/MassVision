@@ -10,7 +10,7 @@
         <SearchInput
           v-model="searchQuery"
           :placeholder="searchPlaceholder ?? $t('common.input.searchDatasets')"
-          class="flex-1 min-w-0"
+          class="flex-1 min-w-[7rem]"
           @search="onSearchClick"
         />
         <button @click="onSearchClick" class="btn btn-primary shrink-0 kawaru-text-100">{{ $t('common.action.search') }}</button>

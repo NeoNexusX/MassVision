@@ -2,10 +2,10 @@
   <div class="min-h-screen bg-base-200">
     <div class="max-w-[1680px] mx-auto p-4 md:p-8 kawaru-text-100">
       <!-- Loading：与列表页同构的骨架 -->
-      <div v-if="loading" class="animate-pulse flex flex-col gap-6">
-        <div class="h-16 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
-        <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
-        <div class="h-64 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
+      <div v-if="loading" class="flex flex-col gap-6">
+        <div class="skeleton h-16 rounded-xl"></div>
+        <div class="skeleton h-40 rounded-xl"></div>
+        <div class="skeleton h-64 rounded-xl"></div>
       </div>
 
       <!-- 无 state 进入（直刷/书签 /collections/overview）时，引导返回列表。 -->

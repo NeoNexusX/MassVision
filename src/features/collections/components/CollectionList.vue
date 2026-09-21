@@ -43,12 +43,8 @@ defineEmits<{
 <template>
   <div>
     <!-- Loading：与数据集列表同构的脉冲骨架（每行两个） -->
-    <div v-if="loading" class="animate-pulse flex flex-col gap-6">
-      <div
-        v-for="i in 3"
-        :key="i"
-        class="w-full h-56 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"
-      ></div>
+    <div v-if="loading" class="flex flex-col gap-6">
+      <div v-for="i in 3" :key="i" class="skeleton w-full h-56 rounded-xl"></div>
     </div>
 
     <!-- Error state -->

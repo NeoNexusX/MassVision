@@ -1,5 +1,8 @@
 <script setup lang="ts">
-defineProps<{
+import { computed } from 'vue'
+import { t } from '@/i18n'
+
+const props = defineProps<{
   stats: {
     total: number
     admin: number
@@ -7,25 +10,24 @@ defineProps<{
     instCount: number
   }
 }>()
+
+// 与 DatasetStatsPanel 同构：数据驱动 + daisyUI stats。
+// 标题在此用静态 key 取译文（no-dynamic-keys 要求 key 为字面量）；
+// t() 读取 locale ref，切换语言时 computed 自动重算。
+const items = computed(() => [
+  { title: t('common.stat.totalUsers'), value: props.stats.total, color: 'text-base-content' },
+  { title: t('users.stats.admin'), value: props.stats.admin, color: 'text-info' },
+  { title: t('users.stats.users'), value: props.stats.regularUsers, color: 'text-success' },
+  { title: t('users.stats.institutions'), value: props.stats.instCount, color: 'text-base-content' },
+])
 </script>
 
 <template>
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <div class="bg-base-100 rounded-lg shadow-sm border border-base-200/60 p-4 text-center">
-      <div class="kawaru-text-100 text-base-content/60">{{ $t('common.stat.totalUsers') }}</div>
-      <div class="kawaru-text-240 font-bold mt-2 text-base-content">{{ stats.total }}</div>
-    </div>
-    <div class="bg-base-100 rounded-lg shadow-sm border border-base-200/60 p-4 text-center">
-      <div class="kawaru-text-100 text-base-content/60">{{ $t('users.stats.admin') }}</div>
-      <div class="kawaru-text-240 font-bold mt-2 text-info">{{ stats.admin }}</div>
-    </div>
-    <div class="bg-base-100 rounded-lg shadow-sm border border-base-200/60 p-4 text-center">
-      <div class="kawaru-text-100 text-base-content/60">{{ $t('users.stats.users') }}</div>
-      <div class="kawaru-text-240 font-bold mt-2 text-success">{{ stats.regularUsers }}</div>
-    </div>
-    <div class="bg-base-100 rounded-lg shadow-sm border border-base-200/60 p-4 text-center">
-      <div class="kawaru-text-100 text-base-content/60">{{ $t('users.stats.institutions') }}</div>
-      <div class="kawaru-text-240 font-bold mt-2 text-base-content">{{ stats.instCount }}</div>
+  <!-- stat-value 自带固定字号，显式挂 kawaru-text-240 覆盖它（与 StatusBadge/DatasetStatsPanel 同约定） -->
+  <div class="stats stats-vertical w-full border border-base-200/60 shadow-sm sm:stats-horizontal">
+    <div v-for="item in items" :key="item.title" class="stat place-items-center">
+      <div class="stat-title kawaru-text-100">{{ item.title }}</div>
+      <div class="stat-value kawaru-text-240 font-bold" :class="item.color">{{ item.value }}</div>
     </div>
   </div>
 </template>
