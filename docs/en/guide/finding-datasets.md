@@ -10,16 +10,16 @@ Search, filter, and sort public and personal datasets on SpatialXomics.
 
 ### Dataset Naming Convention
 
-Dataset names follow a structured format. For example, `Mouse_Brain_MALDI_30_Positive_7d5b0c`:
+Dataset names are generated at upload time from the metadata you entered plus the file hash. For example, `0e75ee_Human_Brain_MALDI_20_Positive`:
 
 | Segment | Meaning | Example |
 |---|---|---|
-| Organism | Species | Mouse |
-| Organism Part | Tissue/organ | Brain |
+| Identifier | First six characters of the file hash | 0e75ee |
+| Organism | Species | Human |
+| Organism Part | Tissue or organ | Brain |
 | Ion Source | Ionization method | MALDI |
-| Pixel Size | Spatial resolution (μm) | 30 |
+| Pixel Size | Horizontal pixel size (μm) | 20 |
 | Polarity | Ion polarity | Positive |
-| Identifier | Unique hash | 7d5b0c |
 
 Use any of these segments to search.
 
@@ -41,20 +41,31 @@ Click **Add filter**, choose your criteria, then click **Apply**.
 
 | Filter | Type | Example Values |
 |---|---|---|
-| **Filename** | Text | `Mouse_Brain_MALDI_30_Positive_7d5b0c` |
+| **Filename** | Text | `0e75ee_Human_Brain_MALDI_20_Positive` |
 | **Experiment Type** | Dropdown | imzML, Other |
-| **Username** | Text | Submitter's username |
+| **Submitted By** | Text | Submitter's username |
 | **Organism** | Dropdown | Human, Mouse, Rat, Zebrafish… |
 | **Organism Part** | Dropdown | Brain, Heart, Liver, Tumor, Whole organism… |
 | **Condition** | Dropdown | Control, Disease, Cancer, Drug-treated, Genetic modification… |
-| **Sample Stabilization** | Dropdown | Fresh frozen, Snap frozen, FFPE, Ethanol fixed… |
+| **Sample Stabilization** | Dropdown | Fresh, Fresh frozen, Snap frozen, FFPE, Ethanol fixed… |
+| **Sample Growth Conditions** | Dropdown | In vivo, Ex vivo, In vitro, Cell culture, Organoid… |
 | **Tissue Modification** | Dropdown | None, Cryosectioned, Washed, Stained, Chemical derivatization… |
-| **MALDI Matrix** | Dropdown | CHCA, DHB, Sinapinic acid, 9-AA, DAN… |
+| **MALDI Matrix** | Dropdown | CHCA, DHB, NEDC, Sinapinic acid, 9-AA… |
 | **Matrix Application** | Dropdown | Spraying, Sublimation, Spotting, Inkjet printing… |
 | **Solvent** | Dropdown | Water, ACN, MeOH, Ethanol, TFA… |
+| **Polarity** | Dropdown | Positive, Negative |
+| **Ionisation Source** | Dropdown | MALDI, DESI, SIMS, AP-MALDI, LDI… |
+| **Analyzer** | Dropdown | Orbitrap Exploris 480, Q Exactive HF, timsTOF fleX, TOF… |
+
+On **My Datasets** the **Username** filter is not shown — results are always limited to your own uploads. An extra **Username** filter appears only on **Public Datasets**.
 
 ## Sort
 
-Click the sort button to the right of the search bar. Choose **Sort by submission time** or **Sort by file size**.
+Click the sort button to the right of the search bar and pick one of four orders:
+
+- **Submission time (newest first)** — default
+- **Submission time (oldest first)**
+- **File size (largest first)**
+- **File size (smallest first)**
 
 ![Sort options](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908162922455.jpg_view)
