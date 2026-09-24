@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { deriveCollectionMetadata, DERIVED_METADATA_KEYS } from '../deriveCollectionMetadata'
 import type { File } from '@/features/datasets/types/dataset'
 
-const file = (over: Partial<File>): File => ({ id: '1', name: '', submitTime: '', submitter: '', status: 'completed', isPublic: true, ...over }) as File
+const file = (over: Partial<File>): File => ({ publicId: 'qW3rT5yU7iO9pA1s', name: '', submitTime: '', submitter: '', status: 'completed', isPublic: true, ...over }) as File
 
 describe('deriveCollectionMetadata', () => {
   it('returns every derived key as an empty array for an empty selection', () => {
