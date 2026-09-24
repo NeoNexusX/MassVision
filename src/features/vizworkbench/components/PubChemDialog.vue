@@ -128,7 +128,7 @@ async function copyText(text: string) {
         <!-- Structure image + basic info：手机端上下堆叠，避免 240px 固定宽的图挤爆信息列 -->
         <div class="flex flex-col sm:flex-row gap-5">
           <!-- 2D structure -->
-          <div class="w-full h-44 sm:shrink-0 sm:w-60 sm:h-60 rounded-lg border border-base-300 bg-white flex items-center justify-center overflow-hidden">
+          <div class="w-full h-52 sm:shrink-0 sm:w-72 sm:h-72 rounded-lg border border-base-300 bg-white flex items-center justify-center overflow-hidden">
             <img
               v-if="!imageError"
               :src="result.structureImageUrl"
@@ -143,23 +143,29 @@ async function copyText(text: string) {
 
           <!-- Name + formula + weight + CID + link -->
           <div class="flex-1 min-w-0 space-y-3">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="kawaru-text-81 text-base-content/60">{{ $t('common.field.name') }}</p>
-                <p class="font-semibold kawaru-text-95 text-base-content break-words">{{ result.title || '-' }}</p>
-              </div>
-              <div class="shrink-0 flex items-center gap-2 pt-0.5">
-                <span class="badge badge-primary kawaru-text-75">CID {{ result.cid }}</span>
-                <a
-                  :href="result.pubchemUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="btn btn-ghost btn-sm gap-1 text-primary kawaru-text-75"
-                >
-                  <SvgIcon type="share" />
-                  PubChem
-                </a>
-              </div>
+            <!-- CID + PubChem link on their own row above the name; name then gets
+                 the full column width (one line, truncate with hover title instead
+                 of being squeezed into a narrow wrap column) -->
+            <div class="flex items-center justify-between gap-2">
+              <span class="badge badge-primary kawaru-text-75">CID {{ result.cid }}</span>
+              <a
+                :href="result.pubchemUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-ghost btn-sm gap-1 text-primary kawaru-text-75"
+              >
+                <SvgIcon type="share" />
+                PubChem
+              </a>
+            </div>
+            <div class="min-w-0">
+              <p class="kawaru-text-81 text-base-content/60">{{ $t('common.field.name') }}</p>
+              <p
+                class="font-semibold kawaru-text-95 text-base-content truncate"
+                :title="result.title"
+              >
+                {{ result.title || '-' }}
+              </p>
             </div>
             <div>
               <p class="kawaru-text-81 text-base-content/60">{{ $t('vizworkbench.pubchem.formula') }}</p>

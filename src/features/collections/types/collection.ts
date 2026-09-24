@@ -12,7 +12,6 @@ import type { FilePublicResponse } from '@/features/datasets/types/dataset'
 
 /** POST /collections/list（我的集合）/ POST /collections/list_all（全库）列表行；按 updated_at 倒序 */
 export interface CollectionSummary {
-  id: number
   name: string
   title: string | null
   /** 列表行是否携带 description 未确认；缺省 null，卡片隐藏简介 */
@@ -25,8 +24,8 @@ export interface CollectionSummary {
   organism: string[]
   createdAt: string | null
   updatedAt: string | null
-  /** 免登录分享 id（16 位 base62）。后端是否在响应中返回未确认，无则分享入口隐藏 */
-  publicId: string | null
+  /** 免登录分享 id（16 位 base62）。集合对外标识只有 public_id，数字 id 不再返回 */
+  publicId: string
   // ---- 卡片直接展示的元数据（后端列表响应平铺在顶层，已有实测）----
   doi: string[]
   journalName: string | null
@@ -49,11 +48,8 @@ export interface CollectionDetail extends CollectionSummary {
   members: CollectionMember[]
 }
 
-/**
- * 公开页详情（GET /collections/public/{public_id}）：响应不返回数字 id
- * （公开页禁止暴露可枚举的自增 id，对外只用 public_id），其余同 CollectionDetail。
- */
-export type PublicCollectionDetail = Omit<CollectionDetail, 'id'> & { id?: number }
+/** 公开页详情（GET /collections/public/{public_id}）：响应结构与 CollectionDetail 一致（对外只用 public_id） */
+export type PublicCollectionDetail = CollectionDetail
 
 /** 集合成员（由 FilePublic 映射；文件对外标识为 16 位字符串 publicId，不再使用数字 file_id） */
 export interface CollectionMember {
@@ -107,7 +103,7 @@ export type CollectionCreatePayload = Partial<CollectionMetadata> & {
 }
 
 /**
- * PATCH /collections/{id} 请求体：全部元数据字段均可部分更新。
+ * PATCH /collections/{public_id} 请求体：全部元数据字段均可部分更新。
  * exclude_unset 语义：只放要改的字段（buildMetadataPatch 负责差量构建）。
  * 键即 CollectionMetadata 的 snake_case 键，与后端 CollectionPatch 一一对应。
  */
@@ -121,9 +117,9 @@ export type CollectionMetadataDraft = {
     : string
 }
 
-/** DELETE /collections/{id}/members 响应：removed/skipped 为 public_id 列表，供对账 */
+/** DELETE /collections/{public_id}/members 响应：removed/skipped 为 public_id 列表，供对账 */
 export interface MemberRemovalResult {
-  collectionId: number
+  publicId: string
   removed: string[]
   skipped: string[]
 }

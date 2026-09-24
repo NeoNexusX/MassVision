@@ -131,13 +131,12 @@ export function useCreateCollection() {
       )
       showToast(t('common.feedback.created'), 'success')
       saved.value = true
-      // 详情页无路径参数：id 走 history.state（与列表页 handleView 同一套路）。
-      // 公开路由 /collections/{public_id} 只能只读浏览（public 响应不含数字 id，
-      // 编辑/删除等写操作用不上），所以 overview 保持 state 方案：
-      // 数字 id 供写操作，publicId 供公开接口拉详情
+      // 详情页 public_id 进路径（/collections/overview/{public_id}）。列表页点击是
+      // 新标签页打开（handleView），但创建流程是本页延续：原地 replace 过渡到
+      // overview，避免给用户多开一个页签。创建响应即 CollectionDetail，publicId 必有
       router.replace({
         name: 'CollectionOverview',
-        state: { collectionId: detail.id, publicId: detail.publicId ?? undefined },
+        params: { publicId: detail.publicId },
       })
     } catch (err: any) {
       // 409 invalid collection members 等：CollectionApiError.message 是后端 detail 原文

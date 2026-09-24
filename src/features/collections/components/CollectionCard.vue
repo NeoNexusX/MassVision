@@ -2,9 +2,9 @@
   <!-- 集合卡片：<lg 纵向堆叠（封面 → 名称/元信息 → 操作行沉底），lg+ 封面在左、
        右侧信息区 + 最右操作列。
        右侧信息区：表头（名称 + 右上角归属徽标 + Creator/Created/Updated 行）横跨
-       整个右侧；其下「两框等高并排」——左框 Title/DOI/Access/Journal/Published
-       标签左置行（浅背景圆角框，空值占位「—」），右框 Organism / Organism Part /
-       Ionisation Source chips（整列圆角框）。<xl 两框纵向堆叠，xl 起并排且
+       整个右侧；其下「两框等高并排」——左框 Organism / Organism Part /
+       Ionisation Source chips（整列圆角框），右框 Title/DOI/Access/Journal/Published
+       标签左置行（浅背景圆角框，空值占位「—」）。<xl 两框纵向堆叠，xl 起并排且
        xl:items-stretch 等高（顶、底都齐平）；整对 mt-auto 沉底，两框底边与封面底边对齐。
        chips 每个字段恒一行：最多常显 3 个值（nowrap，放不下由 chip 内省略号截断、
        title 悬停看全称），行尾「…」圆钮点开 popover 悬浮窗看剩余值（top layer）。
@@ -19,7 +19,7 @@
        本组件嵌在列表页的任意深度，em 会随层级叠乘，档位才是绝对像素。 -->
   <div
     class="flex flex-col lg:flex-row lg:p-6 gap-x-4 gap-y-4 h-full bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-base-300 cursor-pointer"
-    @click="$emit('view', collection.id)"
+    @click="$emit('view', collection.publicId)"
   >
     <!-- 主区包裹层（封面 + 右侧信息区）：md 起封面左栏（300/340px）、信息区占满
          同行剩余宽度并 stretch 到封面高；<md 纵向堆叠；操作列不进本层 -->
@@ -141,13 +141,80 @@
           </div>
         </div>
 
-        <!-- 合并面板：表头之下，学术信息 | 样本信息 两列，中缝 daisyUI divider 分隔。
+        <!-- 合并面板：表头之下，样本信息 | 学术信息 两列，中缝 daisyUI divider 分隔。
              边框/浅背景/内边距挂在面板上（两列不再各自成框）；<xl 纵向堆叠、divider 转横向，
              xl 起并排、左右各 flex-1 平分、divider 转竖向并通高；整块 mt-auto 沉底、与封面底对齐。 -->
         <div
           class="mt-auto min-w-0 rounded-lg border border-base-300 bg-base-200/40 dark:bg-slate-700/40 p-3 flex flex-col xl:flex-row"
         >
-          <!-- 左列（学术）：Title / DOI / Access / Journal / Published 标签左置行 -->
+          <!-- 左列（样本）：Organism / Organism Part / Ionisation Source，每个字段恒一行；
+               放不下由 chip 内省略号截断、行尾「…」点开 popover 看剩余值。 -->
+          <div class="xl:flex-1 min-w-0 flex flex-col gap-2.5">
+            <div v-for="field in basicFields" :key="field.key" class="min-w-0">
+              <div class="kawaru-text-81 font-medium text-base-content/45">{{ field.label }}</div>
+              <div
+                v-if="field.values.length"
+                class="flex flex-nowrap items-center gap-1.5 mt-1 min-w-0"
+              >
+                <span
+                  v-for="value in field.visibleValues"
+                  :key="value"
+                  class="min-w-0 inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                  :title="vocabLabel(value)"
+                >
+                  <span class="truncate">{{ vocabLabel(value) }}</span>
+                </span>
+
+                <!-- 行尾「…」：该字段还有未常显的值，点开下方悬浮窗查看。
+                 shrink-0 让它在与截断 chip 挤一行时始终留在可视区末尾 -->
+                <button
+                  v-if="field.hiddenValues.length"
+                  type="button"
+                  :popovertarget="field.popoverId"
+                  :style="{ anchorName: field.anchorName }"
+                  class="shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 hover:border-primary/40 hover:text-primary"
+                  :title="$t('collections.card.more', { count: field.hiddenValues.length })"
+                  :aria-label="$t('collections.card.moreAria', { name: collection.name })"
+                  @click.stop
+                >
+                  …
+                </button>
+
+                <!-- 剩余值悬浮窗：daisyUI 5 的 popover 形态，内容进 top layer，
+                 点外部 / Esc 关闭；[position-try-fallbacks] 让下方放不下时自动上翻。
+                 与「…」圆钮同条件渲染，没有剩余值就不挂空面板 -->
+                <div
+                  v-if="field.hiddenValues.length"
+                  :id="field.popoverId"
+                  popover
+                  role="dialog"
+                  :style="{ positionAnchor: field.anchorName }"
+                  class="dropdown dropdown-end dropdown-bottom w-[16em] rounded-box p-3 bg-base-100 dark:bg-slate-800 border border-base-300 shadow-lg [position-try-fallbacks:flip-block]"
+                  @click.stop
+                >
+                  <div class="kawaru-text-81 font-medium text-base-content/45">
+                    {{ field.label }}
+                  </div>
+                  <div class="flex flex-wrap gap-1.5 mt-1">
+                    <span
+                      v-for="value in field.hiddenValues"
+                      :key="value"
+                      class="max-w-full inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                      :title="vocabLabel(value)"
+                    >
+                      <span class="truncate">{{ vocabLabel(value) }}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="kawaru-text-81 text-base-content/40 mt-1">—</div>
+            </div>
+          </div>
+
+          <!-- 中缝：<xl 横线、xl 竖线（通高）；留空不写字 -->
+          <div class="divider xl:divider-horizontal my-2 xl:my-0 xl:mx-2"></div>
+
+          <!-- 右列（学术）：Title / DOI / Access / Journal / Published 标签左置行 -->
           <div class="xl:flex-1 min-w-0 flex flex-col gap-3">
             <div class="flex items-baseline gap-2 min-w-0">
               <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
@@ -246,73 +313,6 @@
               <span v-else class="kawaru-text-81 text-base-content/40">—</span>
             </div>
           </div>
-
-          <!-- 中缝：<xl 横线、xl 竖线（通高）；留空不写字 -->
-          <div class="divider xl:divider-horizontal my-2 xl:my-0 xl:mx-2"></div>
-
-          <!-- 右列（样本）：Organism / Organism Part / Ionisation Source，每个字段恒一行；
-               放不下由 chip 内省略号截断、行尾「…」点开 popover 看剩余值。 -->
-          <div class="xl:flex-1 min-w-0 flex flex-col gap-2.5">
-            <div v-for="field in basicFields" :key="field.key" class="min-w-0">
-              <div class="kawaru-text-81 font-medium text-base-content/45">{{ field.label }}</div>
-              <div
-                v-if="field.values.length"
-                class="flex flex-nowrap items-center gap-1.5 mt-1 min-w-0"
-              >
-                <span
-                  v-for="value in field.visibleValues"
-                  :key="value"
-                  class="min-w-0 inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
-                  :title="vocabLabel(value)"
-                >
-                  <span class="truncate">{{ vocabLabel(value) }}</span>
-                </span>
-
-                <!-- 行尾「…」：该字段还有未常显的值，点开下方悬浮窗查看。
-                 shrink-0 让它在与截断 chip 挤一行时始终留在可视区末尾 -->
-                <button
-                  v-if="field.hiddenValues.length"
-                  type="button"
-                  :popovertarget="field.popoverId"
-                  :style="{ anchorName: field.anchorName }"
-                  class="shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 hover:border-primary/40 hover:text-primary"
-                  :title="$t('collections.card.more', { count: field.hiddenValues.length })"
-                  :aria-label="$t('collections.card.moreAria', { name: collection.name })"
-                  @click.stop
-                >
-                  …
-                </button>
-
-                <!-- 剩余值悬浮窗：daisyUI 5 的 popover 形态，内容进 top layer，
-                 点外部 / Esc 关闭；[position-try-fallbacks] 让下方放不下时自动上翻。
-                 与「…」圆钮同条件渲染，没有剩余值就不挂空面板 -->
-                <div
-                  v-if="field.hiddenValues.length"
-                  :id="field.popoverId"
-                  popover
-                  role="dialog"
-                  :style="{ positionAnchor: field.anchorName }"
-                  class="dropdown dropdown-end dropdown-bottom w-[16em] rounded-box p-3 bg-base-100 dark:bg-slate-800 border border-base-300 shadow-lg [position-try-fallbacks:flip-block]"
-                  @click.stop
-                >
-                  <div class="kawaru-text-81 font-medium text-base-content/45">
-                    {{ field.label }}
-                  </div>
-                  <div class="flex flex-wrap gap-1.5 mt-1">
-                    <span
-                      v-for="value in field.hiddenValues"
-                      :key="value"
-                      class="max-w-full inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
-                      :title="vocabLabel(value)"
-                    >
-                      <span class="truncate">{{ vocabLabel(value) }}</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="kawaru-text-81 text-base-content/40 mt-1">—</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -341,7 +341,7 @@
 
       <button
         class="btn btn-primary kawaru-text-81 h-[2.3em] min-h-[2.3em] flex-1 min-w-0 lg:flex-none lg:w-full"
-        @click.stop="$emit('view', collection.id)"
+        @click.stop="$emit('view', collection.publicId)"
       >
         <!-- 窄屏等宽四列放不下全称，显示简写「View」；lg 起整宽竖列显示「View Collection」 -->
         <span class="truncate lg:hidden">{{ $t('common.action.view') }}</span>
@@ -354,7 +354,7 @@
         v-if="canEdit"
         class="btn btn-outline border-error/30 bg-error/15 text-error hover:bg-error/30 hover:border-error/50 kawaru-text-81 h-[2.3em] min-h-[2.3em] flex-1 min-w-0 lg:flex-none lg:w-full"
         :title="$t('collections.card.deleteTitle')"
-        @click.stop="$emit('delete', collection.id)"
+        @click.stop="$emit('delete', collection.publicId)"
       >
         <SvgIcon type="trash" class="w-[1em] h-[1em] shrink-0" />
         <span class="truncate">{{ $t('common.action.delete') }}</span>
@@ -401,8 +401,8 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'view', id: number): void
-  (e: 'delete', id: number): void
+  (e: 'view', publicId: string): void
+  (e: 'delete', publicId: string): void
 }>()
 
 const { showToast } = useToast()
@@ -495,12 +495,12 @@ const basicFields = computed(() =>
     visibleValues: field.values.slice(0, VISIBLE_VALUE_COUNT),
     hiddenValues: field.values.slice(VISIBLE_VALUE_COUNT),
     // popover 靠 id 关联触发按钮，一页多卡 × 每卡三个字段都需唯一
-    popoverId: `collection-${props.collection.id}-more-${field.key}`,
+    popoverId: `collection-${props.collection.publicId}-more-${field.key}`,
     // 显式锚点（同样需唯一）。daisyUI 的 popover 靠浏览器的「隐式锚点」（=popovertarget
     // 按钮）定位，但 :popover-open 一翻 false 隐式锚点就没了 —— 而 daisyUI 为了淡出动画
     // 会在关闭后继续渲染 ~250ms，那段时间 position-area 失效，面板会掉到视口左上角
     // 闪一下内容。显式 anchor-name / position-anchor 不随 open 状态丢失，位置全程不动。
-    anchorName: `--collection-${props.collection.id}-more-${field.key}`,
+    anchorName: `--collection-${props.collection.publicId}-more-${field.key}`,
   })),
 )
 

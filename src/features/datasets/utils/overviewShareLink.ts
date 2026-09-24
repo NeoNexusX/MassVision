@@ -14,7 +14,8 @@ function encodeLegacyShareId(fileId: string): string {
 
 /**
  * 旧版分享 token 的解码器：URL-safe Base64 编码的正整数文件 id。
- * 历史链接永久兼容；除本模块与分享页 legacy 分支外，前端不再产生数字文件 ID。
+ * 兑换接口 GET /files/id/{file_id}/public_id 已下线，legacy 链接不再发请求、
+ * 按无效链接处理；保留解码器仅为把这类链接与 publicId 链接区分开。
  */
 export function decodeLegacyShareId(encoded: string): string | null {
   if (!encoded || !/^[A-Za-z0-9_-]+$/.test(encoded)) return null
@@ -40,8 +41,8 @@ export type ShareToken =
 
 /**
  * 分享路由 token 判别。legacy 优先（round-trip 后与 publicId 的歧义概率趋近于
- * 零），16 位字母数字串按 public_id 处理，其余一律无效 —— 无效链接直接渲染
- * 「无效分享链接」，不发起任何请求。
+ * 零），16 位字母数字串按 public_id 处理，其余一律无效 —— 无效链接（含 legacy，
+ * 兑换接口已下线）直接渲染「无效分享链接」，不发起任何请求。
  */
 export function resolveShareToken(token: string): ShareToken | null {
   const legacy = decodeLegacyShareId(token)

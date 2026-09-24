@@ -27,8 +27,11 @@ const authPatch = vi.mocked(auth_api.patch)
 const authDelete = vi.mocked(auth_api.delete)
 const publicGet = vi.mocked(api.get)
 
+/** 集合的 16 位 public_id：集合接口的唯一对外标识（数字 id 已下线） */
+const CID = 'aB3xK9mQ2rT7wY1z'
+
 const detailBody = {
-  id: 7,
+  public_id: CID,
   name: 'X',
   member_count: 1,
   total_size: 10,
@@ -119,9 +122,9 @@ describe('collectionApi', () => {
 
   it('getCollection maps the detail response', async () => {
     authGet.mockResolvedValueOnce({ data: detailBody })
-    const d = await getCollection(7)
-    expect(authGet).toHaveBeenCalledWith('/collections/7')
-    expect(d.id).toBe(7)
+    const d = await getCollection(CID)
+    expect(authGet).toHaveBeenCalledWith(`/collections/${CID}`)
+    expect(d.publicId).toBe(CID)
     expect(d.members).toEqual([{ publicId: 'qW3rT5yU7iO9pA1s', imagePath: 'images/file_42/', filename: 'a.imzML', size: 0, status: '', isPublic: false, experimentType: null }])
   })
 
@@ -142,52 +145,50 @@ describe('collectionApi', () => {
 
   it('updateCollection sends only provided fields via PATCH', async () => {
     authPatch.mockResolvedValueOnce({ data: detailBody })
-    await updateCollection(7, { name: 'Y' })
-    expect(authPatch).toHaveBeenCalledWith('/collections/7', { name: 'Y' })
+    await updateCollection(CID, { name: 'Y' })
+    expect(authPatch).toHaveBeenCalledWith(`/collections/${CID}`, { name: 'Y' })
   })
 
-  it('deleteCollection returns the raw reconciliation shape', async () => {
-    authDelete.mockResolvedValueOnce({ data: { collection_id: 7, deleted: true } })
-    const r = await deleteCollection(7)
-    expect(r).toEqual({ collection_id: 7, deleted: true })
+  it('deleteCollection maps the {public_id, deleted} response', async () => {
+    authDelete.mockResolvedValueOnce({ data: { public_id: CID, deleted: true } })
+    const r = await deleteCollection(CID)
+    expect(r).toEqual({ publicId: CID, deleted: true })
   })
 
   it('addMembers posts file_public_ids and returns full detail', async () => {
     authPost.mockResolvedValueOnce({ data: detailBody })
-    await addMembers(7, ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'])
-    expect(authPost).toHaveBeenCalledWith('/collections/7/members', {
+    await addMembers(CID, ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'])
+    expect(authPost).toHaveBeenCalledWith(`/collections/${CID}/members`, {
       file_public_ids: ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'],
     })
   })
 
   it('removeMembers sends file_public_ids in the DELETE body', async () => {
     authDelete.mockResolvedValueOnce({
-      data: { collection_id: 7, removed: ['qW3rT5yU7iO9pA1s'], skipped: ['zX9cV8bN6mL4kJ2h'] },
+      data: { public_id: CID, removed: ['qW3rT5yU7iO9pA1s'], skipped: ['zX9cV8bN6mL4kJ2h'] },
     })
-    const r = await removeMembers(7, ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'])
-    expect(authDelete).toHaveBeenCalledWith('/collections/7/members', {
+    const r = await removeMembers(CID, ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'])
+    expect(authDelete).toHaveBeenCalledWith(`/collections/${CID}/members`, {
       data: { file_public_ids: ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h'] },
     })
-    expect(r).toEqual({ collectionId: 7, removed: ['qW3rT5yU7iO9pA1s'], skipped: ['zX9cV8bN6mL4kJ2h'] })
+    expect(r).toEqual({ publicId: CID, removed: ['qW3rT5yU7iO9pA1s'], skipped: ['zX9cV8bN6mL4kJ2h'] })
   })
 
   it('reorderMembers patches the full-rewrite order endpoint', async () => {
     authPatch.mockResolvedValueOnce({ data: detailBody })
-    await reorderMembers(7, ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h', 'pL0kJ8hG6fD4sA2w'])
-    expect(authPatch).toHaveBeenCalledWith('/collections/7/members/order', {
+    await reorderMembers(CID, ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h', 'pL0kJ8hG6fD4sA2w'])
+    expect(authPatch).toHaveBeenCalledWith(`/collections/${CID}/members/order`, {
       file_public_ids: ['qW3rT5yU7iO9pA1s', 'zX9cV8bN6mL4kJ2h', 'pL0kJ8hG6fD4sA2w'],
     })
   })
 
-  it('getPublicCollection uses the no-auth client and tolerates the missing numeric id', async () => {
-    // 公开页响应已去掉数字 id（对外只用 public_id，16 位 base62）
-    const publicBody = { ...detailBody, id: undefined, public_id: 'aB3xK9mQ2rT7wY1z' }
-    publicGet.mockResolvedValueOnce({ data: publicBody })
-    const d = await getPublicCollection('aB3xK9mQ2rT7wY1z')
-    expect(publicGet).toHaveBeenCalledWith('/collections/public/aB3xK9mQ2rT7wY1z')
+  it('getPublicCollection uses the no-auth client', async () => {
+    // 公开页与认证详情同结构：对外只有 public_id（16 位 base62），无数字 id
+    publicGet.mockResolvedValueOnce({ data: detailBody })
+    const d = await getPublicCollection(CID)
+    expect(publicGet).toHaveBeenCalledWith(`/collections/public/${CID}`)
     expect(authGet).not.toHaveBeenCalled()
-    expect(d.id).toBeUndefined()
-    expect(d.publicId).toBe('aB3xK9mQ2rT7wY1z')
+    expect(d.publicId).toBe(CID)
     expect(d.memberCount).toBe(1)
   })
 
@@ -196,7 +197,7 @@ describe('collectionApi', () => {
       response: { status: 409, data: { detail: 'invalid collection members' } },
       message: 'Request failed with status code 409',
     })
-    const err = await getCollection(7).catch((e) => e)
+    const err = await getCollection(CID).catch((e) => e)
     expect(err.status).toBe(409)
     expect(err.backendMessage).toBe('invalid collection members')
     expect(err.message).toBe('invalid collection members')

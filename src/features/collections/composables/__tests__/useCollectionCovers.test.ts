@@ -9,9 +9,11 @@ vi.mock('../../api/collectionApi', () => ({ getPublicCollection: getPublicCollec
 import { useCollectionCovers } from '../useCollectionCovers'
 import type { CollectionSummary } from '../../types/collection'
 
+/** 造 16 位 public_id：pid + 13 位数字补齐，每个 n 对应唯一集合 */
+const PID = (n: number) => `pid${String(n).padStart(13, '0')}`
+
 const summary = (over: Partial<CollectionSummary>): CollectionSummary =>
   ({
-    id: 1,
     name: 'X',
     title: null,
     description: null,
@@ -21,7 +23,7 @@ const summary = (over: Partial<CollectionSummary>): CollectionSummary =>
     organism: [],
     createdAt: null,
     updatedAt: null,
-    publicId: null,
+    publicId: '',
     doi: [],
     journalName: null,
     access: null,
@@ -55,62 +57,62 @@ describe('useCollectionCovers', () => {
   it('fetches members via the row public id and exposes ordered imagePaths', async () => {
     getPublicCollectionMock.mockResolvedValueOnce(detailWith(['images/file_42/', 'images/file_7/']))
 
-    const { memberImagePaths } = setup([summary({ id: 1, publicId: 'aB3xK9mQ2rT7wY1z' })])
+    const { memberImagePaths } = setup([summary({ publicId: PID(1) })])
     await flushPromises()
 
-    expect(getPublicCollectionMock).toHaveBeenCalledWith('aB3xK9mQ2rT7wY1z')
-    expect(memberImagePaths[1]).toEqual(['images/file_42/', 'images/file_7/'])
+    expect(getPublicCollectionMock).toHaveBeenCalledWith(PID(1))
+    expect(memberImagePaths[PID(1)]).toEqual(['images/file_42/', 'images/file_7/'])
   })
 
   // 预览未生成的成员保留 null 槽位，由卡片/DatasetThumb 走占位图
   it('keeps null entries for members whose preview is not generated', async () => {
     getPublicCollectionMock.mockResolvedValueOnce(detailWith(['images/file_1/', null]))
 
-    const { memberImagePaths } = setup([summary({ id: 2, publicId: 'aB3xK9mQ2rT7wY1z' })])
+    const { memberImagePaths } = setup([summary({ publicId: PID(2) })])
     await flushPromises()
 
-    expect(memberImagePaths[2]).toEqual(['images/file_1/', null])
+    expect(memberImagePaths[PID(2)]).toEqual(['images/file_1/', null])
   })
 
   // 同一集合只请求一次：列表重渲染 / 重新赋值不应再打接口
   it('requests each collection at most once', async () => {
     getPublicCollectionMock.mockResolvedValue(detailWith(['images/file_1/']))
-    const { collections, memberImagePaths } = setup([summary({ id: 1, publicId: 'aB3xK9mQ2rT7wY1z' })])
+    const { collections, memberImagePaths } = setup([summary({ publicId: PID(1) })])
     await flushPromises()
 
-    collections.value = [summary({ id: 1, publicId: 'aB3xK9mQ2rT7wY1z' })]
+    collections.value = [summary({ publicId: PID(1) })]
     await flushPromises()
 
     expect(getPublicCollectionMock).toHaveBeenCalledTimes(1)
-    expect(memberImagePaths[1]).toEqual(['images/file_1/'])
+    expect(memberImagePaths[PID(1)]).toEqual(['images/file_1/'])
   })
 
   // 后端将来若在列表里直接带上 members，就不该再发详情请求
   it('uses members already present on the list row without fetching', async () => {
     const { memberImagePaths } = setup([
-      summary({ id: 9, publicId: 'aB3xK9mQ2rT7wY1z', members: detailWith(['images/file_5/']).members }),
+      summary({ publicId: PID(9), members: detailWith(['images/file_5/']).members }),
     ])
     await flushPromises()
 
     expect(getPublicCollectionMock).not.toHaveBeenCalled()
-    expect(memberImagePaths[9]).toEqual(['images/file_5/'])
+    expect(memberImagePaths[PID(9)]).toEqual(['images/file_5/'])
   })
 
   it('skips fetching when the row carries no public id', async () => {
-    const { memberImagePaths } = setup([summary({ id: 3, publicId: null })])
+    const { memberImagePaths } = setup([summary({ publicId: '' })])
     await flushPromises()
 
     expect(getPublicCollectionMock).not.toHaveBeenCalled()
     // 无键可查：留空让卡片回退占位图
-    expect(memberImagePaths[3]).toEqual([])
+    expect(memberImagePaths['']).toEqual([])
   })
 
   it('falls back to an empty list when the detail request fails', async () => {
     getPublicCollectionMock.mockRejectedValueOnce(new Error('boom'))
 
-    const { memberImagePaths } = setup([summary({ id: 3, publicId: 'aB3xK9mQ2rT7wY1z' })])
+    const { memberImagePaths } = setup([summary({ publicId: PID(3) })])
     await flushPromises()
 
-    expect(memberImagePaths[3]).toEqual([])
+    expect(memberImagePaths[PID(3)]).toEqual([])
   })
 })
