@@ -1,6 +1,6 @@
 # Navigation
 
-How to move around the SpatialXomics platform.
+Move around the SpatialXomics platform from the top navigation bar, or from the floating nav ball on full-screen pages.
 
 **Author:** Chen Kejiang
 
@@ -8,20 +8,22 @@ How to move around the SpatialXomics platform.
 
 ## Navigation Bar
 
-The top navigation bar provides four main sections:
+The top navigation bar groups the platform into four sections:
 
 | Section | Purpose |
 |---|---|
-| **Home** | Landing page with platform overview |
-| **Datahub** | Browse and manage datasets |
-| **Workspace** | Create analyses and track tasks |
-| **Documentation** | Open this documentation site |
+| **Home** | Landing page with the platform overview |
+| **Datahub** | Public Datasets, My Datasets, and Collections |
+| **Workspace** | New Analysis and the task dashboard |
+| **Documentation** | Opens this documentation site |
 
 ![Navigation bar](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260914202606293.jpg_view)
 
+Your avatar menu holds **Profile**, **Users** (administrators only), and **Sign out**. Signed-out visitors get **Sign in** and **Create account** instead.
+
 ## Floating Nav Ball
 
-On pages where the top navigation bar is hidden (e.g., the full-screen visualization page), a floating navigation ball appears in the bottom-right corner.
+On pages where the top navigation bar is hidden — the full-screen visualization page, for example — a floating navigation ball appears in the bottom-right corner.
 
 ![Nav ball](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260909175034159.jpg_view)
 

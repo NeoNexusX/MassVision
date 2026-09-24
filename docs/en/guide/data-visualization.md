@@ -63,20 +63,33 @@ Lists the processing methods applied to this result (e.g., "Direct conversion (n
 | **Enable UMAP/KMeans** | First use requires confirmation; triggers a backend UMAP task. |
 | **UMAP** | Overlay showing UMAP dimensionality reduction. |
 | **KMeans** | Run KMeans on the UMAP embedding (k = 2–20). Runs locally in the browser. |
-| **Opacity** | Adjust overlay transparency for UMAP/KMeans. |
-| **Export PNG** | Download the current UMAP/KMeans view. |
-| **Cluster filter** | Toggle individual clusters on/off. |
+| **Opacity** | Adjust overlay transparency for UMAP and for KMeans separately. |
+| **Export UMAP PNG / Export KMeans PNG** | Download the corresponding overlay as a PNG image. |
+| **Clusters** | Toggle individual clusters on and off. |
 
 ### Region of Interest (ROI)
 
 | Tool | Description |
 |---|---|
 | **Rect** | Drag to draw a rectangular ROI. |
-| **Lasso** | Freeform draw an irregular ROI. |
+| **Lasso** | Draw a freeform outline for an irregular ROI. |
 | **Confirm / Cancel** | Finalize or discard the current draft. |
 | **ROI only / Show all** | Toggle between showing only ROI pixels or the full image. |
 | **ROI stats** | Each ROI shows: Pixels, Mean, Std, Min, Max. |
 | **Delete / Clear all** | Remove individual ROIs or clear everything. |
+
+### Mask Import & Export
+
+Export ROI masks and KMeans clusters as a binary mask file, or import one and use it as a display filter.
+
+| Control | Description |
+|---|---|
+| **Format** | Choose the mask file format. |
+| **ROI masks / KMeans clusters** | Pick which regions to include. Checked regions are merged into a single binary mask. |
+| **Export mask** | Download one mask file. Each file embeds the dataset name, shape, pixel size, and a SHA-256 digest over the pixel payload. |
+| **Import mask** | Load a mask and apply it as a filter on the ion image. |
+| **Apply Mask / Show Original** | Re-apply the imported mask, or suspend it and show the full image. |
+| **Clear imported mask** | Remove the imported mask. |
 
 ## Ion Intensity Image
 
@@ -100,7 +113,7 @@ Displays the spatial intensity distribution for the selected m/z value.
 | **m/z search** | Continuous mode only. Enter a target m/z and press Enter or click Search to jump to the nearest peak. |
 | **Tolerance ±** | m/z matching tolerance. Default 0.0001, range 1e-8–1. |
 | **Colormap** | Viridis, Inferno (default), Magma, Hot, Gray. |
-| **Intensity Scale** | Linear / Log / TIC norm (TIC norm available for Continuous data with precomputed stats). |
+| **Intensity Scale** | Linear / Log / TIC norm. TIC norm divides each pixel by its total ion current and needs pre-computed stats on Continuous data. |
 | **Reset** | Restore all controls to defaults. |
 | **PNG** | Export the current image with a transparent background. |
 
@@ -108,6 +121,14 @@ Displays the spatial intensity distribution for the selected m/z value.
 
 - **Min/Max sliders** — drag to adjust contrast.
 - **Gamma slider** — range 0.5–1.5, default 1.0.
+
+## Multi-Ion Overlay
+
+Continuous data can overlay several ions at once as separate colour channels. Enable **Overlay mode**, then add the current m/z as a channel — or use **Batch add m/z** and click peaks straight on the spectrum.
+
+- Up to **10 channels**. Each channel is normalized on its own range and added as a colour.
+- Per-channel controls cover visibility, colour, and opacity.
+- Display Range, Colormap, and Gamma do not apply while an overlay is active (their controls are greyed out).
 
 ## Pixel Spectrum
 
@@ -132,6 +153,8 @@ Compare spectral differences between two regions (A vs. B). Regions can come fro
 
 1. **KMeans clusters** (generated in the sidebar)
 2. **User-drawn ROIs**
+
+Set a minimum detection rate and an intensity threshold, then click **Compare**. Results are grouped into **A only**, **B only**, **A enriched**, **B enriched**, and **Shared**, with detection rates and mean intensities for both sides. Members of a group are combined (union) before comparing.
 
 ### Using KMeans Clusters
 
@@ -193,6 +216,8 @@ CSV format requirements:
 - **Adduct** and **Formula** dropdowns narrow results by metadata.
 - **Search box** filters by name, formula, or m/z keywords.
 
+Rows whose adduct or formula implies the opposite polarity, or whose m/z falls outside the spectrum range, are dropped before matching.
+
 ### Sorting
 
 Use the **Sort by** dropdown, then click the arrow to toggle ascending/descending:
@@ -212,5 +237,5 @@ Use the **Sort by** dropdown, then click the arrow to toggle ascending/descendin
 
 ### Export & Clear
 
-- **Download** button exports matched rows as CSV.
+- **Download** button exports matched rows as CSV with 8 columns: Name, Candidates, formula_ion, Ion type, Tar. m/z, Matched m/z, Mass Difference, Avg Intensity.
 - **Trash** button clears the imported data.

@@ -8,6 +8,7 @@ The documentation uses VitePress. Sources live under `docs/`, and the production
 docs/
 ├── .vitepress/config.ts     # Site, locales, nav, sidebars, and build config
 ├── .vitepress/theme/        # Custom theme
+├── archit_image/            # Standalone architecture diagrams (self-contained HTML)
 ├── en/                      # Default English sources
 │   ├── guide/
 │   └── dev/
@@ -45,6 +46,7 @@ outline: [2, 3]
 - Absolute English site paths omit `/en`; Chinese paths include `/zh`.
 - `ignoreDeadLinks` currently exempts only SPA paths beginning with `/mydatasets` and `/datasets`. Other dead links still fail the build; dead-link checking is not globally disabled.
 - Put documentation-only screenshots in a clearly named asset directory under `docs/` and reference them relatively, or use a stable external host. Do not place them in root `public/`, where they ship as unlisted SPA assets.
+- Architecture diagrams live in `docs/archit_image/` as self-contained HTML. Each node label is repeated in the `data-node-label` attribute, the `aria-label`, the `<title>` element, and the rendered SVG `<text>`; change all four together, and keep the info-card notes in step with the code. Note that `npm run docs:build` does not emit these files into `dist-docs/`, so they are not served by the deployed `/docs/` site — open them from the repository, or add a build step if they need to ship.
 - Do not copy obsolete API behavior or speculate about future behavior. Use current code, runtime configuration, and the current API contract.
 
 VitePress also supports containers, math, emoji, `[[toc]]`, and code imports. Example:

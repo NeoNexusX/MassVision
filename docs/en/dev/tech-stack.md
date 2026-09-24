@@ -26,6 +26,7 @@ npm run dev
 | i18n | `vue-i18n` (Composition mode); locale messages split into per-namespace JSON files and lazy-loaded with routes; `@intlify/unplugin-vue-i18n` build optimization; `@intlify/eslint-plugin-vue-i18n` for missing/unused key checks |
 | Upload | `hash-wasm` for MD5, `@zip.js/zip.js` for ZIP64, and `ali-oss` multipart upload |
 | Zarr | In-repository Zarr v3/OSS Range reader with `zstddec`; supports MassFlow layouts 1.0 and 1.1 |
+| PubChem | Compound lookup for annotation rows |
 | Clustering | Backend-generated UMAP; browser-side KMeans using `ml-kmeans` over the UMAP embedding |
 | Other | `i18n-iso-countries` for country/region data |
 | Docs and tests | VitePress, Vitest, Playwright |
@@ -44,13 +45,13 @@ src/
 ├── features/             # Business modules: assistant, auth, collections, datasets, home, upload, users, vizworkbench, workspace
 ├── i18n/                 # vue-i18n instance, type definitions, and locales/{locale}/{ns}.json message files
 ├── router/               # Routes and guards
-├── services/             # Cross-module OSS, Zarr, and clustering services
+├── services/             # Cross-module Zarr (with OSS client), clustering, and PubChem services
 ├── shared/               # HTTP, auth, directives, generic components/composables/config/types
 ├── views/                # Route pages that compose features
 └── workers/              # Upload ZIP/MD5 worker
 ```
 
-The result feature also owns annotation CSV and KMeans workers under `src/features/vizworkbench/utils/`. Feature-specific workers stay close to their owner rather than all living under root `workers/`.
+The vizworkbench feature also owns the annotation CSV and KMeans workers under `src/features/vizworkbench/utils/`. Feature-specific workers stay close to their owner rather than all living under root `workers/`.
 
 ## Common Scripts
 
