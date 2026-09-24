@@ -46,7 +46,8 @@ beforeEach(() => {
 
 describe('collectionApi', () => {
   it('listCollections posts empty filter body, paginates via query, unwraps {meta, data}', async () => {
-    const row = { id: 1, name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
+    // 列表行与详情同构：只有 public_id，无数字 id（对齐线上响应）
+    const row = { public_id: 'bB2cD4fG6hJ8kL0m', name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
 
     authPost.mockResolvedValueOnce({
       data: {
@@ -65,6 +66,7 @@ describe('collectionApi', () => {
     })
     expect(res.data).toHaveLength(1)
     expect(res.data.map((r) => r.name)).toEqual(['a'])
+    expect(res.data[0]!.publicId).toBe('bB2cD4fG6hJ8kL0m')
   })
 
   it('listCollections passes filter body through (single value or array)', async () => {
@@ -79,7 +81,8 @@ describe('collectionApi', () => {
   })
 
   it('listCollections still tolerates legacy envelopes, meta falls back to single page', async () => {
-    const row = { id: 1, name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
+    // 列表行与详情同构：只有 public_id，无数字 id（对齐线上响应）
+    const row = { public_id: 'bB2cD4fG6hJ8kL0m', name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
 
     authPost.mockResolvedValueOnce({ data: [row, row] })
     const plain = await listCollections(1, 10)
@@ -101,7 +104,8 @@ describe('collectionApi', () => {
   })
 
   it('listAllCollections hits /collections/list_all with the same pagination contract', async () => {
-    const row = { id: 1, name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
+    // 列表行与详情同构：只有 public_id，无数字 id（对齐线上响应）
+    const row = { public_id: 'bB2cD4fG6hJ8kL0m', name: 'a', member_count: 0, total_size: 0, owner_username: 'u' }
 
     authPost.mockResolvedValueOnce({
       data: {
