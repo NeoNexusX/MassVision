@@ -58,7 +58,6 @@ function toStringList(raw: any, metadata: CollectionMetadata, key: string): stri
 function toSummary(raw: any): CollectionSummary {
   const metadata = toMetadata(raw)
   return {
-    id: raw.id,
     name: raw.name || '',
     title: raw.title || null,
     description: raw?.description ?? metadata.description ?? null,
@@ -68,7 +67,7 @@ function toSummary(raw: any): CollectionSummary {
     organism: toStringList(raw, metadata, 'organism'),
     createdAt: raw.created_at ?? null,
     updatedAt: raw.updated_at ?? null,
-    publicId: raw.public_id ?? null,
+    publicId: raw.public_id ?? '',
     doi: toStringList(raw, metadata, 'doi'),
     journalName: raw.journal_name ?? metadata.journal_name ?? null,
     publishTime: raw.publish_time ?? null,
@@ -80,7 +79,7 @@ function toSummary(raw: any): CollectionSummary {
   }
 }
 
-/** GET /collections/{id}（及创建/加成员/调序返回的完整详情） */
+/** GET /collections/{public_id}（及创建/加成员/调序返回的完整详情） */
 export function mapCollectionDetail(raw: any): CollectionDetail {
   const members = Array.isArray(raw?.members) ? raw.members : []
   return {

@@ -112,8 +112,8 @@ export function useCollectionsPage() {
 
   /** 删除集合（不动文件）。成功/失败提示由调用方的 useConfirmDelete 统一负责；
    *  服务端分页下重拉当前页，尾页删尽则回落一页 */
-  async function removeCollection(id: number) {
-    await deleteCollection(id)
+  async function removeCollection(publicId: string) {
+    await deleteCollection(publicId)
     const target = rows.value.length <= 1 && page.value > 1 ? page.value - 1 : page.value
     await fetchPage(target)
   }

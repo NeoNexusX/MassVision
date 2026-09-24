@@ -15,7 +15,6 @@ import { i18n, loadCoreMessages, loadFeatureMessages } from '@/i18n'
 
 const collection = (over: Partial<CollectionSummary> = {}): CollectionSummary =>
   ({
-    id: 1,
     name: 'Human Kidney Atlas',
     title: 'Human kidney MALDI imaging atlas',
     description: null,
@@ -25,7 +24,7 @@ const collection = (over: Partial<CollectionSummary> = {}): CollectionSummary =>
     organism: ['Human (Homo sapiens)'],
     createdAt: null,
     updatedAt: '2026-09-09T00:00:00',
-    publicId: null,
+    publicId: 'aB3xK9mQ2rT7wY1z',
     doi: ['10.1038/s41586-024-00001-x'],
     journalName: 'Nature Methods',
     access: ['https://example.org/access'],
@@ -152,7 +151,8 @@ describe('CollectionCard cover fallbacks', () => {
     const wrapper = mountCard({ imagePaths: undefined, coverLoading: true })
 
     expect(wrapper.find('img').exists()).toBe(false)
-    expect(wrapper.find('.animate-pulse').exists()).toBe(true)
+    // 867bf0f 骨架重构后封面骨架走 daisyUI 的 .skeleton class（自带脉冲动画）
+    expect(wrapper.find('.skeleton').exists()).toBe(true)
   })
 })
 
@@ -282,8 +282,10 @@ describe('CollectionCard info (right column)', () => {
     })
 
     const button = wrapper.get('button[aria-label^="More metadata"]')
-    expect(button.attributes('popovertarget')).toBe('collection-1-more-organism')
-    expect(wrapper.get('[popover]').attributes('id')).toBe('collection-1-more-organism')
+    expect(button.attributes('popovertarget')).toBe('collection-aB3xK9mQ2rT7wY1z-more-organism')
+    expect(wrapper.get('[popover]').attributes('id')).toBe(
+      'collection-aB3xK9mQ2rT7wY1z-more-organism',
+    )
     expect(wrapper.get('[popover]').attributes('role')).toBe('dialog')
   })
 
@@ -340,7 +342,7 @@ describe('CollectionCard ownership & actions', () => {
     expect(
       mountCard({ collection: collection({ publicId: 'aB3xK9mQ2rT7wY1z' }) }).text(),
     ).toContain('Share')
-    expect(mountCard({ collection: collection({ publicId: null }) }).text()).not.toContain('Share')
+    expect(mountCard({ collection: collection({ publicId: '' }) }).text()).not.toContain('Share')
   })
 
   it('renders the dataset count with singular/plural label', () => {

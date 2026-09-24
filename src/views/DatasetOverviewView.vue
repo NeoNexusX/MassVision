@@ -31,11 +31,6 @@ const {
   openPublicConfirm,
   cancelPublicConfirm,
   confirmSetPublic,
-  showShareConfirm,
-  sharing,
-  openShareConfirm,
-  cancelShareConfirm,
-  confirmSharePublic,
 } = useDatasetDetail()
 
 // 下载打包中：publicId 已是字符串，dataset 为空时按空串（isPacking 恒 false）
@@ -193,9 +188,9 @@ const statusBadge = computed(() => {
             >
               {{ dataset.filename }}
             </h2>
-            <!-- 按钮行：Download / Share 恒定在左（与公开文件一致）；私有文件的
-                 Make Public 用 ml-auto 推到行右、状态徽章之前，Share 点击先弹
-                 「设为公开并分享」确认框 -->
+            <!-- 按钮行：Download / Share 恒定在左；Share 公开/私有都直接复制链接
+                 （接收端需登录浏览），私有文件的 Make Public 用 ml-auto 推到行右、
+                 状态徽章之前 -->
             <div class="flex flex-wrap items-center gap-2">
               <button
                 @click="downloadCurrent"
@@ -207,7 +202,7 @@ const statusBadge = computed(() => {
                 {{ packing ? $t('datasets.card.packing') : $t('common.action.download') }}
               </button>
               <button
-                @click="dataset.isPublic ? shareCurrent() : openShareConfirm()"
+                @click="shareCurrent"
                 class="btn btn-sm h-8 min-h-8 border shadow-sm transition-shadow hover:shadow-md kawaru-text-75"
                 :class="
                   isShareCopied
@@ -352,18 +347,6 @@ const statusBadge = computed(() => {
         :loading="makingPublic"
         @confirm="confirmSetPublic"
         @cancel="cancelPublicConfirm"
-      />
-
-      <!-- Share (private) Confirmation Dialog：设为公开并复制分享链接 -->
-      <ConfirmDialog
-        :open="showShareConfirm"
-        :title="$t('datasets.share.publicTitle')"
-        :message="$t('datasets.share.publicMessage')"
-        :confirm-label="$t('common.action.share')"
-        :danger="true"
-        :loading="sharing"
-        @confirm="confirmSharePublic"
-        @cancel="cancelShareConfirm"
       />
     </div>
   </div>

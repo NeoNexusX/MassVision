@@ -2,11 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { mapCollectionDetail, mapCollectionSummary } from '../collectionMapper'
 
 // 真实后端（POST /collections/list）把元数据平铺在顶层，没有嵌套 metadata 对象
-// （pixel_size_* / resolving_power / mz 已随集合级数值字段下线，不再出现在响应中）
+// （pixel_size_* / resolving_power / mz 已随集合级数值字段下线；数字 id 已随
+// public_id 迁移下线，不再出现在响应中）
 const flatRaw = {
-  id: 7,
   public_id: 'aB3xK9mQ2rT7wY1z',
-  owner_id: 3,
   owner_username: 'lyk',
   name: 'Mouse kidney MSI',
   description: 'A curated set',
@@ -52,7 +51,6 @@ describe('mapCollectionDetail', () => {
   it('maps top-level snake_case into camelCase', () => {
     const d = mapCollectionDetail(detailRaw)
 
-    expect(d.id).toBe(7)
     expect(d.memberCount).toBe(3)
     expect(d.totalSize).toBe(1024)
     expect(d.ownerUsername).toBe('lyk')
@@ -89,7 +87,6 @@ describe('mapCollectionDetail', () => {
 
   it('still supports a nested metadata object if the backend switches to one', () => {
     const nested = mapCollectionDetail({
-      id: 7,
       name: 'X',
       metadata: { name: 'X', doi: ['10.1/x'], organism: ['rat'] },
       members: [],
@@ -101,7 +98,6 @@ describe('mapCollectionDetail', () => {
 
   it('merges partial nested metadata without dropping top-level fields', () => {
     const mapped = mapCollectionDetail({
-      id: 7,
       name: 'X',
       organism: ['mouse'],
       metadata: { doi: ['10.1/x'] },
@@ -114,7 +110,6 @@ describe('mapCollectionDetail', () => {
 
   it('normalizes legacy scalar list fields without dropping their values', () => {
     const mapped = mapCollectionDetail({
-      id: 7,
       name: 'X',
       member_type: 'MSI',
       collection_type: 'Serial sections',
@@ -157,7 +152,7 @@ describe('mapCollectionDetail', () => {
 
   it('tolerates empty payload', () => {
     const d = mapCollectionDetail({})
-    expect(d.id).toBeUndefined()
+    expect(d.publicId).toBe('')
     expect(d.memberCount).toBe(0)
     expect(d.members).toEqual([])
     expect(d.metadata.name).toBe('')
@@ -169,7 +164,6 @@ describe('mapCollectionSummary', () => {
     const s = mapCollectionSummary(flatRaw)
 
     expect(s).toMatchObject({
-      id: 7,
       name: 'Mouse kidney MSI',
       title: 'A title',
       memberCount: 3,
@@ -192,18 +186,18 @@ describe('mapCollectionSummary', () => {
   })
 
   it('maps access as a list (backend contract is list[str])', () => {
-    expect(mapCollectionSummary({ id: 1, access: ['https://example.org/data'] }).access).toEqual([
+    expect(mapCollectionSummary({ access: ['https://example.org/data'] }).access).toEqual([
       'https://example.org/data',
     ])
     // 后端历史上可能回过标量：归一成单元素列表而不是穿透原值
-    expect(mapCollectionSummary({ id: 1, access: 'https://example.org/data' }).access).toEqual([
+    expect(mapCollectionSummary({ access: 'https://example.org/data' }).access).toEqual([
       'https://example.org/data',
     ])
-    expect(mapCollectionSummary({ id: 1, access: '' }).access).toEqual([])
+    expect(mapCollectionSummary({ access: '' }).access).toEqual([])
   })
 
   it('drops blank entries so the card does not render empty chips', () => {
-    const s = mapCollectionSummary({ id: 1, organism: ['rat', '', '  '], access: [] })
+    const s = mapCollectionSummary({ organism: ['rat', '', '  '], access: [] })
 
     expect(s.organism).toEqual(['rat'])
   })

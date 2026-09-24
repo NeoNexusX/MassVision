@@ -26,9 +26,11 @@ const reorderMembersMock = vi.mocked(reorderMembers)
 /** 造 16 位 public_id：pid + 13 位数字补齐 */
 const PID = (n: number) => `pid${String(n).padStart(13, '0')}`
 
+/** 集合的 16 位 public_id（对外唯一标识） */
+const CID = 'aB3xK9mQ2rT7wY1z'
+
 function makeDetail(ids: number[]): CollectionDetail {
   return {
-    id: 7,
     name: 'X',
     title: null,
     description: null,
@@ -38,7 +40,7 @@ function makeDetail(ids: number[]): CollectionDetail {
     organism: [],
     createdAt: null,
     updatedAt: null,
-    publicId: null,
+    publicId: CID,
     doi: [],
     journalName: null,
     publishTime: null,
@@ -87,7 +89,7 @@ describe('useCollectionMembers', () => {
 
     await expect(ops.add([PID(4)])).resolves.toBe(true)
 
-    expect(addMembersMock).toHaveBeenCalledWith(7, [PID(4)])
+    expect(addMembersMock).toHaveBeenCalledWith(CID, [PID(4)])
     expect(ops.members.value.map((m) => m.publicId)).toEqual([1, 2, 3, 4].map(PID))
     expect(showToastMock).toHaveBeenCalledWith('Added', 'success')
   })
@@ -105,7 +107,7 @@ describe('useCollectionMembers', () => {
 
   it('remove reports the removed/skipped reconciliation and refreshes', async () => {
     removeMembersMock.mockResolvedValue({
-      collectionId: 7,
+      publicId: CID,
       removed: [PID(1), PID(2)],
       skipped: [PID(9)],
     })
@@ -113,7 +115,7 @@ describe('useCollectionMembers', () => {
 
     await ops.remove([PID(1), PID(2), PID(9)])
 
-    expect(removeMembersMock).toHaveBeenCalledWith(7, [PID(1), PID(2), PID(9)])
+    expect(removeMembersMock).toHaveBeenCalledWith(CID, [PID(1), PID(2), PID(9)])
     expect(showToastMock).toHaveBeenCalledWith(
       'Removed 2 · 1 were no longer in the collection',
       'success',
@@ -128,7 +130,7 @@ describe('useCollectionMembers', () => {
     await ops.reorder(2, 0)
 
     // 全量数组按乐观顺序提交
-    expect(reorderMembersMock).toHaveBeenCalledWith(7, [3, 1, 2].map(PID))
+    expect(reorderMembersMock).toHaveBeenCalledWith(CID, [3, 1, 2].map(PID))
     expect(ops.members.value.map((m) => m.publicId)).toEqual([3, 1, 2].map(PID))
   })
 

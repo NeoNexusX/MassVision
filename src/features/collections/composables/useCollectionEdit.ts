@@ -84,7 +84,7 @@ export function useCollectionEdit(options: {
     saving.value = true
     validationError.value = ''
     try {
-      const next = await updateCollection(options.detail.value!.id, patch)
+      const next = await updateCollection(options.detail.value!.publicId, patch)
       showToast(t('common.feedback.updated'), 'success')
       options.onSaved(next)
       editing.value = false

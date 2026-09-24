@@ -43,8 +43,10 @@ export function useDatasetDetail() {
   const source = computed<'my' | 'public'>(() =>
     isShareView.value ? 'public' : route.query.source === 'public' ? 'public' : 'my',
   )
-  /** 分享 token 既非 16 位 publicId 也非旧 Base64 数字 id → 无效链接，不发任何请求 */
-  const isInvalidShare = computed(() => isShareView.value && !sharedToken.value)
+  /** 分享 token 非 16 位 publicId → 无效链接（含旧 Base64 链接，兑换接口已下线），不发任何请求 */
+  const isInvalidShare = computed(
+    () => isShareView.value && sharedToken.value?.kind !== 'publicId',
+  )
   /** Normal entry needs history state; shared entry needs a valid token. */
   const isStale = computed(() => (isShareView.value ? isInvalidShare.value : !filePublicId.value))
   /** 匿名访问分享链接被 401：渲染「登录 / 注册」引导而不是错误态 */
@@ -138,44 +140,15 @@ export function useDatasetDetail() {
     }
   }
 
-  // ---- 私有文件的分享：确认「设为公开」→ 重拉拿 publicId → 复制链接 ----
-  const showShareConfirm = ref(false)
-  const sharing = ref(false)
-
-  const openShareConfirm = () => {
-    showShareConfirm.value = true
-  }
-
-  const cancelShareConfirm = () => {
-    showShareConfirm.value = false
-  }
-
-  const confirmSharePublic = async () => {
-    const targetId = dataset.value?.publicId ?? ''
-    if (!targetId) return
-    sharing.value = true
-    try {
-      await setFilePublic(targetId)
-      // set_public 响应是否回传 public_id 前后端契约有分歧：重拉一次元数据让
-      // isPublic 与分享所需的 publicId 一起同步到位，然后复用 shareCurrent 复制链接
-      const metadata = await getFileMetadata(targetId)
-      if (metadata) dataset.value = mapItemToDataset(metadata)
-      showToast(t('datasets.overview.madePublic'), 'success')
-      await shareCurrent()
-    } catch (error) {
-      showToast(extractBackendError(error, t('common.feedback.updateFailed')), 'error')
-      console.error('Failed to share dataset', error)
-    } finally {
-      sharing.value = false
-      showShareConfirm.value = false
-    }
-  }
+  // ---- 分享：公开/私有统一直接复制 /s/{public_id} 链接（见 useOverviewShare.shareCurrent）；
+  //      Make Public 是独立入口，与分享解耦 ----
 
   let requestId = 0
 
   const fetchDatasetDetails = async () => {
     const currentRequest = ++requestId
-    const token = isShareView.value ? sharedToken.value : null
+    // 仅 publicId 形态的 token 会发请求；legacy token 由 isInvalidShare 渲染死链态
+    const token = isShareView.value && sharedToken.value?.kind === 'publicId' ? sharedToken.value : null
     if (!token && !filePublicId.value) {
       dataset.value = null
       ticImageUrl.value = ''
@@ -190,14 +163,6 @@ export function useDatasetDetail() {
       const share = token ? await getShareOverviewMetadata(token) : null
       const metadata = share ? share.metadata : await getFileMetadata(filePublicId.value)
       if (currentRequest !== requestId) return
-      if (share?.exchangedPublicId) {
-        // legacy 链接兑换成功：把地址栏从 Base64 旧串升级成新 publicId。
-        // replace 不入历史栈，回退行为不变；watch 会以新 token 幂等地重取一次
-        router.replace({
-          name: 'SharedDatasetOverview',
-          params: { shareToken: share.exchangedPublicId },
-        })
-      }
       dataset.value = metadata ? mapItemToDataset(metadata) : null
       ticImageError.value = false
       // image_path 为空 → null → 占位图；不发起注定 404 的图片请求
@@ -245,10 +210,5 @@ export function useDatasetDetail() {
     openPublicConfirm,
     cancelPublicConfirm,
     confirmSetPublic,
-    showShareConfirm,
-    sharing,
-    openShareConfirm,
-    cancelShareConfirm,
-    confirmSharePublic,
   }
 }
