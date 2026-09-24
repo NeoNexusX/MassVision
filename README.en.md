@@ -8,7 +8,8 @@ SpatialXomics is a web platform for mass spectrometry imaging (MSI) data managem
 
 - **Authentication and authorization**: sign-in, registration, password recovery, profiles, administrator user management, and protected routes.
 - **Dataset management**: browse public datasets, manage personal datasets, inspect metadata, share public overview pages, and download raw `.imzML` / `.ibd` pairs.
-- **Upload pipeline**: MD5 in a Web Worker, server-side reuse checks, ZIP64 compression into OPFS, Alibaba Cloud OSS multipart upload, and same-browser resume.
+- **Collections**: group related public datasets into curated collections with academic metadata and an ordered member list.
+- **Upload pipeline**: MD5 in a Web Worker, server-side reuse checks, streamed ZIP64 compression, Alibaba Cloud OSS multipart upload, and same-browser resume.
 - **Analysis workspace**: compatible noise reduction, baseline correction, normalization, peak picking, and peak alignment choices based on spectrum/storage mode.
 - **Result visualization**: Continuous ion images and mean spectra; Processed TIC images and per-pixel spectra; display range, gamma, colormap, TIC normalization, and transparent PNG export.
 - **Clustering and regions**: backend-generated UMAP plus browser-local KMeans, cluster filtering, rectangular/freehand ROIs, and multi-region comparison.
@@ -37,13 +38,15 @@ src/
 ├── features/                    # Business-domain modules
 │   ├── assistant/               # Optional AI assistant UI (disabled by current runtime config)
 │   ├── auth/                    # Sign-in, registration, and recovery flows
+│   ├── collections/             # Curated dataset collections with academic metadata
 │   ├── datasets/                # Lists, details, sharing, and downloads
 │   ├── home/                    # Home scenes, stats, and commit heatmap
 │   ├── upload/                  # imzML parsing, compression, reuse, and resume
 │   ├── users/                   # Administrator user management
-│   └── workspace/               # Analysis builder, dashboard, and result page
+│   ├── vizworkbench/            # Ion images, spectra, clustering, ROIs, and annotations
+│   └── workspace/               # Analysis builder and task dashboard
 ├── router/                      # Routes and auth/admin guards
-├── services/                    # Zarr, OSS, clustering, and PubChem services
+├── services/                    # Zarr (with OSS client), clustering, and PubChem services
 ├── shared/                      # Shared API, auth, components, config, and utilities
 ├── views/                       # Route pages
 └── workers/                     # Cross-feature workers; feature workers stay with their feature

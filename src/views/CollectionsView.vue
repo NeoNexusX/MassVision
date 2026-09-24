@@ -61,7 +61,7 @@
         :member-image-paths="memberImagePaths"
         :cover-loading="coverLoading"
         @view="handleView"
-        @delete="(id: number) => deleteConfirm.open(String(id))"
+        @delete="(publicId: string) => deleteConfirm.open(publicId)"
         @create="openCreate"
         @clear-search="clearSearch"
         @change-size="changeSize"
@@ -119,18 +119,21 @@ const {
 // 而不是随机占位图
 const { memberImagePaths, loading: coverLoading } = useCollectionCovers(collections)
 
-// 删除确认流：id 用 String 过桥（useConfirmDelete 以 string id 通用化）
+// 删除确认流：public_id 即 useConfirmDelete 的 string id，无需转换
 const deleteConfirm = useConfirmDelete({
-  onDelete: async (id) => removeCollection(Number(id)),
+  onDelete: async (id) => removeCollection(id),
 })
 
 const openCreate = () => {
   router.push({ name: 'CreateCollection' })
 }
 
-const handleView = (id: number) => {
-  const publicId = collections.value.find((collection) => collection.id === id)?.publicId
-  router.push({ name: 'CollectionOverview', state: { collectionId: id, publicId } })
+/** 新标签页打开 /collections/overview/{public_id}（与数据集列表 viewOverview 同方案）：
+ *  URL 带参，刷新/收藏/登录回跳都不丢；noopener 断开 window.opener，标准新页签安全默认。
+ *  Back 去向固定回 /collections（overview 页是静态 router-link），无需像 file 那样带 source query。 */
+const handleView = (publicId: string) => {
+  const href = router.resolve({ name: 'CollectionOverview', params: { publicId } }).href
+  window.open(href, '_blank', 'noopener')
 }
 </script>
 

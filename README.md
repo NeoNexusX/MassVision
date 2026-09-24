@@ -8,7 +8,8 @@ SpatialXomics 是一个面向质谱成像（MSI）的 Web 数据管理与分析�
 
 - **认证与权限**：登录、注册、找回密码、个人资料、管理员用户管理，以及受保护路由。
 - **数据集管理**：浏览公开数据集，管理自己的数据集，查看元数据、分享公开详情页，以及下载原始 `.imzML` / `.ibd` 文件对。
-- **上传管线**：浏览器 Worker 计算 MD5、服务端查重、ZIP64 压缩到 OPFS、阿里云 OSS 分片上传，以及同浏览器内的断点续传。
+- **数据集合**：把相关公开数据集组织成带学术元数据和有序成员列表的数据集合。
+- **上传管线**：浏览器 Worker 计算 MD5、服务端查重、流式 ZIP64 压缩、阿里云 OSS 分片上传，以及同浏览器内的断点续传。
 - **分析工作区**：按数据的 spectrum/storage mode 展示兼容的降噪、基线校正、归一化、峰提取和峰对齐方法。
 - **结果可视化**：Continuous 离子图和平均谱、Processed TIC 图和逐像素谱、显示范围/Gamma/配色/TIC 归一化、透明背景 PNG 导出。
 - **聚类与区域分析**：后端生成 UMAP，浏览器本地执行 KMeans；支持聚类筛选、矩形/自由形状 ROI、多区域组合比较。
@@ -37,13 +38,15 @@ src/
 ├── features/                    # 按业务领域组织的功能
 │   ├── assistant/               # 可选 AI 助手 UI（当前运行时配置默认关闭）
 │   ├── auth/                    # 登录、注册、找回密码表单逻辑
+│   ├── collections/             # 带学术元数据的数据集合
 │   ├── datasets/                # 数据集列表、详情、分享、下载
 │   ├── home/                    # 首页场景、统计和提交热力图
 │   ├── upload/                  # imzML 解析、压缩、查重和续传
 │   ├── users/                   # 管理员用户管理
-│   └── workspace/               # 分析构建器、任务看板和结果页
+│   ├── vizworkbench/            # 离子图、谱图、聚类、ROI 与注释
+│   └── workspace/               # 分析构建器和任务看板
 ├── router/                      # 路由与认证/管理员守卫
-├── services/                    # Zarr、OSS、聚类和 PubChem 服务
+├── services/                    # Zarr（含 OSS client）、聚类和 PubChem 服务
 ├── shared/                      # 跨业务共享的 API、认证、组件、配置和工具
 ├── views/                       # 路由页面
 └── workers/                     # 跨功能 Worker（上传 ZIP）；功能专用 Worker 与功能同目录

@@ -18,21 +18,21 @@ defineProps({
     type: Function as PropType<(collection: CollectionSummary) => boolean>,
     required: true,
   },
-  /** 集合 id → 成员 imagePath（列表接口不带 members，由 useCollectionCovers 补） */
+  /** 集合 public_id → 成员 imagePath（列表接口不带 members，由 useCollectionCovers 补） */
   memberImagePaths: {
-    type: Object as PropType<Record<number, (string | null)[]>>,
+    type: Object as PropType<Record<string, (string | null)[]>>,
     default: () => ({}),
   },
-  /** 集合 id → 封面是否仍在拉取（补齐期间卡片封面显示骨架） */
+  /** 集合 public_id → 封面是否仍在拉取（补齐期间卡片封面显示骨架） */
   coverLoading: {
-    type: Object as PropType<Record<number, boolean>>,
+    type: Object as PropType<Record<string, boolean>>,
     default: () => ({}),
   },
 })
 
 defineEmits<{
-  (e: 'view', id: number): void
-  (e: 'delete', id: number): void
+  (e: 'view', publicId: string): void
+  (e: 'delete', publicId: string): void
   (e: 'create'): void
   (e: 'clear-search'): void
   (e: 'change-size', size: number): void
@@ -43,12 +43,8 @@ defineEmits<{
 <template>
   <div>
     <!-- Loading：与数据集列表同构的脉冲骨架（每行两个） -->
-    <div v-if="loading" class="animate-pulse flex flex-col gap-6">
-      <div
-        v-for="i in 3"
-        :key="i"
-        class="w-full h-56 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"
-      ></div>
+    <div v-if="loading" class="flex flex-col gap-6">
+      <div v-for="i in 3" :key="i" class="skeleton w-full h-56 rounded-xl"></div>
     </div>
 
     <!-- Error state -->
@@ -98,11 +94,11 @@ defineEmits<{
     <div v-else class="flex flex-col gap-5">
       <CollectionCard
         v-for="collection in collections"
-        :key="collection.id"
+        :key="collection.publicId"
         :collection="collection"
         :can-edit="canEdit(collection)"
-        :image-paths="memberImagePaths[collection.id]"
-        :cover-loading="coverLoading[collection.id]"
+        :image-paths="memberImagePaths[collection.publicId]"
+        :cover-loading="coverLoading[collection.publicId]"
         @view="$emit('view', $event)"
         @delete="$emit('delete', $event)"
       />

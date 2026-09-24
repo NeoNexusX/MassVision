@@ -5555,7 +5555,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <ul>
           <li>&bull; REST CRUD: composable → api → httpClient → FastAPI → mappers → components</li>
           <li>&bull; Zarr binary: useZarrIonImage → STS → ali-oss → OSS chunked reads (LRU cache)</li>
-          <li>&bull; Upload pipeline: imzML parse → MD5 dedup → ZIP64 OPFS → multipart OSS → registration</li>
+          <li>&bull; Upload pipeline: imzML parse → MD5 dedup → streamed ZIP64 → multipart OSS → registration</li>
           <li>&bull; Compute: backend UMAP + browser KMeans worker + CSV annotation worker</li>
         </ul>
       </div>

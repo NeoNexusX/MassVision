@@ -5186,8 +5186,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="120" y="84" class="t-muted" font-size="9" text-anchor="middle">VizWorkbench composable</text>
         </g>
 
-        <g id="node-store" data-node-id="store" data-node-label="ZarrOssStore" tabindex="0" role="button" aria-label="Focus ZarrOssStore, Init · Layout · Cache · Dedup, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Init · Layout · Cache · Dedup" data-node-tag="1566 lines · orchestrator" data-node-context="Architecture component">
-          <title>ZarrOssStore · Init · Layout · Cache · Dedup · Architecture component · 1566 lines · orchestrator</title>
+        <g id="node-store" data-node-id="store" data-node-label="ZarrOssStore" tabindex="0" role="button" aria-label="Focus ZarrOssStore, Init · Layout · Cache · Dedup, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Init · Layout · Cache · Dedup" data-node-tag="1549 lines · orchestrator" data-node-context="Architecture component">
+          <title>ZarrOssStore · Init · Layout · Cache · Dedup · Architecture component · 1549 lines · orchestrator</title>
           <rect x="340" y="40" width="170" height="60" rx="6" class="c-mask"/>
           <rect x="340" y="40" width="170" height="60" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(346 46) scale(0.6875)">
@@ -5195,7 +5195,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           </g>
           <text data-node-label="" data-detail-anchor="" x="425" y="68" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">ZarrOssStore</text>
         <text data-detail="context" x="425" y="84" class="t-muted" font-size="9" text-anchor="middle">Init · Layout · Cache · Dedup</text>
-        <text data-detail="fine" x="425" y="92" class="t-backend" font-size="7" text-anchor="middle">1566 lines · orchestrator</text>
+        <text data-detail="fine" x="425" y="92" class="t-backend" font-size="7" text-anchor="middle">1549 lines · orchestrator</text>
         </g>
 
         <g id="node-reader" data-node-id="reader" data-node-label="zarrReader" tabindex="0" role="button" aria-label="Focus zarrReader, N-D array reassembly, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="N-D array reassembly" data-node-tag="padded/unpadded edge chunks" data-node-context="Architecture component">
@@ -5545,9 +5545,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>Cache &amp; Concurrency</h3>
         </div>
         <ul>
-          <li>&bull; 3 independent LRU caches: intensity (20), mz (5), spectra (100)</li>
+          <li>&bull; 3 independent LRU caches: intensity (5), mz (5), spectra (100)</li>
           <li>&bull; In-flight dedup maps: concurrent chunk reads share one promise</li>
-          <li>&bull; Batch size 6 for 1D reads, 12 for full scans (browser connection limit)</li>
+          <li>&bull; Batch size 6 for every chunk read (browser per-origin connection limit)</li>
           <li>&bull; Producer-consumer pool (16 workers) for spectra streaming</li>
         </ul>
       </div>

@@ -1,55 +1,45 @@
 <template>
-  <!-- 集合卡片：响应式三档 —— <md 纯堆叠（封面满宽置顶 → 元信息 → chips → 操作行沉底）；
-       md 起 封面与元信息并排（340px + 信息），chips 框放不下并排时换行沉到
-       整卡宽度（不堆在元信息下方撑高行、让图片下方留空）；xl 起 封面/元信息/
-       chips 同行三块，lg+ 右侧再加操作列。
+  <!-- 集合卡片：<lg 纵向堆叠（封面 → 名称/元信息 → 操作行沉底），lg+ 封面在左、
+       右侧信息区 + 最右操作列。
+       右侧信息区：表头（名称 + 右上角归属徽标 + Creator/Created/Updated 行）横跨
+       整个右侧；其下「两框等高并排」——左框 Organism / Organism Part /
+       Ionisation Source chips（整列圆角框），右框 Title/DOI/Access/Journal/Published
+       标签左置行（浅背景圆角框，空值占位「—」）。<xl 两框纵向堆叠，xl 起并排且
+       xl:items-stretch 等高（顶、底都齐平）；整对 mt-auto 沉底，两框底边与封面底边对齐。
+       chips 每个字段恒一行：最多常显 3 个值（nowrap，放不下由 chip 内省略号截断、
+       title 悬停看全称），行尾「…」圆钮点开 popover 悬浮窗看剩余值（top layer）。
        封面图统一取成员文件的 OSS 预览图（目录来自后端 image_path），
        后端已按数据类型返回对应的那张（processed → TIC，continuous → UMAP），
        前端不做判断；成员超过 1 个时用左右箭头切换。封面下方不带缩略图条。
        轮播用 daisyUI carousel（帧常驻 DOM + scrollIntoView 翻页），
        只挂前 5 个成员的帧，封顶图片请求数。
-
-       中栏左侧：上半（名称 + 右上角归属徽标 + Creator/Created/Updated 行）
-       不带框；下半 Title/DOI/Access/Journal 是独立的浅背景圆角框（标签左置，
-       空值占位「—」），mt-auto 沉底让框底边与左侧封面底边对齐、空隙留在
-       Creator 行与框之间。description 不展示。
-       中栏右侧：Organism / Organism Part / Ionisation Source chips（不展示
-       关键词），整列套圆角框。每个字段恒一行：最多常显 3 个值（nowrap，放不下
-       由 chip 内省略号截断、title 悬停看全称），行尾「…」圆钮点开 popover
-       悬浮窗看剩余值（top layer，不占卡片高度）——chips 列高度恒定，各卡片
-       高度不随值的多少变化。
        卡片右侧多留一截空白（lg:pr-10），让操作列不贴边。
 
        字号一律走 kawaru-text-* 档位（style.css），不用 text-[Nem] ——
        本组件嵌在列表页的任意深度，em 会随层级叠乘，档位才是绝对像素。 -->
   <div
-    class="flex flex-col lg:flex-row p-4 lg:pr-10 gap-x-5 gap-y-4 h-full bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-base-300 cursor-pointer"
-    @click="$emit('view', collection.id)"
+    class="flex flex-col lg:flex-row lg:p-6 gap-x-4 gap-y-4 h-full bg-base-100 dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-base-300 cursor-pointer"
+    @click="$emit('view', collection.publicId)"
   >
-    <!-- 主区包裹层（封面 + 元信息 + chips，单层 flex-wrap）：md 起封面左栏、
-         元信息占满同行剩余宽度；chips 框 xl 起并进同一行（17em 右列），不够宽时
-         整框换行沉到下一行占满层宽——不嵌套「中栏」把 chips 堆在元信息下方，
-         那会把行高撑过封面，图片下方留一大截空白。
-         <md 纯堆叠（封面满宽置顶）；操作列不进本层 -->
-    <div class="flex flex-col md:flex-row md:flex-wrap flex-1 min-w-0 gap-x-5 gap-y-4">
+    <!-- 主区包裹层（封面 + 右侧信息区）：md 起封面左栏（300/340px）、信息区占满
+         同行剩余宽度并 stretch 到封面高；<md 纵向堆叠；操作列不进本层 -->
+    <div class="flex flex-col md:flex-row flex-1 min-w-0 gap-x-5 gap-y-4">
       <!-- 左：封面轮播（尺寸与框体同一个元素，不再套一层纯尺寸壳）。
-         <md 满宽置顶；md 起 340px 左栏（self-start 不拉伸，保持 4:3 → 255px 高）；
-         lg 起 400px（高 300px，px 写死不受字号影响）。
+         <md 满宽置顶、4:3；md 起定宽 300/340px，高度不再钉死在 4:3——去掉 self-start
+         后随行 stretch 到右侧信息区等高（填掉下方空白），再由 md:max-h 封顶，
+         即 min(右侧内容高, max-h)；aspect-[4/3] 退化为内容很矮时的高度下限。
+         注：图片 object-contain 受宽度约束，盒子变高只是上下补浅底（不放大图、不裁切）。
          点击封面不进入 overview：翻看轮播时容易误触整卡跳转，
          入口收归 View Collection 按钮；cursor-default 覆盖整卡的 pointer -->
       <div
-        class="shrink-0 w-full md:w-[340px] md:self-start lg:w-[400px] lg:self-start aspect-[4/3] relative rounded-lg overflow-hidden border border-base-300 bg-base-200 cursor-default"
+        class="shrink-0 w-full md:w-[300px] lg:w-[340px] md:max-h-[400px] aspect-[4/3] relative rounded-lg overflow-hidden border border-base-300 bg-base-200 cursor-default"
         @click.stop
       >
         <!-- 封面完整显示（contain）：TIC / UMAP 都按原比例缩放进框内，不裁切。
              超宽图（TIC 条带 8500×1500）两侧会有留白，但至少内容是全的。 -->
         <!-- 封面成员仍在拉取（列表接口不带 members）：骨架占位，
              避免先闪随机占位图再换真图 -->
-        <div
-          v-if="coverLoading"
-          class="w-full h-full animate-pulse bg-base-200 dark:bg-slate-700"
-          aria-hidden="true"
-        />
+        <div v-if="coverLoading" class="skeleton w-full h-full rounded-none" aria-hidden="true" />
         <!-- daisyUI carousel，官方示例同款外观（snap-mandatory + smooth scroll +
              滚动条隐藏）。官方用 <a href="#slideN"> 翻页，直接搬会污染 history 且
              要求全页唯一 id，这里换 button + scrollIntoView。帧常驻 DOM，img 各自 lazy。 -->
@@ -99,19 +89,16 @@
         </template>
       </div>
 
-      <!-- 中左：上半（名称 + 右上角归属徽标 + Creator 行）不带框；下半
-           （Title/DOI/Access/Journal 标签左置行）是独立的浅背景圆角框，
-           靠边框与背景色区分。
-           下半 mt-auto：随列 stretch 沉到列底，框贴合内容高度，框底边与
-           左侧封面（lg 高 300px）底边对齐；空隙留在 Creator 行与框之间。
-           中右列 xl:self-start 不参与拉伸，保持自己的内容高度。 -->
-      <div class="flex-1 min-w-0 flex flex-col">
-        <!-- 上：名称 + 归属徽标（右上角）+ Creator / Created / Updated，无框无背景。
+      <!-- 右侧信息区：表头（名称/徽标/Creator 行）在上，其下「两框等高并排」；
+           整个区 stretch 到封面高，让两框底边与封面底边对齐。 -->
+      <div class="flex-1 min-w-0 flex flex-col p-2 gap-2">
+        <!-- 上：名称 + 归属徽标（紧跟名称后）+ Creator / Created / Updated，无框无背景。
              列表接口没有集合级公开标记，「公开」即「非本人所有」 -->
         <div class="pb-3 min-w-0 flex flex-col gap-3">
-          <div class="flex items-start justify-between gap-2.5 min-w-0">
+          <!-- 徽标紧跟名称：名称按内容宽、放不下自己 truncate，徽标 shrink-0 恒在其后 -->
+          <div class="flex items-center gap-2.5 min-w-0">
             <h3
-              class="flex-1 min-w-0 truncate font-bold kawaru-text-187 leading-snug text-base-content"
+              class="min-w-0 truncate font-bold kawaru-text-187 leading-snug text-base-content"
               :title="collection.name"
             >
               {{ collection.name }}
@@ -154,177 +141,178 @@
           </div>
         </div>
 
-        <!-- 下：Title / DOI / Access / Journal 标签左置行，独立的浅背景圆角框
-             （与上半的无框内容区分开）。mt-auto：框贴合内容高度、整体沉到列底，
-             框底边与左侧封面（lg 高 300px）底边对齐；空隙出现在 Creator 行与
-             框之间，而不是框内底部 -->
+        <!-- 合并面板：表头之下，样本信息 | 学术信息 两列，中缝 daisyUI divider 分隔。
+             边框/浅背景/内边距挂在面板上（两列不再各自成框）；<xl 纵向堆叠、divider 转横向，
+             xl 起并排、左右各 flex-1 平分、divider 转竖向并通高；整块 mt-auto 沉底、与封面底对齐。 -->
         <div
-          class="mt-auto rounded-lg border border-base-300 bg-base-200/40 dark:bg-slate-700/40 p-3 flex flex-col gap-3"
+          class="mt-auto min-w-0 rounded-lg border border-base-300 bg-base-200/40 dark:bg-slate-700/40 p-3 flex flex-col xl:flex-row"
         >
-          <div class="flex items-baseline gap-2 min-w-0">
-            <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
-              $t('collections.meta.title')
-            }}</span>
-            <p
-              v-if="collection.title"
-              class="flex-1 min-w-0 truncate kawaru-text-81 text-base-content/80"
-              :title="collection.title"
-            >
-              {{ collection.title }}
-            </p>
-            <span v-else class="kawaru-text-81 text-base-content/40">—</span>
-          </div>
-
-          <div class="flex items-baseline gap-2 min-w-0">
-            <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
-              $t('collections.meta.doi')
-            }}</span>
-            <div v-if="collection.doi.length" class="flex-1 min-w-0 flex flex-col gap-0.5">
-              <a
-                v-for="doi in collection.doi"
-                :key="doi"
-                :href="doiHref(doi)"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="flex items-center gap-1.5 min-w-0 kawaru-text-81 text-primary hover:underline"
-                :title="doi"
-                @click.stop
-              >
-                <SvgIcon type="link" class="w-[1em] h-[1em] shrink-0" />
-                <span class="truncate">{{ doi }}</span>
-              </a>
-            </div>
-            <span v-else class="kawaru-text-81 text-base-content/40">—</span>
-          </div>
-
-          <!-- 后端 access 为 list[str]，逐项原样透传：每项可能是 URL 也可能是标签文本（与 DOI 行同构） -->
-          <div class="flex items-baseline gap-2 min-w-0">
-            <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
-              $t('collections.meta.access')
-            }}</span>
-            <div v-if="collection.access.length" class="flex-1 min-w-0 flex flex-col gap-0.5">
-              <a
-                v-for="entry in collection.access"
-                :key="entry"
-                :href="isUrl(entry) ? entry : undefined"
-                :target="isUrl(entry) ? '_blank' : undefined"
-                :rel="isUrl(entry) ? 'noopener noreferrer' : undefined"
-                class="flex items-center gap-1.5 min-w-0 kawaru-text-81"
-                :class="
-                  isUrl(entry)
-                    ? 'text-primary hover:underline'
-                    : 'cursor-default text-base-content/70'
-                "
-                :title="entry"
-                @click.stop
-              >
-                <SvgIcon type="link" class="w-[1em] h-[1em] shrink-0" />
-                <span class="truncate">{{ entry }}</span>
-              </a>
-            </div>
-            <span v-else class="kawaru-text-81 text-base-content/40">—</span>
-          </div>
-
-          <div class="flex items-baseline gap-2 min-w-0">
-            <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
-              $t('collections.meta.journal')
-            }}</span>
-            <!-- 期刊名斜体加粗：Poppins 只下载了 italic 400 字面（无 700 斜体），
-                 全局 font-synthesis:none 会吃掉合成粗体导致看不出加粗，
-                 这里单独放开 weight 合成（与 zh-CN 全局放开的做法一致） -->
-            <p
-              v-if="collection.journalName"
-              class="flex-1 min-w-0 truncate kawaru-text-81 text-base-content/80 italic font-bold [font-synthesis:weight]"
-              :title="collection.journalName"
-            >
-              {{ collection.journalName }}
-            </p>
-            <span v-else class="kawaru-text-81 text-base-content/40">—</span>
-          </div>
-
-          <!-- 发表时间：跟在 Journal 行下，框多占一行，Creator 行与框之间的
-               弹性空隙（mt-auto）随之收窄；label 列宽与上面各行对齐 -->
-          <div class="flex items-baseline gap-2 min-w-0">
-            <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
-              $t('collections.meta.publishTime')
-            }}</span>
-            <p
-              v-if="collection.publishTime"
-              class="flex-1 min-w-0 truncate kawaru-text-81 text-base-content/80"
-              :title="formattedPublishTime"
-            >
-              {{ formattedPublishTime }}
-            </p>
-            <span v-else class="kawaru-text-81 text-base-content/40">—</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 中右：Organism / Organism Part / Ionisation Source 三个字段名恒显示（不含关键词），
-           每个字段恒一行：最多常显 3 个值（nowrap，放不下由 chip 内省略号截断、
-           title 悬停看全称），还有剩余时行尾跟「…」圆钮，点开 popover 悬浮窗看
-           剩余值（top layer，不占卡片高度）——chips 列高度恒定，各卡片不随值
-           多少变化。整列套圆角框；xl 起并进封面同一行（17em 定宽），不够宽时
-           w-full 整框换行沉到下一行；xl:self-start 保持内容高度，不参与拉伸对齐 -->
-      <div
-        class="w-full xl:w-[17em] xl:shrink-0 flex flex-col gap-2.5 min-w-0 rounded-lg border border-base-300 p-3 xl:self-start"
-      >
-        <div v-for="field in basicFields" :key="field.key" class="min-w-0">
-          <div class="kawaru-text-81 font-medium text-base-content/45">{{ field.label }}</div>
-          <div
-            v-if="field.values.length"
-            class="flex flex-nowrap items-center gap-1.5 mt-1 min-w-0"
-          >
-            <span
-              v-for="value in field.visibleValues"
-              :key="value"
-              class="min-w-0 inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
-              :title="vocabLabel(value)"
-            >
-              <span class="truncate">{{ vocabLabel(value) }}</span>
-            </span>
-
-            <!-- 行尾「…」：该字段还有未常显的值，点开下方悬浮窗查看。
-                 shrink-0 让它在与截断 chip 挤一行时始终留在可视区末尾 -->
-            <button
-              v-if="field.hiddenValues.length"
-              type="button"
-              :popovertarget="field.popoverId"
-              :style="{ anchorName: field.anchorName }"
-              class="shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 hover:border-primary/40 hover:text-primary"
-              :title="$t('collections.card.more', { count: field.hiddenValues.length })"
-              :aria-label="$t('collections.card.moreAria', { name: collection.name })"
-              @click.stop
-            >
-              …
-            </button>
-
-            <!-- 剩余值悬浮窗：daisyUI 5 的 popover 形态，内容进 top layer，
-                 点外部 / Esc 关闭；[position-try-fallbacks] 让下方放不下时自动上翻。
-                 与「…」圆钮同条件渲染，没有剩余值就不挂空面板 -->
-            <div
-              v-if="field.hiddenValues.length"
-              :id="field.popoverId"
-              popover
-              role="dialog"
-              :style="{ positionAnchor: field.anchorName }"
-              class="dropdown dropdown-end dropdown-bottom w-[16em] rounded-box p-3 bg-base-100 dark:bg-slate-800 border border-base-300 shadow-lg [position-try-fallbacks:flip-block]"
-              @click.stop
-            >
+          <!-- 左列（样本）：Organism / Organism Part / Ionisation Source，每个字段恒一行；
+               放不下由 chip 内省略号截断、行尾「…」点开 popover 看剩余值。 -->
+          <div class="xl:flex-1 min-w-0 flex flex-col gap-2.5">
+            <div v-for="field in basicFields" :key="field.key" class="min-w-0">
               <div class="kawaru-text-81 font-medium text-base-content/45">{{ field.label }}</div>
-              <div class="flex flex-wrap gap-1.5 mt-1">
+              <div
+                v-if="field.values.length"
+                class="flex flex-nowrap items-center gap-1.5 mt-1 min-w-0"
+              >
                 <span
-                  v-for="value in field.hiddenValues"
+                  v-for="value in field.visibleValues"
                   :key="value"
-                  class="max-w-full inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                  class="min-w-0 inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
                   :title="vocabLabel(value)"
                 >
                   <span class="truncate">{{ vocabLabel(value) }}</span>
                 </span>
+
+                <!-- 行尾「…」：该字段还有未常显的值，点开下方悬浮窗查看。
+                 shrink-0 让它在与截断 chip 挤一行时始终留在可视区末尾 -->
+                <button
+                  v-if="field.hiddenValues.length"
+                  type="button"
+                  :popovertarget="field.popoverId"
+                  :style="{ anchorName: field.anchorName }"
+                  class="shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 hover:border-primary/40 hover:text-primary"
+                  :title="$t('collections.card.more', { count: field.hiddenValues.length })"
+                  :aria-label="$t('collections.card.moreAria', { name: collection.name })"
+                  @click.stop
+                >
+                  …
+                </button>
+
+                <!-- 剩余值悬浮窗：daisyUI 5 的 popover 形态，内容进 top layer，
+                 点外部 / Esc 关闭；[position-try-fallbacks] 让下方放不下时自动上翻。
+                 与「…」圆钮同条件渲染，没有剩余值就不挂空面板 -->
+                <div
+                  v-if="field.hiddenValues.length"
+                  :id="field.popoverId"
+                  popover
+                  role="dialog"
+                  :style="{ positionAnchor: field.anchorName }"
+                  class="dropdown dropdown-end dropdown-bottom w-[16em] rounded-box p-3 bg-base-100 dark:bg-slate-800 border border-base-300 shadow-lg [position-try-fallbacks:flip-block]"
+                  @click.stop
+                >
+                  <div class="kawaru-text-81 font-medium text-base-content/45">
+                    {{ field.label }}
+                  </div>
+                  <div class="flex flex-wrap gap-1.5 mt-1">
+                    <span
+                      v-for="value in field.hiddenValues"
+                      :key="value"
+                      class="max-w-full inline-flex items-center rounded-full px-2.5 py-0.5 kawaru-text-81 font-medium bg-base-200/80 text-base-content/70 border border-base-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                      :title="vocabLabel(value)"
+                    >
+                      <span class="truncate">{{ vocabLabel(value) }}</span>
+                    </span>
+                  </div>
+                </div>
               </div>
+              <div v-else class="kawaru-text-81 text-base-content/40 mt-1">—</div>
             </div>
           </div>
-          <div v-else class="kawaru-text-81 text-base-content/40 mt-1">—</div>
+
+          <!-- 中缝：<xl 横线、xl 竖线（通高）；留空不写字 -->
+          <div class="divider xl:divider-horizontal my-2 xl:my-0 xl:mx-2"></div>
+
+          <!-- 右列（学术）：Title / DOI / Access / Journal / Published 标签左置行 -->
+          <div class="xl:flex-1 min-w-0 flex flex-col gap-3">
+            <div class="flex items-baseline gap-2 min-w-0">
+              <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
+                $t('collections.meta.title')
+              }}</span>
+              <p
+                v-if="collection.title"
+                class="flex-1 min-w-0 truncate kawaru-text-81 text-base-content/80"
+                :title="collection.title"
+              >
+                {{ collection.title }}
+              </p>
+              <span v-else class="kawaru-text-81 text-base-content/40">—</span>
+            </div>
+
+            <div class="flex items-baseline gap-2 min-w-0">
+              <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
+                $t('collections.meta.doi')
+              }}</span>
+              <div v-if="collection.doi.length" class="flex-1 min-w-0 flex flex-col gap-0.5">
+                <a
+                  v-for="doi in collection.doi"
+                  :key="doi"
+                  :href="doiHref(doi)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center gap-1.5 min-w-0 kawaru-text-81 text-primary hover:underline"
+                  :title="doi"
+                  @click.stop
+                >
+                  <SvgIcon type="link" class="w-[1em] h-[1em] shrink-0" />
+                  <span class="truncate">{{ doi }}</span>
+                </a>
+              </div>
+              <span v-else class="kawaru-text-81 text-base-content/40">—</span>
+            </div>
+
+            <!-- 后端 access 为 list[str]，逐项原样透传：每项可能是 URL 也可能是标签文本（与 DOI 行同构） -->
+            <div class="flex items-baseline gap-2 min-w-0">
+              <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
+                $t('collections.meta.access')
+              }}</span>
+              <div v-if="collection.access.length" class="flex-1 min-w-0 flex flex-col gap-0.5">
+                <a
+                  v-for="entry in collection.access"
+                  :key="entry"
+                  :href="isUrl(entry) ? entry : undefined"
+                  :target="isUrl(entry) ? '_blank' : undefined"
+                  :rel="isUrl(entry) ? 'noopener noreferrer' : undefined"
+                  class="flex items-center gap-1.5 min-w-0 kawaru-text-81"
+                  :class="
+                    isUrl(entry)
+                      ? 'text-primary hover:underline'
+                      : 'cursor-default text-base-content/70'
+                  "
+                  :title="entry"
+                  @click.stop
+                >
+                  <SvgIcon type="link" class="w-[1em] h-[1em] shrink-0" />
+                  <span class="truncate">{{ entry }}</span>
+                </a>
+              </div>
+              <span v-else class="kawaru-text-81 text-base-content/40">—</span>
+            </div>
+
+            <div class="flex items-baseline gap-2 min-w-0">
+              <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
+                $t('collections.meta.journal')
+              }}</span>
+              <!-- 期刊名斜体加粗：Poppins 只下载了 italic 400 字面（无 700 斜体），
+                 全局 font-synthesis:none 会吃掉合成粗体导致看不出加粗，
+                 这里单独放开 weight 合成（与 zh-CN 全局放开的做法一致） -->
+              <p
+                v-if="collection.journalName"
+                class="flex-1 min-w-0 truncate kawaru-text-81 text-base-content/80 italic font-bold [font-synthesis:weight]"
+                :title="collection.journalName"
+              >
+                {{ collection.journalName }}
+              </p>
+              <span v-else class="kawaru-text-81 text-base-content/40">—</span>
+            </div>
+
+            <!-- 发表时间：跟在 Journal 行下，框多占一行，Creator 行与框之间的
+               弹性空隙（mt-auto）随之收窄；label 列宽与上面各行对齐 -->
+            <div class="flex items-baseline gap-2 min-w-0">
+              <span class="w-[5.5em] shrink-0 kawaru-text-81 font-medium text-base-content/45">{{
+                $t('collections.meta.publishTime')
+              }}</span>
+              <p
+                v-if="collection.publishTime"
+                class="flex-1 min-w-0 truncate kawaru-text-81 text-base-content/80"
+                :title="formattedPublishTime"
+              >
+                {{ formattedPublishTime }}
+              </p>
+              <span v-else class="kawaru-text-81 text-base-content/40">—</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -334,52 +322,56 @@
      组下方。容器自挂 kawaru-text-81 钉住字号，lg:w-[11.5em] 恒等于
      「档位 × 11.5」，换档时同步跟上；最宽条目 "View Collection" 需单行放下。 -->
     <div
-      class="cursor-default kawaru-text-81 flex flex-row flex-wrap gap-4 items-center w-full border-t border-base-300 pt-3 lg:w-[11.5em] lg:flex-col lg:items-stretch lg:self-stretch lg:justify-center lg:border-l lg:border-t-0 lg:pt-0 lg:pl-4"
+      class="cursor-default kawaru-text-81 flex flex-row flex-wrap gap-3 items-center w-full border-t border-base-300 p-2 lg:w-[11.5em] lg:flex-col lg:items-stretch lg:self-stretch lg:justify-center lg:border-l lg:border-t-0 lg:pt-1 lg:pl-4"
       @click.stop
     >
-      <!-- 操作按钮组：Share 在前、View 在后（与最初的 View / Share 对调过） -->
-      <div class="flex flex-row flex-wrap items-center gap-3 w-full lg:flex-col lg:items-stretch">
-        <!-- 分享：复制免登录公开链接（与 overview 页同一方案），无 publicId 时隐藏 -->
-        <button
-          v-if="collection.publicId"
-          class="btn btn-outline border-base-300 kawaru-text-81 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
-          :title="$t('collections.card.copyShareLink')"
-          @click.stop="copyShareLink"
-        >
-          <SvgIcon type="share" class="w-[1em] h-[1em] shrink-0" />
-          <span class="whitespace-nowrap">{{ $t('common.action.share') }}</span>
-        </button>
+      <!-- Share / View / Delete + 成员数量 四者同级：<lg 等宽一行（flex-1 → 1:1:1:1），
+           lg 起在右侧竖列各自整宽堆叠（lg:flex-none lg:w-full）。
+           Share 需 publicId、Delete 仅 owner/admin，缺项时 flex-1 自动重新等分。 -->
+      <!-- 分享：复制免登录公开链接（与 overview 页同一方案），无 publicId 时隐藏 -->
+      <button
+        v-if="collection.publicId"
+        class="btn btn-outline btn-secondary kawaru-text-81 h-[2.3em] min-h-[2.3em] flex-1 min-w-0 lg:flex-none lg:w-full"
+        :title="$t('collections.card.copyShareLink')"
+        @click.stop="copyShareLink"
+      >
+        <SvgIcon type="share" class="w-[1em] h-[1em] shrink-0" />
+        <span class="truncate">{{ $t('common.action.share') }}</span>
+      </button>
 
-        <button
-          class="btn btn-primary kawaru-text-81 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
-          @click.stop="$emit('view', collection.id)"
-        >
-          <span class="whitespace-nowrap">{{ $t('collections.card.viewCollection') }}</span>
-          <SvgIcon type="chevron_right" class="w-[1em] h-[1em] shrink-0" />
-        </button>
+      <button
+        class="btn btn-primary kawaru-text-81 h-[2.3em] min-h-[2.3em] flex-1 min-w-0 lg:flex-none lg:w-full"
+        @click.stop="$emit('view', collection.publicId)"
+      >
+        <!-- 窄屏等宽四列放不下全称，显示简写「View」；lg 起整宽竖列显示「View Collection」 -->
+        <span class="truncate lg:hidden">{{ $t('common.action.view') }}</span>
+        <span class="truncate hidden lg:inline">{{ $t('collections.card.viewCollection') }}</span>
+        <SvgIcon type="chevron_right" class="w-[1em] h-[1em] shrink-0" />
+      </button>
 
-        <!-- 删除：默认浅粉底，hover 加深一档即可 -->
-        <button
-          v-if="canEdit"
-          class="btn btn-outline border-error/30 bg-error/15 text-error hover:bg-error/30 hover:border-error/50 kawaru-text-81 h-[2.3em] min-h-[2.3em] grow lg:grow-0 lg:w-full"
-          :title="$t('collections.card.deleteTitle')"
-          @click.stop="$emit('delete', collection.id)"
-        >
-          <SvgIcon type="trash" class="w-[1em] h-[1em] shrink-0" />
-          <span class="whitespace-nowrap">{{ $t('common.action.delete') }}</span>
-        </button>
-      </div>
+      <!-- 删除：默认浅粉底，hover 加深一档即可 -->
+      <button
+        v-if="canEdit"
+        class="btn btn-outline border-error/30 bg-error/15 text-error hover:bg-error/30 hover:border-error/50 kawaru-text-81 h-[2.3em] min-h-[2.3em] flex-1 min-w-0 lg:flex-none lg:w-full"
+        :title="$t('collections.card.deleteTitle')"
+        @click.stop="$emit('delete', collection.publicId)"
+      >
+        <SvgIcon type="trash" class="w-[1em] h-[1em] shrink-0" />
+        <span class="truncate">{{ $t('common.action.delete') }}</span>
+      </button>
 
-      <!-- 成员总数（按钮组下方，lg 下在列内水平居中） -->
+      <!-- 成员总数：与按钮同级，<lg 作为第 4 个等宽列，lg 起整宽居中沉在按钮下方。
+           窄屏空间有限：数字降一档、隐藏单位词（完整信息在 title / lg 下补回），
+           overflow-hidden 兜底确保绝不溢出等宽列。 -->
       <div
-        class="flex items-center justify-center gap-2 px-1 text-base-content/70 lg:w-full"
+        class="flex items-center justify-center gap-2 px-1 text-base-content/70 flex-1 min-w-0 overflow-hidden lg:flex-none lg:w-full"
         :title="$t('collections.card.memberCountTitle', collection.memberCount)"
       >
         <SvgIcon type="queue_list" class="w-[1.5em] h-[1.5em] shrink-0" />
-        <span class="kawaru-text-187 font-bold leading-none text-primary">{{
+        <span class="kawaru-text-125 lg:kawaru-text-187 font-bold leading-none text-primary">{{
           collection.memberCount
         }}</span>
-        <span class="kawaru-text-81">{{ unitLabel }}</span>
+        <span class="hidden lg:inline kawaru-text-81">{{ unitLabel }}</span>
       </div>
     </div>
   </div>
@@ -409,8 +401,8 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'view', id: number): void
-  (e: 'delete', id: number): void
+  (e: 'view', publicId: string): void
+  (e: 'delete', publicId: string): void
 }>()
 
 const { showToast } = useToast()
@@ -503,12 +495,12 @@ const basicFields = computed(() =>
     visibleValues: field.values.slice(0, VISIBLE_VALUE_COUNT),
     hiddenValues: field.values.slice(VISIBLE_VALUE_COUNT),
     // popover 靠 id 关联触发按钮，一页多卡 × 每卡三个字段都需唯一
-    popoverId: `collection-${props.collection.id}-more-${field.key}`,
+    popoverId: `collection-${props.collection.publicId}-more-${field.key}`,
     // 显式锚点（同样需唯一）。daisyUI 的 popover 靠浏览器的「隐式锚点」（=popovertarget
     // 按钮）定位，但 :popover-open 一翻 false 隐式锚点就没了 —— 而 daisyUI 为了淡出动画
     // 会在关闭后继续渲染 ~250ms，那段时间 position-area 失效，面板会掉到视口左上角
     // 闪一下内容。显式 anchor-name / position-anchor 不随 open 状态丢失，位置全程不动。
-    anchorName: `--collection-${props.collection.id}-more-${field.key}`,
+    anchorName: `--collection-${props.collection.publicId}-more-${field.key}`,
   })),
 )
 

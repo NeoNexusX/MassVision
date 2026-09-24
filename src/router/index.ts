@@ -65,8 +65,10 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    // 集合详情页沿用原有无路径参数方案，id/public_id 由 history.state 携带。
-    path: '/collections/overview',
+    // Collection Overview：public_id 直接进路径（与 Dataset Overview /overview/{public_id}
+    // 同方案），刷新/书签/登录回跳都不丢。详情读取走公开接口（认证版详情是
+    // owner 限定的，他人集合看不到），写操作用路径里的 public_id 走认证接口。
+    path: '/collections/overview/:publicId',
     name: 'CollectionOverview',
     component: view(() => import('../views/CollectionOverviewView.vue'), 'collections', 'datasets'),
     meta: { requiresAuth: true },
@@ -74,8 +76,8 @@ const routes = [
   {
     // 集合公开分享页（免登录）：用 public_id 访问，只读展示。
     // 路径不带 public 段——分享链接直接是 /collections/{public_id}。
-    // 静态段（/collections/overview、/collections/new）优先级本就高于参数段，
-    // 且 public_id 是 16 位 base62，不会与它们撞名。
+    // 与 /collections/overview/:publicId 分段数不同不会冲突，
+    // 且 public_id 是 16 位 base62，不会与静态段撞名。
     path: '/collections/:publicId',
     name: 'PublicCollection',
     component: view(() => import('../views/PublicCollectionView.vue'), 'collections', 'datasets'),
@@ -89,9 +91,10 @@ const routes = [
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),
   },
   {
-    // 数据集分享页。token 二选一：16 位 public_id（新链接）或 Base64 数字 id
-    // （历史链接，永久兼容）——判别见 resolveShareToken。路由本身不加登录守卫：
-    // 分享内容需登录浏览，匿名落地后由页面就地引导登录（见 getShareOverviewMetadata）。
+    // 数据集分享页。token 仅支持 16 位 public_id；旧 Base64 数字链接的兑换接口
+    // 已下线，legacy token 按无效链接处理（判别见 resolveShareToken）。路由本身
+    // 不加登录守卫：分享内容需登录浏览，匿名落地后由页面就地引导登录
+    // （见 getShareOverviewMetadata）。
     path: '/s/:shareToken',
     name: 'SharedDatasetOverview',
     component: view(() => import('../views/DatasetOverviewView.vue'), 'datasets'),

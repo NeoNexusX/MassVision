@@ -21,7 +21,6 @@ const updateMock = vi.mocked(updateCollection)
 
 function makeDetail(): CollectionDetail {
   return {
-    id: 7,
     name: 'Kidney Atlas',
     title: 'MD',
     description: 'desc',
@@ -31,7 +30,7 @@ function makeDetail(): CollectionDetail {
     organism: [],
     createdAt: null,
     updatedAt: null,
-    publicId: null,
+    publicId: 'aB3xK9mQ2rT7wY1z',
     doi: [],
     journalName: null,
     publishTime: null,
@@ -89,7 +88,7 @@ describe('useCollectionEdit', () => {
     edit.draft.value!.name = 'Renamed'
     await edit.save()
 
-    expect(updateMock).toHaveBeenCalledWith(7, { name: 'Renamed' })
+    expect(updateMock).toHaveBeenCalledWith('aB3xK9mQ2rT7wY1z', { name: 'Renamed' })
     expect(saved).toEqual([updated])
     expect(edit.editing.value).toBe(false)
     expect(edit.draft.value).toBeNull()

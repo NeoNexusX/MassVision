@@ -33,9 +33,9 @@ const onGoToPage = (p: number) => emit('go-to-page', p)
 <template>
   <div>
     <!-- Loading state -->
-    <div v-if="loading" class="animate-pulse flex flex-col gap-4">
-      <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
-      <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl p-4"></div>
+    <div v-if="loading" class="flex flex-col gap-4">
+      <div class="skeleton h-40 rounded-xl"></div>
+      <div class="skeleton h-40 rounded-xl"></div>
     </div>
 
     <!-- Error state -->

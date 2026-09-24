@@ -14,14 +14,14 @@ import type { CollectionSummary } from '../types/collection'
  * 则直接采用。
  */
 export function useCollectionCovers(collections: Ref<CollectionSummary[]>) {
-  /** 集合 id → 有序的成员 imagePath（null = 该成员预览未生成，槽位走占位图） */
-  const memberImagePaths = reactive<Record<number, (string | null)[]>>({})
-  /** 集合 id → 封面是否仍在拉取（卡片据此显示骨架而不是占位图） */
-  const loading = reactive<Record<number, boolean>>({})
-  const inFlight = new Set<number>()
+  /** 集合 public_id → 有序的成员 imagePath（null = 该成员预览未生成，槽位走占位图） */
+  const memberImagePaths = reactive<Record<string, (string | null)[]>>({})
+  /** 集合 public_id → 封面是否仍在拉取（卡片据此显示骨架而不是占位图） */
+  const loading = reactive<Record<string, boolean>>({})
+  const inFlight = new Set<string>()
 
   function load(collection: CollectionSummary) {
-    const id = collection.id
+    const id = collection.publicId
     if (memberImagePaths[id] || inFlight.has(id)) return
 
     if (collection.members) {
@@ -29,7 +29,7 @@ export function useCollectionCovers(collections: Ref<CollectionSummary[]>) {
       return
     }
 
-    // 行上没有 public_id（后端列表未携带）就无键可查：留空，卡片回退占位图
+    // 行上没有 public_id（响应缺字段）就无键可查：留空，卡片回退占位图
     if (!collection.publicId) {
       memberImagePaths[id] = []
       return

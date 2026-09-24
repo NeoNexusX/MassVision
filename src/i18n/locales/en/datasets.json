@@ -150,10 +150,6 @@
       "timeout": "Download preparation timed out, please try again later",
       "limitReached": "Download limit reached",
       "noUrls": "No download URLs returned"
-    },
-    "share": {
-      "publicTitle": "Share Dataset",
-      "publicMessage": "Sharing requires making this dataset public. Once public, it is visible to all users and this action cannot be undone. The share link will be copied automatically after confirming."
     }
   }
 }

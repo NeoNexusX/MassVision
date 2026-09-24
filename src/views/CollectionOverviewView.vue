@@ -2,13 +2,13 @@
   <div class="min-h-screen bg-base-200">
     <div class="max-w-[1680px] mx-auto p-4 md:p-8 kawaru-text-100">
       <!-- Loading：与列表页同构的骨架 -->
-      <div v-if="loading" class="animate-pulse flex flex-col gap-6">
-        <div class="h-16 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
-        <div class="h-40 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
-        <div class="h-64 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300"></div>
+      <div v-if="loading" class="flex flex-col gap-6">
+        <div class="skeleton h-16 rounded-xl"></div>
+        <div class="skeleton h-40 rounded-xl"></div>
+        <div class="skeleton h-64 rounded-xl"></div>
       </div>
 
-      <!-- 无 state 进入（直刷/书签 /collections/overview）时，引导返回列表。 -->
+      <!-- public_id 缺失/非法（路径无参进入）时，引导返回列表。 -->
       <div
         v-else-if="isStale"
         class="p-12 bg-base-100 dark:bg-slate-800 rounded-xl border border-base-300 text-center"
@@ -97,7 +97,7 @@
               </button>
               <button
                 class="btn btn-outline border-base-300 text-error kawaru-text-95"
-                @click="deleteConfirm.open(String(detail.id))"
+                @click="deleteConfirm.open(detail.publicId)"
               >
                 <SvgIcon type="trash" class="w-[1em] h-[1em]" />
                 {{ $t('common.action.delete') }}
@@ -277,13 +277,13 @@ const headerTitle = computed(() =>
 
 // ---- 删除集合：确认后调 API 并回列表 ----
 const deleteConfirm = useConfirmDelete({
-  onDelete: async (id) => {
-    await deleteCollection(Number(id))
+  onDelete: async (publicId) => {
+    await deleteCollection(publicId)
     router.push('/collections')
   },
 })
 
-// ---- 分享链接（publicId 后端未确认携带，无则按钮隐藏）----
+// ---- 分享链接（集合对外只有 public_id，v-if 仅作防御）----
 async function copyShareLink() {
   if (!detail.value?.publicId) return
   const url = `${location.origin}/collections/${detail.value.publicId}`

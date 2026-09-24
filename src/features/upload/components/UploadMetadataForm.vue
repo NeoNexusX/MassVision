@@ -128,9 +128,7 @@ const cancelModeChange = () => {
         v-if="parsingMetadata"
         class="flex items-center gap-2 kawaru-text-112 text-base-content/60 bg-base-200/50 rounded-lg px-3 py-2 mb-2"
       >
-        <span
-          class="inline-block w-3.5 h-3.5 border-2 border-base-content/30 border-t-base-content/60 rounded-full animate-spin"
-        ></span>
+        <span class="loading loading-spinner loading-xs"></span>
         <span>{{ $t('upload.form.readingMetadata') }}</span>
       </div>
 

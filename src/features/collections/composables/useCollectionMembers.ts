@@ -45,7 +45,7 @@ export function useCollectionMembers(options: UseCollectionMembersOptions) {
     if (!detail.value || !filePublicIds.length || adding.value) return false
     adding.value = true
     try {
-      detail.value = await addMembers(detail.value.id, filePublicIds)
+      detail.value = await addMembers(detail.value.publicId, filePublicIds)
       syncFromServer()
       showToast(t('common.feedback.added'), 'success')
       return true
@@ -64,7 +64,7 @@ export function useCollectionMembers(options: UseCollectionMembersOptions) {
     if (!detail.value || !publicIds.length || removing.value) return
     removing.value = true
     try {
-      const result = await removeMembers(detail.value.id, publicIds)
+      const result = await removeMembers(detail.value.publicId, publicIds)
       const parts = [t('collections.toast.removedCount', { count: result.removed.length })]
       if (result.skipped.length) {
         parts.push(t('collections.toast.skippedCount', { count: result.skipped.length }))
@@ -93,7 +93,7 @@ export function useCollectionMembers(options: UseCollectionMembersOptions) {
     try {
       // 全量重写：数组必须恰好等于当前成员全集
       detail.value = await reorderMembers(
-        detail.value.id,
+        detail.value.publicId,
         optimistic.map((m) => m.publicId),
       )
       syncFromServer()
