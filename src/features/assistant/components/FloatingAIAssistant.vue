@@ -3,27 +3,37 @@
   <div
     v-if="isOpen && !isMinimized"
     ref="panelRef"
-    class="fixed z-[10000] flex flex-col rounded-2xl shadow-2xl bg-base-100 border border-base-200 overflow-hidden select-none kawaru-text-87"
+    class="fixed z-[10000] flex flex-col rounded-2xl shadow-2xl bg-base-100 border border-base-300 overflow-hidden select-none"
     :style="panelStyle"
   >
     <!-- Header -->
     <div
-      class="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-50 dark:from-indigo-950 to-purple-50 dark:to-purple-950 border-b border-base-200 cursor-grab active:cursor-grabbing shrink-0"
+      class="flex items-center justify-between px-4 py-3 bg-base-200 border-b border-base-300 cursor-grab active:cursor-grabbing shrink-0"
       @mousedown="startDrag"
     >
       <div class="flex items-center gap-2">
         <div
-          class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center"
+          class="w-7 h-7 rounded-lg bg-primary text-primary-content flex items-center justify-center"
         >
           <svg-icon type="sparkles" class="w-4 h-4 text-white" />
         </div>
         <span class="font-semibold kawaru-text-87 text-base-content">{{ $t('common.assistant.title') }}</span>
-        <span class="flex items-center gap-1 kawaru-text-62 text-green-600 dark:text-green-400">
-          <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-          {{ $t('common.assistant.online') }}
-        </span>
       </div>
       <div class="flex items-center gap-1">
+        <!-- BYOK 设置：自配 API key / 模型；已自定义时点亮 -->
+        <button
+          class="btn btn-xs btn-ghost btn-square relative"
+          :class="{ 'text-primary': showSettings }"
+          :title="$t('common.assistant.settings.title')"
+          @mousedown.stop
+          @click="showSettings = !showSettings"
+        >
+          <svg-icon type="settings" class="w-3.5 h-3.5" />
+          <span
+            v-if="hasCustom && !showSettings"
+            class="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-primary"
+          ></span>
+        </button>
         <button
           class="btn btn-xs btn-ghost btn-square kawaru-text-68"
           @click="isMinimized = true"
@@ -37,103 +47,10 @@
       </div>
     </div>
 
-    <!-- Messages -->
-    <div ref="scrollRef" class="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-      <!-- AI Welcome -->
-      <div class="flex gap-2">
-        <div
-          class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shrink-0 mt-1"
-        >
-          <svg-icon type="sparkles" class="w-3 h-3 text-white" />
-        </div>
-        <div
-          class="bg-base-200 rounded-2xl rounded-tl-sm px-3 py-2 kawaru-text-87 text-base-content max-w-[85%] leading-relaxed"
-        >
-          {{ welcomeMsg }}
-        </div>
-      </div>
-
-      <!-- Quick prompts -->
-      <div class="flex flex-wrap gap-2 pt-1 pl-8">
-        <button
-          v-for="p in quickPrompts"
-          :key="p"
-          class="btn btn-xs bg-base-200 hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-base-300 kawaru-text-75 rounded-full"
-          @click="askQuick(p)"
-        >
-          {{ p }}
-        </button>
-      </div>
-
-      <!-- User message -->
-      <div v-for="m in messages" :key="m.id">
-        <div v-if="m.role === 'user'" class="flex justify-end">
-          <div
-            class="bg-indigo-500 text-white rounded-2xl rounded-tr-sm px-3 py-2 kawaru-text-87 max-w-[80%]"
-          >
-            {{ m.content }}
-          </div>
-        </div>
-        <div v-else class="flex gap-2">
-          <div
-            class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shrink-0 mt-1"
-          >
-            <svg-icon type="sparkles" class="w-3 h-3 text-white" />
-          </div>
-          <div
-            class="bg-base-200 rounded-2xl rounded-tl-sm px-3 py-2 kawaru-text-87 text-base-content max-w-[85%]"
-          >
-            {{ m.content }}
-          </div>
-        </div>
-      </div>
-
-      <!-- Typing indicator -->
-      <div v-if="isTyping" class="flex gap-2">
-        <div
-          class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shrink-0 mt-1"
-        >
-          <svg-icon type="sparkles" class="w-3 h-3 text-white" />
-        </div>
-        <div class="bg-base-200 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
-          <span
-            class="w-1.5 h-1.5 rounded-full bg-base-content/40 animate-bounce"
-            style="animation-delay: 0ms"
-          ></span>
-          <span
-            class="w-1.5 h-1.5 rounded-full bg-base-content/40 animate-bounce"
-            style="animation-delay: 150ms"
-          ></span>
-          <span
-            class="w-1.5 h-1.5 rounded-full bg-base-content/40 animate-bounce"
-            style="animation-delay: 300ms"
-          ></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Input area -->
-    <div class="border-t border-base-200 px-3 py-2 shrink-0">
-      <div class="flex items-center gap-2">
-        <button class="btn btn-sm btn-ghost btn-circle kawaru-text-75" :title="$t('common.assistant.attach')">
-          <svg-icon type="paper-clip" class="w-4 h-4 text-base-content/50" />
-        </button>
-        <input
-          v-model="inputValue"
-          class="input input-sm input-bordered flex-1 kawaru-text-87 rounded-full"
-          :placeholder="$t('common.assistant.placeholder')"
-          @keydown.enter="send"
-        />
-        <button
-          class="btn btn-sm btn-circle bg-indigo-500 hover:bg-indigo-600 border-none text-white kawaru-text-75"
-          :disabled="!inputValue.trim()"
-          @click="send"
-          :title="$t('common.assistant.send')"
-        >
-          <svg-icon type="bolt" class="w-3.5 h-3.5" />
-        </button>
-      </div>
-    </div>
+    <!-- 聊天主体：TDesign 聊天视图（异步 chunk，首开零等待由下方空闲预取保证）；
+         BYOK 设置面板打开时整体替换（设置属容器层） -->
+    <component :is="chatComponent" v-if="isOpen && !showSettings" />
+    <LlmSettingsPanel v-else-if="isOpen" @done="showSettings = false" />
 
     <!-- Resize handles -->
     <div class="absolute inset-0 pointer-events-none">
@@ -176,11 +93,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
-import { t } from '@/i18n'
+import { ref, reactive, computed, watch, onMounted, defineAsyncComponent } from 'vue'
+import { useLlmSettings } from '../composables/useLlmSettings'
+import LlmSettingsPanel from './LlmSettingsPanel.vue'
 
 const props = defineProps<{ show?: boolean }>()
 const emit = defineEmits<{ (e: 'update:show', v: boolean): void }>()
+
+// 聊天视图（TDesign Chat，独立异步 chunk）
+const chatComponent = defineAsyncComponent(() => import('./ChatTDesign.vue'))
+
+// BYOK 设置面板（打开时替换聊天主体）
+const showSettings = ref(false)
+const { hasCustom, hasEnvDefault } = useLlmSettings()
+
+onMounted(() => {
+  // 空闲预取：首屏渲染完毕、浏览器空闲时后台静默下载聊天 chunk，
+  // 用户点开助手时零等待。defineAsyncComponent 会复用已就绪的模块。
+  const idle =
+    window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 2000))
+  idle(() => {
+    void import('./ChatTDesign.vue')
+  })
+})
 
 const isOpen = ref(false)
 const isMinimized = ref(false)
@@ -191,46 +126,11 @@ watch(
     if (v) {
       isOpen.value = true
       isMinimized.value = false
+      // 既无用户自配也无 env 默认凭据 → 直接落到设置面板，别让用户发消息吃报错
+      if (!hasCustom.value && !hasEnvDefault.value) showSettings.value = true
     }
   },
 )
-const isTyping = ref(false)
-const inputValue = ref('')
-const messages = ref<{ id: number; role: 'user' | 'ai'; content: string }[]>([])
-
-const welcomeMsg = computed(() => t('common.assistant.welcome'))
-
-const quickPrompts = computed(() => [t('common.assistant.quick.summarize'), t('common.assistant.quick.explain'), t('common.assistant.quick.preprocess'), t('common.assistant.quick.report')])
-
-let nextId = 1
-function askQuick(prompt: string) {
-  messages.value.push({ id: nextId++, role: 'user', content: prompt })
-  isTyping.value = true
-  setTimeout(() => {
-    isTyping.value = false
-    messages.value.push({
-      id: nextId++,
-      role: 'ai',
-      content: t('common.assistant.replyPrompt', { prompt }),
-    })
-  }, 1200)
-}
-
-function send() {
-  const text = inputValue.value.trim()
-  if (!text) return
-  inputValue.value = ''
-  messages.value.push({ id: nextId++, role: 'user', content: text })
-  isTyping.value = true
-  setTimeout(() => {
-    isTyping.value = false
-    messages.value.push({
-      id: nextId++,
-      role: 'ai',
-      content: t('common.assistant.replyText', { text }),
-    })
-  }, 1200)
-}
 
 function close() {
   isOpen.value = false
@@ -243,7 +143,7 @@ const MIN_W = 320,
   MIN_H = 400
 const panelRef = ref<HTMLElement | null>(null)
 const position = reactive({ x: 0, y: 0 })
-const size = reactive({ w: 380, h: 520 })
+const size = reactive({ w: 460, h: 620 })
 const dragging = reactive({ active: false, startX: 0, startY: 0, origX: 0, origY: 0 })
 const resizing = reactive({
   active: false,
@@ -256,12 +156,9 @@ const resizing = reactive({
   origH: 0,
 })
 
-// Default: bottom-right。小屏（手机）先把默认尺寸收进视口再定位，
-// 否则 380px 宽的面板会横向溢出，初始 x/y 还会被算成负数
-size.w = Math.min(380, window.innerWidth - 16)
-size.h = Math.min(520, window.innerHeight - 16)
-position.x = Math.max(0, window.innerWidth - size.w - 24)
-position.y = Math.max(0, window.innerHeight - size.h - 24)
+// Default: 视口居中
+position.x = Math.max(0, (window.innerWidth - size.w) / 2)
+position.y = Math.max(0, (window.innerHeight - size.h) / 2)
 
 const panelStyle = computed(() => ({
   width: `${size.w}px`,

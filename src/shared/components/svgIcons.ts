@@ -57,6 +57,7 @@ export const ICON_MAP = {
   bars3: 'heroicons:bars-3',
   sun: 'heroicons:sun',
   moon: 'heroicons:moon',
+  settings: 'heroicons:cog-6-tooth',
   'paper-clip': 'heroicons:paper-clip',
   'code-bracket': 'heroicons:code-bracket',
   book: 'heroicons:book-open',

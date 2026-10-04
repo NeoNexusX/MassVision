@@ -6,6 +6,7 @@ import {
   coarseFilterKey,
   collapseRows,
   runMatchPipeline,
+  sortMatchedRows,
   massErrorOf,
   findClosestIndex,
   inferRowPolarity,
@@ -532,7 +533,7 @@ C3H3O3+,M+H,500.0,OUT
     expect(res.coarseFiltered).toBe(2) // N1 (polarity) + OUT (m/z range)
     expect(res.collapsed).toBe(1) // P2 merged onto P1
     expect(res.droppedDuplicates).toBe(0)
-    expect(res.statusCounts).toEqual({ total: 2, matched: 1, unmatched: 0, invalid: 1 })
+    expect(res.statusCounts).toEqual({ total: 2, matched: 1, unmatched: 0, invalid: 1, level4: 0 })
     expect(res.rows[0]!.candidates).toEqual(['P1', 'P2'])
   })
 
@@ -607,13 +608,14 @@ describe('buildAnnotationExportCsv', () => {
   const axis = Float64Array.of(87.0088, 89.0244, 124.0078, 200.0, 267.0739)
   const intensity = Float32Array.of(10, 20, 30, 0, 50)
 
-  it('exports matched rows with name, exp m/z, matched m/z and mass difference', () => {
+  it('exports matched rows with name, exp m/z, matched m/z, mass difference and scores', () => {
     const { rows } = parseAnnotationCsv(SAMPLE)
     const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm')
     const csv = buildAnnotationExportCsv(matched, 'ppm')
     const lines = csv.split('\r\n')
     expect(lines[0]).toBe(
-      'Name,Candidates,formula_ion,Ion type,Tar. m/z,Matched m/z,Mass Difference (ppm),Avg Intensity',
+      'Name,Candidates,formula_ion,Ion type,Tar. m/z,Matched m/z,Mass Difference (ppm),Avg Intensity,' +
+        'Mass Score,Isotope Score,Adduct Score,Composite,FDR (q),Level,Adduct Peers',
     )
     // Taurine is unmatched at 10 ppm, Inosine matched
     const dataLines = lines.slice(1)
@@ -622,6 +624,19 @@ describe('buildAnnotationExportCsv', () => {
     expect(pyr).toContain('87.0091')
     expect(pyr).toContain('87.0088')
     expect(pyr).toContain('10.00') // avg intensity
+  })
+
+  it('appends reference-metric columns when a spatial map is passed', () => {
+    const { rows } = parseAnnotationCsv(SAMPLE)
+    const matched = matchAnnotations(rows, axis, intensity, 10, 'ppm')
+    const spatial = new Map<
+      number,
+      { chaos: number | null; spatial: number | null; spectral: number | null; msm: number | null }
+    >([[0, { chaos: 0.12, spatial: 0.88, spectral: 0.95, msm: 0.1 }]])
+    const out = buildAnnotationExportCsv(matched, 'ppm', spatial)
+    expect(out.split('\r\n')[0]).toContain('Chaos,Spatial,Spectral,MSM,Adduct Corr')
+    const pyr = out.split('\r\n').find((l) => l.startsWith('Pyruvate,'))!
+    expect(pyr.endsWith(',0.1200,0.8800,0.9500,0.1000,')).toBe(true)
   })
 
   it('skips unmatched and invalid rows', () => {
@@ -648,5 +663,78 @@ describe('buildAnnotationExportCsv', () => {
     const matched = matchAnnotations(rows, axis, intensity, 0.0001, 'ppm')
     const out = buildAnnotationExportCsv(matched, 'ppm')
     expect(out.split('\r\n')).toHaveLength(1)
+  })
+})
+
+describe('Tier-1 scoring pipeline integration', () => {
+  /** 胆固醇风格的稀疏峰位轴：M + M+1(29.8%) + M+2(3.3%) */
+  const axis = Float64Array.of(387.362, 388.36536, 389.36871, 500.0)
+  const intensity = Float32Array.of(1000, 298, 33, 50)
+
+  it('runMatchPipeline fills evidence fields and assigns Level 4 on isotope support', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C27H46O,M+H,387.362,Cholesterol
+,M+H,500.0,NoFormula`
+    const { rows } = parseAnnotationCsv(csv)
+    const res = runMatchPipeline(rows, {
+      mzAxis: axis,
+      meanIntensity: intensity,
+      tolerance: 10,
+      mode: 'ppm',
+    })
+    const chol = res.rows.find((r) => r.name === 'Cholesterol')!
+    expect(chol.matchStatus).toBe('matched')
+    expect(chol.massScore).toBe(1)
+    expect(chol.isotopeScore).toBeGreaterThan(0.95)
+    expect(chol.isotopeObsCount).toBe(chol.isotopeExpCount)
+    expect(chol.compositeScore).toBeGreaterThan(0.9)
+    expect(chol.level).toBe(4)
+    expect(res.statusCounts.level4).toBe(1)
+    const noF = res.rows.find((r) => r.name === 'NoFormula')!
+    expect(noF.isotopeScore).toBeNull()
+    // 无证据按 compositeIsoDefault 0.7 折算：排在有同位素支持的行之下
+    expect(noF.compositeScore).toBeCloseTo(noF.massScore! * 0.7, 3)
+    expect(noF.compositeScore!).toBeLessThan(chol.compositeScore!)
+    expect(noF.level).toBe(5)
+  })
+
+  it('keeps isotopeScore null when the collapsed representative lacks a formula', () => {
+    // 同 m/z 同量异位素组：代表行（第一行）无分子式，被折叠成员有——证据
+    // 只认代表行自身的 formulaIon（设计决策）
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+,M+H,387.362,NoFormulaRep
+C27H46O,M+H,387.362,CholesterolMerged`
+    const { rows } = parseAnnotationCsv(csv)
+    const res = runMatchPipeline(rows, {
+      mzAxis: axis,
+      meanIntensity: intensity,
+      tolerance: 10,
+      mode: 'ppm',
+    })
+    expect(res.collapsed).toBe(1)
+    const rep = res.rows[0]!
+    expect(rep.candidates).toEqual(['NoFormulaRep', 'CholesterolMerged'])
+    expect(rep.isotopeScore).toBeNull()
+    expect(rep.level).toBe(5)
+  })
+
+  it('sorts by compositeScore desc and fdr asc with nulls pinned to the bottom', () => {
+    const csv = `formula_ion,Ion type,Exp. m/z,Candidate_1
+C27H46O,M+H,387.362,Good
+,M+H,500.0,Weak
+,M+H,450.0,Unmatched`
+    const { rows } = parseAnnotationCsv(csv)
+    const base = { mzAxis: axis, meanIntensity: intensity, tolerance: 10, mode: 'ppm' as const }
+    const res = runMatchPipeline(rows, { ...base, sortKey: 'compositeScore', sortDir: 'desc' })
+    // composite：Good（有同位素支持）> Weak（无证据，0.7 折算）> Unmatched（null 压底）
+    expect(res.rows.map((r) => r.name)).toEqual(['Good', 'Weak', 'Unmatched'])
+    // fdr 排序（q 数学由 annotationScoring.test 覆盖）：手工注入 q 值验证
+    // 升序排列与 null 压底
+    const withQ = res.rows.map((r) => ({
+      ...r,
+      fdr: r.name === 'Good' ? 0.05 : r.name === 'Weak' ? 0.4 : null,
+    }))
+    const byQ = sortMatchedRows(withQ, 'fdr', 'asc')
+    expect(byQ.map((r) => r.name)).toEqual(['Good', 'Weak', 'Unmatched'])
   })
 })
