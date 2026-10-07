@@ -102,6 +102,8 @@
       "rectHint": "在离子图上拖动以绘制矩形",
       "lassoHint": "在离子图上绘制自由轮廓",
       "rois": "ROI 列表",
+      "deselectAll": "取消全选",
+      "selectionHint": "勾选的 ROI 会以彩色边框在图上标出，并纳入导出的掩膜。",
       "importedMask": "导入掩膜",
       "pixels": "像素数",
       "mean": "均值",
@@ -265,7 +267,7 @@
       "rematchFailed": "注释重新匹配失败：{error}",
       "readFailed": "CSV 读取失败：{error}",
       "csvEmpty": "CSV 文件为空。",
-      "csvNoMzColumn": "未找到 m/z 列。支持的列名包括：\"Tar. m/z\"、\"m/z\"、\"mz\"、\"MZ\"、\"target_mz\"、\"mass\" 等",
+      "csvNoMzColumn": "未找到 m/z 列。支持的列名包括：\"Target m/z\"、\"Tar. m/z\"、\"m/z\"、\"mz\"、\"MZ\"、\"target_mz\"、\"mass\" 等",
       "csvNoDataRows": "CSV 只有表头，没有数据行。",
       "noMatchedToExport": "没有可导出的已匹配注释。",
       "exported": "已导出 {count} 条已匹配注释。"

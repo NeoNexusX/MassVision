@@ -43,6 +43,8 @@ const props = defineProps<{
   draftReady: boolean
   viewingRoi: boolean
   confirmedRois: ConfirmedROI[]
+  /** 共享的 ROI 选中集（null = 全选）。同时驱动主图高亮与导出勾选，语义对齐 selectedKmeansIds。 */
+  selectedRoiIds: Set<string> | null
   gamma: number
   /** Multi-ion overlay state (owned by the parent). */
   channelsEnabled: boolean
@@ -81,6 +83,11 @@ const emit = defineEmits<{
   (e: 'roi-confirm'): void
   (e: 'roi-cancel'): void
   (e: 'roi-delete', id: string): void
+  /** 选中集操作：驱动主图高亮 + 导出勾选（与 kmeans 的 select-all/clear-all 同构）。
+   *  注意与上面的 'roi-clear-all'（删除全部 ROI）区分开。 */
+  (e: 'toggle-roi-selection', id: string): void
+  (e: 'roi-select-all'): void
+  (e: 'roi-deselect-all'): void
   (e: 'export-masks', payload: MaskExportPayload): void
   (e: 'roi-clear-all'): void
   (e: 'update:gamma', value: number): void
@@ -453,6 +460,7 @@ function cancelEnable() {
       :draft-ready="draftReady"
       :rois="confirmedRois"
       :viewing-roi="viewingRoi"
+      :selected-roi-ids="selectedRoiIds"
       :imported-mask="importedMask"
       @update:selected-tool="emit('update:roiTool', $event)"
       @update:viewing-roi="emit('update:viewingRoi', $event)"
@@ -460,6 +468,9 @@ function cancelEnable() {
       @cancel="emit('roi-cancel')"
       @delete="emit('roi-delete', $event)"
       @clear-all="emit('roi-clear-all')"
+      @toggle-selection="emit('toggle-roi-selection', $event)"
+      @select-all="emit('roi-select-all')"
+      @deselect-all="emit('roi-deselect-all')"
       @clear-imported-mask="emit('clear-imported-mask')"
     />
   </CollapsibleSection>
@@ -472,6 +483,7 @@ function cancelEnable() {
       </div>
       <MaskExportPanel
         :rois="confirmedRois"
+        :selected-roi-ids="selectedRoiIds"
         :kmeans-clusters="kmeansClusters"
         :kmeans-labels-available="kmeansLabelsAvailable"
         :kmeans-k="kmeansK"
@@ -482,6 +494,9 @@ function cancelEnable() {
         @export-masks="(payload) => emit('export-masks', payload)"
         @import-mask="(file) => emit('import-mask', file)"
         @clear-imported-mask="emit('clear-imported-mask')"
+        @toggle-roi-selection="emit('toggle-roi-selection', $event)"
+        @roi-select-all="emit('roi-select-all')"
+        @roi-deselect-all="emit('roi-deselect-all')"
         @toggle-kmeans-cluster="emit('toggle-kmeans-cluster', $event)"
         @kmeans-select-all="emit('kmeans-select-all')"
         @kmeans-clear-all="emit('kmeans-clear-all')"

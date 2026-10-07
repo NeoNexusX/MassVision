@@ -57,7 +57,12 @@
     <!-- ROI List -->
     <div v-if="rois.length">
       <div class="flex items-center justify-between mb-2">
-        <span class="font-semibold text-base-content tracking-wide">{{ $t('vizworkbench.roi.rois') }}</span>
+        <span class="font-semibold text-base-content tracking-wide">
+          {{ $t('vizworkbench.roi.rois') }}
+          <span class="font-mono font-normal text-base-content/60"
+            >{{ selectedCount }}/{{ rois.length }}</span
+          >
+        </span>
         <button class="text-error hover:underline" @click="$emit('clearAll')">
           {{ $t('common.action.clearAll') }}
         </button>
@@ -70,12 +75,20 @@
           :style="{ borderColor: cssWithAlpha(roi.color, 0.25), background: cssWithAlpha(roi.color, 0.03) }"
         >
           <div class="flex items-center justify-between mb-1">
-            <span class="font-semibold" :style="{ color: roi.color }">{{
-              roi.label
-            }}</span>
+            <label class="flex items-center gap-1.5 min-w-0 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                class="checkbox checkbox-xs checkbox-primary shrink-0"
+                :checked="isSelected(roi.id)"
+                @change="$emit('toggle-selection', roi.id)"
+              />
+              <span class="font-semibold truncate" :style="{ color: roi.color }">{{
+                roi.label
+              }}</span>
+            </label>
             <div class="flex items-center gap-1">
               <button
-                class="text-base-content hover:text-error"
+                class="text-base-content hover:text-error shrink-0"
                 @click="$emit('delete', roi.id)"
               >
                 <SvgIcon type="trash" />
@@ -104,6 +117,16 @@
           </div>
         </div>
       </div>
+      <!-- 勾选 = 主图高亮 + 纳入导出掩膜（不过滤图像） -->
+      <div class="flex gap-1 mt-2">
+        <button class="btn btn-ghost btn-sm kawaru-text-75" @click="$emit('select-all')">
+          {{ $t('vizworkbench.mask.all') }}
+        </button>
+        <button class="btn btn-ghost btn-sm kawaru-text-75" @click="$emit('deselect-all')">
+          {{ $t('vizworkbench.roi.deselectAll') }}
+        </button>
+      </div>
+      <div class="text-base-content/60 mt-1">{{ $t('vizworkbench.roi.selectionHint') }}</div>
     </div>
 
     <!-- Imported mask（文件导入：独立于手绘 ROI，虚线边框区分；trash = 清除导入） -->
@@ -157,17 +180,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import { cssWithAlpha } from '@/features/vizworkbench/utils/regionPalette'
 import type { ConfirmedROI } from '@/features/vizworkbench/composables/useROI'
 import type { ImportedMaskSummary } from '@/features/vizworkbench/utils/maskExport'
 
-defineProps<{
+const props = defineProps<{
   selectedTool: string | null
   draftReady: boolean
   rois: ConfirmedROI[]
   /** When true, the ion image is filtered to the ROI union ("ROI only"). */
   viewingRoi: boolean
+  /** 共享选中集（null = 全选）：勾选驱动主图高亮 + 导出掩膜 */
+  selectedRoiIds: Set<string> | null
   /** 文件导入的掩膜摘要（独立于 rois，只读展示；trash 清除导入） */
   importedMask?: ImportedMaskSummary | null
 }>()
@@ -180,7 +206,18 @@ defineEmits<{
   (e: 'clearAll'): void
   (e: 'clearImportedMask'): void
   (e: 'update:viewingRoi', v: boolean): void
+  (e: 'toggle-selection', id: string): void
+  (e: 'select-all'): void
+  (e: 'deselect-all'): void
 }>()
+
+function isSelected(id: string): boolean {
+  return props.selectedRoiIds === null || props.selectedRoiIds.has(id)
+}
+
+// Count by filtering rois (never Set.size) — the set can hold ids of deleted
+// ROIs, which must not inflate the count.
+const selectedCount = computed(() => props.rois.filter((r) => isSelected(r.id)).length)
 
 function fmt(v: number): string {
   if (v === 0) return '0'

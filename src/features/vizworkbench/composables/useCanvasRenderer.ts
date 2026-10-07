@@ -31,6 +31,11 @@ interface CanvasRendererOptions {
   channelsMode?: Ref<boolean>
   /** Active view mask (1 = keep), including ROI-only and imported masks. */
   roiMask?: Ref<Uint8Array | null>
+  /** Selected-ROI highlight (RGBA, ion-grid sized). Drawn as a SECOND overlay
+   *  layer, independent of `overlayData` — that one is mutually exclusive
+   *  between UMAP/KMeans/comparison, whereas ROI highlighting must be able to
+   *  coexist with any of them. */
+  roiHighlightData?: Ref<Uint8ClampedArray | null>
 }
 
 export function useCanvasRenderer(
@@ -48,6 +53,9 @@ export function useCanvasRenderer(
   // Cached offscreen canvas for the overlay — same trick, keeps overlay
   // compositing per-pixel (see the overlay note in render())
   let overlayCanvas: HTMLCanvasElement | null = null
+  // Cached canvas for the ROI highlight layer. Kept separate from overlayCanvas
+  // so the two layers' sizes never thrash one another.
+  let roiOverlayCanvas: HTMLCanvasElement | null = null
   // Cached ImageData buffer for the offscreen canvas — reused while dims match
   let imageData: ImageData | null = null
   // Per-matrix P1–P95 cache for the multi-channel blend (keyed by Float32Array
@@ -197,26 +205,62 @@ export function useCanvasRenderer(
     // overlap - visible as darker stripes / uneven opacity. putImageData keeps
     // every pixel independent, and the single drawImage composites each
     // overlay pixel over the ion image exactly once.
-    const overlay = opts.overlayData.value
-    const ow = opts.overlayWidth.value
-    const oh = opts.overlayHeight.value
-    if (overlay && ow && oh && overlay.length === ow * oh * 4) {
-      if (!overlayCanvas || overlayCanvas.width !== ow || overlayCanvas.height !== oh) {
-        overlayCanvas = document.createElement('canvas')
-        overlayCanvas.width = ow
-        overlayCanvas.height = oh
-      }
-      const oCtx = overlayCanvas.getContext('2d')!
-      const oData = oCtx.createImageData(ow, oh)
-      oData.data.set(overlay)
-      if (viewMask && ow === cols && oh === rows) {
-        for (let i = 0; i < viewMask.length; i++) {
-          if (!viewMask[i]) oData.data[i * 4 + 3] = 0
-        }
-      }
-      oCtx.putImageData(oData, 0, 0)
-      ctx.drawImage(overlayCanvas, ox, oy, Math.floor(ow * scaleVal), Math.floor(oh * scaleVal))
+    const blitCtx = { ctx, cols, rows, viewMask, ox, oy, scaleVal }
+    overlayCanvas = blitOverlay(overlayCanvas, blitCtx, {
+      data: opts.overlayData.value,
+      ow: opts.overlayWidth.value,
+      oh: opts.overlayHeight.value,
+    })
+
+    // ROI highlight: a second, independent layer so it coexists with the
+    // UMAP/KMeans/comparison overlay above. Its grid always matches the ion
+    // image, so cols/rows double as its dimensions.
+    roiOverlayCanvas = blitOverlay(roiOverlayCanvas, blitCtx, {
+      data: opts.roiHighlightData?.value ?? null,
+      ow: cols,
+      oh: rows,
+    })
+  }
+
+  /**
+   * Blit one RGBA overlay buffer onto the main context through a dedicated
+   * 1:1 canvas. Each layer passes its own cached canvas (`cached`) so two
+   * layers of different sizes never thrash a shared one. Returns the canvas to
+   * cache back, or the previous value when there is nothing to draw.
+   */
+  function blitOverlay(
+    cached: HTMLCanvasElement | null,
+    scene: {
+      ctx: CanvasRenderingContext2D
+      cols: number
+      rows: number
+      viewMask: Uint8Array | null
+      ox: number
+      oy: number
+      scaleVal: number
+    },
+    layer: { data: Uint8ClampedArray | null; ow: number; oh: number },
+  ): HTMLCanvasElement | null {
+    const { ctx, cols, rows, viewMask, ox, oy, scaleVal } = scene
+    const { data, ow, oh } = layer
+    if (!data || !ow || !oh || data.length !== ow * oh * 4) return cached
+    let target = cached
+    if (!target || target.width !== ow || target.height !== oh) {
+      target = document.createElement('canvas')
+      target.width = ow
+      target.height = oh
     }
+    const oCtx = target.getContext('2d')!
+    const oData = oCtx.createImageData(ow, oh)
+    oData.data.set(data)
+    if (viewMask && ow === cols && oh === rows) {
+      for (let i = 0; i < viewMask.length; i++) {
+        if (!viewMask[i]) oData.data[i * 4 + 3] = 0
+      }
+    }
+    oCtx.putImageData(oData, 0, 0)
+    ctx.drawImage(target, ox, oy, Math.floor(ow * scaleVal), Math.floor(oh * scaleVal))
+    return target
   }
 
   /**
@@ -268,6 +312,7 @@ export function useCanvasRenderer(
     if (renderRaf) cancelAnimationFrame(renderRaf)
     offscreen = null
     overlayCanvas = null
+    roiOverlayCanvas = null
     imageData = null
     cachedData = null
   })
