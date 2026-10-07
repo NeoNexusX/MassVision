@@ -20,7 +20,9 @@ docs/
 The `rewrites` setting removes the source `/en` segment from English URLs, while Chinese keeps `/zh`. For example:
 
 - `docs/en/guide/dataset-overview.md` → `/docs/guide/dataset-overview`
-- `docs/zh/guide/4.Dataset-Overview.md` → `/docs/zh/guide/4.Dataset-Overview`
+- `docs/zh/guide/dataset-overview.md` → `/docs/zh/guide/dataset-overview`
+
+Both locales must use **identical basenames** (no numbering prefixes on the Chinese side). The language switcher maps the current path 1:1 between locales, so mismatched basenames make the switched-to page 404.
 
 ## Editing and Adding Pages
 

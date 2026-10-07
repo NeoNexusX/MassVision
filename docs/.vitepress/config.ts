@@ -34,6 +34,7 @@ const en = {
           { text: 'Dataset Analysis', link: '/guide/dataset-analysis' },
           { text: 'Workspace', link: '/guide/workspace' },
           { text: 'Navigation', link: '/guide/navigation' },
+          { text: 'Collections', link: '/guide/collections' },
         ],
       },
     ],
@@ -60,7 +61,7 @@ const en = {
 
 const zh = {
   nav: [
-    { text: '指南', link: '/zh/guide/1.Getting-Started' },
+    { text: '指南', link: '/zh/guide/getting-started' },
     { text: '开发', link: '/zh/dev/技术栈' },
   ],
   sidebar: {
@@ -68,15 +69,16 @@ const zh = {
       {
         text: '指南',
         items: [
-          { text: '快速开始', link: '/zh/guide/1.Getting-Started' },
-          { text: '账户管理', link: '/zh/guide/2.Account-Management' },
-          { text: '查找数据集', link: '/zh/guide/3.Datasets-Finding' },
-          { text: '数据集总览', link: '/zh/guide/4.Dataset-Overview' },
-          { text: '数据可视化', link: '/zh/guide/5.Dataset-Visualize' },
-          { text: '上传数据集', link: '/zh/guide/6.Dataset-Upload' },
-          { text: '数据集分析', link: '/zh/guide/7.Dataset-Analysis' },
-          { text: '工作区', link: '/zh/guide/8.Workspace' },
-          { text: '导航说明', link: '/zh/guide/9.Navigation' },
+          { text: '快速开始', link: '/zh/guide/getting-started' },
+          { text: '账户管理', link: '/zh/guide/account-management' },
+          { text: '查找数据集', link: '/zh/guide/finding-datasets' },
+          { text: '数据集总览', link: '/zh/guide/dataset-overview' },
+          { text: '数据可视化', link: '/zh/guide/data-visualization' },
+          { text: '上传数据集', link: '/zh/guide/upload-data' },
+          { text: '数据集分析', link: '/zh/guide/dataset-analysis' },
+          { text: '工作区', link: '/zh/guide/workspace' },
+          { text: '导航说明', link: '/zh/guide/navigation' },
+          { text: '数据集合', link: '/zh/guide/collections' },
         ],
       },
     ],
