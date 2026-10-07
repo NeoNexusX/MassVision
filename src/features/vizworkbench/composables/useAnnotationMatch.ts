@@ -22,6 +22,7 @@ import {
 import {
   parseAnnotationCsv,
   buildAnnotationExportCsv,
+  decodeCsvBytes,
   normalizeResultPolarity,
   runMatchPipeline,
   sortMatchedRows,
@@ -71,12 +72,14 @@ interface MatchResult {
   droppedDuplicates: number
 }
 
+/** Read the file's raw bytes and decode them: strict UTF-8 first, falling
+ *  back to GBK/GB18030 for Chinese-Excel CSVs (see decodeCsvBytes). */
 function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onload = () => resolve(decodeCsvBytes(reader.result as ArrayBuffer))
     reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'))
-    reader.readAsText(file, 'utf-8')
+    reader.readAsArrayBuffer(file)
   })
 }
 
