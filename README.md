@@ -23,7 +23,7 @@ SpatialXomics 是一个面向质谱成像（MSI）的 Web 数据管理与分析�
 | UI | Tailwind CSS v4、DaisyUI v5、Iconify 离线图标子集 |
 | 可视化 | ECharts、Canvas、vue3-calendar-heatmap |
 | MSI/Zarr | 自研 Zarr v3 分块读取器、zstddec、`@zip.js/zip.js`、hash-wasm、ml-kmeans |
-| 网络与存储 | Axios、qs、ali-oss（STS 临时凭证） |
+| 网络与存储 | Axios、ali-oss（STS 临时凭证） |
 | 测试 | Vitest、Playwright |
 | 文档 | VitePress（中英文） |
 

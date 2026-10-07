@@ -23,7 +23,7 @@ SpatialXomics is a web platform for mass spectrometry imaging (MSI) data managem
 | UI | Tailwind CSS v4, DaisyUI v5, offline Iconify subsets |
 | Visualization | ECharts, Canvas, vue3-calendar-heatmap |
 | MSI/Zarr | Custom chunked Zarr v3 reader, zstddec, `@zip.js/zip.js`, hash-wasm, ml-kmeans |
-| Network/storage | Axios, qs, ali-oss with temporary STS credentials |
+| Network/storage | Axios, ali-oss with temporary STS credentials |
 | Testing | Vitest, Playwright |
 | Documentation | Bilingual VitePress site |
 
