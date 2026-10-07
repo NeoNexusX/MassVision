@@ -4,6 +4,12 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE: string
   readonly VITE_BACKEND_URL: string
   readonly VITE_OSS_ENDPOINT: string
+  /** LLM 中转站基地址（OpenAI 兼容，不含 /chat/completions 后缀） */
+  readonly VITE_LLM_PROXY_URL: string
+  /** LLM 中转站限额子 key（放 env/.env.*.local，不进 git） */
+  readonly VITE_LLM_API_KEY: string
+  /** 默认模型名 */
+  readonly VITE_LLM_MODEL: string
 }
 
 interface ImportMeta {

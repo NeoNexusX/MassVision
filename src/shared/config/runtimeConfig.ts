@@ -273,6 +273,11 @@ export interface AppConfig {
   appName: string
   /** 应用版本号，如 "0.3.0" */
   version?: string
+  /** AI 助手 LLM 运行时配置；缺省时用 env / 内置默认 */
+  llm?: {
+    /** 默认模型名（env 默认 → config.json llm 块覆盖） */
+    model?: string
+  }
   /** 云端 zarr 读取调优参数；缺省时用内置默认（100MB 缓存 / 16 并发） */
   zarr?: ZarrConfig
   /** OSS 直连域名等；缺省时回退内置默认（测试环境 bucket） */
