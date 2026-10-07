@@ -104,7 +104,7 @@ Displays the spatial intensity distribution for the selected m/z value.
 | **Zoom** | Mouse wheel (centered on pointer), or use the `−` / `+` buttons in the bottom-right. |
 | **Pan** | Click and drag when zoomed in. |
 | **Pixel info** | Hover to see 1-based coordinates `(x, y)` and intensity. |
-| **Select pixel** | In Processed mode, clicking a pixel loads its spectrum. |
+| **Select pixel** | Clicking a pixel loads its spectrum (works in both Continuous and Processed modes). |
 
 ### Toolbar
 
@@ -128,7 +128,7 @@ Continuous data can overlay several ions at once as separate colour channels. En
 
 - Up to **10 channels**. Each channel is normalized on its own range and added as a colour.
 - Per-channel controls cover visibility, colour, and opacity.
-- Display Range, Colormap, and Gamma do not apply while an overlay is active (their controls are greyed out).
+- Display Range and Colormap do not apply while an overlay is active (their controls are greyed out); the Gamma slider stays movable but has no effect.
 
 ## Pixel Spectrum
 
@@ -136,7 +136,7 @@ Content depends on the data mode:
 
 | Mode | What's Shown | Interaction |
 |---|---|---|
-| **Continuous** | Mean spectrum of the entire dataset | Click anywhere to switch to the nearest m/z and refresh the ion image. |
+| **Continuous** | Mean spectrum of the entire dataset by default; switchable to the selected pixel's spectrum | Click anywhere to switch to the nearest m/z and refresh the ion image. |
 | **Processed** | Spectrum of the selected pixel | Click a pixel in the TIC image first, then its spectrum loads here. |
 
 - Centroid data renders as **bar peaks**; profile data as **continuous curves**.
@@ -200,8 +200,8 @@ Click **Import CSV** to select a file, or drag and drop a CSV onto the panel. Pa
 
 CSV format requirements:
 
-- **Encoding**: UTF-8 or UTF-8 BOM. Delimiter auto-detected (comma, semicolon, tab, or `|`).
-- **m/z column** (required): recognized names include `Exp. m/z`, `Tar. m/z`, `mz`, `m/z`, `experimental_mz`, `mass`, etc.
+- **Encoding**: UTF-8 (with or without BOM); GBK/GB18030 files are detected automatically. Delimiter auto-detected (comma, semicolon, tab, or `|`).
+- **m/z column** (required): recognized names include `Target m/z`, `Exp. m/z`, `Tar. m/z`, `mz`, `m/z`, `experimental_mz`, `mass`, etc. Matching is tolerant of case, spacing, underscore variants, a trailing period, and full-width characters.
 - **Candidate names**: merged from `Candidate_1` through `Candidate_N` (or a single `Candidate` column). Empty values are dropped.
 - **Optional columns**: `formula_ion` / `formula` (molecular formula), `Ion type` / `adduct` (adduct type).
 
