@@ -42,26 +42,27 @@ Click **Add filter**, choose your criteria, then click **Apply**.
 | Filter | Type | Example Values |
 |---|---|---|
 | **Filename** | Text | `0e75ee_Human_Brain_MALDI_20_Positive` |
-| **Experiment Type** | Dropdown | imzML, Other |
+| **Experiment Type** | Multi-select | imzML, Other |
 | **Submitted By** | Text | Submitter's username |
-| **Organism** | Dropdown | Human, Mouse, Rat, Zebrafish… |
-| **Organism Part** | Dropdown | Brain, Heart, Liver, Tumor, Whole organism… |
-| **Condition** | Dropdown | Control, Disease, Cancer, Drug-treated, Genetic modification… |
-| **Sample Stabilization** | Dropdown | Fresh, Fresh frozen, Snap frozen, FFPE, Ethanol fixed… |
-| **Sample Growth Conditions** | Dropdown | In vivo, Ex vivo, In vitro, Cell culture, Organoid… |
-| **Tissue Modification** | Dropdown | None, Cryosectioned, Washed, Stained, Chemical derivatization… |
-| **MALDI Matrix** | Dropdown | CHCA, DHB, NEDC, Sinapinic acid, 9-AA… |
-| **Matrix Application** | Dropdown | Spraying, Sublimation, Spotting, Inkjet printing… |
-| **Solvent** | Dropdown | Water, ACN, MeOH, Ethanol, TFA… |
-| **Polarity** | Dropdown | Positive, Negative |
-| **Ionisation Source** | Dropdown | MALDI, DESI, SIMS, AP-MALDI, LDI… |
-| **Analyzer** | Dropdown | Orbitrap Exploris 480, Q Exactive HF, timsTOF fleX, TOF… |
+| **Owner** | Text | Dataset owner (shown on Public Datasets only) |
+| **Organism** | Multi-select | Human, Mouse, Rat, Zebrafish… |
+| **Organism Part** | Multi-select | Brain, Heart, Liver, Tumor, Whole organism… |
+| **Condition** | Multi-select | Control, Disease, Cancer, Drug-treated, Genetic modification… |
+| **Sample Stabilization** | Multi-select | Fresh, Fresh frozen, Snap frozen, FFPE, Ethanol fixed… |
+| **Sample Growth Conditions** | Multi-select | In vivo, Ex vivo, In vitro, Cell culture, Organoid… |
+| **Tissue Modification** | Multi-select | None, Cryosectioned, Washed, Stained, Chemical derivatization… |
+| **MALDI Matrix** | Multi-select | CHCA, DHB, NEDC, Sinapinic acid, 9-AA… |
+| **Matrix Application** | Multi-select | Spraying, Sublimation, Spotting, Inkjet printing… |
+| **Solvent** | Multi-select | Water, ACN, MeOH, Ethanol, TFA… |
+| **Polarity** | Multi-select | Positive, Negative |
+| **Ionisation Source** | Multi-select | MALDI, DESI, SIMS, AP-MALDI, LDI… |
+| **Analyzer** | Multi-select | Orbitrap Exploris 480, Q Exactive HF, timsTOF fleX, TOF… |
 
-On **My Datasets** the **Username** filter is not shown — results are always limited to your own uploads. An extra **Username** filter appears only on **Public Datasets**.
+**Multi-select** filters are tag inputs: pick values from the vocabulary dropdown or type your own; multiple values within one field are OR-ed. The **Owner** filter is not shown on **My Datasets** — that list is always limited to your own uploads.
 
 ## Sort
 
-Click the sort button to the right of the search bar and pick one of four orders:
+Use the sort dropdown to the right of the search bar and pick one of four orders:
 
 - **Submission time (newest first)** — default
 - **Submission time (oldest first)**
