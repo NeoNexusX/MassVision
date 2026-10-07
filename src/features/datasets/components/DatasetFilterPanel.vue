@@ -67,9 +67,10 @@ const fields = computed<FilterField[]>(() => {
     { key: 'analyzer', label: t('common.meta.analyzer'), type: 'multi', options: ANALYZERS },
     { key: 'first_uploaded_by', label: t('datasets.field.submittedBy'), type: 'text', placeholder: t('datasets.filter.submitterPlaceholder') },
   ]
-  // username 仅公开列表（/files/list_files）支持；list_user_files 会忽略它
+  // username 仅公开列表（/files/list_files）支持；list_user_files 会忽略它。
+  // 语义是「数据集拥有者」，label/placeholder 与「提交者」区分开
   if (props.showUsername)
-    list.push({ key: 'username', label: t('common.field.username'), type: 'text', placeholder: t('datasets.filter.submitterPlaceholder') })
+    list.push({ key: 'username', label: t('datasets.field.owner'), type: 'text', placeholder: t('datasets.filter.ownerPlaceholder') })
   return list
 })
 
