@@ -28,6 +28,8 @@ npm run dev
 | Zarr | In-repository Zarr v3/OSS Range reader with `zstddec`; supports MassFlow layouts 1.0 and 1.1 |
 | PubChem | Compound lookup for annotation rows |
 | Clustering | Backend-generated UMAP; browser-side KMeans using `ml-kmeans` over the UMAP embedding |
+| AI assistant | `cordis` agent runtime (tool loop, skills, SSE adapter); chat view built on `@tdesign-vue-next/chat` |
+| Annotation scoring | `isotopic-distribution` for isotope patterns, `mf-utilities` + `chemical-elements` for formula parsing — browser-side mass × isotope composite evidence score with target-decoy FDR |
 | Other | `i18n-iso-countries` for country/region data |
 | Docs and tests | VitePress, Vitest, Playwright |
 | Quality | ESLint 9 flat config, Prettier |
@@ -74,7 +76,7 @@ The vizworkbench feature also owns the annotation CSV and KMeans workers under `
 ## Configuration and Deployment
 
 - Vite environment files live under `env/`. Use `env/.env.development.local` for local overrides. Runtime business configuration comes from `public/config.json` and is loaded before the app mounts.
-- `config.json` controls app-wide settings: application name, navigation and floating action button, pagination, verification, Zarr read tuning, and the AI-assistant switch. The default assistant switch is currently off.
+- `config.json` controls app-wide settings: application name, navigation and floating action button, pagination, verification, and Zarr read tuning. The AI assistant has no dedicated switch: its floating-button `toggle-ai` entry follows the regular `active` / `requireAuth` flags and is currently enabled for signed-in users. Chat needs either deployment LLM credentials (`VITE_LLM_PROXY_URL` / `VITE_LLM_API_KEY`) or a user-supplied BYOK configuration; with neither, the assistant panel opens straight into its settings.
 - Home page content (hero copy, feature showcase, timeline, team, contact details, commit heatmap) lives in `public/content.json`. The `/` route fetches it in parallel with the home chunk, so its size never sits on the app-wide startup path. If it cannot be loaded the home page simply omits those sections; other routes are unaffected.
 - Upload form vocabularies and ion-source requirement rules are no longer JSON. They are compiled into the bundle (`datasetMetadata.ts` / `ionSourceRules.ts`), ship inside long-cached route chunks, and require a rebuild to change.
 - The `test`-branch workflow runs `npm run check`, the docs build, and Chromium/Firefox/WebKit E2E.

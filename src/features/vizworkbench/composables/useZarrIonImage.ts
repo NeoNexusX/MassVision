@@ -10,8 +10,9 @@
  * pixelSpectrum is the source of truth for the per-pixel spectrum (both modes).
  * selectedMz is derived from selectedMzIndex + mzAxis (continuous only).
  *
- * ⚠️ 模块级单例：store / mzAxisRef / dataModeRef 等约 20 个状态挂在模块作用域，
- * 由可视化工作台（VizWorkbench）独占使用（useRegionComparison / useAnnotationMatch 等横向消费）。
+ * ⚠️ 模块级单例：store / mzAxisRef / dataModeRef 等约 20 个状态已抽到
+ * services/zarr/zarrSharedState（跨 feature 共享 API，assistant 只读消费），
+ * 由可视化工作台（VizWorkbench）独占写入（useRegionComparison / useAnnotationMatch 等横向消费）。
  * 路由是单实例（/viz 组件复用 + onUnmounted dispose），因此成立；
  * 但切勿同时挂载两个消费者（KeepAlive 多实例、第二页签组件），否则后 init 的
  * 实例会 dispose 前者仍在用的 store。如需多实例，须重构为 provide/inject 工厂。
@@ -22,139 +23,62 @@
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { getZarrAccess } from '@/services/zarr/api/zarrAccessApi'
 import { ZarrIncompatibleError, ZarrOssStore } from '@/services/zarr/zarrOssStore'
-import type { MetadataAttrs, DataMode, PixelSpectrum } from '@/services/zarr/types/zarr'
+import {
+  // 共享状态收在 services 层（跨 feature API）：这里引入内部使用 + 转发导出
+  store,
+  setZarrStore,
+  mzAxisRef,
+  ionDims,
+  dataModeRef,
+  rowAxisRef,
+  metadataAttrsRef,
+  meanChartData,
+  meanSpectrumRef,
+  spectrumLoading,
+  spectrumError,
+  nMz,
+  ticMatrix,
+  ticLoading,
+  ticError,
+  pixelSpectrum,
+  pixelSpectrumLoading,
+  pixelSpectrumError,
+  requestedPixelIndex,
+  spectrumView,
+  resetZarrSharedState,
+} from '@/services/zarr/zarrSharedState'
 import { buildSpectrumChartData } from '@/features/vizworkbench/utils/spectrumChartData'
 import { ZARR_STORE } from '@/shared/config/defaults'
 import { getConfig } from '@/shared/config'
 import { formatNumber } from '@/shared/utils/format'
 import { t } from '@/i18n'
 
-// ---- Module-level shared state ----
-
-let store: ZarrOssStore | null = null
-
-/** Shared m/z axis (Float64Array). Only populated for continuous mode. */
-const mzAxisRef = shallowRef<Float64Array | null>(null)
-
-/** Ion image dimensions { width, height } */
-const ionDims = shallowRef<{ width: number; height: number } | null>(null)
-
-/** Data mode: 'continuous' or 'processed' */
-export const dataModeRef = shallowRef<DataMode | null>(null)
-
-/** Row axis: 'pixel' or 'ion' */
-export const rowAxisRef = shallowRef<'pixel' | 'ion' | null>(null)
-
-/** Metadata from /metadata/.zattrs */
-export const metadataAttrsRef = shallowRef<MetadataAttrs | null>(null)
-
-/** Result polarity (e.g. 'positive'/'negative'). Populated from the zarr
- *  metadata attrs, with an API fallback applied by {@link ../useResultMeta}.
- *  Shared so consumers (the annotation panel) can read it directly like
- *  {@link mzAxisRef} instead of threading it through props. */
-export const polarityRef = ref('')
-
-// ---- Mean spectrum state (continuous mode) ----
-
-export const meanChartData = shallowRef<[number, number][]>([])
-/** Raw mean-spectrum intensities aligned with {@link mzAxisRef}. Unlike
- *  {@link meanChartData} (which drops zero/NaN points for charting), this is
- *  the unfiltered array - used for per-peak intensity lookup such as the
- *  annotation-CSV m/z matching (see useAnnotationMatch). */
-export const meanSpectrumRef = shallowRef<Float32Array | null>(null)
-export const spectrumLoading = ref(false)
-export const spectrumError = ref<string | null>(null)
-export const nMz = ref(0)
-
-// ---- TIC image state (processed mode) ----
-
-export const ticMatrix = shallowRef<Float32Array | null>(null)
-export const ticLoading = ref(false)
-export const ticError = ref<string | null>(null)
-
-// ---- Per-pixel spectrum state (both modes) ----
-
-/** 当前显示的像素谱。加载下一个像素期间保留旧谱，加载失败时清空 */
-export const pixelSpectrum = shallowRef<PixelSpectrum | null>(null)
-
-export const pixelSpectrumLoading = ref(false)
-export const pixelSpectrumError = ref<string | null>(null)
-
-/** 最近一次点击的像素索引（null = 本次会话还没选过像素），失败重试沿用它 */
-export const requestedPixelIndex = ref<number | null>(null)
-
-/** continuous 模式谱图区显示平均谱还是像素谱；processed 只有像素谱，不读它 */
-export type SpectrumView = 'mean' | 'pixel'
-export const spectrumView = ref<SpectrumView>('mean')
-
-/**
- * 切换谱图视图。还没选过像素时没有像素谱可看，忽略切到 'pixel' 的请求
- * （界面上对应按钮也是禁用的）。
- */
-export function setSpectrumView(view: SpectrumView): void {
-  if (view === 'pixel' && requestedPixelIndex.value === null) return
-  spectrumView.value = view
-}
-
-// ---- Shared context snapshot ----
-
-export interface SharedZarrContext {
-  store: ZarrOssStore | null
-  mzAxis: Float64Array | null
-  ionShape: { width: number; height: number } | null
-  dataMode: DataMode | null
-  rowAxis: 'pixel' | 'ion' | null
-  meanChartData: [number, number][]
-  spectrumLoading: boolean
-  spectrumError: string | null
-  nMz: number
-  ticMatrix: Float32Array | null
-  pixelSpectrum: typeof pixelSpectrum.value
-}
-
-export function getSharedZarrContext(): SharedZarrContext {
-  return {
-    store,
-    mzAxis: mzAxisRef.value,
-    ionShape: ionDims.value,
-    dataMode: dataModeRef.value,
-    rowAxis: rowAxisRef.value,
-    meanChartData: meanChartData.value,
-    spectrumLoading: spectrumLoading.value,
-    spectrumError: spectrumError.value,
-    nMz: nMz.value,
-    ticMatrix: ticMatrix.value,
-    pixelSpectrum: pixelSpectrum.value,
-  }
-}
-
-/**
- * Reset the module-level refs (no store disposal — callers handle the store).
- * Shared by disposeZarrState() and the composable's init() reset block.
- */
-function resetModuleState(): void {
-  mzAxisRef.value = null
-  ionDims.value = null
-  dataModeRef.value = null
-  rowAxisRef.value = null
-  metadataAttrsRef.value = null
-  polarityRef.value = ''
-
-  meanChartData.value = []
-  meanSpectrumRef.value = null
-  spectrumLoading.value = false
-  spectrumError.value = null
-
-  ticMatrix.value = null
-  ticLoading.value = false
-  ticError.value = null
-
-  pixelSpectrum.value = null
-  pixelSpectrumLoading.value = false
-  pixelSpectrumError.value = null
-  requestedPixelIndex.value = null
-  spectrumView.value = 'mean'
-}
+// 转发导出：feature 内既有导入路径不变（SpectrumSection / useAnnotationMatch /
+// useRegionComparison / useResultMeta / VizWorkbench 等）；跨 feature 消费者
+// （assistant）应直接 import '@/services/zarr/zarrSharedState'
+export {
+  mzAxisRef,
+  dataModeRef,
+  rowAxisRef,
+  metadataAttrsRef,
+  polarityRef,
+  meanChartData,
+  meanSpectrumRef,
+  spectrumLoading,
+  spectrumError,
+  nMz,
+  ticMatrix,
+  ticLoading,
+  ticError,
+  pixelSpectrum,
+  pixelSpectrumLoading,
+  pixelSpectrumError,
+  requestedPixelIndex,
+  spectrumView,
+  setSpectrumView,
+  getSharedZarrContext,
+} from '@/services/zarr/zarrSharedState'
+export type { SpectrumView, SharedZarrContext } from '@/services/zarr/zarrSharedState'
 
 /**
  * Release all module-level state. Call on VizWorkbench unmount so that large
@@ -165,14 +89,14 @@ function resetModuleState(): void {
 export function disposeZarrState(): void {
   initGeneration++ // 作废进行中的 init（若有），它会在下个检查点自行清理
   store?.dispose()
-  store = null
+  setZarrStore(null)
 
   ionImageRequestId++
   pixelSpectrumRequestId++
   normalizationRequestId++
   normalizationCache.clear()
   normalizationPending.clear()
-  resetModuleState()
+  resetZarrSharedState()
   nMz.value = 0
 }
 
@@ -303,10 +227,6 @@ export async function loadPixelSpectrum(pixelIndex: number): Promise<void> {
     if (isCurrent()) pixelSpectrumLoading.value = false
   }
 }
-
-// ---- Exports ----
-
-export { mzAxisRef }
 
 // ---- Helper: find m/z range indices (continuous mode) ----
 
@@ -591,7 +511,7 @@ export function useZarrIonImage() {
     // orphaned store (it must NOT touch the new session's store).
     const gen = ++initGeneration
     store?.dispose()
-    store = null
+    setZarrStore(null)
     ionImageRequestId++
     pixelSpectrumRequestId++
     normalizationRequestId++
@@ -600,7 +520,7 @@ export function useZarrIonImage() {
     normalizationFactors.value = null
     normalizationError.value = null
     ionMatrix.value = null
-    resetModuleState()
+    resetZarrSharedState()
 
     /** True while this init is still the latest lifecycle (no dispose/re-init since). */
     const isCurrent = () => gen === initGeneration
@@ -627,7 +547,7 @@ export function useZarrIonImage() {
         s.dispose()
         return
       }
-      store = s
+      setZarrStore(s)
       await s.init()
       // 如果 await 期间发生了 disposeZarrState()（用户离开页面）或重新 init()，放弃本次加载
       if (abortIfStale(s)) return

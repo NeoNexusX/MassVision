@@ -228,14 +228,42 @@ Use the **Sort by** dropdown, then click the arrow to toggle ascending/descendin
 | Exp. m/z | Target m/z value |
 | Mass Difference | Mass error (Δ) |
 | Intensity | Average intensity at the matched peak |
+| Composite score | Evidence score (see below), best first |
+| Adduct score | Multi-adduct bonus (see below), best first |
+| FDR | Target-decoy q-value, most reliable first |
+
+### Evidence Scoring (Level 5 → Level 4)
+
+Exact-mass matching alone corresponds to **Level 5** of the MSI confidence hierarchy (mass only). When the CSV provides `formula_ion`, every matched row additionally receives evidence scores computed entirely in the browser:
+
+- **Mass score** — linear decay of the mass error within the tolerance.
+- **Isotope score** — the theoretical isotope envelope of the ion formula is computed on the fly (natural-abundance convolution) and matched against observed peak intensities in the average spectrum using the formula of pySM's `isotope_pattern_match` (L1 distance on L2-normalized intensity vectors). Satellite peaks missing or wrongly-ratioed lower the score; note this spectral metric alone is lenient by design — the reference relies on the image-based metrics below for discrimination.
+- **Composite** — mass × isotope. Rows whose formula cannot be parsed degrade gracefully (folded at a neutral constant that ranks them below every scored row).
+- **FDR (q-value)** — a pySM-style target-decoy estimate: the same scoring pipeline runs on chemically implausible decoy adducts (e.g. [M+Mn]⁺), and the decoy score distribution yields an empirical false-discovery rate per row. Smaller is better.
+- **Confidence level** — `L4` (exact mass + isotope support: isotope score ≥ 0.9 **and** all expected isotope peaks observed) or `L5` (mass only), shown as a badge in the table row.
+- **Multi-adduct bonus (adductScore)** — when the same neutral molecule is detected as a group of ≥2 adduct ions (e.g. [M+H]⁺ together with [M+Na]⁺), the group is scored with the CAMERA adduct rule table: quasi-molecular ions ([M+H]⁺, [M−H]⁻, …) count ips=1.0, alkali replacements ([M−2H+Na]⁻, …) ips=0.5, and `adductScore = min(1, (Σips−1)/2)`; the composite is then multiplied by `1 + 0.2·adductScore`. The bonus is applied *after* FDR (q-values stay on the un-boosted scale, since decoy metal adducts cannot form groups). Grouped rows carry an **M×n** badge in the table, and the hover card links to the group members.
+
+A **L4 filter chip** restricts the table to Level-4 rows.
+
+### Spatial Evidence (pySM MSM metrics)
+
+For the top 200 rows by composite score, the panel progressively loads ion images of the theoretical isotope peaks (up to 4) and computes the three pySM (Palmer et al., *Nat Methods* 2017) metrics, combined as **MSM = chaos × spatial × spectral**:
+
+- **Chaos (ρ_chaos)** — level-set measure of spatial chaos: the image is thresholded at 10 intensity levels, each level set is opened morphologically (cross dilation + 3×3 erosion) and 4-connected objects are counted; a single structured region keeps the count low (score → 1) while speckle fragments are vetoed (→ 0).
+- **Spatial (ρ_spatial)** — weighted Pearson correlation between the monoisotopic image and each satellite isotope image (weights = theoretical intensities), clipped to [0, 1]. Ions of the same molecule must co-localize; a zero satellite correlation is strong evidence against the annotation.
+- **Spectral (ρ_spectral)** — image-based isotope pattern match: the total intensity of each isotope image (over the M image's mask) vs the theoretical envelope, L2-normalized L1 distance.
+
+Images are hotspot-clipped at the 99th percentile before scoring (pySM preprocessing). Hovering a row or scrolling bumps it to the front of the scoring queue. The metrics appear in the hover card and in the exported CSV; they intentionally do **not** feed back into the Tier-1 composite score (which sorts the full row set).
+
+**Multi-adduct spatial confirmation**: for adduct groups that make it into the Top-K, the member M images are additionally loaded and cross-correlated pairwise (Pearson); each row shows its maximum correlation `r` against the other members. Unlike the three MSM metrics above, this confirmation **does** feed back into the ranking: passing groups (per connected component of `r ≥ 0.7` edges, which must contain ≥2 distinct adduct forms and a quasi-molecular ion, aligned with adduct_filter's confirmation step) keep their Tier-1.5 bonus marked confirmed, while failing groups have the bonus revoked — the composite is divided back, `adductScore` is zeroed, and the panel re-sorts accordingly (a warning-colored badge and the `adductUnconfirmed` export column flag it).
 
 ### Table Interaction
 
-- Two compact columns: **Annotation** (compound name) and **Exp. m/z**.
-- **Hover card** shows: matched m/z, mass error, average intensity, status, and a **PubChem** lookup button.
+- Two compact columns: **Annotation** (compound name + confidence badge) and **Exp. m/z**.
+- **Hover card** shows: matched m/z, mass error, average intensity, the key scores up front (composite, level, FDR, MSM with its readiness progress), with mass / isotope / adduct / chaos / co-localization details folded into a "detailed scores" section; plus **isotope-peak jump** buttons (M+1, M+2, … jump to the nearest spectrum peak of the theoretical envelope), an **adduct-group** badge (M×n — click a member chip to select that row), and a **PubChem** lookup button.
 - **Click a matched row** to jump to that m/z, refreshing the ion image and highlighting the spectrum peak.
 
 ### Export & Clear
 
-- **Download** button exports matched rows as CSV with 8 columns: Name, Candidates, formula_ion, Ion type, Tar. m/z, Matched m/z, Mass Difference, Avg Intensity.
+- **Download** button exports matched rows as CSV, including the evidence-score columns; Chaos/Coloc when spatial scoring has run, and Adduct Score / Adduct Peers / Adduct Corr when multi-adduct groups formed.
 - **Trash** button clears the imported data.

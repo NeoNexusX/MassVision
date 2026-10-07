@@ -16,7 +16,7 @@
  * button live in the hover card so the table never needs horizontal scroll.
  * Sorting is driven from a "Sort by" control in the toolbar, not the headers.
  */
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch, onUnmounted } from 'vue'
 import SvgIcon from '@/shared/components/SvgIcon.vue'
 import SearchInput from '@/shared/components/SearchInput.vue'
 import {
@@ -26,13 +26,22 @@ import {
 import {
   formatMassError,
   formatIntensity,
+  findClosestIndex,
   type MatchedAnnotationRow,
 } from '@/features/vizworkbench/utils/csvAnnotation'
 import PubChemDialog from '@/features/vizworkbench/components/PubChemDialog.vue'
 import { scrollIntoContainer } from '@/features/vizworkbench/utils/scrollIntoContainer'
+import { useAnnotationSpatialScoring } from '@/features/vizworkbench/composables/useAnnotationSpatialScoring'
+import { ADDUCT_CORR_MIN, type SpatialScore } from '@/features/vizworkbench/utils/spatialScore'
+import { isotopeEnvelope, chargeFromIonType } from '@/features/vizworkbench/utils/isotope'
+import { mzAxisRef } from '@/features/vizworkbench/composables/useZarrIonImage'
 import { useToast } from '@/shared/composables/useToast'
 import MzText from '@/shared/components/MzText.vue'
 import { t } from '@/i18n'
+import {
+  registerContextProviders,
+  unregisterContextProviders,
+} from '@/features/assistant/providers/analysisContext'
 
 const props = defineProps<{
   /** Panel expanded state (v-model:expanded). */
@@ -60,6 +69,7 @@ const {
   coarseFiltered,
   search,
   filter,
+  filterLevel4,
   filterAdduct,
   filterFormula,
   adductOptions,
@@ -67,11 +77,30 @@ const {
   sortKey,
   sortDir,
   filteredRows,
+  matchedRows,
   importFile,
   clear,
   selectRow,
   exportMatchedCsv,
 } = useAnnotationMatch((idx) => props.selectMzIndex(idx))
+
+// ---- Tier-2 空间证据（chaos + M+1 共定位，Top-K 渐进） ----
+// 结果按 row id 存放在本 composable，渲染时合并——不改写 worker 拥有的
+// 行对象，也不参与综合分（worker 排序所有权 + 渐进值不导致行跳动）。
+const { spatialByRowId, spatialPending, spatialProgress, bumpPriority } =
+  useAnnotationSpatialScoring(matchedRows, { tolMode, tolValue })
+
+// ---- AI 助手上下文注册（annotations） ----
+// 把匹配好的注释行以惰性 getter 注册给 assistant 分析上下文；卸载时只删自己的键
+// （不能清全部——本面板注册不了其他组件的 provider）。
+registerContextProviders({
+  annotations: () => {
+    const rows = matchedRows.value
+    if (!rows || rows.length === 0) return null
+    return { matchedRows: rows, spatial: spatialByRowId.value }
+  },
+})
+onUnmounted(() => unregisterContextProviders(['annotations']))
 
 const fileInput = ref<HTMLInputElement | null>(null)
 
@@ -99,10 +128,134 @@ watch(adductOptions, (opts) => {
 watch(formulaOptions, (opts) => {
   if (filterFormula.value && !opts.includes(filterFormula.value)) filterFormula.value = ''
 })
+const isAnnotationAvailable = computed(
+  () => props.spectrumMode === 'centroid' && spectrumAvailable.value,
+)
 
 function isActive(row: { matchedIndex: number | null }): boolean {
   return row.matchedIndex != null && row.matchedIndex === props.selectedMzIndex
 }
+
+// ---- 证据分格式化（悬停卡） ----
+
+/** 0..1 分值显示：null = '-'（未打分/不适用） */
+function fmtScore(v: number | null | undefined): string {
+  return v != null && Number.isFinite(v) ? v.toFixed(3) : '-'
+}
+
+/** q 值以百分数显示（<0.1% 显示 <0.1%） */
+function fmtFdr(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return '-'
+  const pct = v * 100
+  return pct < 0.1 ? '<0.1%' : `${pct.toFixed(1)}%`
+}
+
+/** 综合分着色：高分为成功色，帮助扫读 */
+function compositeClassOf(row: MatchedAnnotationRow): string {
+  if (row.compositeScore == null) return ''
+  if (row.level === 4) return 'text-success/80'
+  if (row.compositeScore >= 0.5) return ''
+  return 'text-base-content/40'
+}
+
+/** 悬停卡期望峰数（isotopeExpCount 缺省时退回 obsCount 上限展示） */
+function isotopeExpectedOf(row: MatchedAnnotationRow): number {
+  return row.isotopeExpCount ?? row.isotopeObsCount ?? 0
+}
+
+/** 等级徽章文案（script 侧拼串，绕开模板 raw-text lint） */
+function levelBadge(level: 4 | 5 | null | undefined): string {
+  return level != null ? `L${level}` : '-'
+}
+
+/** 多加合物组徽章文案（同上：M×n = 该分子以 n 种加合离子被观测） */
+function adductGroupBadge(peers: number): string {
+  return `M×${peers + 1}`
+}
+
+/** 组内共定位相关文案（"r=0.83"） */
+function fmtCorr(v: number): string {
+  return `r=${v.toFixed(2)}`
+}
+
+/** 空间/MSM 着色：高分成功色 */
+function corrClassOf(v: number | null | undefined): string {
+  if (v == null) return ''
+  if (v >= 0.5) return 'text-success/80'
+  return ''
+}
+
+/** 悬停行的空间分（visibleRows 已按 id 合并；tooltipRow 可能来自合并前，
+ *  兜底直接查 Map）。 */
+const tooltipSpatial = computed<SpatialScore | null | undefined>(() =>
+  tooltipRow.value
+    ? ((tooltipRow.value as MatchedAnnotationRow & { spatial?: SpatialScore | null }).spatial ??
+      spatialByRowId.value.get(tooltipRow.value.id) ??
+      null)
+    : null,
+)
+
+// ---- 同位素峰跳转 + 同分子加合物组（悬停卡） ----
+
+/** 悬停卡的同位素峰列表：理论包络（M..M+3）锚定在本行匹配峰位；轴上
+ *  容差窗口内有采样点 → 可点击跳转（走页面既有的 selectMzIndex 入口，
+ *  离子图 + 谱图红线一起联动）。 */
+interface IsotopePeakItem {
+  label: string
+  mz: number
+  rel: number
+  /** 轴上下标（null = 该位置无峰，按钮禁用） */
+  jumpIndex: number | null
+}
+
+const tooltipIsotopePeaks = computed<IsotopePeakItem[] | null>(() => {
+  const row = tooltipRow.value
+  if (!row || row.matchStatus !== 'matched' || !row.formulaIon) return null
+  const z = chargeFromIonType(row.ionType)
+  const env = isotopeEnvelope(row.formulaIon, z)
+  if (!env) return null
+  const axis = mzAxisRef.value
+  const anchor = row.matchedMz ?? row.expMz
+  return env.map((p) => {
+    const mz = anchor + p.dm
+    let jumpIndex: number | null = null
+    if (axis && axis.length > 0) {
+      const tolDa =
+        tolMode.value === 'ppm' ? Math.abs(mz) * tolValue.value * 1e-6 : tolValue.value
+      const i = findClosestIndex(axis, mz)
+      if (i >= 0 && Math.abs(axis[i]! - mz) <= tolDa) jumpIndex = i
+    }
+    // 包络已被剪枝（<1% 的峰不返回），编号按间距反推而非数组下标
+    const k = Math.round((p.dm * z) / 1.0033548)
+    return { label: k <= 0 ? 'M' : `M+${k}`, mz, rel: p.rel, jumpIndex }
+  })
+})
+
+function jumpToIsotope(item: IsotopePeakItem): void {
+  if (item.jumpIndex == null) return
+  props.selectMzIndex(item.jumpIndex)
+}
+
+/** 同分子加合物组：peer 行对象（按 id 从 matchedRows 找回，供点击跳转；
+ *  corr 为该 peer 行的组内共定位 Pearson，≥0.7 绿色确认）。 */
+const tooltipAdductPeers = computed(() => {
+  const row = tooltipRow.value
+  if (!row || row.adductPeerIds.length === 0) return []
+  const byId = new Map(matchedRows.value.map((r) => [r.id, r] as const))
+  return row.adductPeerIds
+    .map((id) => byId.get(id) ?? null)
+    .filter((r): r is MatchedAnnotationRow => r != null)
+    .map((r) => ({ row: r, corr: spatialByRowId.value.get(r.id)?.adductCorr ?? null }))
+})
+
+/** 本行加合物组的空间确认（Tier-2 渐进；undefined = 组不在 Top-K/未算到）。 */
+const tooltipAdductCorr = computed<number | null | undefined>(() => {
+  if (!tooltipRow.value || tooltipRow.value.adductPeerIds.length === 0) return undefined
+  return tooltipSpatial.value?.adductCorr ?? null
+})
+
+/** 模板里可用的确认阈值常量 */
+const adductCorrMin = ADDUCT_CORR_MIN
 
 function rowClass(row: { matchStatus: string; matchedIndex: number | null }): string {
   const active = isActive(row)
@@ -127,11 +280,19 @@ const SORT_OPTIONS: { value: AnnotationSortKey; label: () => string }[] = [
   { value: 'expMz', label: () => t('vizworkbench.annotation.target') },
   { value: 'massError', label: () => t('vizworkbench.annotation.massDifference') },
   { value: 'avgIntensity', label: () => t('vizworkbench.spectrum.intensity') },
+  { value: 'compositeScore', label: () => t('vizworkbench.annotation.compositeScore') },
+  { value: 'fdr', label: () => t('vizworkbench.annotation.fdr') },
+  { value: 'adductScore', label: () => t('vizworkbench.annotation.adductScore') },
 ]
 
+/** 这些排序键的天然方向是"好值在前"：综合分高者优先，切换字段时直接落到
+ *  降序（fdr 是升序——q 值越小越可信，维持 asc 重置即可）。 */
+const DESC_DEFAULT = new Set<AnnotationSortKey>(['compositeScore', 'adductScore'])
+
 function onSortKeyChange(e: Event) {
-  sortKey.value = (e.target as HTMLSelectElement).value as AnnotationSortKey
-  sortDir.value = 'asc' // reset to ascending on field change
+  const key = (e.target as HTMLSelectElement).value as AnnotationSortKey
+  sortKey.value = key
+  sortDir.value = DESC_DEFAULT.has(key) ? 'desc' : 'asc'
 }
 
 function toggleSortDir() {
@@ -202,6 +363,16 @@ const viewportH = ref(400)
  *  from any constant we could hard-code, so we read it from the DOM. */
 const rowH = ref(FALLBACK_ROW_H)
 
+/** 滚动时把可见窗口的行提到空间打分高优先级道（节流 300ms）。 */
+let scrollBumpTimer: ReturnType<typeof setTimeout> | null = null
+function bumpVisible() {
+  if (scrollBumpTimer) return
+  scrollBumpTimer = setTimeout(() => {
+    scrollBumpTimer = null
+    bumpPriority(filteredRows.value.slice(visibleStart.value, visibleEnd.value).map((r) => r.id))
+  }, 300)
+}
+
 function onTableScroll(e: Event) {
   const el = e.target as HTMLElement
   scrollTop.value = el.scrollTop
@@ -209,6 +380,7 @@ function onTableScroll(e: Event) {
   // Rows scrolled out of the window never fire mouseleave, so dismiss the
   // hover card here or it lingers at stale coordinates.
   dismissTooltip()
+  bumpVisible()
 }
 
 /** Measure a rendered data row so the spacer math matches reality. */
@@ -274,7 +446,13 @@ const visibleEnd = computed(() =>
     Math.ceil((scrollTop.value + viewportH.value) / rowH.value) + OVERSCAN,
   ),
 )
-const visibleRows = computed(() => filteredRows.value.slice(visibleStart.value, visibleEnd.value))
+/** 渲染窗口内的行 + 合并的 Tier-2 空间分（按 id 查 Map，不改写行对象）。 */
+const visibleRows = computed(() =>
+  filteredRows.value.slice(visibleStart.value, visibleEnd.value).map((r) => ({
+    ...r,
+    spatial: spatialByRowId.value.get(r.id) ?? null,
+  })),
+)
 /** Padding heights that keep the scrollbar proportional to the full list. */
 const topPadH = computed(() => visibleStart.value * rowH.value)
 const bottomPadH = computed(() =>
@@ -301,6 +479,8 @@ function onNameEnter(row: MatchedAnnotationRow, e: MouseEvent) {
     tooltipTimer = 0
   }
   tooltipRow.value = row
+  // 悬停的行优先补算空间证据（如果它还在队列里）
+  bumpPriority([row.id])
   const cell = e.currentTarget as HTMLElement
   const rect = cell.getBoundingClientRect()
   // Prefer placing the tooltip to the RIGHT of the annotation panel so it
@@ -364,6 +544,12 @@ function searchPubChem(name: string) {
 
 function copyName(name: string) {
   navigator.clipboard?.writeText(name).catch(() => {})
+}
+
+/** 点击同分子加合物 chip → 选中该 peer 行（复用行点击入口：跳离子图 +
+ *  谱图高亮 + 表格滚动同步）。 */
+function jumpToAdductPeer(peer: MatchedAnnotationRow): void {
+  selectRow(peer)
 }
 
 // ---- Cross-table sync: scroll to the row matching the externally selected m/z ----
@@ -446,7 +632,7 @@ watch(
             :class="{ 'btn-disabled opacity-40': !counts.matched }"
             :title="$t('vizworkbench.annotation.exportHint')"
             :disabled="!counts.matched"
-            @click="exportMatchedCsv"
+            @click="exportMatchedCsv(spatialByRowId)"
           >
             <SvgIcon type="download" />
           </button>
@@ -584,6 +770,16 @@ watch(
             })
           }}
         </button>
+        <!-- Level 4 开关：与状态/搜索过滤相交，只保留有同位素支持的匹配行 -->
+        <button
+          v-if="counts.level4 > 0"
+          class="badge badge-sm kawaru-text-68 cursor-pointer transition-colors"
+          :class="filterLevel4 ? 'badge-secondary' : 'badge-ghost'"
+          :title="$t('vizworkbench.annotation.levelHint')"
+          @click="filterLevel4 = !filterLevel4"
+        >
+          {{ $t('vizworkbench.annotation.level4Only', { count: counts.level4 }) }}
+        </button>
       </div>
 
       <!-- Adduct / formula dropdown filters: intersect with status + search, so
@@ -681,8 +877,36 @@ watch(
                 @mouseenter="onNameEnter(row, $event)"
                 @mouseleave="onCellLeave"
               >
-                <div class="font-medium kawaru-text-95 text-base-content truncate">
-                  {{ row.name }}
+                <div class="flex items-center gap-1 min-w-0">
+                  <div class="font-medium kawaru-text-95 text-base-content truncate flex-1">
+                    {{ row.name }}
+                  </div>
+                  <!-- 置信等级徽章：4 = 精确质量 + 同位素支持；5 = 仅精确质量。
+                       shrink-0 + 单行 flex 与 +N candidates 同模式，不破坏虚拟
+                       滚动的统一行高。 -->
+                  <span
+                    v-if="row.level != null"
+                    class="shrink-0 badge badge-xs badge-sm kawaru-text-68 font-mono"
+                    :class="row.level === 4 ? 'badge-success' : 'badge-ghost'"
+                    :title="$t('vizworkbench.annotation.levelHint')"
+                    >{{ levelBadge(row.level) }}</span
+                  >
+                  <!-- 多加合物组徽章：M×n = 该分子以 n 种加合离子被观测，
+                       悬停卡里可逐个跳转；Tier-2 空间反证（组内不共定位）
+                       后转警告色并撤销加分。 -->
+                  <span
+                    v-if="row.adductPeerIds.length > 0"
+                    class="shrink-0 badge badge-xs badge-sm kawaru-text-68 font-mono badge-outline"
+                    :class="row.adductUnconfirmed ? 'badge-warning' : 'badge-accent'"
+                    :title="
+                      row.adductUnconfirmed
+                        ? $t('vizworkbench.annotation.adductUnconfirmedHint')
+                        : $t('vizworkbench.annotation.adductGroupHint', {
+                            count: row.adductPeerIds.length + 1,
+                          })
+                    "
+                    >{{ adductGroupBadge(row.adductPeerIds.length) }}</span
+                  >
                 </div>
                 <!-- min-h-4 keeps one line box even when all three spans are
                      v-if'd out: the virtual scroll assumes a uniform row
@@ -740,8 +964,8 @@ watch(
         <p class="kawaru-text-68 text-base-content/40">
           {{ $t('vizworkbench.annotation.columns') }}
           <template v-for="(col, i) in CSV_COLUMNS" :key="col"
-            >{{ i ? ', ' : ' ' }}<span class="font-mono"><MzText :text="col" /></span></template
-          >
+            >{{ i ? ', ' : ' ' }}<span class="font-mono"><MzText :text="col" /></span
+          ></template>
         </p>
       </div>
 
@@ -844,6 +1068,186 @@ watch(
       <div class="flex items-center justify-between">
         <span class="text-base-content/50">{{ $t('vizworkbench.spectrum.intensity') }}</span>
         <span class="font-mono">{{ formatIntensity(tooltipRow.avgIntensity) }}</span>
+      </div>
+      <!-- 评分（精简主区）：综合 / 等级 / FDR / MSM 是决策四件套，其余单项
+           证据分折叠进"详细评分"；Tier-2 由 useAnnotationSpatialScoring 渐进
+           填充（见 tooltipSpatial）。 -->
+      <template v-if="tooltipRow.matchStatus === 'matched'">
+        <div class="flex items-center justify-between">
+          <span class="text-base-content/50">{{
+            $t('vizworkbench.annotation.compositeScore')
+          }}</span>
+          <span class="font-mono font-semibold" :class="compositeClassOf(tooltipRow)">{{
+            fmtScore(tooltipRow.compositeScore)
+          }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-base-content/50">{{ $t('vizworkbench.annotation.level') }}</span>
+          <span class="font-mono">{{
+            tooltipRow.level != null ? `Level ${tooltipRow.level}` : '-'
+          }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-base-content/50">{{ $t('vizworkbench.annotation.fdr') }}</span>
+          <span class="font-mono">{{ fmtFdr(tooltipRow.fdr) }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-base-content/50">{{ $t('vizworkbench.annotation.msm') }}</span>
+          <span
+            v-if="tooltipSpatial"
+            class="font-mono font-semibold"
+            :class="corrClassOf(tooltipSpatial.msm)"
+            >{{ fmtScore(tooltipSpatial.msm) }}</span
+          >
+          <span
+            v-else-if="spatialPending"
+            class="font-mono kawaru-text-68 text-base-content/40"
+            :title="$t('vizworkbench.annotation.spatialPending')"
+          >
+            {{ spatialProgress.done }}/{{ spatialProgress.total }}
+          </span>
+          <span v-else class="font-mono text-base-content/30">-</span>
+        </div>
+
+        <!-- 同位素峰跳转：理论包络锚定在本行匹配峰；可点击的峰（轴上容差
+             窗口内有采样点）走页面既有 selectMzIndex 入口联动离子图+谱图。 -->
+        <div v-if="tooltipIsotopePeaks && tooltipIsotopePeaks.length > 0" class="pt-1">
+          <div
+            class="text-base-content/50 mb-1"
+            :title="$t('vizworkbench.annotation.isotopeJumpHint')"
+          >
+            {{ $t('vizworkbench.annotation.isotopePeaks') }}
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <button
+              v-for="(p, i) in tooltipIsotopePeaks"
+              :key="i"
+              type="button"
+              class="btn btn-xs btn-ghost font-mono kawaru-text-68"
+              :class="p.jumpIndex == null ? 'opacity-40 pointer-events-none' : 'hover:text-primary'"
+              :title="`${p.mz.toFixed(4)} · ${(p.rel * 100).toFixed(1)}%`"
+              @click.stop="jumpToIsotope(p)"
+            >
+              {{ p.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 同分子加合物组：chips 点击跳到 peer 行；r = 组内图像共定位
+             （≥ 0.7 绿色确认，低于阈值警告色提示加分存疑）。 -->
+        <div v-if="tooltipRow.adductPeerIds.length > 0" class="pt-1">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span
+              class="text-base-content/50 truncate"
+              :title="
+                $t('vizworkbench.annotation.adductGroupHint', {
+                  count: tooltipRow.adductPeerIds.length + 1,
+                })
+              "
+              >{{ $t('vizworkbench.annotation.adductGroup') }}</span
+            >
+            <span
+              v-if="tooltipAdductCorr != null"
+              class="font-mono kawaru-text-68 shrink-0"
+              :class="tooltipAdductCorr >= adductCorrMin ? 'text-success/80' : 'text-warning'"
+              :title="$t('vizworkbench.annotation.adductCorrHint')"
+              >{{ fmtCorr(tooltipAdductCorr) }}</span
+            >
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <button
+              v-for="peer in tooltipAdductPeers"
+              :key="peer.row.id"
+              type="button"
+              class="btn btn-xs btn-outline font-mono kawaru-text-68 gap-1"
+              :title="(peer.row.matchedMz ?? peer.row.expMz).toFixed(4)"
+              @click.stop="jumpToAdductPeer(peer.row)"
+            >
+              {{ peer.row.ionType ?? peer.row.formulaIon ?? peer.row.name }}
+              <span
+                v-if="peer.corr != null"
+                class="font-mono"
+                :class="peer.corr >= adductCorrMin ? 'text-success/80' : 'text-warning'"
+                >{{ peer.corr.toFixed(2) }}</span
+              >
+            </button>
+          </div>
+        </div>
+
+        <!-- 详细评分（默认折叠）：单项证据分 -->
+        <details class="group pt-1">
+          <summary
+            class="cursor-pointer select-none text-base-content/50 kawaru-text-68 list-none [&::-webkit-details-marker]:hidden flex items-center gap-1"
+          >
+            <SvgIcon
+              type="chevron_down"
+              class="w-3 h-3 transition-transform group-open:rotate-180"
+            />
+            {{ $t('vizworkbench.annotation.detailScores') }}
+          </summary>
+          <div class="space-y-1 pt-1">
+            <div class="flex items-center justify-between">
+              <span class="text-base-content/50">{{
+                $t('vizworkbench.annotation.massScore')
+              }}</span>
+              <span class="font-mono">{{ fmtScore(tooltipRow.massScore) }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-base-content/50">{{
+                $t('vizworkbench.annotation.isotopeScore')
+              }}</span>
+              <span class="flex items-center gap-1.5 min-w-0">
+                <span
+                  v-if="tooltipRow.isotopeObsCount != null"
+                  class="kawaru-text-68 text-base-content/40"
+                  >{{
+                    $t('vizworkbench.annotation.isotopeObs', {
+                      obs: tooltipRow.isotopeObsCount,
+                      exp: isotopeExpectedOf(tooltipRow),
+                    })
+                  }}</span
+                >
+                <span class="font-mono">{{ fmtScore(tooltipRow.isotopeScore) }}</span>
+              </span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span
+                class="text-base-content/50"
+                :title="$t('vizworkbench.annotation.adductScoreHint')"
+                >{{ $t('vizworkbench.annotation.adductScore') }}</span
+              >
+              <span class="font-mono" :class="corrClassOf(tooltipRow.adductScore)">{{
+                fmtScore(tooltipRow.adductScore)
+              }}</span>
+            </div>
+            <template v-if="tooltipSpatial">
+              <div class="flex items-center justify-between">
+                <span class="text-base-content/50">{{ $t('vizworkbench.annotation.chaos') }}</span>
+                <span class="font-mono">{{ fmtScore(tooltipSpatial.chaos) }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-base-content/50">{{
+                  $t('vizworkbench.annotation.spatialScore')
+                }}</span>
+                <span class="font-mono" :class="corrClassOf(tooltipSpatial.spatial)">{{
+                  fmtScore(tooltipSpatial.spatial)
+                }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-base-content/50">{{
+                  $t('vizworkbench.annotation.spectralScore')
+                }}</span>
+                <span class="font-mono">{{ fmtScore(tooltipSpatial.spectral) }}</span>
+              </div>
+            </template>
+          </div>
+        </details>
+      </template>
+      <div
+        v-if="tooltipRow.isotopeScore == null && tooltipRow.matchStatus === 'matched'"
+        class="kawaru-text-68 text-base-content/40"
+      >
+        {{ $t('vizworkbench.annotation.isotopeUnavailable') }}
       </div>
     </div>
 

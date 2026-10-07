@@ -270,7 +270,31 @@
       "csvNoMzColumn": "未找到 m/z 列。支持的列名包括：\"Target m/z\"、\"Tar. m/z\"、\"m/z\"、\"mz\"、\"MZ\"、\"target_mz\"、\"mass\" 等",
       "csvNoDataRows": "CSV 只有表头，没有数据行。",
       "noMatchedToExport": "没有可导出的已匹配注释。",
-      "exported": "已导出 {count} 条已匹配注释。"
+      "exported": "已导出 {count} 条已匹配注释。",
+      "massScore": "质量得分",
+      "isotopeScore": "同位素得分",
+      "isotopeObs": "{obs}/{exp} 个峰",
+      "compositeScore": "综合得分",
+      "fdr": "FDR（q 值）",
+      "level": "置信等级",
+      "levelHint": "Level 4：精确质量 + 同位素支持；Level 5：仅精确质量",
+      "level4Only": "L4 {count}",
+      "isotopeUnavailable": "同位素得分不可用（缺少分子式或平均谱）。",
+      "chaos": "空间混沌度（level sets）",
+      "spatialScore": "同位素图像相关",
+      "spectralScore": "同位素丰度模式（图像）",
+      "msm": "MSM 综合分",
+      "spatialPending": "空间证据评分中…",
+      "spatialFailed": "空间评分失败",
+      "adductScore": "加合物证据",
+      "adductScoreHint": "同一分子以 ≥2 种不同加合离子落在不同谱峰（按各加合物的离子概率分 Σips 折算 0~1），已按权重计入综合分",
+      "adductGroup": "同分子加合物",
+      "adductGroupHint": "该分子以 {count} 种加合离子形式被观测（综合分已含加成），点击可跳转",
+      "adductCorrHint": "组内各加合物图像的最大 Pearson 相关；≥0.70 视为空间共定位确认，低于该值时加分存疑",
+      "adductUnconfirmedHint": "组内加合物图像不共定位（Pearson < 0.70）：空间反证已撤销该组的多加合物加分",
+      "isotopePeaks": "同位素峰",
+      "isotopeJumpHint": "理论同位素包络（M..M+3）；灰色 = 该位置无采样峰。点击可跳转离子图/谱图",
+      "detailScores": "详细评分"
     }
   }
 }

@@ -45,7 +45,7 @@ export type { AnnotationSortKey, AnnotationSortDir }
  *  MatchStatusCounts so there is exactly one definition of this shape. */
 export type AnnotationCounts = MatchStatusCounts
 
-const EMPTY_COUNTS: AnnotationCounts = { total: 0, matched: 0, unmatched: 0, invalid: 0 }
+const EMPTY_COUNTS: AnnotationCounts = { total: 0, matched: 0, unmatched: 0, invalid: 0, level4: 0 }
 
 /** A match result as delivered by the worker or the main-thread fallback. */
 interface MatchResult {
@@ -393,6 +393,9 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
   /** Molecular-formula dropdown filter ('' = all). Mirrors {@link filterAdduct}
    *  but for `formulaIon` / `altFormulas`. */
   const filterFormula = ref('')
+  /** "仅 Level 4" 开关：只保留有同位素支持的匹配行。与状态/搜索/下拉过滤
+   *  相交；行集来自 worker 的 counts.level4。 */
+  const filterLevel4 = ref(false)
   const sortKey = ref<AnnotationSortKey>('massError')
   const sortDir = ref<AnnotationSortDir>('asc')
 
@@ -422,6 +425,9 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     let rows = matchedRows.value
     if (filter.value !== 'all') {
       rows = rows.filter((r) => r.matchStatus === filter.value)
+    }
+    if (filterLevel4.value) {
+      rows = rows.filter((r) => r.level === 4)
     }
     const q = searchQuery.value
     if (q) {
@@ -655,6 +661,9 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     if (filter.value !== 'all') {
       rows = rows.filter((r) => r.matchStatus === filter.value)
     }
+    if (filterLevel4.value) {
+      rows = rows.filter((r) => r.level === 4)
+    }
     if (filterAdduct.value) {
       rows = rows.filter(
         (r) => r.ionType === filterAdduct.value || r.altAdducts.includes(filterAdduct.value),
@@ -763,7 +772,10 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
         notes.push(t('vizworkbench.annotation.noteFiltered', { count: res.coarseFiltered }))
       // 括号的全角 / 半角由 withNote 决定，逐条套上
       const withNotes = (text: string) =>
-        notes.reduce((acc, note) => t('vizworkbench.annotation.withNote', { text: acc, note }), text)
+        notes.reduce(
+          (acc, note) => t('vizworkbench.annotation.withNote', { text: acc, note }),
+          text,
+        )
       if (spectrumAvailable.value) {
         const summary = t('vizworkbench.annotation.importSummary', {
           total: res.importedTotal,
@@ -771,10 +783,18 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
           column: res.mzColumn,
           matched: res.statusCounts.matched,
         })
-        showToast(t('vizworkbench.annotation.importDone', { summary: withNotes(summary) }), 'success')
+        showToast(
+          t('vizworkbench.annotation.importDone', { summary: withNotes(summary) }),
+          'success',
+        )
       } else {
-        const summary = t('vizworkbench.annotation.importSummaryPending', { total: res.importedTotal })
-        showToast(t('vizworkbench.annotation.importPending', { summary: withNotes(summary) }), 'info')
+        const summary = t('vizworkbench.annotation.importSummaryPending', {
+          total: res.importedTotal,
+        })
+        showToast(
+          t('vizworkbench.annotation.importPending', { summary: withNotes(summary) }),
+          'info',
+        )
       }
       // Keep the spinner on screen while the (cheap) first render of the
       // virtual table mounts, then clear isImporting.
@@ -833,11 +853,17 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
 
   /**
    * Download the currently matched rows as a CSV (name + exp. m/z + matched
-   * m/z + mass difference + intensity). Rows follow the current sort order;
-   * search text and the matched/unmatched filter chips do not narrow the
-   * export - everything that matched goes out.
+   * m/z + mass difference + intensity + 证据分). Rows follow the current sort
+   * order; search text and the matched/unmatched filter chips do not narrow
+   * the export - everything that matched goes out. 传入 spatial map（Tier-2
+   * 空间分，主线程 composable 持有）时附加 Chaos/Coloc 列。
    */
-  function exportMatchedCsv(): void {
+  function exportMatchedCsv(
+    spatial?: Map<
+      number,
+      { chaos: number | null; spatial: number | null; spectral: number | null; msm: number | null }
+    > | null,
+  ): void {
     const rows = sortMatchedRows(
       matchedRows.value.filter((r) => r.matchStatus === 'matched'),
       sortKey.value,
@@ -847,7 +873,7 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
       showToast(t('vizworkbench.annotation.noMatchedToExport'), 'info')
       return
     }
-    const csv = '﻿' + buildAnnotationExportCsv(rows, tolMode.value)
+    const csv = '﻿' + buildAnnotationExportCsv(rows, tolMode.value, spatial)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -866,6 +892,9 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     fileName,
     parseError,
     isImporting,
+    /** Matched + coarse-filtered rows (immutable worker snapshots; also read
+     *  by the AI assistant's annotations context provider). */
+    matchedRows,
     // matching controls
     tolMode,
     tolValue,
@@ -875,6 +904,7 @@ export function useAnnotationMatch(selectMzIndex: (idx: number) => void | Promis
     // table controls
     search,
     filter,
+    filterLevel4,
     filterAdduct,
     filterFormula,
     adductOptions,

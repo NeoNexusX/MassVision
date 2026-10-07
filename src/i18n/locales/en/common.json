@@ -45,6 +45,7 @@
       "discard": "Discard",
       "uploadDataset": "Upload New Dataset",
       "share": "Share",
+      "copy": "Copy",
       "signIn": "Sign in",
       "register": "Register"
     },
@@ -139,7 +140,6 @@
     },
     "assistant": {
       "title": "AI Assistant",
-      "online": "Online",
       "minimize": "Minimize",
       "welcome": "Hi, I'm your AI research assistant. I can help explain ion images, summarize datasets, suggest preprocessing methods, and support report writing.",
       "quick": {
@@ -148,11 +148,53 @@
         "preprocess": "Suggest preprocessing methods",
         "report": "Help me write a report"
       },
+      "skillBtns": {
+        "annotationReview": "Annotation review",
+        "adductIsotope": "Adduct/isotope evidence",
+        "metaboliteBiology": "Metabolite biology",
+        "literatureEvidence": "Literature evidence",
+        "msiAnalysis": "MSI analysis",
+        "ionImage": "Ion image guide"
+      },
       "placeholder": "Ask AI anything…",
-      "attach": "Attach file",
       "send": "Send",
-      "replyPrompt": "Here's my response to \"{prompt}\". This is a simulated reply — connect your backend AI to see real results.",
-      "replyText": "Thanks for your message! I received \"{text}\". This is a demo — connect your AI backend for real answers."
+      "contextOn": "dataset context",
+      "contextOff": "no dataset context",
+      "contextTooltip": "Data is read live via tools like get_page_state",
+      "clearHistory": "Clear history",
+      "loadEarlier": "Load earlier messages",
+      "stopped": "(stopped)",
+      "somethingWrong": "Something went wrong",
+      "thinking": "Thinking…",
+      "thought": "Thought process",
+      "truncated": "(connection dropped — reply may be incomplete, retry if needed)",
+      "stop": "Stop",
+      "emptyResponse": "No reply received — the endpoint returned an empty response. It may not support streaming or tool calling.",
+      "noData": "The connection succeeded but no content was returned. The endpoint may not support streaming, or the Base URL may be wrong (try appending /v1).",
+      "noApiConfigured": "No API configured. Click the ⚙ button in the panel header to enter your own API key & model.",
+      "settings": {
+        "title": "API Settings",
+        "hint": "Use your own API key and model — any OpenAI-compatible endpoint, or the Anthropic (Claude) API. The key is stored only in this browser and never sent to our servers.",
+        "provider": "API Type",
+        "providerOpenAi": "OpenAI-compatible (DeepSeek / GLM / Kimi…)",
+        "providerAnthropic": "Anthropic (Claude)",
+        "baseUrl": "API Base URL",
+        "baseUrlPlaceholder": "https://api.deepseek.com/v1",
+        "baseUrlPlaceholderAnthropic": "https://api.anthropic.com/v1",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "sk-…",
+        "model": "Model",
+        "modelPlaceholder": "deepseek-chat",
+        "modelPlaceholderAnthropic": "claude-opus-4-8",
+        "corsNote": "The endpoint must allow browser (CORS) access — official OpenAI / DeepSeek / Anthropic APIs do; some relays don't.",
+        "test": "Test Connection",
+        "testing": "Testing…",
+        "testOk": "Connection OK",
+        "usingCustom": "Using your key",
+        "usingDefault": "Using server default",
+        "notConfigured": "No API configured — enter your key to enable the assistant",
+        "clearConfirm": "This removes your saved key from this browser and falls back to the server default (if any). Continue?"
+      }
     },
     "page": {
       "myDatasets": "My Datasets",
