@@ -4,8 +4,9 @@ import { ALGO_DATASET_NAMES } from './utils.js'
 /**
  * New Analysis + Peak Alignment 全链路 E2E — 真实后端
  * =====================================================
- * 覆盖页面：/workspace/new（创建分析）、/workspace（任务列表）、
- * /vizworkbench（可视化工作台）。
+ * 覆盖页面：/workspace/new（创建分析表单）+ Peak Alignment 链路进入的
+ * /vizworkbench（结果查看）。/workspace 任务列表页与 vizworkbench 空态的
+ * 纯 UI 用例在 workspace.spec.ts。
  *
  * 核心链路：submit 在 chromium 上用真实数据集创建 Peak Alignment 任务并等它完成
  * → 两个用例进入 vizworkbench 验证渲染与交互 → 末尾 Cleanup 删除任务。
@@ -23,7 +24,7 @@ import { ALGO_DATASET_NAMES } from './utils.js'
  *
  * 注意：真实 Peak Alignment 后端任务在非 chromium 浏览器上经常 180s 都未完成，
  * 且显著拖长 CI，故链路只在 chromium 跑；firefox/webkit 只覆盖不依赖真实任务
- * 的用例（表单、Workspace、vizworkbench 空态）。
+ * 的用例（创建分析表单）。
  */
 
 /** 用真实鼠标点击 ECharts 谱图 canvas */
@@ -132,17 +133,17 @@ test.describe('New Analysis', () => {
     await expect(page.getByText('Select dataset and configure pipeline first')).toBeVisible()
   })
 
-  test('switching dataset updates summary panel', async ({ page }) => {
+  test('selecting and switching dataset updates summary panel', async ({ page }) => {
     await page.goto('/workspace/new')
     await page.locator('.tab:has-text("My Datasets")').click()
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
-    // 至少需要 2 个数据集
+    // 至少需要 2 个数据集：一条用例同时覆盖"选中"与"切换"
     const radios = page.locator('input[name="selectedDataset"]')
     await radios.first().waitFor({ state: 'visible', timeout: 10_000 })
     const count = await radios.count()
     if (count < 2) {
-      test.skip(true, `Only ${count} dataset(s), need ≥ 2 to test switching`)
+      test.skip(true, `Only ${count} dataset(s), need ≥ 2 to test selection & switching`)
       return
     }
 
@@ -152,9 +153,11 @@ test.describe('New Analysis', () => {
     await firstLi.click()
     await expect(firstLi.locator('input[type="radio"]')).toBeChecked()
 
-    // Summary 显示第一个名称
+    // Summary 显示第一个名称；空态消失，Dataset metadata 区域出现（自动回填 MS 设置）
     const summarySection = page.locator('.lg\\:col-span-1')
     await expect(summarySection.getByText(firstName!.trim())).toBeVisible()
+    await expect(page.getByText('No dataset selected')).toBeHidden()
+    await expect(page.getByText('Dataset metadata')).toBeVisible()
 
     // 换选第二个
     const secondLi = radios.nth(1).locator('..')
@@ -168,36 +171,6 @@ test.describe('New Analysis', () => {
     // Summary 更新为第二个名称
     await expect(summarySection.getByText(secondName!.trim())).toBeVisible()
     await expect(summarySection.getByText(firstName!.trim())).toBeHidden()
-  })
-
-  test('selecting a dataset updates summary panel', async ({ page }) => {
-    await page.goto('/workspace/new')
-
-    // 切换到 My Datasets tab
-    await page.locator('.tab:has-text("My Datasets")').click()
-    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
-
-    // 取第一个数据集的名称，通过 radio 所在的 li 定位
-    const firstLi = page.locator('input[name="selectedDataset"]').first().locator('..')
-    const nameEl = firstLi.locator('.font-medium')
-    const datasetName = await nameEl.innerText()
-    await expect(nameEl).not.toBeEmpty()
-
-    // 点击数据集行
-    await firstLi.click()
-
-    // radio 变为选中
-    await expect(firstLi.locator('input[type="radio"]')).toBeChecked()
-
-    // Summary panel 不再显示 "No dataset selected"
-    await expect(page.getByText('No dataset selected')).toBeHidden()
-
-    // Summary panel 的 "Selected dataset" 区域显示该名称
-    const summarySection = page.locator('.lg\\:col-span-1')
-    await expect(summarySection.getByText(datasetName!.trim())).toBeVisible()
-
-    // Dataset metadata 区域出现（自动回填了 MS 设置）
-    await expect(page.getByText('Dataset metadata')).toBeVisible()
   })
 
   test('selecting a preprocessing method enables submit', async ({ page }) => {
@@ -241,7 +214,7 @@ test.describe.serial('Peak Alignment journey', () => {
     await page.locator('.tab:has-text("My Datasets")').click()
     await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
 
-    // 用真实数据集跑算法（不再随机挑 <ALGO_MAX_MB 的卡——可能选中 1KB 合成测试文件，
+    // 用真实数据集跑算法（不再按文件大小随机挑卡——可能选中 1KB 合成测试文件，
     // 后端解析必然 Failed）。从 ALGO_DATASET_NAMES 里随机选一个，用搜索框按名称过滤后选中。
     // 注意 placeholder 与 DataSourceStep 里的 SearchInput 保持一致（"Search datasets"）。
     const search = page.getByPlaceholder('Search datasets')
@@ -452,51 +425,5 @@ test.describe('Cleanup', () => {
 })
 
 // ============================================================
-// Workspace
+// Workspace 页面与 vizworkbench 空态的纯 UI 用例已拆到 workspace.spec.ts
 // ============================================================
-
-test.describe('Workspace', () => {
-
-  test('page loads with summary cards and recent results', async ({ page }) => {
-    await page.goto('/workspace')
-
-    await expect(page.locator('h1:has-text("Workspace")')).toBeVisible()
-
-    // 三张 SummaryCard（通过唯一副标题区分）
-    await expect(page.getByText('Active preprocessing tasks')).toBeVisible()
-    await expect(page.getByText('Successfully completed')).toBeVisible()
-    await expect(page.getByText('Requires review')).toBeVisible()
-
-    // Recent Results 区块
-    await expect(page.getByText('Recent Results')).toBeVisible()
-  })
-
-  test('New Task — navigates to create analysis page', async ({ page }) => {
-    await page.goto('/workspace')
-
-    await page.getByRole('link', { name: 'New Task' }).click()
-
-    await expect(page).toHaveURL(/\/workspace\/new/)
-    await expect(page.locator('h1:has-text("Create New Analysis")')).toBeVisible()
-  })
-
-  test('Go to MyDatasets — navigates to my datasets page', async ({ page }) => {
-    await page.goto('/workspace')
-
-    await page.getByRole('link', { name: 'Go to MyDatasets' }).click()
-
-    await expect(page).toHaveURL(/\/mydatasets/)
-    await expect(page.locator('h1:has-text("My Datasets")')).toBeVisible()
-  })
-})
-
-// ============================================================
-// 可视化工作台（空态，无后端任务依赖，全浏览器）
-// ============================================================
-
-test.describe('Result Detail', () => {
-  test('shows stale state when accessed directly', async ({ page }) => {
-    await page.goto('/vizworkbench')
-    await expect(page.getByText('No result selected')).toBeVisible()
-  })
-})
