@@ -41,7 +41,6 @@ export interface TaskRow {
 export function useWorkspaceDashboard() {
   const processes = ref<ProcessItem[]>([])
   const loading = ref(false)
-  const createOpen = ref(false)
 
   // Pagination (后端分页)
   const page = ref(1)
@@ -145,12 +144,6 @@ export function useWorkspaceDashboard() {
     fetchProcesses({ page: 1, size: newSize })
   }
 
-  function onCreated() {
-    createOpen.value = false
-    fetchStats()
-    fetchProcesses()
-  }
-
   // ── Delete ──────────────────────────────────────────────────────
   const deletingId = ref<string | null>(null)
 
@@ -181,7 +174,6 @@ export function useWorkspaceDashboard() {
 
   return {
     loading,
-    createOpen,
     recentResults,
     summary,
     deletingId,
@@ -189,7 +181,6 @@ export function useWorkspaceDashboard() {
     size,
     meta,
     pagination,
-    onCreated,
     goToPage,
     changeSize,
     deleteResult,
