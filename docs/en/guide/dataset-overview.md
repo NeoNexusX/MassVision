@@ -87,6 +87,11 @@ The link uses the short `/s/` form built from the dataset's 16-character public 
 To list a dataset under Public Datasets so every user can see it, make it public:
 
 1. Open the detail page from **My Datasets** (the button only appears for private datasets).
+
+   <img src="https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008180527576.jpg_view" alt="b4788d43248812376b8046143e4b6f49" style="zoom:67%;" />
+
 2. Click **Make Public** and confirm the dialog.
+
+   <img src="https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008180555416.jpg_view" alt="image-20261008180555369" style="zoom: 80%;" />
 
 Making a dataset public cannot be undone. It is independent of sharing: **Share** only copies the link and never turns a private dataset public.

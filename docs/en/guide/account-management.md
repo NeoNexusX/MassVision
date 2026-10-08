@@ -1,6 +1,6 @@
 # Account Management
 
-Register, sign in, recover your password, and manage your profile on SpatialXomics. Administrators can also manage platform users.
+Register, sign in, recover your password, and manage your profile on SpatialXomics.
 
 **Author:** Chen Kejiang
 
@@ -26,9 +26,12 @@ After registering, sign in with your username and password.
 Forgot your password? Click **Forgot Password?** on the sign-in page. The flow has two steps:
 
 1. Enter the registered email and click **Send Code**. Use **Resend** if the code doesn't arrive, or **Change email** to fix a typo.
+
+   <img src="https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008175306800.jpg_view" alt="image-20261008175306752" style="zoom:67%;" />
+
 2. Enter the code and a new password (twice for confirmation), then click **Reset Password**. Sign back in with the new password.
 
-<!-- Image placeholder: password recovery flow -->
+<img src="https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008174320520.jpg_view" alt="image-20261008174320482" style="zoom:67%;" />
 
 ## Edit Your Profile
 
@@ -48,17 +51,3 @@ The profile page reports how much of each account quota you have used. All four 
 - **Downloads** — download allowance
 
 ![Quota info](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908160325443.jpg_view)
-
-## User Management (Administrators Only)
-
-Administrators open the user management page via **Users** in the avatar menu; non-admins are redirected to their profile page. The page provides:
-
-- **Summary cards** — counts of administrators, users, and institutions
-- **Find users** — search by username; filter by status (Active / Inactive), institution, and region
-- **User table** — username, identity (admin / user), status, institution, region, view
-- **Detail drawer** — click **View** to inspect the user's profile and current usage, and to edit and save their quotas (files / storage / processing / downloads)
-- **Delete user** — only non-administrators other than yourself can be deleted, after confirmation
-
-Note that identity (admin / user) is read-only — there is no role editing or enable/disable action.
-
-<!-- Image placeholder: user management page and detail drawer -->

@@ -67,5 +67,5 @@
 
 点击搜索状态栏右侧的排序下拉框，即可按需选择排序方式，共四种：提交时间从新到旧（默认）、提交时间从旧到新、文件大小从大到小、文件大小从小到大。
 
-![排序选项](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908162922455.jpg_view)
+![image-20261008174924334](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008174924392.jpg_view)
 

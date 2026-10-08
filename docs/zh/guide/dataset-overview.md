@@ -116,6 +116,11 @@
 若希望数据集出现在公开数据集中、对所有用户可见，可将其设为公开：
 
 1. 在「我的数据集」中进入该数据集的基本信息页面（仅私有数据集显示该按钮）。
+
+   <img src="https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008180527576.jpg_view" alt="b4788d43248812376b8046143e4b6f49" style="zoom:67%;" />
+
 2. 点击`Make Public`，在确认弹窗中确认。
+
+   <img src="https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008180555416.jpg_view" alt="image-20261008180555369" style="zoom: 80%;" />
 
 数据集设为公开后不可撤销。该操作与分享相互独立：`Share`只复制链接，不会把私有数据集变为公开。

@@ -57,6 +57,8 @@ Lists the processing methods applied to this result (e.g., "Direct conversion (n
 
 ### Visualization Controls
 
+Gamma correction is always available; UMAP / KMeans clustering is only available for continuous data.
+
 | Control | Description |
 |---|---|
 | **Gamma** | Brightness/contrast curve. Range 0.5–1.5, default 1.0. |
@@ -88,8 +90,10 @@ Export ROI masks and KMeans clusters as a binary mask file, or import one and us
 | **ROI masks / KMeans clusters** | Pick which regions to include. Checked regions are merged into a single binary mask. |
 | **Export mask** | Download one mask file. Each file embeds the dataset name, shape, pixel size, and a SHA-256 digest over the pixel payload. |
 | **Import mask** | Load a mask and apply it as a filter on the ion image. |
-| **Apply Mask / Show Original** | Re-apply the imported mask, or suspend it and show the full image. |
+| **Apply Mask / Show Original** | Re-apply the imported mask, or suspend it and show the full image (appears after importing a mask). |
 | **Clear imported mask** | Remove the imported mask. |
+
+![Mask import & export](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008182213629.jpg_view)
 
 ## Ion Intensity Image
 
@@ -128,7 +132,9 @@ Continuous data can overlay several ions at once as separate colour channels. En
 
 - Up to **10 channels**. Each channel is normalized on its own range and added as a colour.
 - Per-channel controls cover visibility, colour, and opacity.
-- Display Range and Colormap do not apply while an overlay is active (their controls are greyed out); the Gamma slider stays movable but has no effect.
+- Display Range, Colormap, and Gamma do not apply while an overlay is active; their controls are greyed out.
+
+![Multi-ion overlay](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008180949956.jpg_view)
 
 ## Pixel Spectrum
 

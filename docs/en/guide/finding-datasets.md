@@ -69,4 +69,5 @@ Use the sort dropdown to the right of the search bar and pick one of four orders
 - **File size (largest first)**
 - **File size (smallest first)**
 
-![Sort options](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908162922455.jpg_view)
+![image-20261008174924334](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008174924392.jpg_view)
+
