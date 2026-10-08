@@ -8,11 +8,11 @@ Upload paired imzML/ibd files, fill in metadata, and manage the datasets you con
 
 ## Upload a Dataset
 
-Click **Upload New Dataset** to open the upload page.
+Click **Upload New Dataset** to open the upload dialog.
 
 ![Upload button](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908174622409.jpg_view)
 
-![Upload page](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908174725075.jpg_view)
+![Upload dialog](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908174725075.jpg_view)
 
 ### 1. Select Files
 
@@ -22,7 +22,7 @@ Click **Choose Files** and select both the `.imzML` and `.ibd` files. They must 
 
 ### 2. Visibility
 
-Choose whether the dataset is **public** (visible to all users) or **private** (visible only to you). Public is selected by default.
+Choose whether the dataset is **public** (visible to all users) or **private** (visible only to you). Public is selected by default. The `.ibd` file of a public dataset must be at least **10 MB**.
 
 ![Visibility toggle](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908175221284.jpg_view)
 
@@ -72,7 +72,7 @@ Whether Solvent, MALDI Matrix, and Matrix Application are required depends on th
 
 ## What Happens During Upload
 
-The upload runs entirely in the browser and streams to Alibaba Cloud OSS:
+The upload runs entirely in the browser and streams to Alibaba Cloud OSS. The combined size of the source files in one upload is capped at **100 GB**:
 
 1. A Web Worker hashes the source files with MD5 and asks the server whether the content already exists. A hit reuses the stored copy immediately.
 2. On a miss, the client fetches temporary STS credentials and initializes a multipart upload.
@@ -80,7 +80,7 @@ The upload runs entirely in the browser and streams to Alibaba Cloud OSS:
 4. A credit gate, a part queue, and a concurrency governor keep memory bounded and adapt the upload parallelism to the measured bottleneck.
 5. Progress, speed, and per-part retry are reported in **Upload Progress**. A part that exhausts its retries stops the pipeline and leaves a resumable session behind.
 
-Interrupted uploads can be resumed from the banner at the top of the upload page. The session is kept in a single `localStorage` entry (`oss_upload_session_v2`) that records the dataset's public id, source filenames, and compression settings, because a resumed part must reproduce the exact same archive bytes. Only one resumable session exists at a time — starting another upload overwrites it. Sessions left by older releases are discarded rather than migrated.
+Interrupted uploads can be resumed from the banner at the top of the upload dialog. The session is kept in a single `localStorage` entry (`oss_upload_session_v2`) that records the dataset's public id, source filenames, and compression settings, because a resumed part must reproduce the exact same archive bytes. Only one resumable session exists at a time — starting another upload overwrites it. Sessions left by older releases are discarded rather than migrated.
 
 ## My Datasets
 

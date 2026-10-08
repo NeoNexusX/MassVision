@@ -225,10 +225,15 @@ const {
   roiOverlayRef,
   roiTool,
   confirmedROIs,
+  selectedRoiIds,
+  toggleRoiSelection,
+  selectAllRois,
+  clearRoiSelection,
   draftReady,
   viewingROI,
   displayMatrix,
   roiUnionMask,
+  roiHighlightOverlay,
   roiSelectTool,
   roiConfirm,
   roiCancel,
@@ -707,6 +712,7 @@ async function onSelectPixel(col: number, row: number) {
         :channels-mode="channelsMode"
         :channels="hoverChannels"
         :roi-mask="effectiveRoiMask"
+        :roi-highlight-data="roiHighlightOverlay"
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
         @update:intensity-scale="onIntensityScaleChange"
@@ -799,6 +805,7 @@ async function onSelectPixel(col: number, row: number) {
         :global-max="globalMax"
         :display-min="displayMin"
         :display-max="displayMax"
+        :channels-mode="channelsMode"
         :histogram="intensityHistogram"
         :info="displayInfo"
         :methods="methods"
@@ -828,7 +835,9 @@ async function onSelectPixel(col: number, row: number) {
             :draft-ready="draftReady"
             :viewing-roi="viewingROI"
             :confirmed-rois="confirmedROIs as any"
+            :selected-roi-ids="selectedRoiIds"
             :gamma="gamma"
+            :channels-mode="channelsMode"
             :channels-enabled="channelsEnabled"
             :ion-channels="ionChannels"
             :can-add-channel="canAddChannel"
@@ -853,6 +862,9 @@ async function onSelectPixel(col: number, row: number) {
             @roi-confirm="roiConfirm"
             @roi-cancel="roiCancel"
             @roi-delete="handleRoiDelete"
+            @toggle-roi-selection="toggleRoiSelection"
+            @roi-select-all="selectAllRois"
+            @roi-deselect-all="clearRoiSelection"
             @export-masks="handleExportMasks"
             @import-mask="handleImportMask"
             @clear-imported-mask="handleClearImportedMask"

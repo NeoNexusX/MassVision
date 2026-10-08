@@ -24,14 +24,6 @@
       "unknownFile": "Unknown",
       "unknownError": "Unknown error"
     },
-    "createTask": {
-      "title": "Create New Task",
-      "selectDataset": "Select Dataset",
-      "methods": "Preprocessing Methods",
-      "params": "Method Parameters",
-      "paramPlaceholder": "parameter JSON or value",
-      "start": "Start Processing"
-    },
     "analysis": {
       "title": "Create New Analysis",
       "subtitle": "Configure preprocessing pipeline for MSI datasets",

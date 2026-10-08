@@ -45,6 +45,11 @@ export function useROI(
   // costs significant memory/CPU. All updates below are replace-style, and
   // consumers only read, so shallow reactivity is behavior-identical.
   const confirmedROIs = shallowRef<ConfirmedROI[]>([])
+  // Selected ROI ids: null = all selected (same convention as
+  // selectedKmeansIds in useOverlayData). Drives the ion-image highlight and
+  // the export mask. Always replaced wholesale, never mutated in place — a
+  // computed tracking this ref would not see an in-place Set mutation.
+  const selectedRoiIds = ref<Set<string> | null>(null)
 
   let nextId = 1
   let nextColorIdx = 0
@@ -168,24 +173,66 @@ export function useROI(
     })
     nextColorIdx++
     confirmedROIs.value = [...confirmedROIs.value, roi]
+    // Keep the just-confirmed ROI visible: with an explicit selection set,
+    // add the new id so it highlights immediately (null = all already covers it).
+    if (selectedRoiIds.value !== null) {
+      selectedRoiIds.value = new Set(selectedRoiIds.value).add(roi.id)
+    }
     clearDraft()
     return roi
   }
 
   function deleteROI(id: string) {
     confirmedROIs.value = confirmedROIs.value.filter((r) => r.id !== id)
+    // Drop the id from the selection too. Counts are computed by filtering
+    // confirmedROIs (never by Set.size), so stale ids are harmless — but
+    // keeping the set honest avoids the trap for future callers.
+    if (selectedRoiIds.value?.has(id)) {
+      const next = new Set(selectedRoiIds.value)
+      next.delete(id)
+      selectedRoiIds.value = next
+    }
   }
 
   function clearAllROIs() {
     confirmedROIs.value = []
+    selectedRoiIds.value = null
     clearDraft()
     nextId = 1
     nextColorIdx = 0
   }
 
+  // ---- Selection (mirrors toggleKmeansCluster / selectAll / clearAll) ----
+
+  /** True when the ROI participates in the highlight + export. */
+  function isRoiSelected(id: string): boolean {
+    return selectedRoiIds.value === null || selectedRoiIds.value.has(id)
+  }
+
+  function toggleRoiSelection(id: string) {
+    const cur = selectedRoiIds.value ?? new Set(confirmedROIs.value.map((r) => r.id))
+    const next = new Set(cur)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    selectedRoiIds.value = next
+  }
+
+  function selectAllRois() {
+    selectedRoiIds.value = null // null = all
+  }
+
+  function clearRoiSelection() {
+    selectedRoiIds.value = new Set()
+  }
+
   return {
     selectedTool,
     confirmedROIs,
+    selectedRoiIds,
+    isRoiSelected,
+    toggleRoiSelection,
+    selectAllRois,
+    clearRoiSelection,
     selectTool,
     confirmROI,
     deleteROI,

@@ -25,11 +25,11 @@ features:
     link: /guide/finding-datasets
     linkText: Read Guide
   - title: Dataset Overview
-    details: View dataset metadata, share public links, and download original files.
+    details: View dataset metadata, copy share links, and download original files.
     link: /guide/dataset-overview
     linkText: Read Guide
   - title: Data Visualization
-    details: View ion images, TIC plots, and spectra with adjustable display settings.
+    details: View ion images, TIC plots, and spectra; use UMAP/KMeans, ROIs, region comparison, and annotation matching for spatial analysis.
     link: /guide/data-visualization
     linkText: Read Guide
   - title: Upload Datasets
@@ -37,12 +37,16 @@ features:
     link: /guide/upload-data
     linkText: Read Guide
   - title: Dataset Analysis
-    details: UMAP, KMeans, ROI, region comparison, and annotation CSV analysis.
+    details: Choose preprocessing methods compatible with your spectrum/storage mode, configure parameters, and submit tasks.
     link: /guide/dataset-analysis
     linkText: Read Guide
   - title: Workspace
-    details: Select data sources, configure preprocessing, and submit analysis tasks.
+    details: Track analysis tasks, open or delete results, and inspect failure details.
     link: /guide/workspace
+    linkText: Read Guide
+  - title: Collections
+    details: Group related public datasets with academic metadata, manage ordered members, and share public collection pages.
+    link: /guide/collections
     linkText: Read Guide
   - title: Navigation
     details: Platform page structure and navigation methods.

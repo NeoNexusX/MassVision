@@ -6,9 +6,12 @@
  * axis. Used by {@link ../composables/useAnnotationMatch}.
  *
  * CSV contract (deliberately flexible):
- *   - UTF-8 / UTF-8 BOM supported; delimiter auto-detected (,/;/\t/|).
- *   - m/z column recognised by many aliases: `Exp. m/z`, `mz`, `m/z`, `MZ`,
- *     `experimental_mz`, `exp_mz`, `mass`, ...
+ *   - UTF-8 / UTF-8 BOM, with GBK/GB18030 auto-detected as fallback
+ *     ({@link decodeCsvBytes}); delimiter auto-detected (,/;/\t/|).
+ *   - m/z column recognised by many aliases: `Target m/z`, `Tar. m/z`,
+ *     `Exp. m/z`, `mz`, `m/z`, `MZ`, `experimental_mz`, `exp_mz`, `mass`, ...
+ *     Header matching tolerates case, spacing, a trailing period, underscore
+ *     variants and full-width (CJK) characters - see normalizeHeader.
  *   - Candidate names merged from `Candidate_1`..`Candidate_N` (+ bare
  *     `Candidate`), empty values dropped, original rows never deduplicated.
  *   - `formula_ion` / `formula` and `Ion type` / `adduct` picked up when present.
@@ -189,6 +192,7 @@ const MZ_ALIASES = [
   'tar m/z',
   'target m/z',
   'target_mz',
+  'target_m/z',
   'tar_mz',
   'tar mz',
   'exp. m/z',
@@ -212,8 +216,17 @@ const MZ_ALIASES = [
 const FORMULA_ALIASES = ['formula_ion', 'formula ion', 'formula', 'formulaion']
 const ION_TYPE_ALIASES = ['ion type', 'ion_type', 'adduct', 'iontype']
 
+/** Canonical form of a header for alias comparison: Unicode NFKC (maps
+ *  full-width CJK-Excel letters/slash `Ｔａｒｇｅｔ ｍ／ｚ` to ASCII), trimmed,
+ *  lower-cased, runs of whitespace collapsed, trailing periods dropped
+ *  (`Target m/z.` -> `target m/z`). */
 function normalizeHeader(h: string): string {
-  return h.trim().toLowerCase().replace(/\s+/g, ' ')
+  return h
+    .normalize('NFKC')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/\.+$/, '')
 }
 
 function matchColumn(headers: string[], aliases: string[]): string | null {
@@ -298,6 +311,25 @@ function detectDelimiter(headerLine: string): string {
   return best
 }
 
+// ---- Byte decoding ---------------------------------------------------------
+
+/** Decode raw CSV bytes to text: strict UTF-8 first, GBK/GB18030 fallback.
+ *
+ *  Chinese Excel saves CSV as ANSI (GBK/GB18030), whose double-byte sequences
+ *  are almost never valid UTF-8 - reading such a file as plain UTF-8 silently
+ *  replaces every Chinese candidate name with U+FFFD mojibake. Strict (fatal)
+ *  UTF-8 decoding detects that, and the Encoding Standard's gb18030 decoder
+ *  (the labels 'gbk', 'gb2312' and 'gb18030' all alias it) reads the file
+ *  correctly instead. Real UTF-8 (BOM or not) and pure-ASCII files never
+ *  enter the fallback. */
+export function decodeCsvBytes(buf: ArrayBuffer): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf)
+  } catch {
+    return new TextDecoder('gb18030').decode(buf)
+  }
+}
+
 // ---- Parsing --------------------------------------------------------------
 
 export interface ParsedAnnotationCsv {
@@ -337,7 +369,7 @@ export function parseAnnotationCsv(text: string): ParsedAnnotationCsv {
   const mzCol = matchColumn(headers, MZ_ALIASES)
   if (!mzCol) {
     throw new CsvParseError(
-      'No m/z column found. Expected one of: "Tar. m/z", "m/z", "mz", "MZ", "target_mz", "mass", ...',
+      'No m/z column found. Expected one of: "Target m/z", "Tar. m/z", "m/z", "mz", "MZ", "target_mz", "mass", ...',
       'noMzColumn',
     )
   }

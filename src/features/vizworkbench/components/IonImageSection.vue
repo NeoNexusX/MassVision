@@ -47,6 +47,8 @@ const props = defineProps<{
   channels?: ViewIonChannel[]
   /** ROI 并集掩膜（叠加模式下按此裁剪通道） */
   roiMask?: Uint8Array | null
+  /** 选中 ROI 的高亮层（RGBA，与离子图同尺寸） */
+  roiHighlightData?: Uint8ClampedArray | null
 }>()
 
 const emit = defineEmits<{
@@ -167,6 +169,7 @@ onBeforeUnmount(() => {
           :channels-mode="channelsMode"
           :channels="channels"
           :roi-mask="roiMask"
+          :roi-highlight-data="roiHighlightData"
           @update:mz-tolerance="emit('update:mzTolerance', $event)"
           @update:colormap="emit('update:colormap', $event)"
           @update:intensity-scale="emit('update:intensityScale', $event)"

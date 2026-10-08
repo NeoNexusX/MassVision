@@ -5,6 +5,7 @@ import {
   coarseFilterRows,
   coarseFilterKey,
   collapseRows,
+  decodeCsvBytes,
   runMatchPipeline,
   sortMatchedRows,
   massErrorOf,
@@ -74,6 +75,24 @@ describe('parseAnnotationCsv', () => {
     expect(rows[0]!.expMz).toBe(87.0091)
   })
 
+  it('recognises Target m/z header variants', () => {
+    // Exact, trailing-period, underscore, non-breaking-space and full-width
+    // variants all resolve to the `target m/z` alias via normalizeHeader.
+    const variants = [
+      'Target m/z',
+      'Target m/z.',
+      'Target_m/z',
+      'Target m/z', // NBSP (web-copy artifact)
+      'Ｔａｒｇｅｔ ｍ／ｚ', // full-width (CJK Excel export)
+    ]
+    for (const v of variants) {
+      const csv = `${v},Candidate_1\n87.0091,Pyruvate`
+      const { rows, mzColumn } = parseAnnotationCsv(csv)
+      expect(mzColumn, `header [${v}]`).toBe(v)
+      expect(rows[0]!.expMz, `header [${v}]`).toBe(87.0091)
+    }
+  })
+
   it('accepts semicolon delimiters', () => {
     const csv = `Exp. m/z;Candidate_1\n87.0091;Pyruvate`
     const { rows } = parseAnnotationCsv(csv)
@@ -131,6 +150,29 @@ describe('parseAnnotationCsv', () => {
     const { rows } = parseAnnotationCsv(csv)
     expect(rows[0]!.expMz).toBe(1234.5)
     expect(rows[1]!.expMz).toBe(885.55)
+  })
+})
+
+describe('decodeCsvBytes', () => {
+  it('decodes valid UTF-8 as-is, stripping the BOM', () => {
+    const bytes = new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode('Target m/z,中文')])
+    expect(decodeCsvBytes(bytes.buffer)).toBe('Target m/z,中文')
+  })
+
+  it('falls back to GBK/GB18030 when the bytes are not valid UTF-8', () => {
+    // '中文' in GBK is D6 D0 CE C4; each pair's second byte is not a UTF-8
+    // continuation byte, so strict UTF-8 decoding must fail.
+    const bytes = new Uint8Array([0xd6, 0xd0, 0xce, 0xc4])
+    expect(decodeCsvBytes(bytes.buffer)).toBe('中文')
+  })
+
+  it('round-trips a GBK CSV through decode + parse', () => {
+    const head = new TextEncoder().encode('Target m/z,Candidate_1\n87.0091,')
+    const bytes = new Uint8Array([...head, 0xd6, 0xd0, 0xce, 0xc4, 0x0a])
+    const { rows, mzColumn } = parseAnnotationCsv(decodeCsvBytes(bytes.buffer))
+    expect(mzColumn).toBe('Target m/z')
+    expect(rows[0]!.name).toBe('中文')
+    expect(rows[0]!.expMz).toBe(87.0091)
   })
 })
 

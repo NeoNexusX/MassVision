@@ -59,7 +59,7 @@ Click any dataset row to view its metadata.
 
 ![Dataset info](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260907175815189.jpg_view)
 
-The detail page shows biological info, acquisition parameters, and file details (see [Dataset Overview](./dataset-overview)). Use **Download** to get the raw files, or **Share** to publish the dataset and copy its public link.
+The detail page shows biological info, acquisition parameters, and file details (see [Dataset Overview](./dataset-overview)). Use **Download** to get the raw files, or **Share** to copy the dataset's link.
 
 ![Download & Share](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260907180028501.jpg_view)
 
@@ -105,9 +105,10 @@ Pick a topic that matches your workflow:
 |---|---|
 | [Account Management](./account-management) | Registration, login, password recovery, profile editing, quotas |
 | [Finding Datasets](./finding-datasets) | Search, filter, and sort public and personal datasets |
-| [Dataset Overview](./dataset-overview) | Metadata fields, downloading, sharing public links |
+| [Dataset Overview](./dataset-overview) | Metadata fields, downloading, sharing links, making datasets public |
 | [Data Visualization](./data-visualization) | Ion images, TIC plots, spectra, UMAP/KMeans, ROIs, region comparison, annotations |
 | [Upload Data](./upload-data) | imzML/ibd upload flow, metadata form, deduplication, resume |
 | [Dataset Analysis](./dataset-analysis) | Choosing compatible preprocessing methods, parameters, submission |
 | [Workspace](./workspace) | Task dashboard, status tracking, viewing results |
 | [Navigation](./navigation) | Navigation bar and floating nav ball |
+| [Collections](./collections) | Browse, create, and share collections; manage ordered members |

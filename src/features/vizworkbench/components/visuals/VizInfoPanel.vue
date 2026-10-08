@@ -23,6 +23,9 @@
           <input
             type="text"
             class="input input-sm input-bordered flex-1 kawaru-text-81 font-mono"
+            :class="{ 'opacity-50': channelsMode }"
+            :disabled="channelsMode"
+            :title="channelsMode ? $t('vizworkbench.ionImage.rangeDisabled') : undefined"
             :value="formatValue(localMax)"
             @change="onMaxInput($event)"
           />
@@ -37,6 +40,9 @@
           <input
             type="text"
             class="input input-sm input-bordered flex-1 kawaru-text-81 font-mono"
+            :class="{ 'opacity-50': channelsMode }"
+            :disabled="channelsMode"
+            :title="channelsMode ? $t('vizworkbench.ionImage.rangeDisabled') : undefined"
             :value="formatValue(localMin)"
             @change="onMinInput($event)"
           />
@@ -118,6 +124,8 @@ const props = defineProps({
   },
   methods: { type: Array as PropType<string[]>, default: () => [] },
   sortedValues: { type: Array as PropType<number[]>, default: () => [] },
+  /** 多离子叠加激活：Display Range 不参与叠加渲染，输入框置灰（与工具栏 Colormap 同一语义） */
+  channelsMode: { type: Boolean, default: false },
 })
 
 const emit = defineEmits<{
