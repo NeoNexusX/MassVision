@@ -46,6 +46,8 @@ const props = defineProps<{
   /** 共享的 ROI 选中集（null = 全选）。同时驱动主图高亮与导出勾选，语义对齐 selectedKmeansIds。 */
   selectedRoiIds: Set<string> | null
   gamma: number
+  /** 多离子叠加激活（父组件的 overlayActive）：Gamma 不参与叠加渲染，滑块置灰 */
+  channelsMode: boolean
   /** Multi-ion overlay state (owned by the parent). */
   channelsEnabled: boolean
   ionChannels: IonChannel[]
@@ -237,6 +239,9 @@ function cancelEnable() {
       <input
         type="range"
         class="range range-xs range-primary"
+        :class="{ 'opacity-50': channelsMode }"
+        :disabled="channelsMode"
+        :title="channelsMode ? $t('vizworkbench.ionImage.rangeDisabled') : undefined"
         min="0.5"
         max="1.5"
         step="0.1"
