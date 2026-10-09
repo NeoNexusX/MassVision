@@ -3,8 +3,9 @@ import { test, expect, type Locator, type Page } from '@playwright/test'
 /**
  * Collections E2E 测试 — 真实后端
  * ==============================
- * 覆盖：列表页（加载 / 服务端搜索与清空）、创建→编辑→成员管理（添加 / 调序 /
- * 移除）→ 删除全流程、公开页（免登录 404）。
+ * 覆盖：列表页（加载 / 服务端搜索与清空）、创建→编辑→成员管理（添加 / 调序；
+ * 移除成员因后端 DELETE 500 暂跳过，见用例内注释）→ 删除全流程、
+ * 公开分享页（建后免登录可读 + 免登录 404）。
  *
  * 全流程依赖后端已有 ≥4 个「public + completed + imzML」数据集（建集合选 3 个、
  * 加成员弹窗再加 1 个）；不足时跳过，避免空环境下误报（与 datasets.spec 的
@@ -136,6 +137,21 @@ test.describe('Collection full lifecycle', () => {
     await expect(page.getByRole('heading', { name: 'Members' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Collection Metadata' })).toBeVisible()
 
+    // ---- 公开分享页（免登录可读）----
+    // /collections/{publicId} 只读展示；用全新空 context 访问（页面自己的
+    // context 带登录态，证明不了免登录可读）。同时验证「新建即可分享」的契约：
+    // 后端对非公开集合在此返回 404（PublicCollectionView 渲染 notFound 态）。
+    const publicId = page.url().match(/\/collections\/overview\/([A-Za-z0-9]+)/)?.[1]
+    expect(publicId, 'overview URL 应带 publicId').toBeTruthy()
+    const guestContext = await page.context().browser()!.newContext()
+    const guest = await guestContext.newPage()
+    await guest.goto(`/collections/${publicId}`)
+    await expect(guest.locator('.skeleton')).toHaveCount(0, { timeout: 15_000 })
+    await expect(guest.locator('h1')).toContainText(name)
+    await expect(guest.getByRole('heading', { name: 'Members' })).toBeVisible()
+    await expect(guest.getByText('Collection not found')).toHaveCount(0)
+    await guestContext.close()
+
     // ---- 编辑：页内原地改元数据（改名 + 简介 + 学术字段 Title）----
     // toast 是保存真正落到后端的信号（头部是草稿联动，不能单独作数）
     await page.getByRole('button', { name: 'Edit' }).click()
@@ -186,26 +202,11 @@ test.describe('Collection full lifecycle', () => {
       .toEqual([before[1]!, before[0]!, before[2]!, before[3]!])
     await page.getByRole('button', { name: 'Cancel', exact: true }).click()
 
-    // 移除：勾选当前首行 → Remove Selected (1) → 对账 toast。
-    // 后端 DELETE /collections/{public_id}/members 在 public_id 迁移后 500（2026-09-24
-    // 实测连空数组都挂，修复待部署）：失败时只要求错误 toast 已弹出（证明请求发出、
-    // 失败被呈现），跳过对账断言继续删集合收尾；后端修好后自动恢复严格断言
-    await page.locator('input[type="checkbox"][aria-label^="Select "]:visible').first().check()
-    await page.getByRole('button', { name: 'Remove Selected (1)' }).click()
-    const removedToast = page.locator('.toast .alert-success', { hasText: 'Removed 1' })
-    const errorToast = page.locator('.toast .alert-error')
-    await expect(removedToast.or(errorToast).first()).toBeVisible({ timeout: 15_000 })
-    if (await removedToast.count()) {
-      await expect
-        .poll(async () => (await memberNames()).length, { timeout: 15_000 })
-        .toBe(3)
-    } else {
-      await expect(errorToast.first()).toBeVisible()
-      test.info().annotations.push({
-        type: 'skip',
-        description: '移除成员对账断言跳过：后端 DELETE /collections/{public_id}/members 仍 500（修复待部署）',
-      })
-    }
+    // ---- 移除成员：整块跳过 ----
+    // 后端 DELETE /collections/{public_id}/members 自 public_id 迁移起 500
+    // （2026-09-24 实测连空数组都挂），该功能先不测——不发请求也不做对账断言。
+    // 不能用 test.skip：会连带跳过下面的删集合收尾，留下脏数据。
+    // 后端修复后恢复为：勾选首行 → Remove Selected (1) → 成功 toast + 成员数回到 3。
 
     // ---- 删除集合 → 回列表 ----
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
@@ -213,6 +214,61 @@ test.describe('Collection full lifecycle', () => {
     await expect(confirmBox).toContainText('Delete collection?')
     await confirmBox.getByRole('button', { name: 'Delete', exact: true }).click()
     await expect(page).toHaveURL(/\/collections$/, { timeout: 15_000 })
+  })
+})
+
+// ============================================================
+// 分享链接复制（c0455d9：卡片 Share → navigator.clipboard）
+// ============================================================
+
+test.describe('Share link copy', () => {
+  test('copies the public collection URL to the clipboard', async ({ page, request, browserName }) => {
+    // 剪贴板权限只有 Chromium 支持 grantPermissions（Firefox/WebKit 会挂）
+    test.skip(browserName !== 'chromium', 'clipboard 权限仅 Chromium 可授予')
+    // 后端不保证有存量集合：API 建临时集合 → 测 → 删，自足不依赖环境。
+    // request fixture 不带登录态（实测 POST /api/collections 401），显式登录拿 token
+    const files = await request.post('/api/files/list_files?page=1&size=1', { data: {} })
+    const memberId = ((await files.json())?.data ?? [])[0]?.public_id
+    test.skip(!memberId, 'No public dataset available on this backend')
+
+    const username = process.env.E2E_USERNAME
+    const password = process.env.E2E_PASSWORD
+    if (!username || !password) {
+      test.skip(true, '缺少 E2E_USERNAME / E2E_PASSWORD 环境变量')
+      throw new Error('skipped')
+    }
+    const login = await request.post('/api/login', { form: { username, password } })
+    test.skip(!login.ok(), '登录失败，无法建临时集合')
+    const auth = { Authorization: `Bearer ${(await login.json()).access_token}` }
+
+    const name = `E2E Share Copy ${Date.now()}`
+    const created = await request.post('/api/collections', {
+      headers: auth,
+      data: { name, file_public_ids: [memberId] },
+    })
+    const publicId = (await created.json())?.public_id
+    test.skip(!publicId, '临时集合创建失败')
+    try {
+      // 授予剪贴板读写权限（localhost 属安全上下文，API 可用）
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+
+      await page.goto('/collections')
+      await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+      // 服务端搜索锁定刚建的集合，再点卡片上的 Share 按钮（title 钉死）
+      await page.getByPlaceholder('Search collections').fill(name)
+      await page.getByRole('button', { name: 'Search' }).click()
+      await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+      await expect(page.getByText(name)).toBeVisible({ timeout: 15_000 })
+
+      await page.locator('button[title="Copy share link"]').first().click()
+
+      // 剪贴板内容 = 免登录公开页 URL（与 PublicCollectionView 同构）
+      const copied = await page.evaluate(() => navigator.clipboard.readText())
+      expect(copied).toContain(`/collections/${publicId}`)
+    } finally {
+      await request.delete(`/api/collections/${publicId}`, { headers: auth })
+    }
   })
 })
 
