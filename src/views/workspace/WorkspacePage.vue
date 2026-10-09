@@ -80,9 +80,8 @@
       @change-size="changeSize"
     />
 
-    <CreateTaskModal v-model:open="createOpen" @created="onCreated" />
-
     <!-- Delete Confirmation Modal -->
+
     <ConfirmDialog
       :open="deleteConfirm.isOpen"
       :title="$t('workspace.dashboard.deleteTitle')"
@@ -114,7 +113,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import ResultTable from '@/features/workspace/dashboard/components/ResultTable.vue'
-import CreateTaskModal from '@/features/workspace/dashboard/components/CreateTaskModal.vue'
 import SummaryCard from '@/features/workspace/dashboard/components/SummaryCard.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import PaginationFooter from '@/shared/components/PaginationFooter.vue'
@@ -123,14 +121,12 @@ import { useWorkspaceDashboard } from '@/features/workspace/dashboard/composable
 import { useConfirmDelete } from '@/shared/composables/useConfirmDelete'
 
 const {
-  createOpen,
   recentResults,
   summary,
   loading,
   size,
   meta,
   pagination,
-  onCreated,
   goToPage,
   changeSize,
   deleteResult,

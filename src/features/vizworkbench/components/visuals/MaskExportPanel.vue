@@ -84,8 +84,8 @@
             <input
               type="checkbox"
               class="checkbox checkbox-xs checkbox-primary"
-              :checked="!deselectedRois.has(roi.id)"
-              @change="toggleRoi(roi.id)"
+              :checked="isRoiSelected(roi.id)"
+              @change="emit('toggle-roi-selection', roi.id)"
             />
             <span
               class="w-3 h-3 rounded-sm border border-base-content/30 shrink-0"
@@ -161,6 +161,9 @@ import type { ExportFormat, MaskExportPayload } from '@/features/vizworkbench/ut
 
 const props = defineProps<{
   rois: ConfirmedROI[]
+  /** Shared ROI selection (null = all). Same state the ion-image highlight and
+   *  the ROI panel use, so checking a ROI here also highlights it on the image. */
+  selectedRoiIds: Set<string> | null
   kmeansClusters: KmeansCluster[]
   /** False until a local KMeans run produced labels. */
   kmeansLabelsAvailable: boolean
@@ -176,6 +179,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'export-masks', payload: MaskExportPayload): void
+  (e: 'toggle-roi-selection', id: string): void
+  (e: 'roi-select-all'): void
+  (e: 'roi-deselect-all'): void
   (e: 'toggle-kmeans-cluster', id: number): void
   (e: 'kmeans-select-all'): void
   (e: 'kmeans-clear-all'): void
@@ -191,18 +197,19 @@ const FORMATS: { value: ExportFormat; label: string }[] = [
 
 const format = ref<ExportFormat>('npz')
 
-// ROI selection is tracked as "deselected" rather than "selected": every ROI is
-// checked by default, so a newly confirmed ROI is included automatically
-// without a re-sync watcher. KMeans selection is NOT owned here - it is the
-// shared overlay selection, passed in and toggled via events.
-const deselectedRois = ref<Set<string>>(new Set())
+// Both ROI and KMeans selection are shared state (owned upstream), passed in
+// and toggled via events — same pattern as the ion-image pickers, so the
+// checkboxes here and the on-image highlight never diverge.
 const importInput = ref<HTMLInputElement | null>(null)
 
 const hasItems = computed(() => props.rois.length > 0 || props.kmeansClusters.length > 0)
 
-const selectedRoiIds = computed(() =>
-  props.rois.filter((r) => !deselectedRois.value.has(r.id)).map((r) => r.id),
-)
+function isRoiSelected(id: string): boolean {
+  return props.selectedRoiIds === null || props.selectedRoiIds.has(id)
+}
+
+// Count by filtering rois (never Set.size) — the set may hold deleted ids.
+const checkedRoiIds = computed(() => props.rois.filter((r) => isRoiSelected(r.id)).map((r) => r.id))
 
 function isClusterSelected(id: number): boolean {
   return props.selectedKmeansIds === null || props.selectedKmeansIds.has(id)
@@ -213,22 +220,16 @@ const selectedClusterIds = computed(() =>
 )
 
 /** Number of selected regions feeding the single merged mask. */
-const selectedCount = computed(() => selectedRoiIds.value.length + selectedClusterIds.value.length)
-
-function toggleRoi(id: string) {
-  const next = new Set(deselectedRois.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  deselectedRois.value = next
-}
+const selectedCount = computed(() => checkedRoiIds.value.length + selectedClusterIds.value.length)
 
 function selectAll() {
-  deselectedRois.value = new Set()
+  // Both sides: "All" must select ROIs and clusters together.
+  emit('roi-select-all')
   emit('kmeans-select-all')
 }
 
 function clearAll() {
-  deselectedRois.value = new Set(props.rois.map((r) => r.id))
+  emit('roi-deselect-all')
   emit('kmeans-clear-all')
 }
 
@@ -236,7 +237,7 @@ function onExport() {
   if (selectedCount.value === 0) return
   emit('export-masks', {
     format: format.value,
-    roiIds: selectedRoiIds.value,
+    roiIds: checkedRoiIds.value,
     clusterIds: selectedClusterIds.value,
   })
 }

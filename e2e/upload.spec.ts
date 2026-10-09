@@ -18,12 +18,21 @@ import { tmpdir } from 'os'
  *   破坏性测试跑大文件成本高（下载+重传 360MB），保留覆盖是值得的：
  *   大文件路径才会暴露分块上传/超时/进度的问题。
  *
- * 相同内容 + 相同 metadata = 相同文件名，重传后数据集自动恢复，不需要额外清理。
+ * 相同内容 + 相同 metadata = 相同数据集，重传后自动恢复，不需要额外清理。
+ * 注意文件名不保证逐字恢复：后端 canonical 命名是 `hash_Name`，与历史
+ * `Name_hash` 格式不同（2026-10 实测 Arabidopsis/Rat_Liver 重传后 hash
+ * 挪到了开头），所以 CASES 一律按不含 hash 的名字子串定位。
  *
  * 注意：这是破坏性测试——删除后如果重传失败，真实数据会丢失。
  */
 
 interface RoundTripParams {
+  /**
+   * 目标数据集的匹配名（不含 hash）。定位用 aria-label*="..." 子串匹配，
+   * 兼容后端两种命名格式：历史 `Name_hash` 与重传后 canonical 的 `hash_Name`
+   * （2026-10 实测重传一次后 hash 会挪到开头，写死任一完整名都会让另一格式的
+   * 定位静默失败 → 测试被误判 "not found" 而 skip）。
+   */
   filename: string
   organism: string
   organismPart: string
@@ -201,7 +210,7 @@ const CASES: DatasetCase[] = [
     name: 'small: Arabidopsis_Spleen_MALDI_10_Negative',
     testTimeout: 300_000, // 5 min
     params: {
-      filename: 'Arabidopsis_Spleen_MALDI_10_Negative_f9d339',
+      filename: 'Arabidopsis_Spleen_MALDI_10_Negative',
       organism: 'Arabidopsis (Arabidopsis thaliana)',
       organismPart: 'Spleen',
       polarity: 'Negative',
@@ -213,9 +222,11 @@ const CASES: DatasetCase[] = [
   },
   {
     name: 'large: Rat_Liver_MALDI_40_Positive',
-    testTimeout: 480_000, // 8 min：360MB 下载 + 上传
+    // 12 min：360MB 下载落盘 + hash/压缩/重传 + 轮询验证。8 min 实测不够
+    // （2026-10-09 重传实际完成、数据完好，但预算在轮询阶段耗尽误判超时）
+    testTimeout: 720_000,
     params: {
-      filename: 'Rat_Liver_MALDI_40_Positive_9ce4d1',
+      filename: 'Rat_Liver_MALDI_40_Positive',
       organism: 'Rat (Rattus norvegicus)',
       organismPart: 'Liver',
       polarity: 'Positive',
@@ -239,4 +250,30 @@ test.describe('Upload Round-Trip', () => {
       }
     })
   }
+})
+
+// ============================================================
+// 上传弹窗（非破坏性；不依赖任何特定后端数据，任何环境都能跑）
+// ============================================================
+
+test.describe('Upload dialog', () => {
+  test('opens with metadata form, keeps Confirm disabled until a pair is selected, cancel closes', async ({ page }) => {
+    await page.goto('/mydatasets')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 15_000 })
+
+    await page.getByRole('button', { name: 'Upload New Dataset' }).click()
+
+    // 按标题钉死上传弹窗本身：页面偶发出现另一个瞬时 modal-open 的空壳
+    // dialog（500ms 内自关，抓不到稳定复现），裸 dialog.modal-open 会双命中
+    const modal = page
+      .locator('dialog.modal-open .modal-box')
+      .filter({ has: page.getByRole('heading', { name: 'Upload New Dataset (imzML + ibd)' }) })
+    await expect(modal).toBeVisible()
+
+    // 未选 imzML+ibd 文件对：Confirm & Upload 保持禁用（selectedPair 为空）
+    await expect(modal.getByRole('button', { name: 'Confirm & Upload' })).toBeDisabled()
+
+    await modal.getByRole('button', { name: 'Cancel' }).click()
+    await expect(modal).toBeHidden()
+  })
 })

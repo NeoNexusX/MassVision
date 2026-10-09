@@ -29,6 +29,33 @@ test('hero scene renders with title and join button', async ({ page }) => {
   await expect(page.locator('.scroll-cue')).toBeVisible()
 })
 
+// ── Features（第 2 屏，内容来自 public/content.json）──
+
+test('features scene renders gallery and switches card on hover', async ({ page }) => {
+  await page.goto('/')
+
+  // 期望词表不硬编码：读与页面同源的 content.json（与 per-page 用例读 config.json 同法）
+  const content = await (await page.request.get('/content.json')).json()
+  const words: string[] = content.features.items.map((it: { word: string }) => it.word)
+  const titles: string[] = content.features.items.map(
+    (it: { title: { en: string } }) => it.title.en,
+  )
+
+  await page.locator('#features').scrollIntoViewIfNeeded()
+
+  // 画廊词全部渲染；介绍卡默认显示第一项的标题（active=0）。
+  // 词用 .first()：激活项的词同时出现在画廊格和下方介绍卡的 h3 里，双命中会炸 strict mode
+  const scene = page.locator('#features')
+  for (const word of words) {
+    await expect(scene.getByText(word, { exact: true }).first()).toBeVisible()
+  }
+  await expect(scene.getByText(titles[0]!)).toBeVisible()
+
+  // 悬停第二个词所在格 → 联动切换介绍卡（Transition out-in 换标题）
+  await scene.getByText(words[1]!, { exact: true }).first().locator('..').hover()
+  await expect(scene.getByText(titles[1]!)).toBeVisible({ timeout: 5_000 })
+})
+
 // ── Stats（第 3 屏，有后端数据 /stats/*）──
 
 test('stats scene shows section heading and stat card labels', async ({ page }) => {

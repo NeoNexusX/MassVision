@@ -55,6 +55,64 @@
   "timeline": [
     {
       "date": {
+        "en": "October 9",
+        "zh-CN": "10月9日"
+      },
+      "version": "0.7.4",
+      "features": [
+        {
+          "en": "AI Agent platform with multi-evidence annotation scoring",
+          "zh-CN": "AI Agent 平台与注释多证据打分"
+        },
+        {
+          "en": "ROI selection highlights the main image and exports masks",
+          "zh-CN": "ROI 勾选联动主图高亮与掩膜导出"
+        },
+        {
+          "en": "Annotation CSV decoding with GBK/GB18030 fallback",
+          "zh-CN": "注释 CSV 解码支持 GBK/GB18030 回退"
+        },
+        {
+          "en": "Gamma and display range gray out while multi-ion overlay is active",
+          "zh-CN": "多离子叠加激活时置灰 Gamma 与显示范围控件"
+        },
+        {
+          "en": "Documentation overhaul: unified bilingual guides, collections usage and account management",
+          "zh-CN": "文档大更新：中英指南基名统一、集合使用指南与账号管理重写"
+        },
+        {
+          "en": "E2E test suite overhaul: full-route coverage, clipboard/overlay tests and stable cross-browser downloads",
+          "zh-CN": "E2E 测试体系重构：全路由覆盖、剪贴板/叠加用例与跨浏览器下载稳定化"
+        }
+      ]
+    },
+    {
+      "date": {
+        "en": "September 24",
+        "zh-CN": "9月24日"
+      },
+      "version": "0.7.3",
+      "features": [
+        {
+          "en": "Collections v2 revamp with metadata vocabulary integration",
+          "zh-CN": "集合中心 v2 改版，元数据接入词表"
+        },
+        {
+          "en": "One-click clipboard copy for share links across pages",
+          "zh-CN": "分享链接一键复制（跨页面统一）"
+        },
+        {
+          "en": "Collections migrated to public_id; private datasets shareable without going public",
+          "zh-CN": "集合接口迁移 public_id；私有数据集可直接分享，不再强制设公开"
+        },
+        {
+          "en": "Unified loading skeletons and UI consistency polish",
+          "zh-CN": "加载骨架统一与界面一致性优化"
+        }
+      ]
+    },
+    {
+      "date": {
         "en": "September 17",
         "zh-CN": "9月17日"
       },
@@ -75,77 +133,6 @@
         {
           "en": "Visualization workbench: 10-color ion channels, per-layer opacity and mask export polish",
           "zh-CN": "可视化工作台：离子通道扩至十色、逐层透明度与蒙版导出优化"
-        }
-      ]
-    },
-    {
-      "date": {
-        "en": "September 11",
-        "zh-CN": "9月11日"
-      },
-      "version": "0.7.1",
-      "features": [
-        {
-          "en": "Collections hub: curate and share public imzML datasets",
-          "zh-CN": "集合中心：整理并分享公开 imzML 数据集"
-        },
-        {
-          "en": "Collection editing: metadata, members and drag-to-reorder",
-          "zh-CN": "集合编辑：元数据、成员管理与拖拽排序"
-        },
-        {
-          "en": "Share public collections without sign-in",
-          "zh-CN": "公开集合免登录分享"
-        },
-        {
-          "en": "Multi-ion overlay and ROI/KMeans mask export (.npy / .csv)",
-          "zh-CN": "多离子叠加与 ROI/KMeans 掩膜导出（.npy / .csv）"
-        },
-        {
-          "en": "Dataset metadata editing (incl. solvent) with server-side sorting",
-          "zh-CN": "数据集元数据编辑（含溶剂）与服务端排序"
-        },
-        {
-          "en": "Streaming multipart upload with abort and resume",
-          "zh-CN": "流式分片上传，支持中止与续传"
-        }
-      ]
-    },
-    {
-      "date": {
-        "en": "August 30",
-        "zh-CN": "8月30日"
-      },
-      "version": "0.6.3",
-      "features": [
-        {
-          "en": "Dataset cards with hover-gallery preview (TIC + ion images)",
-          "zh-CN": "支持悬停画廊预览的数据集卡片（TIC + 离子图像）"
-        },
-        {
-          "en": "Runtime configuration split with faster first paint",
-          "zh-CN": "运行时配置拆分，加快首次渲染"
-        },
-        {
-          "en": "Visualization workbench refactor with results panel improvements",
-          "zh-CN": "可视化工作台重构及结果面板改进"
-        }
-      ]
-    },
-    {
-      "date": {
-        "en": "August 18",
-        "zh-CN": "8月18日"
-      },
-      "version": "0.6.2",
-      "features": [
-        {
-          "en": "App-wide UI polish and bug-fix batch",
-          "zh-CN": "全站界面优化与问题修复"
-        },
-        {
-          "en": "Annotation CSV worker reliability fixes",
-          "zh-CN": "注释 CSV 工作线程可靠性修复"
         }
       ]
     }

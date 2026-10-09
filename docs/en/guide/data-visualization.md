@@ -57,6 +57,8 @@ Lists the processing methods applied to this result (e.g., "Direct conversion (n
 
 ### Visualization Controls
 
+Gamma correction is always available; UMAP / KMeans clustering is only available for continuous data.
+
 | Control | Description |
 |---|---|
 | **Gamma** | Brightness/contrast curve. Range 0.5–1.5, default 1.0. |
@@ -88,8 +90,10 @@ Export ROI masks and KMeans clusters as a binary mask file, or import one and us
 | **ROI masks / KMeans clusters** | Pick which regions to include. Checked regions are merged into a single binary mask. |
 | **Export mask** | Download one mask file. Each file embeds the dataset name, shape, pixel size, and a SHA-256 digest over the pixel payload. |
 | **Import mask** | Load a mask and apply it as a filter on the ion image. |
-| **Apply Mask / Show Original** | Re-apply the imported mask, or suspend it and show the full image. |
+| **Apply Mask / Show Original** | Re-apply the imported mask, or suspend it and show the full image (appears after importing a mask). |
 | **Clear imported mask** | Remove the imported mask. |
+
+![Mask import & export](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008182213629.jpg_view)
 
 ## Ion Intensity Image
 
@@ -104,7 +108,7 @@ Displays the spatial intensity distribution for the selected m/z value.
 | **Zoom** | Mouse wheel (centered on pointer), or use the `−` / `+` buttons in the bottom-right. |
 | **Pan** | Click and drag when zoomed in. |
 | **Pixel info** | Hover to see 1-based coordinates `(x, y)` and intensity. |
-| **Select pixel** | In Processed mode, clicking a pixel loads its spectrum. |
+| **Select pixel** | Clicking a pixel loads its spectrum (works in both Continuous and Processed modes). |
 
 ### Toolbar
 
@@ -128,7 +132,9 @@ Continuous data can overlay several ions at once as separate colour channels. En
 
 - Up to **10 channels**. Each channel is normalized on its own range and added as a colour.
 - Per-channel controls cover visibility, colour, and opacity.
-- Display Range, Colormap, and Gamma do not apply while an overlay is active (their controls are greyed out).
+- Display Range, Colormap, and Gamma do not apply while an overlay is active; their controls are greyed out.
+
+![Multi-ion overlay](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008180949956.jpg_view)
 
 ## Pixel Spectrum
 
@@ -136,7 +142,7 @@ Content depends on the data mode:
 
 | Mode | What's Shown | Interaction |
 |---|---|---|
-| **Continuous** | Mean spectrum of the entire dataset | Click anywhere to switch to the nearest m/z and refresh the ion image. |
+| **Continuous** | Mean spectrum of the entire dataset by default; switchable to the selected pixel's spectrum | Click anywhere to switch to the nearest m/z and refresh the ion image. |
 | **Processed** | Spectrum of the selected pixel | Click a pixel in the TIC image first, then its spectrum loads here. |
 
 - Centroid data renders as **bar peaks**; profile data as **continuous curves**.
@@ -190,18 +196,20 @@ Set a minimum detection rate and an intensity threshold, then click **Compare**.
 
 The collapsible left-side panel imports an external metabolite/lipid annotation CSV, matches each row's experimental m/z against the current average spectrum, and lets you jump to matched peaks.
 
+![5f382f614daf4e39f36753a53bae4a89](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261009150600954.jpg_view)
+
 ::: warning Prerequisites
 Annotation matching requires **Continuous + Centroid** data. A warning appears if the spectrum mode is not supported.
 :::
 
 ### Import
 
-Click **Import CSV** to select a file, or drag and drop a CSV onto the panel. Parsing runs in a Web Worker; large tables use virtual scrolling.
+Click **Import CSV** to select a file, or drag and drop a CSV onto the panel. Large tables remain responsive.
 
 CSV format requirements:
 
-- **Encoding**: UTF-8 or UTF-8 BOM. Delimiter auto-detected (comma, semicolon, tab, or `|`).
-- **m/z column** (required): recognized names include `Exp. m/z`, `Tar. m/z`, `mz`, `m/z`, `experimental_mz`, `mass`, etc.
+- **Encoding**: UTF-8 (with or without BOM); GBK/GB18030 files are detected automatically. Delimiter auto-detected (comma, semicolon, tab, or `|`).
+- **m/z column** (required): recognized names include `Target m/z`, `Exp. m/z`, `Tar. m/z`, `mz`, `m/z`, `experimental_mz`, `mass`, etc. Matching tolerates case and spacing variants.
 - **Candidate names**: merged from `Candidate_1` through `Candidate_N` (or a single `Candidate` column). Empty values are dropped.
 - **Optional columns**: `formula_ion` / `formula` (molecular formula), `Ion type` / `adduct` (adduct type).
 
@@ -213,7 +221,7 @@ CSV format requirements:
 ### Filtering & Search
 
 - **Status badges** (top) filter by All, Matched, or Unmatched rows.
-- **Adduct** and **Formula** dropdowns narrow results by metadata.
+- **Adduct** and **Formula** dropdowns narrow results by metadata; the **L4** chip restricts the table to Level-4 rows.
 - **Search box** filters by name, formula, or m/z keywords.
 
 Rows whose adduct or formula implies the opposite polarity, or whose m/z falls outside the spectrum range, are dropped before matching.
@@ -228,14 +236,40 @@ Use the **Sort by** dropdown, then click the arrow to toggle ascending/descendin
 | Exp. m/z | Target m/z value |
 | Mass Difference | Mass error (Δ) |
 | Intensity | Average intensity at the matched peak |
+| Composite score | Evidence score (see below), best first |
+| Adduct score | Multi-adduct bonus (see below), best first |
+| FDR | Target-decoy q-value, most reliable first |
+
+### Evidence Scoring & Confidence Levels
+
+Exact-mass matching alone corresponds to **Level 5** of the MSI confidence hierarchy (mass only). When the CSV provides `formula_ion`, every matched row additionally receives browser-computed evidence scores used for sorting and filtering:
+
+| Metric | Meaning | How to Use |
+|---|---|---|
+| **Composite score** | Combined assessment of mass error and theoretical isotope-pattern fit | Primary sort key; higher is more credible |
+| **Confidence level** | **L4** = exact mass + isotope support; **L5** = exact mass only | Badge in each row; the L4 chip shows only Level-4 rows |
+| **FDR** | Target-decoy estimated false-discovery rate (q-value) | Smaller is better; sort by FDR |
+| **Adduct score** | Bonus when one molecule is detected as a group of ≥2 adduct ions (e.g. [M+H]⁺ together with [M+Na]⁺) | **M×n** badge in the row; hover card links to group members |
+
+### Spatial Evidence (MSM)
+
+For the top 200 rows by composite score, the panel automatically loads ion images of the theoretical isotope peaks and computes the pySM (Palmer et al., *Nat Methods* 2017) **MSM score = chaos × spatial × spectral**, assessing annotation quality from image structure, isotope co-localization, and pattern consistency. The score appears in the hover card and the exported CSV as a review aid; it does not affect the main ranking.
+
+Multi-adduct groups additionally undergo spatial confirmation via co-localization correlation of their member images: passing groups keep the bonus and are marked confirmed; failing groups have the bonus revoked (composite divided back, `adductScore` zeroed, the panel re-sorts, the badge turns warning-colored, and the export flags it with the `adductUnconfirmed` column).
 
 ### Table Interaction
 
-- Two compact columns: **Annotation** (compound name) and **Exp. m/z**.
-- **Hover card** shows: matched m/z, mass error, average intensity, status, and a **PubChem** lookup button.
+- Two compact columns: **Annotation** (compound name + confidence badge) and **Exp. m/z**.
+- **Hover card**: matched m/z, mass error, and average intensity, with the key scores (composite, confidence level, FDR, MSM with its readiness progress) up front and detailed sub-scores folded away; plus **isotope-peak jump** buttons (M+1, M+2, … jump to the nearest spectrum peak of the theoretical envelope), an **adduct-group** badge (M×n — click a member chip to select that row), and a **PubChem** lookup button.
+
+<img src="https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261009151817281.jpg_view" alt="image-20261009151817209" style="zoom:80%;" />
+
 - **Click a matched row** to jump to that m/z, refreshing the ion image and highlighting the spectrum peak.
+- Click **PubChem** to open a lookup dialog that searches PubChem by compound name and shows the structure, CID, IUPAC name, SMILES, and InChIKey, with copy buttons and a link to the PubChem page.
+
+<img src="https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261009151838139.jpg_view" alt="image-20261009151838061" style="zoom: 50%;" />
 
 ### Export & Clear
 
-- **Download** button exports matched rows as CSV with 8 columns: Name, Candidates, formula_ion, Ion type, Tar. m/z, Matched m/z, Mass Difference, Avg Intensity.
+- **Download** button exports matched rows as CSV, including the evidence-score columns; Chaos/Coloc when spatial scoring has run, and Adduct Score / Adduct Peers / Adduct Corr when multi-adduct groups formed.
 - **Trash** button clears the imported data.

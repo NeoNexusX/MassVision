@@ -52,6 +52,8 @@ export const ICON_SETS = {
     'bars-3',
     'sun',
     'moon',
+    'globe-alt',
+    'cog-6-tooth',
     'code-bracket',
     'question-mark-circle',
     'user-group',

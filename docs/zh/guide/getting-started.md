@@ -47,7 +47,7 @@ SpatialXomics 将常用的 MSI 数据管理与分析功能整合到同一套 Web
 
 ### 2. 注册与登录
 
-首次使用用户进行账号的注册（详细操作见[账户管理](./2.Account-Management)），完成后点击`Sign in`登录。
+首次使用用户进行账号的注册（详细操作见[账户管理](./account-management)），完成后点击`Sign in`登录。
 
 ![登录页面](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260907165825552.jpg_view)
 
@@ -55,7 +55,7 @@ SpatialXomics 将常用的 MSI 数据管理与分析功能整合到同一套 Web
 
 ### 3. 查找数据
 
-根据个人需求采取搜索或筛选查找数据（详情见[查找数据集](./3.Datasets-Finding)）。
+根据个人需求采取搜索或筛选查找数据（详情见[查找数据集](./finding-datasets)）。
 
 此处采用筛选查找出”Mouse Brain”数据。首先点击`Add filter`进行筛选，再将筛选条件设置为”Mouse”、”Brain”，最后点击`Apply`得到筛选查找的结果。
 
@@ -67,7 +67,7 @@ SpatialXomics 将常用的 MSI 数据管理与分析功能整合到同一套 Web
 
 ![image-20260907175815083](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260907175815189.jpg_view)
 
-“Mouse_Brain_MALDI_30_Positive_7d5b0c”数据的基本信息如下（详细基本信息解读见[数据集总览](./4.Dataset-Overview)）。
+“Mouse_Brain_MALDI_30_Positive_7d5b0c”数据的基本信息如下（详细基本信息解读见[数据集总览](./dataset-overview)）。
 
 （“Mouse”：生物体信息；“Brain”：有机体部分；“MALDI”：离子源；“30”：像素尺寸；“Positive”：极性；“7d5b0c”：识别码）用户可根据需求快速搜索查找。
 
@@ -77,7 +77,7 @@ SpatialXomics 将常用的 MSI 数据管理与分析功能整合到同一套 Web
 
 ### 5. 数据可视化
 
-点击`Visualize`即可查看数据集具体信息（具体细节介绍见[数据可视化](./5.Dataset-Visualize)）。
+点击`Visualize`即可查看数据集具体信息（具体细节介绍见[数据可视化](./data-visualization)）。
 
 ![image-20260908134626345](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908134626454.jpg_view)
 
@@ -91,7 +91,7 @@ SpatialXomics 将常用的 MSI 数据管理与分析功能整合到同一套 Web
 
 ![image-20260908135743140](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908135743254.jpg_view)
 
-点击`Choose Files`即可选择本地数据集，并按要求完成基本信息填写便于后续分析（详细操作见[上传数据集](./6.Dataset-Upload)），其中*为必填项。
+点击`Choose Files`即可选择本地数据集，并按要求完成基本信息填写便于后续分析（详细操作见[上传数据集](./upload-data)），其中*为必填项。
 
 （注意：上传数据需是 .imzML 以及其配套 .ibd 文件）
 
@@ -103,13 +103,13 @@ SpatialXomics 将常用的 MSI 数据管理与分析功能整合到同一套 Web
 
 ### 7. 分析数据
 
-点击`Workspace`—`New Analysis`进入数据分析页面，选择所需分析的数据集和功能进行分析（详细操作见[数据集分析](./7.Dataset-Analysis)）。
+点击`Workspace`—`New Analysis`进入数据分析页面，选择所需分析的数据集和功能进行分析（详细操作见[数据集分析](./dataset-analysis)）。
 
 此处以公开数据集中”Mouse_Kidney_MALDI_30_Negative_77bf5d”为例，进行了降噪、基线校正、强度归一化、峰提取、峰对齐的分析操作。
 
 ![新建分析页面](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908141557982.jpg_view)
 
-点击`Start Analysis`后会自动进入`Workspace`—`Workspace`页面，也可自行手动操作进入该页面，查看数据处理情况(具体细节见[工作区](./8.Workspace))。
+点击`Start Analysis`后会自动进入`Workspace`—`Workspace`页面，也可自行手动操作进入该页面，查看数据处理情况(具体细节见[工作区](./workspace))。
 
 ![工作区页面](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260908142155682.jpg_view)
 
@@ -121,12 +121,13 @@ SpatialXomics 将常用的 MSI 数据管理与分析功能整合到同一套 Web
 
 | 文档 | 内容 |
 |---|---|
-| [账户管理](./2.Account-Management) | 注册、登录、找回密码、个人资料与权限管理 |
-| [查找数据集](./3.Datasets-Finding) | 搜索、筛选、排序公开和私有数据集 |
-| [数据集总览](./4.Dataset-Overview) | 元数据字段、下载原始文件、生成分享链接 |
-| [数据可视化](./5.Dataset-Visualize) | 离子图、TIC 图、质谱、UMAP/KMeans、ROI、区域比较、注释匹配 |
-| [上传数据集](./6.Dataset-Upload) | imzML/ibd 上传流程、元数据表单、查重、断点续传 |
-| [数据集分析](./7.Dataset-Analysis) | 选择兼容的预处理方法、参数配置、提交任务 |
-| [工作区](./8.Workspace) | 任务面板、状态跟踪、查看结果 |
-| [导航说明](./9.Navigation) | 导航栏与悬浮导航球 |
+| [账户管理](./account-management) | 注册、登录、找回密码、个人资料与权限管理 |
+| [查找数据集](./finding-datasets) | 搜索、筛选、排序公开和私有数据集 |
+| [数据集总览](./dataset-overview) | 元数据字段、下载原始文件、生成分享链接 |
+| [数据可视化](./data-visualization) | 离子图、TIC 图、质谱、UMAP/KMeans、ROI、区域比较、注释匹配 |
+| [上传数据集](./upload-data) | imzML/ibd 上传流程、元数据表单、查重、断点续传 |
+| [数据集分析](./dataset-analysis) | 选择兼容的预处理方法、参数配置、提交任务 |
+| [工作区](./workspace) | 任务面板、状态跟踪、查看结果 |
+| [导航说明](./navigation) | 导航栏与悬浮导航球 |
+| [数据集合](./collections) | 浏览与创建数据集合、成员管理、公开分享 |
 

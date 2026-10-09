@@ -21,13 +21,6 @@ export function sizeToMB(text: string | null): number {
 }
 
 /**
- * 算法测试（Explore / New Analysis submit）只选小于此阈值的数据集，
- * 避免选到大文件（如 1G 上传测试数据）导致算法跑不完超时。
- * 下载测试的阈值单独定义在各 spec 内（MAX_DOWNLOAD_MB）。
- */
-export const ALGO_MAX_MB = 30
-
-/**
  * 跑算法 / 可视化任务（explore raw-convert、new-analysis submit）用的真实数据集，
  * 按名称优先匹配（先后端搜 Ecoli，没有再搜 Human）。
  *

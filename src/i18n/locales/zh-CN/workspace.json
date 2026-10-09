@@ -24,14 +24,6 @@
       "unknownFile": "未知",
       "unknownError": "未知错误"
     },
-    "createTask": {
-      "title": "新建任务",
-      "selectDataset": "选择数据集",
-      "methods": "预处理方法",
-      "params": "方法参数",
-      "paramPlaceholder": "参数 JSON 或数值",
-      "start": "开始处理"
-    },
     "analysis": {
       "title": "新建分析",
       "subtitle": "为 MSI 数据集配置预处理流程",

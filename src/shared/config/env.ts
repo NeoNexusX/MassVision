@@ -14,4 +14,10 @@ export const ENV = {
   apiBase: env.VITE_API_BASE || '/api',
   /** OSS 加速域名（可选）；为空则使用默认 region 拼接 */
   ossEndpoint: env.VITE_OSS_ENDPOINT || '',
+  /** LLM 中转站基地址（OpenAI 兼容）；部署级默认，可被用户自配（BYOK）覆盖，两者皆空则助手不可用 */
+  llmProxyUrl: env.VITE_LLM_PROXY_URL || '',
+  /** LLM 中转站共享子 key；部署级默认，可被用户自配（BYOK）覆盖；放 env/.env.*.local，不进 git */
+  llmApiKey: env.VITE_LLM_API_KEY || '',
+  /** 默认模型名（用户自配 > 此处 > config.json llm 块 > deepseek-chat） */
+  llmModel: env.VITE_LLM_MODEL || '',
 } as const

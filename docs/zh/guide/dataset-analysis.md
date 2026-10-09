@@ -39,7 +39,7 @@
 
 ![image-20260909151822702](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260909151822747.jpg_view)
 
-若所需分析数据仍未上传，可点击右上角`Upload New Dataset`按钮上传所需分析数据，上传数据详细操作见[上传数据集](./6.Dataset-Upload)。
+若所需分析数据仍未上传，可点击右上角`Upload New Dataset`按钮上传所需分析数据，上传数据详细操作见[上传数据集](./upload-data)。
 
 ![image-20260909153324437](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260909153324475.jpg_view)
 
@@ -175,6 +175,6 @@
 
 ![image-20260909170806803](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260909170806890.jpg_view)
 
-创建成功后，自动跳转至`Workspace`,可在Workspace中查看处理进度，详细介绍见[工作区](./8.Workspace)。
+创建成功后，自动跳转至`Workspace`,可在Workspace中查看处理进度，详细介绍见[工作区](./workspace)。
 
 ![image-20260909170958405](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260909170958484.jpg_view)

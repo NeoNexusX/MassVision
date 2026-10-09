@@ -23,10 +23,10 @@ Your avatar menu holds **Profile**, **Users** (administrators only), and **Sign 
 
 ## Floating Nav Ball
 
-On pages where the top navigation bar is hidden — the full-screen visualization page, for example — a floating navigation ball appears in the bottom-right corner.
+The Home, Sign in, and Create account pages, the dataset visualization page, and other full-screen pages hide the top navigation bar; a floating navigation ball appears in the bottom-right corner instead.
 
 ![Nav ball](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260909175034159.jpg_view)
 
-Click the ball to open a side drawer with the same navigation options.
+Click the ball to open a side drawer. It mirrors the navigation bar except for two details: the drawer offers no sign-in/sign-up entry — signed-out visitors use the **Join to start** button on the home page — and sign-out is handled by the button on the nav ball itself, not in the drawer.
 
 ![Nav drawer](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260909175259094.jpg_view)

@@ -156,6 +156,8 @@ const props = defineProps({
   channels: { type: Array as PropType<ViewIonChannel[]>, default: () => [] },
   /** ROI 并集掩膜（1 = 保留），叠加模式下按此裁剪每个通道 */
   roiMask: { type: Object as PropType<Uint8Array | null>, default: null },
+  /** 选中 ROI 的高亮层（RGBA，与离子图同尺寸）；独立于 overlayData，叠加在其上 */
+  roiHighlightData: { type: Object as PropType<Uint8ClampedArray | null>, default: null },
 })
 
 const emit = defineEmits<{
@@ -227,6 +229,7 @@ const { scheduleRender, observeContainer, exportTransparentCanvas } = useCanvasR
   channels: blendChannels,
   channelsMode: channelsModeRef,
   roiMask: roiMaskRef,
+  roiHighlightData: computed(() => props.roiHighlightData),
 })
 
 /** 容器光标样式 */
@@ -367,6 +370,7 @@ watch(
     props.channels,
     props.channelsMode,
     props.roiMask,
+    props.roiHighlightData,
   ],
   () => scheduleRender(),
 )

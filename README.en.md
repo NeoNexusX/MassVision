@@ -23,7 +23,9 @@ SpatialXomics is a web platform for mass spectrometry imaging (MSI) data managem
 | UI | Tailwind CSS v4, DaisyUI v5, offline Iconify subsets |
 | Visualization | ECharts, Canvas, vue3-calendar-heatmap |
 | MSI/Zarr | Custom chunked Zarr v3 reader, zstddec, `@zip.js/zip.js`, hash-wasm, ml-kmeans |
-| Network/storage | Axios, qs, ali-oss with temporary STS credentials |
+| Network/storage | Axios, ali-oss with temporary STS credentials |
+| Network/storage | Axios, ali-oss with temporary STS credentials |
+| AI assistant | cordis, @tdesign-vue-next/chat |
 | Testing | Vitest, Playwright |
 | Documentation | Bilingual VitePress site |
 
@@ -36,7 +38,7 @@ src/
 ├── app/                         # App shell, navigation, global entry components
 ├── assets/                      # Styles and theme assets
 ├── features/                    # Business-domain modules
-│   ├── assistant/               # Optional AI assistant UI (disabled by current runtime config)
+│   ├── assistant/               # AI assistant: floating chat window + BYOK (on by default for signed-in users)
 │   ├── auth/                    # Sign-in, registration, and recovery flows
 │   ├── collections/             # Curated dataset collections with academic metadata
 │   ├── datasets/                # Lists, details, sharing, and downloads

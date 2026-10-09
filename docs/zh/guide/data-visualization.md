@@ -16,7 +16,7 @@
 
 ![image-20260909211924082](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260909211924161.jpg_view)
 
-当数据集处在”Explore“时，此时数据集还在待处理阶段，还无法查看可视化结果，需点击`Explore`后再选择`Generate`创建数据预处理任务，创建成功后，将自动跳转至Workspace页面，页面具体信息见[工作区](./8.Workspace)。
+当数据集处在”Explore“时，此时数据集还在待处理阶段，还无法查看可视化结果，需点击`Explore`后再选择`Generate`创建数据预处理任务，创建成功后，将自动跳转至Workspace页面，页面具体信息见[工作区](./workspace)。
 
 ![image-20260909212549202](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20260909212549240.jpg_view)
 
@@ -79,7 +79,20 @@
 | **ROI 统计**            | 每个 ROI 显示：Pixels、Mean、Std、Min、Max |
 | **管理**                | 删除单个 ROI 或 Clear all                  |
 
+**7. Mask Import & Export（掩膜导入/导出）**
 
+可将 ROI 掩膜与 KMeans 聚类结果导出为二值掩膜文件，也可导入掩膜文件作为显示过滤。
+
+| 功能                            | 说明                                                         |
+| ------------------------------- | ------------------------------------------------------------ |
+| **Format**                      | 选择掩膜文件格式（.npz / .csv）                              |
+| **ROI masks / KMeans clusters** | 勾选要包含的区域，勾选的多个区域会合并为一个二值掩膜         |
+| **Export mask**                 | 导出一个掩膜文件，文件内嵌数据集名称、形状、像素尺寸与像素数据的 SHA-256 校验值 |
+| **Import mask**                 | 导入掩膜文件并作为离子图的显示过滤                           |
+| **Apply Mask / Show Original**  | 重新应用已导入的掩膜，或暂停掩膜显示完整图像（导入掩膜后出现） |
+| **Clear imported mask**         | 清除已导入的掩膜                                             |
+
+![image-20261008182213554](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008182213629.jpg_view)
 
 #### 2.2 离子强度图
 
@@ -94,7 +107,7 @@
 | **缩放**     | 鼠标滚轮在离子图区域以指针位置为中心缩放；右下 `− / 倍率 / +` 按钮 |
 | **平移**     | 放大后按住左键拖动                                           |
 | **像素信息** | 悬停显示 1-based 坐标 `(x, y)` 和强度值                      |
-| **像素选择** | Processed 模式下点击像素可加载该像素的完整谱图               |
+| **像素选择** | 点击像素可加载该像素的谱图（Continuous 与 Processed 均支持） |
 
 **2. 工具栏控件**
 
@@ -112,16 +125,24 @@
 - **Display Range 滑块**：拖动调整 Min/Max，改变对比度
 - **Gamma 校正**：右侧滑块，范围 0.5–1.5，默认 1.0
 
+**4. 多离子叠加**
 
+Continuous 数据可将多个离子同时叠加为多个颜色通道显示。开启`Overlay mode`后，可将当前 m/z 添加为一个通道；也可使用`Batch add m/z`，直接在谱图上点击峰批量添加。
+
+- 最多支持 **10 个通道**，每个通道按各自的强度范围独立归一化后叠加为不同颜色；
+- 每个通道可单独控制可见性、颜色与透明度；
+- 叠加激活时，Display Range、Colormap 与 Gamma 控件均会置灰（叠加渲染不使用这些设置）。
+
+![ec58781ec5cf85b8de67931dec1da39e](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261008180949956.jpg_view)
 
 #### 2.3 像素谱图
 
 根据数据模式显示不同内容：
 
-| 模式           | 显示内容           | 交互                                                     |
-| -------------- | ------------------ | -------------------------------------------------------- |
-| **Continuous** | 整个数据集的平均谱 | 点击谱图任意位置 → 切换到最接近的 m/z 并刷新离子强度图像 |
-| **Processed**  | 选中像素的单点谱   | 先在 TIC 图上点击像素 → 加载该像素谱                     |
+| 模式           | 显示内容                                       | 交互                                                     |
+| -------------- | ---------------------------------------------- | -------------------------------------------------------- |
+| **Continuous** | 默认整个数据集的平均谱，可切换为选中像素的谱图 | 点击谱图任意位置 → 切换到最接近的 m/z 并刷新离子强度图像 |
+| **Processed**  | 选中像素的单点谱                               | 先在 TIC 图上点击像素 → 加载该像素谱                     |
 
 - Centroid 数据显示为**柱状峰**
 - Profile 数据显示为**连续曲线**
@@ -133,6 +154,8 @@
 #### 2.4 区域比较
 
 **仅 Centroid 数据可用**，用于比较两个区域（A vs B）的谱图差异。主要有两类数据来源，KMeans 聚类产生的 clusters或用户绘制的 ROIs，现就以上两类数据比较做一流程介绍。
+
+设置最低检出率（Minimum detection rate）与强度阈值（Intensity threshold）后点击`Compare`进行比较。比较时同一组的多个成员先合并（并集），结果分为五类：**仅 A（A only）**、**仅 B（B only）**、**A 富集（A enriched）**、**B 富集（B enriched）**、**共有（Shared）**，并显示两边的检出率与平均强度。
 
 ##### 2.4.1 KMeans 聚类产生的 clusters
 
@@ -170,17 +193,19 @@
 
 注释面板位于可视化页面左侧，可折叠/展开。用于导入外部代谢物/脂质注释 CSV 表，将每行的实验 m/z 与当前平均谱匹配，并支持跳转、筛选、导出和 PubChem 查询。
 
+![5f382f614daf4e39f36753a53bae4a89](https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261009150600954.jpg_view)
+
 ::: warning 前提条件
 注释匹配仅适用于 **Continuous + Centroid** 数据。Profile 模式下该面板会显示警告提示。
 :::
 
 **1. 导入 CSV**
 
-点击 **Import CSV** 选择文件，或将 CSV 文件直接拖放到面板区域。解析在 Web Worker 中执行，大表格使用虚拟滚动避免卡顿。
+点击 **Import CSV** 选择文件，或将 CSV 文件直接拖放到面板区域，大表格也能流畅浏览。
 
 CSV 格式要求：
-- 编码支持 UTF-8 和 UTF-8 BOM；分隔符自动检测（逗号、分号、Tab、`|`）。
-- 必须包含 m/z 列，识别列名：`Exp. m/z`、`Tar. m/z`、`mz`、`m/z`、`experimental_mz`、`mass` 等。
+- 编码支持 UTF-8（含 BOM），GBK/GB18030 编码的文件会自动识别；分隔符自动检测（逗号、分号、Tab、`|`）。
+- 必须包含 m/z 列，识别 `Target m/z`、`Exp. m/z`、`Tar. m/z`、`mz`、`m/z`、`experimental_mz`、`mass` 等列名（大小写、空格等写法变体均可）。
 - 候选化合物名从 `Candidate_1` 到 `Candidate_N`（或单个 `Candidate` 列）合并。
 - 可选列：`formula_ion` / `formula`（分子式）、`Ion type` / `adduct`（加合物类型）。
 
@@ -192,8 +217,10 @@ CSV 格式要求：
 **3. 筛选与搜索**
 
 - 顶部计数徽章可按 **All / Matched / Unmatched** 快速筛选。
-- 支持按 **Adduct（加合物）** 和 **Formula（分子式）** 下拉筛选。
+- 支持按 **Adduct（加合物）** 和 **Formula（分子式）** 下拉筛选；**L4** chip 可将表格限制为 Level 4 行。
 - 搜索框支持按名称、分子式或 m/z 值关键词搜索。
+
+匹配开始前，加合物或分子式指向相反极性的行、以及 m/z 超出当前谱图范围的行会被自动丢弃。
 
 **4. 排序**
 
@@ -202,14 +229,40 @@ CSV 格式要求：
 - Exp. m/z（目标 m/z）
 - Mass Difference（质量差）
 - Intensity（强度）
+- Composite score（综合证据分，见 4a，高分在前）
+- Adduct score（多加合物加分，见 4a，高分在前）
+- FDR（target-decoy q 值，小者在前）
+
+**4a. 证据评分与置信等级**
+
+仅凭精确质量匹配对应 MSI 置信体系的 **Level 5**（只有质量）。当 CSV 提供 `formula_ion` 列时，每条匹配行会额外获得完全在浏览器端计算的证据分，作为排序与筛选的依据：
+
+| 指标                       | 含义                                                         | 怎么用                                       |
+| -------------------------- | ------------------------------------------------------------ | -------------------------------------------- |
+| **综合分（Composite score）** | 质量误差与理论同位素峰形吻合度的综合评价                     | 主要排序依据，越高越可信                    |
+| **置信等级**               | **L4** = 精确质量 + 同位素支持；**L5** = 仅精确质量           | 行内徽章显示；L4 chip 只显示 Level 4 行      |
+| **FDR**                    | target-decoy 估计的假发现率（q 值）                          | 越小越可信，可按 FDR 排序                   |
+| **多加合物加分（Adduct score）** | 同一分子以 ≥2 种加合物成组检出（如 [M+H]⁺ 与 [M+Na]⁺ 同时命中）时加分 | 行内 **M×n** 徽章；悬停卡内可跳转组内成员 |
+
+**4b. 空间证据（MSM）**
+
+对综合分前 200 行，面板会自动加载其理论同位素峰的离子图像，计算 pySM（Palmer et al., *Nat Methods* 2017）的 **MSM 空间分 = chaos × spatial × spectral**，从图像结构、同位素共定位与峰形一致性三个角度进一步评价注释质量。分值显示在悬停卡与导出 CSV 中，供人工复核参考，不影响主排序。
+
+多加合物组还会用组内成员图像的共定位相关性做空间确认：通过者保留加分并标记已确认；未通过者撤销加分（综合分降回、`adductScore` 清零、面板重排，徽章转警告色，导出以 `adductUnconfirmed` 列标注）。
 
 **5. 表格交互**
 
-- 表格显示两列：**Annotation**（注释名）和 **Exp. m/z**（实验 m/z）。
-- 悬停行显示详细信息卡片：匹配 m/z、质量差、平均强度、状态和 PubChem 查询按钮。
+- 表格显示两列：**Annotation**（注释名 + 置信徽章）和 **Exp. m/z**（实验 m/z）。
+- 悬停行显示详细信息卡片：匹配 m/z、质量差、平均强度，关键评分（综合分、置信等级、FDR、MSM 及就绪进度）一眼可见，质量/同位素/加合物等明细折叠在"详细评分"内；另提供 **同位素峰跳转** 按钮（M+1、M+2…，按理论同位素包络跳转最近谱峰）、**多加合物组** 徽章（M×n，点击组内 chip 选中对应行）和 PubChem 查询按钮。
+
+<img src="https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261009151817281.jpg_view" alt="image-20261009151817209" style="zoom:80%;" />
+
 - 点击已匹配行跳转到对应 m/z，刷新离子图并高亮谱图峰。
+- 点击 **PubChem** 按钮弹出查询窗口，按化合物名检索 PubChem，展示结构式、CID、IUPAC 名称、SMILES 与 InChIKey，可一键复制或跳转 PubChem 页面。
+
+<img src="https://official-oss.oss-cn-hongkong.aliyuncs.com/docs/20261009151838139.jpg_view" alt="image-20261009151838061" style="zoom: 50%;" />
 
 **6. 导出与清除**
 
-- 点击下载按钮导出已匹配行的 CSV。
+- 点击下载按钮导出已匹配行的 CSV，包含证据分列；空间评分已运行时附 Chaos/Coloc 列，多加合物成组时另附 Adduct Score / Adduct Peers / Adduct Corr 列。
 - 点击垃圾桶按钮清除导入数据。
