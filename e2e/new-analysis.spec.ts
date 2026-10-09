@@ -374,6 +374,56 @@ test.describe.serial('Peak Alignment journey', () => {
     // ion image 没崩
     await expect(page.getByText(/^Loading ion image/)).toBeHidden()
   })
+
+  test('vizworkbench — multi-ion overlay grays Gamma and Display Range while active', async ({ page, browserName }) => {
+    // 同上：依赖 chromium 提交的 Peak Alignment 任务，skip 保持一致。
+    // 覆盖 14abcc8：overlayActive（enabled && 有已加载通道）时 Gamma 滑块与
+    // Display Range 输入框不参与叠加渲染，置灰禁用；关闭后恢复。
+    test.skip(browserName !== 'chromium', 'Peak Alignment 任务只在 chromium 创建，依赖它的断言不跨浏览器')
+    test.setTimeout(ALIGN_TEST_TIMEOUT_MS)
+    await page.goto('/workspace')
+    await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 })
+    await expect(page.locator('table tbody tr').first().locator('td').first()).not.toHaveText(
+      'Loading...',
+      { timeout: 10_000 },
+    )
+
+    const completedRow = await waitForPeakAlignmentReady(page)
+    await completedRow.getByRole('button', { name: 'View' }).click()
+    await expect(page).toHaveURL(/\/vizworkbench/)
+    await expect(page.getByText(/^Loading ion image/)).not.toBeVisible({ timeout: 30_000 })
+
+    // Gamma 滑块（Visualization 区，min/max 组合在页面唯一）；Display Range 的
+    // Max/Min 两个输入框：按区头按钮的下一个兄弟节点（CollapsibleSection 的
+    // 内容 div）收窄，避免误中其它面板的 input
+    const gammaSlider = page.locator('input[type="range"][min="0.5"][max="1.5"]')
+    const displayRangeInputs = page
+      .getByRole('button', { name: 'Display range' })
+      .locator('xpath=following-sibling::div[1]')
+      .locator('input')
+    await expect(gammaSlider).toBeVisible()
+    await expect(displayRangeInputs).toHaveCount(2)
+
+    // 叠加未激活：两者可用
+    await expect(gammaSlider).toBeEnabled()
+    await expect(displayRangeInputs.first()).toBeEnabled()
+    await expect(displayRangeInputs.nth(1)).toBeEnabled()
+
+    // 打开 Overlay mode，把当前选中的 m/z 加为第一个通道
+    await page.locator('label:has-text("Overlay mode")').locator('input').check()
+    await page.getByRole('button', { name: /^Add m\/z / }).click()
+
+    // 通道矩阵加载完成后 overlayActive 生效 → Gamma / Display Range 置灰
+    // （矩阵是按 m/z 拉的离子图数据，给足等待）
+    await expect(gammaSlider).toBeDisabled({ timeout: 60_000 })
+    await expect(displayRangeInputs.first()).toBeDisabled()
+    await expect(displayRangeInputs.nth(1)).toBeDisabled()
+
+    // 关掉叠加：控件恢复可用
+    await page.locator('label:has-text("Overlay mode")').locator('input').uncheck()
+    await expect(gammaSlider).toBeEnabled({ timeout: 30_000 })
+    await expect(displayRangeInputs.first()).toBeEnabled()
+  })
 })
 
 // ============================================================
