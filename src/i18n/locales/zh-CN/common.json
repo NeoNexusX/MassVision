@@ -1,0 +1,205 @@
+{
+  "common": {
+    "language": {
+      "switch": "切换语言"
+    },
+    "nav": {
+      "openMenu": "打开菜单",
+      "closeMenu": "关闭菜单",
+      "closeSidebar": "关闭侧边栏",
+      "toggleTheme": "切换主题",
+      "notSignedIn": "未登录",
+      "signIn": "登录"
+    },
+    "field": {
+      "name": "名称",
+      "username": "用户名",
+      "email": "邮箱",
+      "password": "密码",
+      "position": "职位",
+      "region": "国家 / 地区",
+      "researchField": "研究领域",
+      "status": "状态"
+    },
+    "action": {
+      "save": "保存",
+      "saveChanges": "保存修改",
+      "cancel": "取消",
+      "confirm": "确认",
+      "delete": "删除",
+      "edit": "编辑",
+      "search": "搜索",
+      "reset": "重置",
+      "close": "关闭",
+      "retry": "重试",
+      "refresh": "刷新",
+      "view": "查看",
+      "apply": "应用",
+      "clear": "清除",
+      "download": "下载",
+      "remove": "移除",
+      "prev": "上一页",
+      "next": "下一页",
+      "go": "跳转",
+      "clearAll": "全部清除",
+      "discard": "放弃",
+      "uploadDataset": "上传新数据集",
+      "share": "分享",
+      "copy": "复制",
+      "signIn": "登录",
+      "register": "注册"
+    },
+    "state": {
+      "loading": "加载中…",
+      "empty": "暂无数据",
+      "error": "出错了",
+      "sessionLost": "页面状态已丢失"
+    },
+    "feedback": {
+      "updated": "已更新",
+      "updateFailed": "更新失败",
+      "created": "已创建",
+      "createFailed": "创建失败",
+      "deleted": "已删除",
+      "deleteFailed": "删除失败",
+      "added": "已添加",
+      "addFailed": "添加失败",
+      "removeFailed": "移除失败",
+      "copied": "已复制到剪贴板",
+      "copyFailed": "复制失败",
+      "fileMissing": "文件不存在或正在删除",
+      "exported": "已导出",
+      "exportFailed": "导出失败",
+      "loadFailed": "{target}加载失败",
+      "withDetail": "{message}：{detail}"
+    },
+    "status": {
+      "running": "运行中",
+      "completed": "已完成",
+      "failed": "失败",
+      "processing": "处理中",
+      "active": "已启用",
+      "inactive": "已停用"
+    },
+    "stat": {
+      "files": "文件数",
+      "processing": "处理量",
+      "downloads": "下载次数",
+      "totalUsers": "用户总数"
+    },
+    "preprocessing": {
+      "noiseReduction": "降噪 (Noise Reduction)",
+      "baselineCorrection": "基线校正 (Baseline Correction)",
+      "normalization": "归一化 (Normalization)",
+      "peakPicking": "峰提取 (Peak Picking)",
+      "peakAlignment": "峰对齐 (Peak Alignment)",
+      "rawConvert": "直接转换（无预处理）",
+      "title": "预处理"
+    },
+    "meta": {
+      "organism": "物种",
+      "organismPart": "组织部位",
+      "sampleStabilization": "样本稳定化处理",
+      "growthConditions": "培养条件",
+      "tissueModification": "组织前处理",
+      "polarity": "极性",
+      "ionisationSource": "离子源",
+      "analyzer": "质量分析器",
+      "condition": "实验条件",
+      "maldiMatrix": "MALDI 基质",
+      "pixelSize": "像素尺寸",
+      "resolvingPower": "分辨率",
+      "solvent": "溶剂",
+      "spectrumMode": "谱图模式",
+      "storageMode": "存储模式"
+    },
+    "pagination": {
+      "summary": "第 {page} / {total} 页，共 {count} 条",
+      "perPage": "每页"
+    },
+    "format": {
+      "labelColon": "{label}："
+    },
+    "input": {
+      "selectPlaceholder": "请选择",
+      "tagPlaceholder": "输入后按回车添加",
+      "tagSelectPlaceholder": "从列表中选择，或输入自定义值后按回车",
+      "addTag": "添加标签",
+      "addNamedTag": "添加{name}",
+      "removeTag": "移除 {tag}",
+      "otherRequired": "请填写具体内容。",
+      "otherTooLong": "请控制在 {max} 个字符以内。",
+      "otherInvalidChars": "只能包含字母、数字、空格、连字符、下划线、斜杠、括号、逗号和句点。",
+      "searchDatasets": "搜索数据集",
+      "specifyOther": "请填写具体内容...",
+      "selectShort": "请选择...",
+      "all": "全部",
+      "other": "其他",
+      "example": "例如 {value}",
+      "patternMismatch": "“{value}” 格式不正确"
+    },
+    "assistant": {
+      "title": "AI 助手",
+      "minimize": "最小化",
+      "welcome": "你好，我是你的 AI 科研助手。我可以帮助解释离子图像、总结数据集、建议预处理方法，并协助撰写报告。",
+      "quick": {
+        "summarize": "总结这个数据集",
+        "explain": "解释这张离子图像",
+        "preprocess": "建议预处理方法",
+        "report": "帮我写报告"
+      },
+      "skillBtns": {
+        "annotationReview": "注释审查",
+        "adductIsotope": "加合/同位素证据",
+        "metaboliteBiology": "代谢物生物学",
+        "literatureEvidence": "文献证据",
+        "msiAnalysis": "MSI 分析",
+        "ionImage": "离子图解读"
+      },
+      "placeholder": "向 AI 提问…",
+      "send": "发送",
+      "contextOn": "数据集上下文",
+      "contextOff": "无数据集上下文",
+      "contextTooltip": "数据可经 get_page_state 等工具实时读取",
+      "clearHistory": "清除历史",
+      "loadEarlier": "加载更早的消息",
+      "stopped": "（已停止）",
+      "somethingWrong": "出错了",
+      "thinking": "思考中…",
+      "thought": "已深度思考",
+      "truncated": "（连接中断，回复可能不完整，可重试）",
+      "stop": "停止",
+      "emptyResponse": "未收到回复——端点返回了空响应。它可能不支持流式输出或工具调用。",
+      "noData": "连接成功但未返回任何内容。端点可能不支持流式输出，或 Base URL 填错（试试补上 /v1）。",
+      "noApiConfigured": "未配置 API。点击面板顶部的 ⚙ 按钮填入你自己的 API Key 与模型。",
+      "settings": {
+        "title": "API 设置",
+        "hint": "使用你自己的 API Key 与模型——任意 OpenAI 兼容端点，或 Anthropic（Claude）官方 API。密钥仅保存在本浏览器，不会上传到服务器。",
+        "provider": "接口类型",
+        "providerOpenAi": "OpenAI 兼容（DeepSeek / GLM / Kimi…）",
+        "providerAnthropic": "Anthropic（Claude）",
+        "baseUrl": "API 地址",
+        "baseUrlPlaceholder": "https://api.deepseek.com/v1",
+        "baseUrlPlaceholderAnthropic": "https://api.anthropic.com/v1",
+        "apiKey": "API 密钥",
+        "apiKeyPlaceholder": "sk-…",
+        "model": "模型",
+        "modelPlaceholder": "deepseek-chat",
+        "modelPlaceholderAnthropic": "claude-opus-4-8",
+        "corsNote": "地址需允许浏览器跨域（CORS）访问——OpenAI / DeepSeek / Anthropic 官方 API 均支持，部分中转站不支持。",
+        "test": "测试连接",
+        "testing": "测试中…",
+        "testOk": "连接成功",
+        "usingCustom": "使用你的密钥",
+        "usingDefault": "使用服务器默认",
+        "notConfigured": "未配置 API——填写密钥后助手才能回答",
+        "clearConfirm": "将清除保存在本浏览器的密钥并回退到服务器默认配置（如有）。确定吗？"
+      }
+    },
+    "page": {
+      "myDatasets": "我的数据集",
+      "publicDatasets": "公开数据集",
+      "collections": "数据集合"
+    }
+  }
+}

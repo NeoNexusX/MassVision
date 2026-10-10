@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from '@/i18n'
 import { Icon } from '@iconify/vue'
 import DonutStatSection from './DonutStatSection.vue'
+// 千分位格式化统一走 shared/utils/format（跟随界面语言，而非浏览器语言）
+import { formatNumber as fmt } from '@/shared/utils/format'
 import {
   useOrganismStats,
   useDatasetCategoryStats,
@@ -27,12 +30,12 @@ const org = useOrganismStats()
 const cat = useDatasetCategoryStats()
 const ion = useDatasetIonSourceStats()
 const ana = useAnalyzerStats()
-const donutSections = [
-  { title: 'Organism', total: org.total, loading: org.loading, error: org.error, isEmpty: org.isEmpty, items: org.items, reload: org.reload },
-  { title: 'Organism Parts', total: cat.total, loading: cat.loading, error: cat.error, isEmpty: cat.isEmpty, items: cat.items, reload: cat.reload },
-  { title: 'Ion Source Types', total: ion.total, loading: ion.loading, error: ion.error, isEmpty: ion.isEmpty, items: ion.items, reload: ion.reload },
-  { title: 'Analyzer', total: ana.total, loading: ana.loading, error: ana.error, isEmpty: ana.isEmpty, items: ana.items, reload: ana.reload },
-]
+const donutSections = computed(() => [
+  { title: t('common.meta.organism'), total: org.total, loading: org.loading, error: org.error, isEmpty: org.isEmpty, items: org.items, reload: org.reload },
+  { title: t('home.stats.organismParts'), total: cat.total, loading: cat.loading, error: cat.error, isEmpty: cat.isEmpty, items: cat.items, reload: cat.reload },
+  { title: t('home.stats.ionSourceTypes'), total: ion.total, loading: ion.loading, error: ion.error, isEmpty: ion.isEmpty, items: ion.items, reload: ion.reload },
+  { title: t('common.meta.analyzer'), total: ana.total, loading: ana.loading, error: ana.error, isEmpty: ana.isEmpty, items: ana.items, reload: ana.reload },
+])
 
 // 平台总览
 const { loading: ovLoading, error: ovError, stats: ov, reload: reloadOv } = usePlatformOverview()
@@ -40,16 +43,13 @@ const { loading: ovLoading, error: ovError, stats: ov, reload: reloadOv } = useP
 // 全站访问量
 const { loading: visitsLoading, error: visitsError, stats: visitStats, reload: reloadVisits } = useVisitsStats()
 
-function fmt(n: number | undefined): string {
-  return (n ?? 0).toLocaleString()
-}
 
 // stat 卡片项（总用户 / 总数据集 / 总下载 / 网站访问量）
 const statItems = computed(() => [
-  { icon: 'heroicons:user-group', color: 'text-primary', title: 'Total Users', value: ov.value?.total_users },
-  { icon: 'heroicons:circle-stack', color: 'text-secondary', title: 'Total Datasets', value: ov.value?.total_files },
-  { icon: 'heroicons:arrow-down-tray', color: 'text-accent', title: 'Total Downloads', value: ov.value?.total_downloads },
-  { icon: 'heroicons:arrow-trending-up', color: 'text-info', title: 'Website Visits', value: visitStats.value?.total },
+  { icon: 'heroicons:user-group', color: 'text-primary', title: t('common.stat.totalUsers'), value: ov.value?.total_users },
+  { icon: 'heroicons:circle-stack', color: 'text-secondary', title: t('home.stats.totalDatasets'), value: ov.value?.total_files },
+  { icon: 'heroicons:arrow-down-tray', color: 'text-accent', title: t('home.stats.totalDownloads'), value: ov.value?.total_downloads },
+  { icon: 'heroicons:arrow-trending-up', color: 'text-info', title: t('home.stats.websiteVisits'), value: visitStats.value?.total },
 ])
 </script>
 
@@ -63,10 +63,10 @@ const statItems = computed(() => [
         :key="s.title"
         class="card border border-base-300 bg-base-100 shadow-sm min-h-0"
       >
-        <div class="card-body p-6 text-[clamp(1rem,12vw,4rem)] min-h-0 flex flex-col">
+        <div class="card-body p-6 kawaru-text-home-donut min-h-0 flex flex-col">
           <DonutStatSection
             :title="s.title"
-            :caption="`${fmt(s.total.value)} datasets total`"
+            :caption="$t('home.stats.datasetsTotal', { count: fmt(s.total.value) })"
             :loading="s.loading.value"
             :error="s.error.value"
             :is-empty="s.isEmpty.value"
@@ -84,22 +84,22 @@ const statItems = computed(() => [
         <div
           v-if="ovError"
           role="alert"
-          class="alert alert-error gap-2 p-3 text-sm"
+          class="alert alert-error gap-2 p-3 kawaru-text-87"
         >
           <Icon icon="heroicons:exclamation-triangle" class="h-5 w-5 shrink-0" />
           <span class="flex-1">{{ ovError }}</span>
-          <button class="btn btn-ghost btn-xs" @click="reloadOv">Retry</button>
+          <button class="btn btn-ghost btn-xs kawaru-text-62" @click="reloadOv">{{ $t('common.action.retry') }}</button>
         </div>
 
         <!-- Error（访问量接口独立失败） -->
         <div
           v-if="visitsError && !ovError"
           role="alert"
-          class="alert alert-warning gap-2 p-3 text-sm"
+          class="alert alert-warning gap-2 p-3 kawaru-text-87"
         >
           <Icon icon="heroicons:exclamation-triangle" class="h-5 w-5 shrink-0" />
           <span class="flex-1">{{ visitsError }}</span>
-          <button class="btn btn-ghost btn-xs" @click="reloadVisits">Retry</button>
+          <button class="btn btn-ghost btn-xs kawaru-text-62" @click="reloadVisits">{{ $t('common.action.retry') }}</button>
         </div>
 
         <div v-else class="stats stats-vertical w-full border border-base-300 sm:stats-horizontal">
@@ -107,11 +107,11 @@ const statItems = computed(() => [
             <div class="stat-figure" :class="s.color">
               <Icon :icon="s.icon" class="h-7 w-7" />
             </div>
-            <div class="stat-title">{{ s.title }}</div>
-            <div v-if="ovLoading || visitsLoading" class="stat-value">
+            <div class="stat-title kawaru-text-75">{{ s.title }}</div>
+            <div v-if="ovLoading || visitsLoading" class="stat-value kawaru-text-187">
               <span class="loading loading-spinner loading-sm align-middle" />
             </div>
-            <div v-else class="stat-value" :class="s.color">{{ fmt(s.value) }}</div>
+            <div v-else class="stat-value kawaru-text-187" :class="s.color">{{ fmt(s.value) }}</div>
           </div>
         </div>
       </div>

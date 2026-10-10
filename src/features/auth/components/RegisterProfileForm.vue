@@ -2,6 +2,7 @@
 import IconInput from '@/shared/components/IconInput.vue'
 import IconSelect from '@/shared/components/IconSelect.vue'
 import SelectWithOther from '@/shared/components/SelectWithOther.vue'
+import { profileOptionLabel, profileOptionMap } from '@/shared/constants/profileOptions'
 
 defineProps<{
   form: Record<string, any>
@@ -22,10 +23,10 @@ defineProps<{
     class="w-full lg:w-1/2 p-5 sm:p-8 md:p-10 pb-8 flex flex-col flex-1 min-h-0 bg-base-200/50 dark:bg-base-200/20"
   >
     <div class="min-h-[72px] mb-4">
-      <h3 class="text-[1.5em] font-bold flex items-center gap-2">
-        Researcher Profile
+      <h3 class="kawaru-text-150 font-bold flex items-center gap-2">
+        {{ $t('auth.register.profileTitle') }}
       </h3>
-      <p class="text-base-content/60 text-base mt-3">Complete your professional details</p>
+      <p class="text-base-content/60 kawaru-text-100 mt-3">{{ $t('auth.register.profileSubtitle') }}</p>
     </div>
 
     <div class="flex flex-col gap-5">
@@ -36,7 +37,7 @@ defineProps<{
           type="text"
           required
           validator
-          placeholder="Institution / University"
+          :placeholder="$t('auth.field.institution')"
           :pattern="patterns.institution"
           :error="errors.institution"
           @blur="validateField('institution')"
@@ -46,9 +47,9 @@ defineProps<{
       <div class="min-h-[56px]">
         <IconSelect
           v-model="form.position"
-          :options="positionOptions"
+          :options="profileOptionMap(positionOptions)"
           icon-type="position"
-          placeholder="Position"
+          :placeholder="$t('common.field.position')"
           :error="errors.position"
           @change="validateField('position')"
           @focus="clearError('position')"
@@ -59,7 +60,7 @@ defineProps<{
           v-model="form.region"
           :options="regionOptions"
           icon-type="region"
-          placeholder="Region"
+          :placeholder="$t('common.field.region')"
           :error="errors.region"
           @change="validateField('region')"
           @focus="clearError('region')"
@@ -69,12 +70,13 @@ defineProps<{
         <SelectWithOther
           v-model="form.research_field"
           :options="researchFieldOptions"
+          :label-of="profileOptionLabel"
           icon-type="research"
           required
           validator
-          placeholder="Research Field"
+          :placeholder="$t('common.field.researchField')"
           :error="errors.research_field"
-          other-placeholder="Specify your field"
+          :other-placeholder="$t('auth.field.researchFieldOther')"
           @change="validateField('research_field')"
           @focus="clearError('research_field')"
           @blur="validateField('research_field')"
@@ -86,7 +88,7 @@ defineProps<{
           icon-type="id-card"
           type="text"
           validator
-          placeholder="ORCID (Optional)"
+          :placeholder="$t('auth.field.orcid')"
           :pattern="patterns.orcid"
           :error="errors.orcid"
           @blur="validateField('orcid')"
@@ -99,7 +101,7 @@ defineProps<{
           icon-type="link"
           type="text"
           validator
-          placeholder="Homepage URL (Optional)"
+          :placeholder="$t('auth.field.homepage')"
           :pattern="patterns.url"
           :error="errors.homepage"
           @blur="validateField('homepage')"
@@ -111,11 +113,11 @@ defineProps<{
     <div class="mt-auto pt-6">
       <button
         type="submit"
-        class="btn btn-primary w-full btn-lg shadow-xl hover:scale-[1.01] transition-transform"
+        class="btn btn-primary w-full btn-lg shadow-xl hover:scale-[1.01] transition-transform kawaru-text-112"
         :disabled="loading.register"
       >
         <span v-if="loading.register" class="loading loading-spinner loading-md"></span>
-        <span v-else class="text-lg">Complete Registration</span>
+        <span v-else class="kawaru-text-112">{{ $t('auth.register.submit') }}</span>
       </button>
     </div>
   </div>

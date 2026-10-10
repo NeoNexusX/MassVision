@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+
 type ImzMLParam = {
   tagName: 'cvParam' | 'userParam'
   accession?: string
@@ -40,7 +42,7 @@ export async function parseImzMLMSSettings(file: File): Promise<ImzMLMSSettings>
     const structuralTags = ['<mzML', '<fileDescription', '<run', '<spectrumList']
     const hasStructure = structuralTags.some((tag) => text.includes(tag))
     if (!hasStructure) {
-      throw new Error('File does not appear to be a valid imzML')
+      throw new Error(t('upload.error.invalidImzml'))
     }
 
     const params = extractParamsFromImzML(text)

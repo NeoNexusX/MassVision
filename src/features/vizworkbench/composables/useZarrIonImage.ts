@@ -2,15 +2,17 @@
  * Ion image composable — loads zarr data on demand via OSS STS.
  *
  * Supports two data modes:
- *   - continuous (ion-major): average spectrum + ion image  (existing feature)
- *   - processed (pixel-major): TIC image + per-pixel spectrum (new feature)
+ *   - continuous: ion image + mean spectrum, plus per-pixel spectra read from
+ *     the spectra group (the spectrum panel switches via spectrumView)
+ *   - processed: TIC image + per-pixel spectrum
  *
- * selectedMzIndex is the single source of truth for continuous mode;
- * pixelSpectrum is the source of truth for processed mode.
+ * selectedMzIndex is the single source of truth for the ion image (continuous);
+ * pixelSpectrum is the source of truth for the per-pixel spectrum (both modes).
  * selectedMz is derived from selectedMzIndex + mzAxis (continuous only).
  *
- * ⚠️ 模块级单例：store / mzAxisRef / dataModeRef 等约 20 个状态挂在模块作用域，
- * 由可视化工作台（VizWorkbench）独占使用（useRegionComparison / useAnnotationMatch 等横向消费）。
+ * ⚠️ 模块级单例：store / mzAxisRef / dataModeRef 等约 20 个状态已抽到
+ * services/zarr/zarrSharedState（跨 feature 共享 API，assistant 只读消费），
+ * 由可视化工作台（VizWorkbench）独占写入（useRegionComparison / useAnnotationMatch 等横向消费）。
  * 路由是单实例（/viz 组件复用 + onUnmounted dispose），因此成立；
  * 但切勿同时挂载两个消费者（KeepAlive 多实例、第二页签组件），否则后 init 的
  * 实例会 dispose 前者仍在用的 store。如需多实例，须重构为 provide/inject 工厂。
@@ -20,124 +22,63 @@
 
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { getZarrAccess } from '@/services/zarr/api/zarrAccessApi'
-import { ZarrOssStore } from '@/services/zarr/zarrOssStore'
-import type { MetadataAttrs, DataMode } from '@/services/zarr/types/zarr'
+import { ZarrIncompatibleError, ZarrOssStore } from '@/services/zarr/zarrOssStore'
+import {
+  // 共享状态收在 services 层（跨 feature API）：这里引入内部使用 + 转发导出
+  store,
+  setZarrStore,
+  mzAxisRef,
+  ionDims,
+  dataModeRef,
+  rowAxisRef,
+  metadataAttrsRef,
+  meanChartData,
+  meanSpectrumRef,
+  spectrumLoading,
+  spectrumError,
+  nMz,
+  ticMatrix,
+  ticLoading,
+  ticError,
+  pixelSpectrum,
+  pixelSpectrumLoading,
+  pixelSpectrumError,
+  requestedPixelIndex,
+  spectrumView,
+  resetZarrSharedState,
+} from '@/services/zarr/zarrSharedState'
+import { buildSpectrumChartData } from '@/features/vizworkbench/utils/spectrumChartData'
 import { ZARR_STORE } from '@/shared/config/defaults'
 import { getConfig } from '@/shared/config'
+import { formatNumber } from '@/shared/utils/format'
+import { t } from '@/i18n'
 
-// ---- Module-level shared state ----
-
-let store: ZarrOssStore | null = null
-
-/** Shared m/z axis (Float64Array). Only populated for continuous mode. */
-const mzAxisRef = shallowRef<Float64Array | null>(null)
-
-/** Ion image dimensions { width, height } */
-const ionDims = shallowRef<{ width: number; height: number } | null>(null)
-
-/** Data mode: 'continuous' or 'processed' */
-export const dataModeRef = shallowRef<DataMode | null>(null)
-
-/** Row axis: 'pixel' or 'ion' */
-export const rowAxisRef = shallowRef<'pixel' | 'ion' | null>(null)
-
-/** Metadata from /metadata/.zattrs */
-export const metadataAttrsRef = shallowRef<MetadataAttrs | null>(null)
-
-/** Result polarity (e.g. 'positive'/'negative'). Populated from the zarr
- *  metadata attrs, with an API fallback applied by {@link ../useResultMeta}.
- *  Shared so consumers (the annotation panel) can read it directly like
- *  {@link mzAxisRef} instead of threading it through props. */
-export const polarityRef = ref('')
-
-// ---- Mean spectrum state (continuous mode) ----
-
-export const meanChartData = shallowRef<[number, number][]>([])
-/** Raw mean-spectrum intensities aligned with {@link mzAxisRef}. Unlike
- *  {@link meanChartData} (which drops zero/NaN points for charting), this is
- *  the unfiltered array - used for per-peak intensity lookup such as the
- *  annotation-CSV m/z matching (see useAnnotationMatch). */
-export const meanSpectrumRef = shallowRef<Float32Array | null>(null)
-export const spectrumLoading = ref(false)
-export const spectrumError = ref<string | null>(null)
-export const nMz = ref(0)
-
-// ---- TIC image state (processed mode) ----
-
-export const ticMatrix = shallowRef<Float32Array | null>(null)
-export const ticLoading = ref(false)
-export const ticError = ref<string | null>(null)
-
-// ---- Per-pixel spectrum state (processed mode) ----
-
-export const pixelSpectrum = shallowRef<{
-  mz: Float64Array
-  intensity: Float32Array
-  pixelIndex: number
-  x: number
-  y: number
-} | null>(null)
-
-export const pixelSpectrumLoading = ref(false)
-export const pixelSpectrumError = ref<string | null>(null)
-
-// ---- Shared context snapshot ----
-
-export interface SharedZarrContext {
-  store: ZarrOssStore | null
-  mzAxis: Float64Array | null
-  ionShape: { width: number; height: number } | null
-  dataMode: DataMode | null
-  rowAxis: 'pixel' | 'ion' | null
-  meanChartData: [number, number][]
-  spectrumLoading: boolean
-  spectrumError: string | null
-  nMz: number
-  ticMatrix: Float32Array | null
-  pixelSpectrum: typeof pixelSpectrum.value
-}
-
-export function getSharedZarrContext(): SharedZarrContext {
-  return {
-    store,
-    mzAxis: mzAxisRef.value,
-    ionShape: ionDims.value,
-    dataMode: dataModeRef.value,
-    rowAxis: rowAxisRef.value,
-    meanChartData: meanChartData.value,
-    spectrumLoading: spectrumLoading.value,
-    spectrumError: spectrumError.value,
-    nMz: nMz.value,
-    ticMatrix: ticMatrix.value,
-    pixelSpectrum: pixelSpectrum.value,
-  }
-}
-
-/**
- * Reset the module-level refs (no store disposal — callers handle the store).
- * Shared by disposeZarrState() and the composable's init() reset block.
- */
-function resetModuleState(): void {
-  mzAxisRef.value = null
-  ionDims.value = null
-  dataModeRef.value = null
-  rowAxisRef.value = null
-  metadataAttrsRef.value = null
-  polarityRef.value = ''
-
-  meanChartData.value = []
-  meanSpectrumRef.value = null
-  spectrumLoading.value = false
-  spectrumError.value = null
-
-  ticMatrix.value = null
-  ticLoading.value = false
-  ticError.value = null
-
-  pixelSpectrum.value = null
-  pixelSpectrumLoading.value = false
-  pixelSpectrumError.value = null
-}
+// 转发导出：feature 内既有导入路径不变（SpectrumSection / useAnnotationMatch /
+// useRegionComparison / useResultMeta / VizWorkbench 等）；跨 feature 消费者
+// （assistant）应直接 import '@/services/zarr/zarrSharedState'
+export {
+  mzAxisRef,
+  dataModeRef,
+  rowAxisRef,
+  metadataAttrsRef,
+  polarityRef,
+  meanChartData,
+  meanSpectrumRef,
+  spectrumLoading,
+  spectrumError,
+  nMz,
+  ticMatrix,
+  ticLoading,
+  ticError,
+  pixelSpectrum,
+  pixelSpectrumLoading,
+  pixelSpectrumError,
+  requestedPixelIndex,
+  spectrumView,
+  setSpectrumView,
+  getSharedZarrContext,
+} from '@/services/zarr/zarrSharedState'
+export type { SpectrumView, SharedZarrContext } from '@/services/zarr/zarrSharedState'
 
 /**
  * Release all module-level state. Call on VizWorkbench unmount so that large
@@ -148,17 +89,28 @@ function resetModuleState(): void {
 export function disposeZarrState(): void {
   initGeneration++ // 作废进行中的 init（若有），它会在下个检查点自行清理
   store?.dispose()
-  store = null
+  setZarrStore(null)
 
   ionImageRequestId++
+  pixelSpectrumRequestId++
   normalizationRequestId++
   normalizationCache.clear()
   normalizationPending.clear()
-  resetModuleState()
+  resetZarrSharedState()
   nMz.value = 0
 }
 
 // ---- Mean spectrum loading (continuous mode) ----
+
+/**
+ * Whether spectra are drawn as profile lines, which keep their zeros (see
+ * buildSpectrumChartData). Shared by the mean spectrum and continuous pixel
+ * spectra so both views filter the same way.
+ */
+export function isProfileSpectrum(): boolean {
+  const attrs = metadataAttrsRef.value
+  return !!attrs?.profile_spectrum && !attrs?.centroid_spectrum
+}
 
 /**
  * Load the mean spectrum from stats/mean_spectrum and derive non-zero chart data.
@@ -178,7 +130,7 @@ export async function loadMeanSpectrum(): Promise<void> {
     if (!store) return
     if (!meanData) {
       spectrumLoading.value = false
-      spectrumError.value = 'Mean spectrum not available'
+      spectrumError.value = t('vizworkbench.spectrum.meanUnavailable')
       return
     }
 
@@ -186,20 +138,7 @@ export async function loadMeanSpectrum(): Promise<void> {
     // Keep the raw intensity array for O(1) intensity lookup by m/z index
     // (annotation matching). meanChartData below is filtered for charting.
     meanSpectrumRef.value = meanData
-    // profile 模式下相邻点由折线连接，过滤掉零值会让 ECharts 在两个"幸存点"之间
-    // 画直线穿过整段空白区，凭空连出并不存在的信号，所以 profile 模式必须保留零值；
-    // centroid 模式每个峰是独立的 bar，过滤零值只是省去数万个空 bar，不影响视觉
-    const attrs = metadataAttrsRef.value
-    const isProfileMode = !!attrs?.profile_spectrum && !attrs?.centroid_spectrum
-    const data: [number, number][] = []
-    for (let i = 0; i < axis.length; i++) {
-      const v = meanData[i]!
-      if (!Number.isFinite(v)) continue
-      if (isProfileMode || v !== 0) {
-        data.push([axis[i]!, v])
-      }
-    }
-    meanChartData.value = data
+    meanChartData.value = buildSpectrumChartData(axis, meanData, isProfileSpectrum())
     spectrumLoading.value = false
   } catch (e) {
     console.error('[useZarrIonImage] loadMeanSpectrum failed:', e)
@@ -239,39 +178,55 @@ export async function loadTICImage(): Promise<void> {
   }
 }
 
-// ---- Per-pixel spectrum loading (processed mode) ----
+// ---- Per-pixel spectrum loading (both modes) ----
 
+/**
+ * Load one pixel's spectrum (continuous: spectra group; processed: main data
+ * group) and switch the spectrum panel to the pixel view.
+ *
+ * 加载期间保留上一条像素谱：谱图区只叠加更新遮罩、不卸载图表，缩放窗口得以保留。
+ * 连续点击时只采用最后一次点击的结果，先发出、后返回的旧请求直接丢弃。
+ */
 export async function loadPixelSpectrum(pixelIndex: number): Promise<void> {
-  if (!store) return
-  if (dataModeRef.value !== 'processed') return
+  const requestStore = store
+  if (!requestStore) return
+  if (
+    requestedPixelIndex.value === pixelIndex &&
+    pixelSpectrum.value?.pixelIndex === pixelIndex &&
+    !pixelSpectrumLoading.value &&
+    !pixelSpectrumError.value
+  ) {
+    spectrumView.value = 'pixel'
+    return
+  }
+  const requestId = ++pixelSpectrumRequestId
+  const isCurrent = () => requestId === pixelSpectrumRequestId && store === requestStore
 
+  requestedPixelIndex.value = pixelIndex
+  // 点击像素即切到像素谱；请求期间用户仍可切回平均谱，返回时不再强制切换
+  spectrumView.value = 'pixel'
   pixelSpectrumLoading.value = true
   pixelSpectrumError.value = null
-  pixelSpectrum.value = null
 
   try {
-    const spectrum = await store.getPixelSpectrum(pixelIndex)
-    if (!store) return
+    const spectrum = await requestStore.getPixelSpectrum(pixelIndex)
+    if (!isCurrent()) return
     if (!spectrum) {
-      pixelSpectrumLoading.value = false
-      pixelSpectrumError.value = 'Empty spectrum for this pixel'
+      pixelSpectrum.value = null
+      pixelSpectrumError.value = t('vizworkbench.spectrum.pixelEmpty')
       return
     }
-
-    // Convert to chart data: only non-zero finite values
-    const { mz, intensity, pixelIndex: idx, x, y } = spectrum
-    pixelSpectrum.value = { mz, intensity, pixelIndex: idx, x, y }
-    pixelSpectrumLoading.value = false
+    pixelSpectrum.value = spectrum
   } catch (e) {
+    if (!isCurrent()) return
     console.error('[useZarrIonImage] loadPixelSpectrum failed:', e)
-    pixelSpectrumLoading.value = false
+    // 旧谱已与当前选中的像素不对应：清空，交给错误态 + 重试
+    pixelSpectrum.value = null
     pixelSpectrumError.value = e instanceof Error ? e.message : String(e)
+  } finally {
+    if (isCurrent()) pixelSpectrumLoading.value = false
   }
 }
-
-// ---- Exports ----
-
-export { mzAxisRef }
 
 // ---- Helper: find m/z range indices (continuous mode) ----
 
@@ -325,6 +280,37 @@ async function loadIonSliceSum(indices: number[]): Promise<Float32Array> {
   return matrix
 }
 
+/**
+ * Load one ion image by m/z index WITHOUT touching the single-image state
+ * (`ionMatrix` / `selectedMzIndex`). Used by the multi-channel overlay, which
+ * keeps its own per-channel matrices.
+ *
+ * Throws on any failure (missing store, non-continuous data, invalid index,
+ * or a store swap while the read was in flight) — callers surface the message
+ * on the channel row.
+ */
+export async function loadIonMatrixByIndex(
+  idx: number,
+  tolerance: number,
+): Promise<Float32Array> {
+  if (dataModeRef.value !== 'continuous') {
+    throw new Error('Multi-ion overlay is only available for continuous data')
+  }
+  const requestStore = store
+  const axis = mzAxisRef.value
+  if (!requestStore || !axis) throw new Error('Zarr store is unavailable')
+  if (idx < 0 || idx >= axis.length) throw new Error('Invalid m/z index')
+  // 钳位容差到 [min, max]，与 loadForMzIndex 保持一致的语义
+  const tol = Math.min(
+    ZARR_STORE.maxMzTolerance,
+    Math.max(ZARR_STORE.minMzTolerance, tolerance),
+  )
+  const matrix = await loadIonSliceSum(findMzRangeIndices(idx, tol))
+  // 读取期间 store 被 dispose/替换（换 run 或离开页面）→ 结果作废
+  if (!store || store !== requestStore) throw new Error('Zarr session changed')
+  return matrix
+}
+
 // ---- Binary search in m/z axis ----
 
 export function findClosestMzIndex(target: number): number {
@@ -352,6 +338,7 @@ const normalizationPending = new Map<
 >()
 let normalizationRequestId = 0
 let ionImageRequestId = 0
+let pixelSpectrumRequestId = 0
 /** init 代次：disposeZarrState() / 每次 init() 递增，用于作废进行中的旧 init。 */
 let initGeneration = 0
 
@@ -373,7 +360,7 @@ export function useZarrIonImage() {
   const ionCols = computed(() => ionDims.value?.width ?? 0)
   const ionRows = computed(() => ionDims.value?.height ?? 0)
   const totalPeaks = computed(() =>
-    mzAxisRef.value ? mzAxisRef.value.length.toLocaleString() : '--',
+    mzAxisRef.value ? formatNumber(mzAxisRef.value.length) : '--',
   )
 
   const isContinuous = computed(() => dataModeRef.value === 'continuous')
@@ -524,15 +511,16 @@ export function useZarrIonImage() {
     // orphaned store (it must NOT touch the new session's store).
     const gen = ++initGeneration
     store?.dispose()
-    store = null
+    setZarrStore(null)
     ionImageRequestId++
+    pixelSpectrumRequestId++
     normalizationRequestId++
     normalizationCache.clear()
     normalizationPending.clear()
     normalizationFactors.value = null
     normalizationError.value = null
     ionMatrix.value = null
-    resetModuleState()
+    resetZarrSharedState()
 
     /** True while this init is still the latest lifecycle (no dispose/re-init since). */
     const isCurrent = () => gen === initGeneration
@@ -559,7 +547,7 @@ export function useZarrIonImage() {
         s.dispose()
         return
       }
-      store = s
+      setZarrStore(s)
       await s.init()
       // 如果 await 期间发生了 disposeZarrState()（用户离开页面）或重新 init()，放弃本次加载
       if (abortIfStale(s)) return
@@ -598,7 +586,13 @@ export function useZarrIonImage() {
     } catch (e) {
       if (!isCurrent()) return // 本次会话已被 dispose/替换，错误不必再呈现
       console.error('[useZarrIonImage] init failed:', e)
-      error.value = e instanceof Error ? e.message : String(e)
+      // v1.0 等不再支持的布局：给出本地化的「格式不兼容」提示，而不是底层读取错误
+      error.value =
+        e instanceof ZarrIncompatibleError
+          ? t('vizworkbench.ionImage.incompatibleFormat')
+          : e instanceof Error
+            ? e.message
+            : String(e)
     } finally {
       if (isCurrent()) loading.value = false
     }

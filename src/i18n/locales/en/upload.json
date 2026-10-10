@@ -1,0 +1,107 @@
+{
+  "upload": {
+    "modal": {
+      "title": "Upload New Dataset (imzML + ibd)",
+      "confirmUpload": "Confirm & Upload"
+    },
+    "publicConfirm": {
+      "title": "Upload as Public Dataset",
+      "confirm": "Upload Publicly",
+      "body": "This dataset will be uploaded as {publicWord} and visible to all users. Are you sure you want to continue?",
+      "publicWord": "public"
+    },
+    "picker": {
+      "selectPair": "Select an .imzML and .ibd file pair",
+      "reselectPair": "Re-select the .imzML and .ibd pair to resume",
+      "chooseFiles": "Choose Files",
+      "chooseSamePair": "Choose the same pair to resume",
+      "noFileChosen": "No file chosen",
+      "selected": "Selected: {name} ({size})",
+      "ready": "Ready: {name} ({size})",
+      "noPair": "No matched pair selected",
+      "errBoth": "Please select BOTH an .ibd and .imzml file simultaneously.",
+      "errMismatch": "File name mismatch: \"{imzml}\" and \"{ibd}\" do not share the same base name."
+    },
+    "resume": {
+      "title": "Incomplete upload detected",
+      "body": "{name} was only partially uploaded. Re-select the same file pair below — the archive is rebuilt locally and the parts already uploaded are not sent again.",
+      "requiredFiles": "Required files",
+      "resume": "Resume",
+      "hintSelect": "Select the same .imzML and .ibd pair below to continue this upload.",
+      "hintMismatch": "The selected files do not match this pending upload."
+    },
+    "progress": {
+      "eta": "ETA: {eta}",
+      "calculating": "Calculating...",
+      "compress": "Compress {speed}",
+      "upload": "Upload {speed}",
+      "uploadBound": "upload-bound",
+      "compressBound": "compression-bound",
+      "milestone": "✓ imzML transferred — continuing with .ibd",
+      "compressedAt": "compressed at {speed}",
+      "uploadedAt": "uploaded at {speed}",
+      "separator": ", ",
+      "retry": "Part {part} failed — retrying {attempt}/{max} in {seconds}s",
+      "aborting": "Aborting…",
+      "abort": "Abort Upload",
+      "stage": "Stage: {stage}",
+      "initializing": "Initializing Pipeline...",
+      "resuming": "Resuming upload...",
+      "preparing": "Preparing upload...",
+      "checkingServer": "Checking server for existing file...",
+      "reusedOnServer": "File already exists on server, reused.",
+      "fetchingCredentials": "Fetching upload credentials...",
+      "compressing": "Compressing and uploading... ({done}/{total} parts)",
+      "finalizing": "Finalizing upload...",
+      "complete": "Upload complete."
+    },
+    "form": {
+      "makePublic": "Make dataset public (visible to others)",
+      "acquisitionInfo": "Acquisition Information",
+      "readingMetadata": "Reading metadata from imzML...",
+      "pixelSizeX": "Pixel Size X (μm)",
+      "pixelSizeY": "Pixel Size Y (μm)",
+      "detectorResolvingPower": "Detector resolving power",
+      "sampleMetadata": "Sample Metadata",
+      "sampleGrowthConditions": "Sample Growth Conditions",
+      "maldiMatrixApplication": "MALDI Matrix Application",
+      "pixelSizeError": "Pixel size must be an integer between 1 and 200",
+      "modeChangeTitle": "Change {field}?",
+      "modeChangeMessage": "The detected {field} is \"{detected}\". Are you sure you want to change it to \"{value}\"?",
+      "modeChangeConfirm": "Change",
+      "spectrumModeLower": "spectrum mode",
+      "storageModeLower": "storage mode"
+    },
+    "solvent": {
+      "percentage": "Percentage (%)",
+      "add": "Add solvent",
+      "percentageError": "Percentage must be a number between 1 and 100",
+      "invalidPercentage": "Please enter a valid percentage (1-100)",
+      "selectSolvent": "Please select a solvent"
+    },
+    "validation": {
+      "required": "{field} is required.",
+      "specifyCustom": "Please specify custom value for {field}.",
+      "pixelRange": "{field} must be an integer between 1 and 200."
+    },
+    "toast": {
+      "parseFailed": "Failed to parse imzML metadata",
+      "reused": "File already exists on server, reused without re-upload.",
+      "completed": "Upload completed",
+      "aborted": "Upload safely aborted",
+      "abortedDetail": "Upload aborted and the uploaded parts were discarded. A part that was already in flight cannot be cancelled by the browser and may keep uploading in the background for a minute or two.",
+      "resumeFailed": "Failed to resume upload",
+      "uploadFailed": "Upload failed",
+      "ibdTooSmall": "IBD file must be at least {mb} MB for public datasets."
+    },
+    "error": {
+      "tooLarge": "Dataset is too large: {size} (imzML + ibd). The maximum per upload is {max}.",
+      "sessionExpired": "Upload session expired, please start a new upload",
+      "noSession": "No pending upload session to resume",
+      "mismatchedSource": "The selected files do not match the pending upload. Pick the same .imzML and .ibd pair, or discard the pending upload.",
+      "notReproducible": "The archive could not be reproduced byte-for-byte (the browser or its compression implementation likely changed), so the partial upload was discarded. Please upload again.",
+      "invalidImzml": "File does not appear to be a valid imzML",
+      "partFailed": "Part {part} failed after {attempts} attempts: {detail}"
+    }
+  }
+}

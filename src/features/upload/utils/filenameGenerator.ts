@@ -1,7 +1,7 @@
 /**
  * Generate dataset filename from metadata + hash.
- * Format: {organism}_{organismPart}_{ionSource}_{pixelSizeX}_{polarity}_{hash6}
- * Example: Human_Brain_MALDI_20_positive_0e75ee
+ * Format: {hash6}_{organism}_{organismPart}_{ionSource}_{pixelSizeX}_{polarity}
+ * Example: 0e75ee_Human_Brain_MALDI_20_positive
  *
  * Organism is abbreviated from the config value format "CommonName (ScientificName)",
  * taking only the common name part and removing spaces/punctuation.
@@ -23,5 +23,5 @@ export function generateDatasetFilename(metadata: Record<string, any>, fileHash:
   const pixelX = metadata.pixel_size_horizontal ?? metadata.pixel_size_vertical ?? '0'
   const polarity = (metadata.polarity || 'Unknown').replace(/[-\s]+/g, '_')
   const hash6 = fileHash.slice(0, 6)
-  return `${organism}_${part}_${source}_${pixelX}_${polarity}_${hash6}`
+  return `${hash6}_${organism}_${part}_${source}_${pixelX}_${polarity}`
 }

@@ -2,8 +2,14 @@ import { useRouter } from 'vue-router'
 import { useDatasetList } from '@/features/datasets/composables/useDatasetList'
 import { useDatasetListRouteState } from '@/features/datasets/composables/useDatasetListRouteState'
 import { useAuthStore } from '@/shared/auth/authStore'
+import type { FileListSort } from '@/features/datasets/api/datasetApi'
 
-type Fetcher = (filters: Record<string, any>, page: number, size: number) => Promise<any>
+type Fetcher = (
+  filters: Record<string, any>,
+  page: number,
+  size: number,
+  sort?: FileListSort,
+) => Promise<any>
 
 /**
  * MyDatasets / PublicDatasets 两个列表页共用的装配逻辑：
@@ -42,7 +48,7 @@ export function useDatasetListPage(
     initialDesc: true,
   })
 
-  const { handleSearch, handleStatusFilter, handleApplyFilters, goToPage, changeSize } =
+  const { handleSearch, handleApplyFilters, goToPage, changeSize } =
     useDatasetListRouteState({
       page,
       size,
@@ -58,8 +64,16 @@ export function useDatasetListPage(
   /** 上传成功后刷新当前页；弹窗关闭、配额刷新等由页面各自处理 */
   const refreshCurrentPage = () => fetchFiles({ page: page.value, size: size.value })
 
-  const viewOverview = (fileId: string) => {
-    router.push({ name: 'DatasetOverview', state: { fileId, source: opts.source } })
+  /** 新标签页打开 /overview/{public_id}：URL 带参，刷新/收藏/登录回跳都不丢。
+   *  来源列表（my/public）走 query —— history.state 出不了本标签，Back 按钮的
+   *  去向由 query 恢复；noopener 断开 window.opener，标准新页签安全默认。 */
+  const viewOverview = (publicId: string) => {
+    const href = router.resolve({
+      name: 'DatasetOverview',
+      params: { publicId },
+      query: { source: opts.source },
+    }).href
+    window.open(href, '_blank', 'noopener')
   }
 
   return {
@@ -73,7 +87,6 @@ export function useDatasetListPage(
     fetchFiles,
     handleSort,
     handleSearch,
-    handleStatusFilter,
     handleApplyFilters,
     goToPage,
     changeSize,

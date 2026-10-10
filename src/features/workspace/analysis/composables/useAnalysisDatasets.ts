@@ -64,7 +64,6 @@ export function useAnalysisDatasets() {
   // Watchers
 
   // 防抖服务器端搜索。过滤键与数据集列表页一致用 filename（不是 name）。
-  // status=completed 已在 defaultFilters 里，这里只追加/更新 filename。
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
   const runSearch = (query: string) => {
     const filters = { filename: query.trim() }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onUnmounted, nextTick } from 'vue'
+import { computed, ref, watch, onUnmounted, nextTick, shallowRef } from 'vue'
 import VizInfoPanel from '@/features/vizworkbench/components/visuals/VizInfoPanel.vue'
 import ResultVisualizationLayout from '@/features/vizworkbench/components/ResultVisualizationLayout.vue'
 import ResultHeader from '@/features/vizworkbench/components/visuals/ResultHeader.vue'
@@ -19,16 +19,35 @@ import {
   mzAxisRef,
   getSharedZarrContext,
   disposeZarrState,
+  loadIonMatrixByIndex,
 } from '@/features/vizworkbench/composables/useZarrIonImage'
 import { useDisplayRange } from '@/features/vizworkbench/composables/useDisplayRange'
 import { useOverlayData } from '@/features/vizworkbench/composables/useOverlayData'
 import { useResultROI } from '@/features/vizworkbench/composables/useResultROI'
+import { useIonChannels } from '@/features/vizworkbench/composables/useIonChannels'
+import { MAX_ION_CHANNELS } from '@/features/vizworkbench/utils/ionChannelBlend'
 import { useResultMeta } from '@/features/vizworkbench/composables/useResultMeta'
 import { useRegionComparison } from '@/features/vizworkbench/composables/useRegionComparison'
 import { ZARR_STORE } from '@/shared/config/defaults'
 import { rgbCss } from '@/features/vizworkbench/utils/regionPalette'
 import { findClosestIndex } from '@/features/vizworkbench/utils/csvAnnotation'
+import {
+  createMask,
+  exportMask,
+  importMask,
+  labelsToUnionMask,
+  orMask,
+  summarizeImportedMask,
+  type ImportedMaskSummary,
+  type MaskExportPayload,
+} from '@/features/vizworkbench/utils/maskExport'
+import {
+  registerContextProviders,
+  unregisterContextProviders,
+} from '@/features/assistant/providers/analysisContext'
+import { STORAGE_KEYS } from '@/shared/config/storageKeys'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 import type { DataMode } from '@/services/zarr/types/zarr'
 
 interface VizWorkbenchState {
@@ -36,7 +55,7 @@ interface VizWorkbenchState {
   processName?: string
   datasetName?: string
   filename?: string
-  fileId?: number
+  filePublicId?: string
   methods?: string[]
   status?: string
 }
@@ -52,6 +71,7 @@ const {
   analyzer,
   ionSource,
   pixelSize,
+  pixelSizeUm,
   polarity,
   spectrumMode,
   storageMode,
@@ -87,7 +107,9 @@ const {
   normalizationLoading,
   normalizationError,
   hasTic,
+  ready: zarrReady,
   onSpectrumClickByIndex,
+  isContinuous,
   isProcessed,
 } = zarr
 
@@ -129,14 +151,50 @@ watch(hasTic, (v) => {
 // init/dispose 的并发守卫（代次检查）在 useZarrIonImage 内部完成：
 // init() 期间发生 disposeZarrState() 或重新 init() 时，旧的 init 会自行
 // dispose 孤儿 store 并放弃写入模块状态。
-watch(runId, (id) => {
-  zarr.init(id)
-}, { immediate: true })
+
+// AI 助手桥：数据集切换时清空助手对话。不能在此静态 import useAssistant——
+// 那会把整个 agent 栈（双适配器、工具模块、skills glob）拉进本路由 chunk，
+// 违反 plugins/index.ts 记录的懒加载契约（助手首次打开才经动态 import 加载，
+// 独立 chunk）。改为写一个待清空标志，由 useAssistant 消费（模块初始化、
+// useAssistant() 调用、每次 send() 前——覆盖面板常开跨数据集导航的场景）。
+// 桥接挂在 watch(runId) 上而非挂载快照：runId 可在不重挂组件的情况下变化
+// （同路由换参），只看快照会漏判切换；历史里的 tool 结果（旧样本的离子图
+// 统计、注释等）与新样本的 Dataset Context 会对不上，残留会误导模型。
+function syncAssistantDatasetBridge(id: string): void {
+  if (!id) return
+  let prevRun: string | null = null
+  try {
+    prevRun = localStorage.getItem(STORAGE_KEYS.assistantDatasetRun)
+    if (prevRun !== id) localStorage.setItem(STORAGE_KEYS.assistantDatasetRun, id)
+    if (prevRun != null && prevRun !== id) {
+      localStorage.setItem(STORAGE_KEYS.assistantPendingClear, '1')
+    }
+  } catch {
+    // localStorage 不可用（隐私模式等）时静默跳过
+  }
+}
+
+watch(
+  runId,
+  (id) => {
+    zarr.init(id)
+    syncAssistantDatasetBridge(id)
+  },
+  { immediate: true },
+)
+
+watch(runId, () => {
+  importedMask.value = null
+  importedMaskSummary.value = null
+  importedMaskActive.value = true
+})
 
 // 离开页面时释放模块级状态，避免大数组（mzAxis、meanChartData、ticMatrix 等）
 // 和 ZarrOssStore 缓存在 SPA 导航后仍驻留内存
 onUnmounted(() => {
+  unregisterContextProviders()
   cmpReset()
+  resetChannels()
   disposeZarrState()
 })
 
@@ -167,9 +225,15 @@ const {
   roiOverlayRef,
   roiTool,
   confirmedROIs,
+  selectedRoiIds,
+  toggleRoiSelection,
+  selectAllRois,
+  clearRoiSelection,
   draftReady,
   viewingROI,
   displayMatrix,
+  roiUnionMask,
+  roiHighlightOverlay,
   roiSelectTool,
   roiConfirm,
   roiCancel,
@@ -178,6 +242,101 @@ const {
   onDraftUpdated,
   onDraftCleared,
 } = useResultROI(displaySourceMatrix, ionCols, ionRows)
+
+// A file-imported mask is kept separate from drawn ROIs. It is applied as an
+// additional filter, so importing never mutates the user's ROI/KMeans state.
+const importedMask = shallowRef<Uint8Array | null>(null)
+// ROI 模块下展示的摘要（name/format/统计）；导出面板的「已导入」标签也取 name
+const importedMaskSummary = ref<ImportedMaskSummary | null>(null)
+// 导入掩膜过滤是否生效：false = 暂停过滤显示原图（导入保留，可随时重新应用）
+const importedMaskActive = ref(true)
+
+const visualMatrix = computed(() => {
+  const matrix = displayMatrix.value
+  const mask = importedMaskActive.value ? importedMask.value : null
+  const w = ionCols.value
+  const h = ionRows.value
+  if (!matrix || !mask || !w || !h || mask.length !== w * h) return matrix
+  const filtered = new Float32Array(matrix.length)
+  const n = Math.min(matrix.length, mask.length)
+  for (let i = 0; i < n; i++) if (mask[i]) filtered[i] = matrix[i] ?? 0
+  return filtered
+})
+
+/** Intersection of the active ROI-only filter and imported mask. */
+const effectiveRoiMask = computed<Uint8Array | null>(() => {
+  const imported = importedMaskActive.value ? importedMask.value : null
+  const roi = roiUnionMask.value
+  if (!imported) return roi
+  if (!roi) return imported
+  const n = Math.min(imported.length, roi.length)
+  const result = new Uint8Array(n)
+  for (let i = 0; i < n; i++) result[i] = imported[i]! && roi[i]! ? 1 : 0
+  return result
+})
+
+// ---- Multi-ion overlay ----
+
+const {
+  enabled: channelsEnabled,
+  channels: ionChannels,
+  overlayActive: channelsMode,
+  channelsLoading,
+  canAdd: canAddChannel,
+  hoverChannels,
+  addCurrentMz: addIonChannel,
+  removeChannel,
+  toggleChannelVisible,
+  updateChannelColor,
+  updateChannelOpacity,
+  retryChannel,
+  clearChannels,
+  reset: resetChannels,
+} = useIonChannels({
+  currentMzIndex: selectedMzIndex,
+  currentMz: selectedMz,
+  tolerance: mzTolerance,
+  isContinuous,
+  ready: zarrReady,
+  runId,
+  loadMatrix: loadIonMatrixByIndex,
+})
+
+const batchAddMode = ref(false)
+
+function toggleBatchAdd() {
+  if (!channelsEnabled.value || !canAddChannel.value) {
+    batchAddMode.value = false
+    return
+  }
+  batchAddMode.value = !batchAddMode.value
+}
+
+function onChannelsEnabledChange(value: boolean) {
+  channelsEnabled.value = value
+  if (!value) batchAddMode.value = false
+}
+
+watch(canAddChannel, (canAdd) => {
+  if (!canAdd) batchAddMode.value = false
+})
+watch(channelsEnabled, (enabled) => {
+  if (!enabled) batchAddMode.value = false
+})
+
+const { showToast } = useToast()
+
+function onAddCurrentChannel() {
+  const res = addIonChannel()
+  if (res.ok) return
+  const messages: Record<typeof res.reason, string> = {
+    'not-continuous': t('vizworkbench.page.channelNotContinuous'),
+    'not-ready': t('vizworkbench.page.channelNotReady'),
+    full: t('vizworkbench.page.channelFull', { max: MAX_ION_CHANNELS }),
+    duplicate: t('vizworkbench.page.channelDuplicate'),
+  }
+  showToast(messages[res.reason], 'warning')
+}
 
 // ---- Overlay ----
 
@@ -199,7 +358,6 @@ const {
   kmeansComputing,
   selectedKmeansIds,
   getKmeansLabels,
-  getKmeansDims,
   setComparisonOverlay,
   exportUmapPng,
   exportKmeansPng,
@@ -211,11 +369,7 @@ const {
   toggleKmeansCluster,
   selectAllKmeansClusters,
   clearKmeansClusters,
-} = useOverlayData(
-  runId,
-  ionRows,
-  ionCols,
-)
+} = useOverlayData(runId, ionRows, ionCols)
 
 // ---- Region comparison ----
 
@@ -231,8 +385,6 @@ const {
   filterStats: cmpFilterStats,
   availableRegions: cmpAvailableRegions,
   canCompare: cmpCanCompare,
-  selectedRegionsA: cmpSelectedRegionsA,
-  selectedRegionsB: cmpSelectedRegionsB,
   colorA: cmpColorA,
   colorB: cmpColorB,
   buildThumbnailRegions: cmpBuildThumbnailRegions,
@@ -264,6 +416,15 @@ function handleRunKmeans(k: number) {
   return runKmeans(k)
 }
 
+function handleToggleKmeansCluster(id: number) {
+  toggleKmeansCluster(id)
+  // The export panel lets the user pick clusters before the KMeans overlay is
+  // shown; a click there should also surface the selection on the ion image.
+  // (The overlay's own cluster picker only renders while KMeans is visible, so
+  // this is a no-op when the toggle came from there.)
+  if (!kmeansVisible.value) toggleOverlay('kmeans')
+}
+
 function handleRoiClearAll() {
   if (cmpInvolvesRoi()) cmpReset()
   roiClearAll()
@@ -276,9 +437,111 @@ function handleRoiDelete(id: string) {
   roiDelete(id)
 }
 
-// ---- Reference ROI import (local mode) ----
+// ---- AI 助手上下文注册（selectedIon + kmeans） ----
+// 把实例级数据以惰性 getter 形式注册给 assistant 的分析上下文采集器；
+// 页面卸载时成对注销（采集器对缺失 provider 优雅降级）。
+registerContextProviders({
+  selectedIon: () => {
+    const matrix = ionMatrix.value
+    if (!matrix || selectedMz.value == null) return null
+    return {
+      mz: selectedMz.value,
+      tolerance: mzTolerance.value,
+      matrix,
+      width: ionCols.value,
+      height: ionRows.value,
+    }
+  },
+  kmeans: () => {
+    if (kmeansClusters.value.length === 0 || kmeansK.value == null) return null
+    return {
+      k: kmeansK.value,
+      clusterSizes: kmeansClusters.value.map((c) => c.count),
+      selectedIds: [...(selectedKmeansIds.value ?? kmeansClusters.value.map((c) => c.id))],
+    }
+  },
+  umap: () => ({
+    ready: clusteringReady.value,
+    visible: umapVisible.value,
+    computing: clusteringComputing.value,
+    error: overlayError.value,
+    grid: { width: ionCols.value, height: ionRows.value },
+  }),
+})
 
-const { showToast } = useToast()
+async function handleExportMasks(payload: MaskExportPayload) {
+  const width = ionCols.value
+  const height = ionRows.value
+  if (!width || !height) {
+    showToast(t('vizworkbench.page.ionImageNotLoaded'), 'error')
+    return
+  }
+
+  // Merge every selected region (ROIs + KMeans clusters) into one binary mask.
+  const mask = createMask(width, height)
+  let any = false
+  for (const id of payload.roiIds) {
+    const roi = confirmedROIs.value.find((r) => r.id === id)
+    if (roi) {
+      orMask(mask, roi.mask)
+      any = true
+    }
+  }
+  const labels = getKmeansLabels()
+  if (payload.clusterIds.length && labels && labels.length >= width * height) {
+    orMask(mask, labelsToUnionMask(labels, width, height, payload.clusterIds))
+    any = true
+  }
+
+  if (!any) {
+    showToast(t('vizworkbench.page.nothingToExport'), 'warning')
+    return
+  }
+
+  try {
+    await exportMask(mask, payload.format, {
+      datasetName: datasetName.value,
+      pixelSizeUm: pixelSizeUm.value,
+    })
+    showToast(t('common.feedback.exported'), 'success')
+  } catch (err) {
+    console.error('[ROI] mask export failed', err)
+    showToast(t('common.feedback.exportFailed'), 'error')
+  }
+}
+
+async function handleImportMask(file: File) {
+  const width = ionCols.value
+  const height = ionRows.value
+  if (!width || !height) {
+    showToast(t('vizworkbench.page.ionImageNotLoaded'), 'error')
+    return
+  }
+  try {
+    const result = await importMask(file, {
+      expectedShape: [height, width],
+      expectedDatasetName: datasetName.value,
+    })
+    importedMask.value = result.mask
+    // 统计以导入时的矩阵定格（与手绘 ROI 同口径），不随 m/z 切换重算
+    importedMaskSummary.value = summarizeImportedMask(result, file.name, displaySourceMatrix.value)
+    // 新导入立即生效（覆盖此前可能暂停的旧掩膜状态）
+    importedMaskActive.value = true
+    showToast(t('vizworkbench.page.maskImported'), 'success')
+  } catch (err) {
+    console.error('[Mask] import failed', err)
+    const message = err instanceof Error ? err.message : String(err)
+    showToast(t('vizworkbench.page.maskImportFailed', { error: message }), 'error')
+  }
+}
+
+function handleClearImportedMask() {
+  importedMask.value = null
+  importedMaskSummary.value = null
+  importedMaskActive.value = true
+}
+
+// ---- Reference ROI import (local mode) ----
 
 const compareSectionRef = ref<HTMLElement | null>(null)
 // compare 面板与结果表共享展开状态。
@@ -318,20 +581,25 @@ const selectedPixelCoord = computed(() => {
 // ---- 事件处理 ----
 
 /** 切换 m/z：直接加载新离子的 slice，保持当前强度标度。 */
-async function handleSelectMzIndex(idx: number) {
-  await onSpectrumClickByIndex(idx)
+async function handleSelectMzIndex(idx: number, addToBatch = true) {
+  // `onSpectrumClickByIndex` updates selectedMzIndex synchronously before its
+  // image request yields. Starting the request first lets batch mode add the
+  // exact clicked index without waiting for a potentially slow image load.
+  const selection = onSpectrumClickByIndex(idx)
+  if (addToBatch && batchAddMode.value) addIonChannel()
+  await selection
 }
 
 /** m/z 搜索：在质量轴上二分查找最近的峰，落在容差内则切换离子，否则提示。 */
 async function onSearchMz(raw: string) {
   const target = Number(raw.trim())
   if (!Number.isFinite(target) || target <= 0) {
-    showToast('Please enter a valid m/z value.', 'error')
+    showToast(t('vizworkbench.page.invalidMz'), 'error')
     return
   }
   const axis = mzAxisRef.value
   if (!axis || !axis.length) {
-    showToast('m/z axis is not loaded yet.', 'error')
+    showToast(t('vizworkbench.page.mzAxisNotLoaded'), 'error')
     return
   }
   const idx = findClosestIndex(axis, target)
@@ -340,12 +608,17 @@ async function onSearchMz(raw: string) {
   if (delta > mzTolerance.value) {
     const fmtDelta = delta < 0.001 ? delta.toExponential(2) : delta.toFixed(4)
     showToast(
-      `No peak within ±${mzTolerance.value} of ${target}: nearest is ${nearest.toFixed(4)} (Δ ${fmtDelta}). Widen the tolerance or try another value.`,
+      t('vizworkbench.page.noPeakInTolerance', {
+        tolerance: mzTolerance.value,
+        target,
+        nearest: nearest.toFixed(4),
+        delta: fmtDelta,
+      }),
       'error',
     )
     return
   }
-  await handleSelectMzIndex(idx)
+  await handleSelectMzIndex(idx, false)
 }
 
 /** 重置所有控件到默认值 */
@@ -381,18 +654,19 @@ const onDisplayMaxChange = (value: number) => {
   displayMax.value = value
 }
 
-// ---- processed 模式：TIC 图点击 → 加载像素谱 ----
+// ---- 图像点击 → 加载像素谱（continuous 读 spectra 组，processed 读主数据组） ----
 
 async function onSelectPixel(col: number, row: number) {
-  if (!isProcessed.value) return
   const ctx = getSharedZarrContext()
   if (!ctx.store) return
 
-  // 在像素坐标中查找最近的像素
+  // 在像素坐标中查找最近的像素；点在未采集数据的背景上时提示，谱图保持不变
   const pixelIdx = await ctx.store.findPixelByPosition(col, row)
-  if (pixelIdx >= 0) {
-    await loadPixelSpectrum(pixelIdx)
+  if (pixelIdx < 0) {
+    showToast(t('vizworkbench.page.noPixelAtPosition'), 'warning')
+    return
   }
+  await loadPixelSpectrum(pixelIdx)
 }
 </script>
 
@@ -412,7 +686,7 @@ async function onSelectPixel(col: number, row: number) {
       <IonImageSection
         :is-stale="isStale"
         :ion-matrix="displaySourceMatrix"
-        :display-matrix="displayMatrix"
+        :display-matrix="visualMatrix"
         :selected-mz="selectedMz"
         :mz-tolerance="mzTolerance"
         :colormap="colormap"
@@ -435,6 +709,10 @@ async function onSelectPixel(col: number, row: number) {
         :normalization-loading="normalizationLoading"
         :normalization-error="normalizationError"
         :has-tic="hasTic"
+        :channels-mode="channelsMode"
+        :channels="hoverChannels"
+        :roi-mask="effectiveRoiMask"
+        :roi-highlight-data="roiHighlightOverlay"
         @update:mz-tolerance="mzTolerance = $event"
         @update:colormap="colormap = $event"
         @update:intensity-scale="onIntensityScaleChange"
@@ -527,6 +805,7 @@ async function onSelectPixel(col: number, row: number) {
         :global-max="globalMax"
         :display-min="displayMin"
         :display-max="displayMax"
+        :channels-mode="channelsMode"
         :histogram="intensityHistogram"
         :info="displayInfo"
         :methods="methods"
@@ -556,12 +835,23 @@ async function onSelectPixel(col: number, row: number) {
             :draft-ready="draftReady"
             :viewing-roi="viewingROI"
             :confirmed-rois="confirmedROIs as any"
+            :selected-roi-ids="selectedRoiIds"
             :gamma="gamma"
+            :channels-mode="channelsMode"
+            :channels-enabled="channelsEnabled"
+            :ion-channels="ionChannels"
+            :can-add-channel="canAddChannel"
+            :channels-loading="channelsLoading"
+            :selected-mz="selectedMz"
+            :max-ion-channels="MAX_ION_CHANNELS"
+            :batch-add-mode="batchAddMode"
+            :imported-mask="importedMaskSummary"
+            :imported-mask-active="importedMaskActive"
             @toggle-overlay="toggleOverlay"
             @retry-clustering="retryClustering"
             @enable-clustering="createClusteringTask"
             @refresh-clustering="refreshClusteringStatus"
-            @toggle-kmeans-cluster="toggleKmeansCluster"
+            @toggle-kmeans-cluster="handleToggleKmeansCluster"
             @kmeans-select-all="selectAllKmeansClusters"
             @kmeans-clear-all="clearKmeansClusters"
             @run-kmeans="handleRunKmeans"
@@ -572,8 +862,24 @@ async function onSelectPixel(col: number, row: number) {
             @roi-confirm="roiConfirm"
             @roi-cancel="roiCancel"
             @roi-delete="handleRoiDelete"
+            @toggle-roi-selection="toggleRoiSelection"
+            @roi-select-all="selectAllRois"
+            @roi-deselect-all="clearRoiSelection"
+            @export-masks="handleExportMasks"
+            @import-mask="handleImportMask"
+            @clear-imported-mask="handleClearImportedMask"
+            @toggle-imported-mask="importedMaskActive = !importedMaskActive"
             @roi-clear-all="handleRoiClearAll"
             @update:gamma="gamma = $event"
+            @update:channels-enabled="onChannelsEnabledChange"
+            @add-current-channel="onAddCurrentChannel"
+            @toggle-batch-add="toggleBatchAdd"
+            @update-channel-color="updateChannelColor"
+            @update-channel-opacity="updateChannelOpacity"
+            @remove-channel="removeChannel"
+            @toggle-channel-visible="toggleChannelVisible"
+            @retry-channel="retryChannel"
+            @clear-channels="clearChannels"
           />
         </template>
       </VizInfoPanel>

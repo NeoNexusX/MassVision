@@ -10,6 +10,7 @@
       :is-admin="authStore.isAdmin"
       :is-dark="isDark"
       @toggle-theme="toggleTheme"
+      @toggle-locale="toggleLocale"
       @toggle-ai="showAI = !showAI"
       @logout="logout"
     />
@@ -27,6 +28,7 @@ import NavFab from './NavFab.vue'
 import PageNavbar from './PageNavbar.vue'
 import FloatingAIAssistant from '@/features/assistant/components/FloatingAIAssistant.vue'
 import { useTheme } from '@/shared/composables/useTheme'
+import { toggleLocale } from '@/shared/composables/useLocale'
 import { resolveNavMode } from '@/shared/config/runtimeConfig'
 
 const router = useRouter()

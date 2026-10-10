@@ -3,6 +3,7 @@ import BaseScene from './BaseScene.vue'
 import HoverGallery from '@/shared/components/HoverGallery.vue'
 import { getBrandParts } from '@/shared/config/appName'
 import { getContent } from '@/features/home/config/contentConfig'
+import { localized } from '@/shared/config/localizedText'
 
 const { taglines: HERO_TAGLINES, gallery: HERO_GALLERY = [] } = getContent().hero
 
@@ -17,12 +18,12 @@ const { pre: namePre, x: nameX, post: namePost } = getBrandParts()
   <BaseScene
     id="hero"
     class="h-[var(--scene-height)] max-h-[var(--scene-height)] 
-    overflow-hidden bg-base-100 text-[clamp(2.5rem,min(12vw,9.5vh),8rem)]"
+    overflow-hidden bg-base-100 kawaru-text-home-title"
   >
     <!-- 主内容：my-auto 在单屏 Hero 内垂直居中，矮屏时通过 Hero 基准字号整体收敛。 -->
     <div class="my-auto flex flex-col items-center">
-      <!-- #标题 -->
-      <span class="leading-none text-[1em] mt-[0.2em]">
+      <!-- #标题：直接继承场景基准，不要再套 text-[1em]——那会让下面的 X 变成三级链 -->
+      <span class="leading-none mt-[0.2em]">
         {{ namePre
         }}<span
           class="brand-text bg-gradient-to-bl from-[var(--brand-accent)] 
@@ -40,33 +41,34 @@ const { pre: namePre, x: nameX, post: namePost } = getBrandParts()
           class="justify-items-center font-bold italic font-['Outfit',sans-serif]"
           style="font-synthesis: style"
         >
-          <span v-for="tagline in HERO_TAGLINES" :key="tagline" class="px-2">{{ tagline }}</span>
+          <span v-for="(tagline, i) in HERO_TAGLINES" :key="i" class="px-2">{{ localized(tagline) }}</span>
         </span>
       </span>
 
       <!-- 预览图 -->
       <HoverGallery :images="HERO_GALLERY" class="mt-[0.5em]" />
 
-      <!-- 按钮组：渐变取自标题 X，字体与标语一致；尺寸全用 em，跟随场景字号缩放 -->
+      <!-- 按钮组：字号用全局档位而非从场景基准派生——场景基准会被 9.5vh 压小，
+           派生出的字号在矮屏下会掉到不可读。h/px/gap 仍用 em，跟随档位缩放。 -->
       <div class="mt-[1em] flex flex-col items-center gap-3 sm:flex-row sm:gap-[0.5em]">
         <RouterLink
           to="/register"
           class="btn h-[2.5em] w-[min(18rem,calc(100vw-3rem))] justify-center gap-[0.5em] sm:w-auto
           rounded-full border-none bg-gradient-to-bl
-          from-[var(--brand-accent)] to-primary px-[1.6em] text-[max(0.22em,1rem)]
+          from-[var(--brand-accent)] to-primary px-[1.6em] kawaru-text-95
           font-['Outfit',sans-serif] font-bold
           text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/40"
-        >Join to start<SvgIcon type="chevron_right" class="h-[1.1em] w-[1.1em]" />
+        >{{ $t('home.actions.join') }}<SvgIcon type="chevron_right" class="h-[1.1em] w-[1.1em]" />
         </RouterLink>
 
         <RouterLink
           to="/datasets"
           class="btn h-[2.5em] w-[min(18rem,calc(100vw-3rem))] justify-center gap-[0.5em] sm:w-auto
           rounded-full border-none bg-gradient-to-bl
-          from-[var(--brand-accent)] to-secondary px-[1.6em] text-[max(0.22em,1rem)]
+          from-[var(--brand-accent)] to-secondary px-[1.6em] kawaru-text-95
           font-['Outfit',sans-serif] font-bold
           text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/40"
-        >View Datasets<SvgIcon type="chevron_right" class="h-[1.1em] w-[1.1em]" />
+        >{{ $t('home.actions.datasets') }}<SvgIcon type="chevron_right" class="h-[1.1em] w-[1.1em]" />
         </RouterLink>
       </div>
     </div>

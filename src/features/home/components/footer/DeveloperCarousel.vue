@@ -21,7 +21,7 @@ const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage }
       class="dev-track no-scrollbar relative flex snap-x snap-mandatory overflow-x-auto scroll-smooth py-4"
       :style="{ '--cols': cols, '--card-max': MAX_CARD + 'px', '--gap': GAP + 'px' }"
       role="region"
-      aria-label="Development team"
+      :aria-label="$t('home.team.carousel')"
       tabindex="0"
     >
       <li v-for="member in TEAM_MEMBERS" :key="member.name" class="dev-cell shrink-0 snap-start">
@@ -35,22 +35,22 @@ const { trackRef, atStart, atEnd, cols, GAP, MAX_CARD, TRACK_MAX, scrollByPage }
     <!-- 翻页按钮：仅中大屏显示，触摸端用手势；紧贴边缘，浮于两侧虚空槽内 -->
     <button
       type="button"
-      class="btn btn-circle btn-sm absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 shadow-md transition-opacity duration-300 md:inline-flex"
+      class="btn btn-circle btn-sm absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 shadow-md transition-opacity duration-300 md:inline-flex kawaru-text-75"
       :class="atStart ? 'pointer-events-none opacity-0' : 'opacity-100'"
       :aria-hidden="atStart"
       :tabindex="atStart ? -1 : 0"
-      aria-label="Previous"
+      :aria-label="$t('common.action.prev')"
       @click="scrollByPage(-1)"
     >
       <SvgIcon type="chevron_right" class="h-5 w-5 rotate-180" />
     </button>
     <button
       type="button"
-      class="btn btn-circle btn-sm absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 shadow-md transition-opacity duration-300 md:inline-flex"
+      class="btn btn-circle btn-sm absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 shadow-md transition-opacity duration-300 md:inline-flex kawaru-text-75"
       :class="atEnd ? 'pointer-events-none opacity-0' : 'opacity-100'"
       :aria-hidden="atEnd"
       :tabindex="atEnd ? -1 : 0"
-      aria-label="Next"
+      :aria-label="$t('common.action.next')"
       @click="scrollByPage(1)"
     >
       <SvgIcon type="chevron_right" class="h-5 w-5" />

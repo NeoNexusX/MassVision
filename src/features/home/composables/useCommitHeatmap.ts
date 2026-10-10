@@ -1,10 +1,10 @@
 import { computed, onMounted, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
-import type { CalendarItem, TooltipFormatter } from 'vue3-calendar-heatmap'
+import type { CalendarItem, Locale as HeatmapLocale, TooltipFormatter } from 'vue3-calendar-heatmap'
+import { i18n, t } from '@/i18n'
 import { useTheme } from '@/shared/composables/useTheme'
-import {
-  fetchCommitHeatmap,
-  toDateStr,
-} from '../api/githubApi'
+import { formatTime } from '@/shared/utils/format'
+import { fetchCommitHeatmap, toDateStr } from '../api/githubApi'
+import { GithubRateLimitError } from '../types/github'
 import type { FetchCommitHeatmapOptions, HeatValue } from '@/features/home/types/github'
 
 // 颜色梯度：库的 getColorIndex 返回 0~5，必须给满 6 个颜色。
@@ -25,7 +25,7 @@ export function useCommitHeatmap(params: MaybeRefOrGetter<FetchCommitHeatmapOpti
 
   // State
   const loading = ref(false)
-  const error = ref<string | null>(null)
+  const error = ref<unknown>(null)
   const values = ref<HeatValue[]>([])
   const total = ref(0)
   const activeDays = ref(0)
@@ -38,8 +38,24 @@ export function useCommitHeatmap(params: MaybeRefOrGetter<FetchCommitHeatmapOpti
   const endDate = computed(() => toDateStr(new Date()))
 
   // tooltip：2026-06-10: 3 commits
-  const tooltipFormatter: TooltipFormatter = (item: CalendarItem, unit: string) =>
-    `${toDateStr(item.date)}: ${item.count ?? 0} ${unit}`
+  // 单/复数合并成一条带 `|` 的消息（choice===1 取前段，其余取后段；zh 只有一段，不受影响）
+  const tooltipFormatter: TooltipFormatter = (item: CalendarItem) =>
+    t('home.heatmap.tooltip', { date: toDateStr(item.date), count: item.count ?? 0 }, item.count ?? 0)
+
+  // 库自带的月份 / 星期 / 图例文字写死英文。月份和星期交给 Intl 按界面语言生成（zh 为「9月」「周一」），
+  // 只有图例的 Less / More 需要进语言包；`on` 只用于库的默认 tooltip，已被上面的 formatter 取代。
+  const heatmapLocale = computed<Partial<HeatmapLocale>>(() => {
+    const lang = i18n.global.locale.value
+    const month = new Intl.DateTimeFormat(lang, { month: 'short' })
+    const weekday = new Intl.DateTimeFormat(lang, { weekday: 'short' })
+    return {
+      months: Array.from({ length: 12 }, (_, m) => month.format(new Date(2026, m, 1))),
+      // 库按周日开头取下标；2026-01-04 是周日
+      days: Array.from({ length: 7 }, (_, d) => weekday.format(new Date(2026, 0, 4 + d))),
+      less: t('home.heatmap.less'),
+      more: t('home.heatmap.more'),
+    }
+  })
 
   // Methods
   async function load() {
@@ -54,7 +70,7 @@ export function useCommitHeatmap(params: MaybeRefOrGetter<FetchCommitHeatmapOpti
       activeDays.value = r.activeDays
     } catch (e) {
       if (currentRequest !== requestId) return
-      error.value = e instanceof Error ? e.message : '获取数据失败'
+      error.value = e
     } finally {
       if (currentRequest === requestId) loading.value = false
     }
@@ -70,9 +86,21 @@ export function useCommitHeatmap(params: MaybeRefOrGetter<FetchCommitHeatmapOpti
   )
   onMounted(load)
 
+  // 存错误对象、在 computed 里出文案：切换语言后报错文字也跟着变
+  const errorMessage = computed(() => {
+    const e = error.value
+    if (e instanceof GithubRateLimitError) {
+      const time = e.resetAt ? formatTime(e.resetAt) : t('home.heatmap.unknownTime')
+      return t('home.heatmap.rateLimited', { remaining: e.remaining, time })
+    }
+    // GitHub 返回的 message 原样透传
+    if (e instanceof Error) return e.message
+    return e ? t('home.heatmap.loadFailed') : ''
+  })
+
   return {
     loading,
-    error,
+    error: errorMessage,
     values,
     total,
     activeDays,
@@ -80,6 +108,7 @@ export function useCommitHeatmap(params: MaybeRefOrGetter<FetchCommitHeatmapOpti
     rangeColor,
     endDate,
     tooltipFormatter,
+    heatmapLocale,
     isDark,
   }
 }

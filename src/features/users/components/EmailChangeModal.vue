@@ -22,47 +22,49 @@ const emit = defineEmits<{
 <template>
   <div v-if="isOpen" class="modal modal-open" @click.self="emit('close')">
     <div class="modal-box max-w-md" @click.stop>
-      <h3 class="font-bold text-lg">Change Email</h3>
-      <p class="py-2">Enter new email and the verification code sent to it.</p>
+      <h3 class="font-bold kawaru-text-112">{{ $t('users.changeEmail.title') }}</h3>
+      <p class="py-2">{{ $t('users.changeEmail.hint') }}</p>
 
       <div class="form-control">
-        <label class="label"><span class="label-text">New Email</span></label>
+        <label class="label"><span class="label-text">{{ $t('users.changeEmail.newEmail') }}</span></label>
         <input
           type="email"
           :value="newEmail"
           @input="emit('update:newEmail', ($event.target as HTMLInputElement).value)"
           placeholder="you@example.com"
-          class="input input-bordered w-full"
+          class="input input-bordered w-full kawaru-text-87"
         />
       </div>
 
       <div class="form-control mt-3">
-        <label class="label"><span class="label-text">Verification Code</span></label>
+        <label class="label"><span class="label-text">{{ $t('auth.field.verificationCode') }}</span></label>
         <div class="flex gap-2">
           <input
             type="text"
             :value="emailCode"
             @input="emit('update:emailCode', ($event.target as HTMLInputElement).value)"
             placeholder="123456"
-            class="input input-bordered flex-1"
+            class="input input-bordered flex-1 kawaru-text-87"
           />
           <button
-            class="btn btn-outline btn-neutral border-base-300 shadow-none"
+            class="btn btn-outline btn-neutral border-base-300 shadow-none kawaru-text-87"
             :disabled="sendingCode || isCooldownActive || isExhausted"
-            :title="isExhausted ? 'Maximum attempts reached for this session' : ''"
+            :title="isExhausted ? $t('users.changeEmail.exhausted') : ''"
             @click="emit('send-code')"
           >
-            <span v-if="isExhausted">Limit Reached</span>
-            <span v-else-if="isCooldownActive">Resend ({{ codeCooldown }}s)</span>
-            <span v-else>Send Code</span>
+            <span v-if="isExhausted">{{ $t('auth.code.limitReached') }}</span>
+            <span v-else-if="isCooldownActive">{{
+              $t('users.changeEmail.resend', { seconds: codeCooldown })
+            }}</span>
+            <span v-else>{{ $t('auth.code.send') }}</span>
           </button>
         </div>
       </div>
 
       <div class="modal-action">
-        <button class="btn" type="button" @click="emit('close')">Cancel</button>
-        <button class="btn btn-primary" type="button" @click="emit('confirm')" :disabled="loading">
-          Confirm
+        <button class="btn kawaru-text-87" type="button" @click="emit('close')">{{ $t('common.action.cancel') }}</button>
+        <button class="btn btn-primary kawaru-text-87" type="button" @click="emit('confirm')" :disabled="loading">
+          {{ $t('common.action.confirm') }}
         </button>
       </div>
     </div>

@@ -1,9 +1,11 @@
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSendEmailCode } from '@/shared/composables/useSendEmailCode'
 import { api } from '@/shared/api/httpClient'
 import { useToast } from '@/shared/composables/useToast'
 import { SESSION_KEYS } from '@/shared/config'
+import { t } from '@/i18n'
+import { useLocale } from '@/shared/composables/useLocale'
 import { VALIDATION_PATTERNS } from '@/features/auth/constants/validationPatterns'
 import {
   passwordScore as scorePassword,
@@ -23,7 +25,7 @@ export function useForgotPassword() {
   } = useSendEmailCode({
     sessionKey: SESSION_KEYS.forgotPasswordCodeAttempts,
     purpose: 'reset_password',
-    successMessage: 'Verification code sent! Check your email.',
+    successMessage: () => t('auth.code.sentCheckEmail'),
   })
 
   // ── State ──────────────────────────────────────────────────────────────
@@ -62,24 +64,27 @@ export function useForgotPassword() {
     const value = form[field]
     switch (field) {
       case 'email':
-        if (!value) errors.email = 'Email is required'
-        else if (!new RegExp(patterns.email).test(value)) errors.email = 'Invalid email address'
+        if (!value) errors.email = t('auth.validation.emailRequired')
+        else if (!new RegExp(patterns.email).test(value))
+          errors.email = t('auth.validation.emailInvalid')
         else errors.email = ''
         break
       case 'verify_code':
-        if (!value) errors.verify_code = 'Verification code is required'
-        else if (!new RegExp(patterns.verify_code).test(value)) errors.verify_code = 'Must be 6 digits'
+        if (!value) errors.verify_code = t('auth.validation.verificationCodeRequired')
+        else if (!new RegExp(patterns.verify_code).test(value))
+          errors.verify_code = t('auth.validation.codeInvalid')
         else errors.verify_code = ''
         break
       case 'new_password':
-        if (!value) errors.new_password = 'New password is required'
+        if (!value) errors.new_password = t('auth.validation.newPasswordRequired')
         else if (!new RegExp(patterns.password).test(value))
-          errors.new_password = 'Min 8 chars, letters & numbers required'
+          errors.new_password = t('auth.validation.passwordInvalid')
         else errors.new_password = ''
         break
       case 'confirm_password':
-        if (!value) errors.confirm_password = 'Please confirm your new password'
-        else if (value !== form.new_password) errors.confirm_password = 'Passwords do not match'
+        if (!value) errors.confirm_password = t('auth.validation.confirmNewPasswordRequired')
+        else if (value !== form.new_password)
+          errors.confirm_password = t('auth.validation.passwordMismatch')
         else errors.confirm_password = ''
         break
     }
@@ -88,6 +93,14 @@ export function useForgotPassword() {
   function clearError(field: keyof typeof form) {
     errors[field] = ''
   }
+
+  // 错误文案是校验那一刻按当时语言生成的字符串；切语言后把正在显示的错误按新语言重算
+  const { locale } = useLocale()
+  watch(locale, () => {
+    ;(Object.keys(errors) as (keyof typeof form)[]).forEach((field) => {
+      if (errors[field]) validateField(field)
+    })
+  })
 
   function validateStep(): boolean {
     if (step.value === 'email') {
@@ -108,7 +121,7 @@ export function useForgotPassword() {
       validate: () => {
         validateField('email')
         if (errors.email) {
-          showToast('Please enter a valid email address', 'error')
+          showToast(t('auth.toast.enterValidEmail'), 'error')
           return false
         }
         return true
@@ -126,7 +139,7 @@ export function useForgotPassword() {
   /** 提交重置密码 */
   async function submitReset() {
     if (!validateStep()) {
-      showToast('Please fix the errors before submitting', 'error')
+      showToast(t('auth.toast.fixErrorsBeforeSubmit'), 'error')
       return
     }
 
@@ -137,13 +150,13 @@ export function useForgotPassword() {
         verify_code: form.verify_code,
         new_password: form.new_password,
       })
-      showToast('Password reset successful! Redirecting to login...', 'success')
+      showToast(t('auth.toast.resetSuccess'), 'success')
       setTimeout(() => {
         router.replace('/login')
       }, 2000)
     } catch (error: any) {
       console.error('Reset password error:', error.message)
-      showToast(error.message || 'Failed to reset password', 'error')
+      showToast(error.message || t('auth.toast.resetFailed'), 'error')
     } finally {
       loading.reset = false
     }

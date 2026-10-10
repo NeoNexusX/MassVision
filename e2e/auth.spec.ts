@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 /**
  * Auth E2E 测试
  * =============
- * 覆盖登录、注册校验、忘记密码、Profile 页面、路由守卫。
+ * 覆盖登录、注册校验、忘记密码、Profile 页面、路由守卫（含管理员守卫）、登出。
  *
  * 架构：
  *   auth.setup.ts  → 先登录一次，存入 .auth/user.json
@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test'
  *   本地：npm run dev  → Vite proxy /api/* → .env.development 中的 VITE_BACKEND_URL
  *   CI：  npm run preview → Vite proxy /api/* → .env.production 中的 VITE_BACKEND_URL
  *
- * 需后端：登录、Profile 数据加载、Profile 保存
+ * 需后端：登录、Profile 数据加载、Profile 保存、登出
  * 纯前端：注册校验、忘记密码校验、弹窗校验（不提交，只测前端逻辑）
  *
  */
@@ -65,7 +65,7 @@ test.describe('Unauthenticated', () => {
 
     // 未登录 → 踢到 /login，URL 带 redirect 参数
     await expect(page).toHaveURL(/\/login/)
-    await expect(page.url()).toContain('redirect=')
+    expect(page.url()).toContain('redirect=')
   })
 
   // ── 注册页表单校验（不提交，不调后端）──
@@ -123,7 +123,7 @@ test.describe('Unauthenticated', () => {
 
     await page.fill('input[placeholder="Email"]', 'not-an-email')
     await page.locator('input[placeholder="Email"]').blur()
-    await page.click('button:has-text("Send Verification Code")')
+    await page.click('button:has-text("Send Code")')
 
     // 非法邮箱格式 → toast
     await expect(page.locator('.toast')).toContainText('valid email')
@@ -157,7 +157,7 @@ test.describe('Authenticated', () => {
     await page.click('button:has-text("Save All Changes")')
 
     // 保存成功 → toast
-    await expect(page.locator('.toast')).toContainText('Profile info updated')
+    await expect(page.locator('.toast')).toContainText('Updated')
   })
 
   // ── 路由守卫 + 持久化 ──
@@ -168,6 +168,23 @@ test.describe('Authenticated', () => {
 
     // 已登录 → 踢回默认落地页 /datasets
     await expect(page).toHaveURL(/\/datasets/)
+  })
+
+  // ── 管理员路由守卫 ──
+
+  test('route guard — /users is admin-only', async ({ page }) => {
+    // 守卫要等 /api/user 返回 identity 后才决定放行或弹走：
+    // 等任意一侧的页面真正渲染（/users 的 User Management 或 /profile 的 Profile）
+    await page.goto('/users')
+    await expect(page.locator('h1').first()).toBeVisible({ timeout: 10_000 })
+
+    // E2E 账号是 admin 时守卫放行，"非管理员被弹走"的前提不成立 → skip 而非误报
+    if (page.url().includes('/users')) {
+      test.skip(true, 'E2E account is admin — non-admin bounce is not testable')
+      return
+    }
+    // 普通用户：router.beforeEach 的 adminRequired 分支把已登录非管理员弹到 /profile
+    await expect(page).toHaveURL(/\/profile/)
   })
 
   test('token persistence — survives page reload', async ({ page }) => {
@@ -224,5 +241,44 @@ test.describe('Authenticated', () => {
     // 强密码 → "Strong"
     await page.fill('.modal-box input[placeholder="Enter new password"]', 'VeryStr0ng!Pass')
     await expect(page.getByText('Strong')).toBeVisible()
+  })
+
+  // ── 登出（放本组最后：真实调用 POST /logout，可能吊销共享 token）──
+
+  test('logout — clears the session and redirects to login', async ({ page }) => {
+    const username = process.env.E2E_USERNAME
+    const password = process.env.E2E_PASSWORD
+    if (!username || !password) {
+      throw new Error('缺少 E2E_USERNAME / E2E_PASSWORD 环境变量，请在 CI secrets 或本地 .env.local 中配置')
+    }
+
+    await page.goto('/profile')
+    await expect(page.getByText('Quota Usage')).toBeVisible()
+
+    // navbar 头像下拉（daisyui 靠 :focus-within 展开，点击头像即聚焦）
+    await page.locator('.avatar-placeholder[role="button"]').click()
+    await page.getByText('Sign out', { exact: true }).click()
+
+    // 跳回登录页 + 本地 token 已清（authStore.logout 的 finally 分支）
+    await expect(page).toHaveURL(/\/login/)
+    expect(await page.evaluate(() => localStorage.getItem('access_token'))).toBeNull()
+
+    // 受保护页现在会被守卫弹回登录页（带 redirect 参数）
+    await page.goto('/profile')
+    await expect(page).toHaveURL(/\/login/)
+    expect(page.url()).toContain('redirect=')
+
+    // ---- 恢复共享登录态 ----
+    // 登出真实调用 POST /logout：若后端吊销 token，.auth/user.json 里的旧 token
+    // 就失效了，本轮后续所有已登录测试（本文件及其它 spec）都会 401。这里用
+    // 同一账号重新登录，并拿新会话覆写共享状态文件（workers:1 顺序执行，无并发写）。
+    // login() 在跳转前就把 token 写进 localStorage，waitForURL 返回即可保存；
+    // h1 断言只是确认应用带会话正常启动了。
+    await page.fill('input[placeholder="Username"]', username)
+    await page.fill('input[placeholder="Password"]', password)
+    await page.click('button:has-text("Sign In")')
+    await page.waitForURL(/\/(datasets|profile)/)
+    await expect(page.locator('h1').first()).toBeVisible({ timeout: 10_000 })
+    await page.context().storageState({ path: '.auth/user.json' })
   })
 })

@@ -5,6 +5,7 @@ import { PieChart } from 'echarts/charts'
 import { TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { useTheme } from '@/shared/composables/useTheme'
+import { i18n, t } from '@/i18n'
 import type { DatasetCategoryItem } from '@/features/home/types/stats'
 
 echarts.use([PieChart, TooltipComponent, CanvasRenderer])
@@ -75,8 +76,14 @@ function render() {
       color: PALETTE,
       tooltip: {
         trigger: 'item',
-        // {b}=分段名 {c}=数量 {d}=占比
-        formatter: '{b}<br/><strong>{c}</strong> datasets ({d}%)',
+        // 单位要随语言、单复数变化，所以用函数而非 ECharts 的 '{b}…{c}' 模板字符串。
+        // 函数 formatter 不做转义：分段名来自后端，需手动 encodeHTML；
+        // <strong> 放进插值参数，语言包本身保持纯文本（vue-i18n 对含 HTML 的消息会告警）。
+        formatter: (p: unknown) => {
+          const { name, value, percent } = p as { name: string; value: number; percent: number }
+          const count = `<strong>${value}</strong>`
+          return `${echarts.format.encodeHTML(name)}<br/>${t('home.stats.tooltip', { count, percent }, value)}`
+        },
         textStyle: { fontSize },
       },
       series: [
@@ -132,9 +139,9 @@ onBeforeUnmount(() => {
   chart = null
 })
 
-// items 变化（重新拉到数据）或主题切换时重绘
+// items 变化（重新拉到数据）、主题或界面语言切换时重绘
 watch(() => props.items, render, { deep: true })
-watch(isDark, render)
+watch([isDark, i18n.global.locale], render)
 </script>
 
 <template>

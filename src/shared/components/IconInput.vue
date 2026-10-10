@@ -1,23 +1,25 @@
 <template>
-  <div class="form-control fluid-input">
+  <!-- 标签 95 档、控件文字 87 档、图标 kawaru-field-icon，外层不设基准字号。
+       内层 .input 必须显式挂档位——daisyUI 给它写死了 .875rem。 -->
+  <div class="form-control">
     <template v-if="!hideLabel && label">
       <label class="label">
-        <span class="label-text text-[1em] font-semibold" :class="{ 'opacity-50': readonly }">
+        <span class="label-text kawaru-text-95 font-semibold" :class="{ 'opacity-50': readonly }">
           {{ label }}
         </span>
       </label>
     </template>
 
-    <label class="input w-full flex items-center gap-2 fluid-input" :class="{ validator: validator, 'bg-base-200': readonly }">
+    <label class="input w-full flex items-center gap-2 kawaru-text-87" :class="{ validator: validator, 'bg-base-200': readonly }">
       <SvgIcon
         v-if="iconType"
         :type="iconType"
-        class="icon-fluid mr-2 ml-2 flex-shrink-0"
+        class="kawaru-field-icon mr-2 ml-2 flex-shrink-0"
         aria-hidden="true"
       />
       <input
         v-model="value"
-        class="flex-1 bg-transparent outline-none h-full py-2 text-[0.9em] min-w-0"
+        class="flex-1 bg-transparent outline-none h-full py-2 kawaru-text-87 min-w-0"
         :class="{ truncate: readonly }"
         :type="type"
         :readonly="readonly"
@@ -35,7 +37,7 @@
       />
     </label>
 
-    <span v-if="error" class="label text-sm text-error whitespace-pre-line pt-1 block">{{ error }}</span>
+    <span v-if="error" class="label kawaru-text-87 text-error whitespace-pre-line pt-1 block">{{ error }}</span>
     <slot />
   </div>
 </template>

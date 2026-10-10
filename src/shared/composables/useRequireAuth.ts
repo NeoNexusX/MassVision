@@ -1,6 +1,7 @@
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/auth/authStore'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 
 /**
  * 需要登录的操作守卫：未登录则提示并跳转登录页（携带回跳地址）。
@@ -14,7 +15,7 @@ export function useRequireAuth(redirect: string | (() => string)) {
 
   const requireAuth = (): boolean => {
     if (!auth.token) {
-      showToast('Please log in to continue.', 'warning')
+      showToast(t('auth.toast.loginRequired'), 'warning')
       const target = typeof redirect === 'function' ? redirect() : redirect
       router.push({ path: '/login', query: { redirect: target } })
       return false

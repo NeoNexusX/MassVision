@@ -6,15 +6,20 @@
  * axis. Used by {@link ../composables/useAnnotationMatch}.
  *
  * CSV contract (deliberately flexible):
- *   - UTF-8 / UTF-8 BOM supported; delimiter auto-detected (,/;/\t/|).
- *   - m/z column recognised by many aliases: `Exp. m/z`, `mz`, `m/z`, `MZ`,
- *     `experimental_mz`, `exp_mz`, `mass`, ...
+ *   - UTF-8 / UTF-8 BOM, with GBK/GB18030 auto-detected as fallback
+ *     ({@link decodeCsvBytes}); delimiter auto-detected (,/;/\t/|).
+ *   - m/z column recognised by many aliases: `Target m/z`, `Tar. m/z`,
+ *     `Exp. m/z`, `mz`, `m/z`, `MZ`, `experimental_mz`, `exp_mz`, `mass`, ...
+ *     Header matching tolerates case, spacing, a trailing period, underscore
+ *     variants and full-width (CJK) characters - see normalizeHeader.
  *   - Candidate names merged from `Candidate_1`..`Candidate_N` (+ bare
  *     `Candidate`), empty values dropped, original rows never deduplicated.
  *   - `formula_ion` / `formula` and `Ion type` / `adduct` picked up when present.
  *   - Rows lacking a valid numeric m/z are kept but flagged `invalid` so the
  *     table stays complete and the page never throws on a single bad row.
  */
+
+import { scoreRows, assignFdr, applyAdductBonus } from './annotationScoring'
 
 /** Tolerance unit for m/z matching. */
 export type ToleranceMode = 'ppm' | 'Da'
@@ -49,6 +54,37 @@ export interface MatchedAnnotationRow extends AnnotationRow {
   massError: number | null
   /** Average-spectrum intensity at the matched peak. null unless matched. */
   avgIntensity: number | null
+  /** Tier-1 证据分（0..1）：质量误差线性衰减。null = 未匹配。见 annotationScoring.ts */
+  massScore: number | null
+  /** Tier-1 同位素谱图分（0..1，梯形重叠相似度）。null = 无证据（无分子式/
+   *  无平均谱/理论维度不足），此时 compositeScore 退化为 massScore。 */
+  isotopeScore: number | null
+  /** 期望同位素峰（≥1% 理论强度）中被观测到的个数；null = 未打分。 */
+  isotopeObsCount: number | null
+  /** 期望同位素峰总数（≥1% 理论强度，M..M+3）；null = 未打分。 */
+  isotopeExpCount: number | null
+  /** 综合分 = massScore × isotopeScore；isotopeScore 为 null（无证据）时按
+   *  Level-4 门槛 0.7 折算，使"无证据"排在"强支持"之下、"反证据"之上。 */
+  compositeScore: number | null
+  /** target-decoy q 值（0..1，越小越可信）。null = 无 decoy 可比或未匹配。 */
+  fdr: number | null
+  /** 置信等级（五级体系的简写）：4 = 精确质量 + 同位素支持；5 = 仅精确质量；
+   *  null = 未匹配。阈值常量在 annotationScoring.ts。 */
+  level: 4 | 5 | null
+  /** 多加合物证据分（0..1）：同一分子以 ≥2 种不同加合物落在不同谱峰
+   *  （CAMERA Σips 组分折算，见 annotationScoring.applyAdductBonus）。
+   *  null = 未匹配 / 不成组。composite 已含 (1 + 0.2·adductScore) 加成；
+   *  Tier-2 空间反证会把加成撤销（见 adductUnconfirmed）。 */
+  adductScore: number | null
+  /** 同组其他加合物的 ionType 列表（与 adductPeerIds 一一对应）。 */
+  adductPeers: string[]
+  /** 同组其他加合物行的 row id（侧边栏跳转用）。 */
+  adductPeerIds: number[]
+  /** Tier-2 组内共定位 Pearson ≥ ADDUCT_CORR_MIN：加分经空间确认保留。 */
+  adductConfirmed?: boolean
+  /** Tier-2 空间反证（Pearson < ADDUCT_CORR_MIN）：加分已撤销——composite
+   *  除回加成系数、adductScore 置 0。徽章/导出据此标注"组内不共定位"。 */
+  adductUnconfirmed?: boolean
   /** Distinct formula_ion strings from isobars that were collapsed onto this
    *  representative (excludes the rep's own `formulaIon`). Lets the panel's
    *  search still find a compound by any of its merged-away isobars' formulas
@@ -60,9 +96,20 @@ export interface MatchedAnnotationRow extends AnnotationRow {
   altAdducts: string[]
 }
 
-/** Thrown when the CSV cannot be used at all (empty / no m/z column). */
+export type CsvParseErrorCode = 'empty' | 'noMzColumn' | 'noDataRows'
+
+/**
+ * Thrown when the CSV cannot be used at all (empty / no m/z column).
+ *
+ * This module also runs inside csvAnnotation.worker.ts, so it must not import
+ * i18n: `message` stays English (logs / worker transport) and the UI translates
+ * by `code` instead.
+ */
 export class CsvParseError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly code: CsvParseErrorCode,
+  ) {
     super(message)
     this.name = 'CsvParseError'
   }
@@ -145,6 +192,7 @@ const MZ_ALIASES = [
   'tar m/z',
   'target m/z',
   'target_mz',
+  'target_m/z',
   'tar_mz',
   'tar mz',
   'exp. m/z',
@@ -168,8 +216,17 @@ const MZ_ALIASES = [
 const FORMULA_ALIASES = ['formula_ion', 'formula ion', 'formula', 'formulaion']
 const ION_TYPE_ALIASES = ['ion type', 'ion_type', 'adduct', 'iontype']
 
+/** Canonical form of a header for alias comparison: Unicode NFKC (maps
+ *  full-width CJK-Excel letters/slash `Ｔａｒｇｅｔ ｍ／ｚ` to ASCII), trimmed,
+ *  lower-cased, runs of whitespace collapsed, trailing periods dropped
+ *  (`Target m/z.` -> `target m/z`). */
 function normalizeHeader(h: string): string {
-  return h.trim().toLowerCase().replace(/\s+/g, ' ')
+  return h
+    .normalize('NFKC')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/\.+$/, '')
 }
 
 function matchColumn(headers: string[], aliases: string[]): string | null {
@@ -254,6 +311,25 @@ function detectDelimiter(headerLine: string): string {
   return best
 }
 
+// ---- Byte decoding ---------------------------------------------------------
+
+/** Decode raw CSV bytes to text: strict UTF-8 first, GBK/GB18030 fallback.
+ *
+ *  Chinese Excel saves CSV as ANSI (GBK/GB18030), whose double-byte sequences
+ *  are almost never valid UTF-8 - reading such a file as plain UTF-8 silently
+ *  replaces every Chinese candidate name with U+FFFD mojibake. Strict (fatal)
+ *  UTF-8 decoding detects that, and the Encoding Standard's gb18030 decoder
+ *  (the labels 'gbk', 'gb2312' and 'gb18030' all alias it) reads the file
+ *  correctly instead. Real UTF-8 (BOM or not) and pure-ASCII files never
+ *  enter the fallback. */
+export function decodeCsvBytes(buf: ArrayBuffer): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf)
+  } catch {
+    return new TextDecoder('gb18030').decode(buf)
+  }
+}
+
 // ---- Parsing --------------------------------------------------------------
 
 export interface ParsedAnnotationCsv {
@@ -283,7 +359,7 @@ export function parseAnnotationCsv(text: string): ParsedAnnotationCsv {
   // Strip UTF-8 BOM if present.
   const cleaned = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text
   const normalized = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n+$/, '')
-  if (!normalized.trim()) throw new CsvParseError('CSV file is empty.')
+  if (!normalized.trim()) throw new CsvParseError('CSV file is empty.', 'empty')
 
   const lines = normalized.split('\n')
   const headerLine = lines.shift()!
@@ -293,7 +369,8 @@ export function parseAnnotationCsv(text: string): ParsedAnnotationCsv {
   const mzCol = matchColumn(headers, MZ_ALIASES)
   if (!mzCol) {
     throw new CsvParseError(
-      'No m/z column found. Expected one of: "Tar. m/z", "m/z", "mz", "MZ", "target_mz", "mass", ...',
+      'No m/z column found. Expected one of: "Target m/z", "Tar. m/z", "m/z", "mz", "MZ", "target_mz", "mass", ...',
+      'noMzColumn',
     )
   }
   const formulaCol = matchColumn(headers, FORMULA_ALIASES)
@@ -336,7 +413,7 @@ export function parseAnnotationCsv(text: string): ParsedAnnotationCsv {
     })
   }
 
-  if (!rows.length) throw new CsvParseError('CSV has a header but no data rows.')
+  if (!rows.length) throw new CsvParseError('CSV has a header but no data rows.', 'noDataRows')
   return { rows, mzColumn: mzCol }
 }
 
@@ -365,23 +442,50 @@ export function massErrorOf(expMz: number, matchedMz: number, mode: ToleranceMod
   return mode === 'ppm' ? (da / expMz) * 1e6 : da
 }
 
+/** Empty `altFormulas`/`altAdducts` for freshly matched rows (before any
+ *  collapsing has merged isobars in). One frozen pair is shared by every
+ *  pre-collapse row - collapse builds fresh arrays on the representative
+ *  only when it actually accumulates an isobar. Must be declared before
+ *  {@link EMPTY_MATCH} (which references the adduct pair). */
+const EMPTY_ALT_FORMULAS: string[] = []
+const EMPTY_ALT_ADDUCTS: string[] = []
+/** Shared empty peer-id list, mirroring {@link EMPTY_ALT_ADDUCTS}. */
+const EMPTY_ALT_IDS: number[] = []
+
 const EMPTY_MATCH: Pick<
   MatchedAnnotationRow,
-  'matchStatus' | 'matchedMz' | 'matchedIndex' | 'massError' | 'avgIntensity'
+  | 'matchStatus'
+  | 'matchedMz'
+  | 'matchedIndex'
+  | 'massError'
+  | 'avgIntensity'
+  | 'massScore'
+  | 'isotopeScore'
+  | 'isotopeObsCount'
+  | 'isotopeExpCount'
+  | 'compositeScore'
+  | 'fdr'
+  | 'level'
+  | 'adductScore'
+  | 'adductPeers'
+  | 'adductPeerIds'
 > = {
   matchStatus: 'unmatched',
   matchedMz: null,
   matchedIndex: null,
   massError: null,
   avgIntensity: null,
+  massScore: null,
+  isotopeScore: null,
+  isotopeObsCount: null,
+  isotopeExpCount: null,
+  compositeScore: null,
+  fdr: null,
+  level: null,
+  adductScore: null,
+  adductPeers: EMPTY_ALT_ADDUCTS,
+  adductPeerIds: EMPTY_ALT_IDS,
 }
-
-/** Empty `altFormulas`/`altAdducts` for freshly matched rows (before any
- *  collapsing has merged isobars in). One frozen pair is shared by every
- *  pre-collapse row - collapse builds fresh arrays on the representative
- *  only when it actually accumulates an isobar. */
-const EMPTY_ALT_FORMULAS: string[] = []
-const EMPTY_ALT_ADDUCTS: string[] = []
 
 /** Coarse pre-filter options for {@link coarseFilterRows}. Rows that fail a
  *  filter are dropped before matching, so the per-row binary search is skipped
@@ -432,10 +536,7 @@ export interface MatchInputs {
 
 /** Inline coarse-mismatch marker - reused for both the no-axis branch and the
  *  per-row loop so the labeling stays consistent. */
-function coarseInvalid(): Pick<
-  MatchedAnnotationRow,
-  'matchStatus' | 'matchedMz' | 'matchedIndex' | 'massError' | 'avgIntensity'
-> {
+function coarseInvalid(): typeof EMPTY_MATCH {
   return { ...EMPTY_MATCH, matchStatus: 'invalid' }
 }
 
@@ -548,6 +649,7 @@ export function matchAnnotations(
         ...r,
         altFormulas: EMPTY_ALT_FORMULAS,
         altAdducts: EMPTY_ALT_ADDUCTS,
+        ...EMPTY_MATCH,
         matchStatus: 'matched',
         matchedMz,
         matchedIndex: idx,
@@ -721,7 +823,14 @@ function mergeInto(
 
 // ---- Sorting --------------------------------------------------------------
 
-export type AnnotationSortKey = 'name' | 'expMz' | 'massError' | 'avgIntensity'
+export type AnnotationSortKey =
+  | 'name'
+  | 'expMz'
+  | 'massError'
+  | 'avgIntensity'
+  | 'compositeScore'
+  | 'fdr'
+  | 'adductScore'
 export type AnnotationSortDir = 'asc' | 'desc'
 
 /** Sort matched rows by a column, pinning null/NaN numeric values to the bottom
@@ -756,7 +865,7 @@ export function sortMatchedRows(
 
 function numericSortField(
   r: MatchedAnnotationRow,
-  key: 'expMz' | 'massError' | 'avgIntensity',
+  key: 'expMz' | 'massError' | 'avgIntensity' | 'compositeScore' | 'fdr' | 'adductScore',
 ): number | null {
   const v = r[key]
   return v == null || !Number.isFinite(v) ? null : v
@@ -769,6 +878,8 @@ export interface MatchStatusCounts {
   matched: number
   unmatched: number
   invalid: number
+  /** Level 4（精确质量 + 同位素支持）的行数，供"仅 Level 4"过滤 chip 用。 */
+  level4: number
 }
 
 /** Count match statuses across rows. Shared by the worker and the main-thread
@@ -776,10 +887,11 @@ export interface MatchStatusCounts {
  *  build the badge counts (and never proxies hundreds of thousands of rows by
  *  reading them through a reactive ref). */
 export function countMatchStatuses(rows: MatchedAnnotationRow[]): MatchStatusCounts {
-  const c: MatchStatusCounts = { total: 0, matched: 0, unmatched: 0, invalid: 0 }
+  const c: MatchStatusCounts = { total: 0, matched: 0, unmatched: 0, invalid: 0, level4: 0 }
   for (const r of rows) {
     c.total++
     c[r.matchStatus]++
+    if (r.level === 4) c.level4++
   }
   return c
 }
@@ -824,6 +936,14 @@ export function matchAndCollapse(
     inputs.mode,
   )
   const collapsed = collapseRows(matched)
+  // Tier-1 打分 + target-decoy FDR（纯 MatchInputs 字段的函数：worker 缓存
+  // 比对自动携带有效性，主线程 fallback 同源）。折叠后打分——只对展示行
+  // 付出成本，且证据始终挂在代表行自身的 formulaIon 上。
+  scoreRows(collapsed.rows, inputs)
+  assignFdr(collapsed.rows, inputs, inputs.coarse?.polarity ?? null)
+  // 多加合物加成在 FDR 之后（见 applyAdductBonus 的注释：decoy 无法成组，
+  // 先加成会系统性低估 q 值）。聚类切割用固定 ppm 超参，不随 inputs 容差
+  applyAdductBonus(collapsed.rows)
   return {
     rows: collapsed.rows,
     statusCounts: countMatchStatuses(collapsed.rows),
@@ -875,13 +995,25 @@ function csvCell(value: string): string {
 /**
  * Build the CSV text for exporting matched annotations. Only rows with
  * matchStatus 'matched' are included; columns pair the experimental m/z with
- * the annotation name, then the matched peak m/z and the mass difference in
- * the active unit. `rows` are written in the order given (pass the sorted
- * list to mirror the on-screen order).
+ * the annotation name, then the matched peak m/z, the mass difference in the
+ * active unit, and the Tier-1 evidence scores (mass / isotope / composite /
+ * FDR / level). Passing a `spatial` map (row id → Tier-2 空间分) appends
+ * Chaos/Spatial/Spectral/MSM columns for the scored subset. `rows` are written
+ * in the order given (pass the sorted list to mirror the on-screen order).
  */
+export interface AnnotationSpatialExport {
+  chaos: number | null
+  spatial: number | null
+  spectral: number | null
+  msm: number | null
+  /** 组内多加合物图像的最大 Pearson（< 0.7 = 空间不共定位） */
+  adductCorr?: number | null
+}
+
 export function buildAnnotationExportCsv(
   rows: MatchedAnnotationRow[],
   mode: ToleranceMode,
+  spatial?: Map<number, AnnotationSpatialExport> | null,
 ): string {
   const header = [
     'Name',
@@ -892,24 +1024,46 @@ export function buildAnnotationExportCsv(
     'Matched m/z',
     `Mass Difference (${mode})`,
     'Avg Intensity',
+    'Mass Score',
+    'Isotope Score',
+    'Adduct Score',
+    'Composite',
+    'FDR (q)',
+    'Level',
+    'Adduct Peers',
   ]
+  if (spatial && spatial.size > 0) header.push('Chaos', 'Spatial', 'Spectral', 'MSM', 'Adduct Corr')
   const lines = [header.join(',')]
   for (const r of rows) {
     if (r.matchStatus !== 'matched') continue
-    lines.push(
-      [
-        csvCell(r.name),
-        csvCell(r.candidates.join('; ')),
-        csvCell(r.formulaIon ?? ''),
-        csvCell(r.ionType ?? ''),
-        r.expMz.toFixed(4),
-        r.matchedMz != null ? r.matchedMz.toFixed(4) : '',
-        r.massError != null ? r.massError.toFixed(mode === 'ppm' ? 2 : 4) : '',
-        r.avgIntensity != null && Number.isFinite(r.avgIntensity)
-          ? r.avgIntensity.toFixed(2)
-          : '',
-      ].join(','),
-    )
+    const cells = [
+      csvCell(r.name),
+      csvCell(r.candidates.join('; ')),
+      csvCell(r.formulaIon ?? ''),
+      csvCell(r.ionType ?? ''),
+      r.expMz.toFixed(4),
+      r.matchedMz != null ? r.matchedMz.toFixed(4) : '',
+      r.massError != null ? r.massError.toFixed(mode === 'ppm' ? 2 : 4) : '',
+      r.avgIntensity != null && Number.isFinite(r.avgIntensity) ? r.avgIntensity.toFixed(2) : '',
+      r.massScore != null ? r.massScore.toFixed(4) : '',
+      r.isotopeScore != null ? r.isotopeScore.toFixed(4) : '',
+      r.adductScore != null ? r.adductScore.toFixed(4) : '',
+      r.compositeScore != null ? r.compositeScore.toFixed(4) : '',
+      r.fdr != null ? r.fdr.toFixed(4) : '',
+      r.level != null ? String(r.level) : '',
+      csvCell(r.adductPeers.join('; ')),
+    ]
+    if (spatial && spatial.size > 0) {
+      const s = spatial.get(r.id) ?? null
+      cells.push(
+        s && s.chaos != null ? s.chaos.toFixed(4) : '',
+        s && s.spatial != null ? s.spatial.toFixed(4) : '',
+        s && s.spectral != null ? s.spectral.toFixed(4) : '',
+        s && s.msm != null ? s.msm.toFixed(4) : '',
+        s && s.adductCorr != null ? s.adductCorr.toFixed(4) : '',
+      )
+    }
+    lines.push(cells.join(','))
   }
   return lines.join('\r\n')
 }

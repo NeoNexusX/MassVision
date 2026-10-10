@@ -15,7 +15,7 @@ const { toasts, removeToast } = useToast()
       <div
         v-for="toast in toasts"
         :key="toast.id"
-        class="alert shadow-lg pointer-events-auto flex items-center justify-between min-w-[300px] py-3 px-4 rounded-lg border backdrop-blur-md"
+        class="alert shadow-lg pointer-events-auto flex items-center justify-between w-full sm:w-auto sm:min-w-[300px] py-3 px-4 rounded-lg border backdrop-blur-md"
         :class="{
           'alert-info text-blue-700 bg-blue-50/95 border-blue-200 dark:bg-blue-900/90 dark:text-blue-100 dark:border-blue-700':
             toast.type === 'info',
@@ -29,11 +29,11 @@ const { toasts, removeToast } = useToast()
       >
         <div class="flex items-center gap-3">
           <SvgIcon :type="toast.type" class="stroke-current shrink-0 w-6 h-6" />
-          <span class="text-sm font-medium">{{ toast.message }}</span>
+          <span class="kawaru-text-87 font-medium">{{ toast.message }}</span>
         </div>
         <button
           @click="removeToast(toast.id)"
-          class="btn btn-xs btn-ghost btn-circle opacity-50 hover:opacity-100"
+          class="btn btn-xs btn-ghost btn-circle opacity-50 hover:opacity-100 kawaru-text-68"
         >
           <SvgIcon type="close" class="h-4 w-4" />
         </button>

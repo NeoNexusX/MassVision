@@ -2,21 +2,18 @@ import { useCountdown } from '@/shared/composables/useCountdown'
 import { sendEmailCode } from '@/shared/auth/authApi'
 import { useToast } from '@/shared/composables/useToast'
 import { getConfig } from '@/shared/config/runtimeConfig'
-
-/** Toast shown when the per-session send-attempt limit is reached. */
-export const SEND_CODE_EXHAUSTED_MESSAGE =
-  'Maximum verification code requests reached for this session. Please try again later.'
-
-/** Fallback toast when the send request fails without an error message. */
-export const SEND_CODE_FAILED_MESSAGE = 'Failed to send verification code'
+import { t } from '@/i18n'
 
 export interface UseSendEmailCodeOptions {
   /** sessionStorage key used by useCountdown for attempt limiting */
   sessionKey: string
   /** `purpose` field sent to the backend ('register' | 'reset_password' | 'update' | ...) */
   purpose: string
-  /** Toast text shown after a successful send */
-  successMessage: string
+  /**
+   * Toast text shown after a successful send. Pass a getter (e.g. `() => t('...')`) so the
+   * text is resolved at send time in the current UI language, not when the composable is created.
+   */
+  successMessage: string | (() => string)
 }
 
 export interface SendEmailCodeCall {
@@ -49,7 +46,7 @@ export function useSendEmailCode({ sessionKey, purpose, successMessage }: UseSen
     { validate, setLoading, onSuccess, onError }: SendEmailCodeCall,
   ): Promise<void> => {
     if (isExhausted.value) {
-      showToast(SEND_CODE_EXHAUSTED_MESSAGE, 'error')
+      showToast(t('auth.code.exhausted'), 'error')
       return
     }
 
@@ -58,12 +55,12 @@ export function useSendEmailCode({ sessionKey, purpose, successMessage }: UseSen
     setLoading(true)
     try {
       await sendEmailCode(email, purpose)
-      showToast(successMessage, 'success')
+      showToast(typeof successMessage === 'function' ? successMessage() : successMessage, 'success')
       start()
       onSuccess?.()
     } catch (error: any) {
       onError?.(error)
-      showToast(error?.message || SEND_CODE_FAILED_MESSAGE, 'error')
+      showToast(error?.message || t('auth.code.failed'), 'error')
     } finally {
       setLoading(false)
     }

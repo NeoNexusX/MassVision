@@ -19,7 +19,12 @@ i {
 }
 
 :root {
-  font-family: 'Poppins', system-ui, sans-serif;
+  /* 拉丁字形用 Poppins，中文落到系统 CJK 字体，不下载 CJK 网络字体（动辄数 MB）：
+     PingFang SC = 苹方（macOS / iOS），Microsoft YaHei = 微软雅黑（Windows），
+     Noto Sans CJK SC / Source Han Sans SC = 思源黑体（Linux / Android）。
+     Poppins 必须排第一，否则英文会被 CJK 字体自带的拉丁字形接管。 */
+  font-family: 'Poppins', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC',
+    'Source Han Sans SC', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -27,6 +32,16 @@ i {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* 中文界面放开字重合成：部分系统 CJK 字体没有粗体字面，font-synthesis:none 下
+   font-weight:600 的标题会完全不加粗。<html lang> 由 useLocale 维护。
+   <i> 上面单独设了 font-synthesis:style，中文下要把 weight 一并带上。 */
+:root:lang(zh-CN) {
+  font-synthesis: weight;
+}
+i:lang(zh-CN) {
+  font-synthesis: weight style;
 }
 
 /* 品牌渐变取色：主色 → 主色提亮。标题文字 / 强调按钮统一用此 token，
@@ -43,29 +58,151 @@ i {
   -webkit-text-fill-color: transparent;
 }
 
-/* 全局统一的流体输入框排版 */
-.fluid-input {
-  font-size: clamp(0.9rem, 0.9rem + 0.4vw, 1.2rem);
+/* ============================================================================
+   全局字号档位 kawaru-text-<百分比>
+
+   档位 = calc(var(--kawaru-fs) * k)，k 是编译期常量，--kawaru-fs 只在 :root 声明、
+   任何地方都不得覆盖。于是同一档位在 DOM 任意深度都是同一像素值——这是它存在的
+   全部意义：取代「容器定 clamp 基准 + 后代写 em」，后者会逐层叠乘，
+   同一个 text-[1em] 在不同深度解析出不同大小。
+
+   档位像素（@390 / @1320 及以上，基准 16 → 20px，1320px 后封顶）：
+     50=8.1/10.0   62=10.2/12.5   68=11.2/13.8   75=12.2/15.0   81=13.2/16.3
+     87=14.2/17.5  95=15.5/19.0  100=16.3/20.0  112=18.3/22.5  125=20.4/25.0
+    150=24.4/30.0 187=30.5/37.5  240=39.1/48.0
+
+   ⚠ 产物里 .kawaru-text-* 排在原生 .text-sm/.text-base/… 之前，两者特指度相同，
+   同一元素上并存时原生的赢、档位被静默吃掉。所以：迁移必须替换而非追加；
+   共享组件根节点别写死 text-*（否则调用方传的档位无效，见 StatusBadge）。
+   两个 kawaru-text-* 并存同理按源码顺序，别依赖覆盖。
+
+   不适用（勿强行套档位）：
+   - 依赖 vh 的整屏展示字（Hero）：档位只跟视口宽走，复刻不了高度约束。
+   - 依赖 cqi/cqw 的组件（DeveloperCard、FeatureGallery 悬停词、IonImageViewer
+     缩放控件）：要跟随自身容器宽度。
+   - 纯布局 em 盒子（h-[4.5em]、gap-[0.5em]）：读所在元素字号，与本体系正交。
+   ============================================================================ */
+:root {
+  --kawaru-fs: clamp(1rem, 0.92rem + 0.4vw, 1.25rem);
 }
 
-/* 供流体输入框使用的图标大小 */
-.icon-fluid {
-  width: 1.5em;
-  height: 1.5em;
+@utility kawaru-text-50 {
+  font-size: calc(var(--kawaru-fs) * 0.5);
+  line-height: 1.4;
 }
-
-/* 页面字号沿用导航栏的流体基准，标题与副标题在手机端主动收敛。 */
-.page-type {
-  font-size: clamp(1rem, 0.92rem + 0.4vw, 1.25rem);
+@utility kawaru-text-62 {
+  font-size: calc(var(--kawaru-fs) * 0.625);
+  line-height: 1.4;
 }
-
-.page-title {
-  font-size: clamp(2rem, 1.5rem + 1.7vw, 3rem);
+@utility kawaru-text-68 {
+  font-size: calc(var(--kawaru-fs) * 0.6875);
+  line-height: 1.45;
+}
+@utility kawaru-text-75 {
+  font-size: calc(var(--kawaru-fs) * 0.75);
+  line-height: 1.45;
+}
+@utility kawaru-text-81 {
+  font-size: calc(var(--kawaru-fs) * 0.8125);
+  line-height: 1.5;
+}
+@utility kawaru-text-87 {
+  font-size: calc(var(--kawaru-fs) * 0.875);
+  line-height: 1.5;
+}
+@utility kawaru-text-95 {
+  font-size: calc(var(--kawaru-fs) * 0.95);
+  line-height: 1.5;
+}
+@utility kawaru-text-100 {
+  font-size: var(--kawaru-fs);
+  line-height: 1.5;
+}
+@utility kawaru-text-112 {
+  font-size: calc(var(--kawaru-fs) * 1.125);
+  line-height: 1.4;
+}
+@utility kawaru-text-125 {
+  font-size: calc(var(--kawaru-fs) * 1.25);
+  line-height: 1.35;
+}
+@utility kawaru-text-150 {
+  font-size: calc(var(--kawaru-fs) * 1.5);
+  line-height: 1.25;
+}
+@utility kawaru-text-187 {
+  font-size: calc(var(--kawaru-fs) * 1.875);
+  line-height: 1.2;
+}
+@utility kawaru-text-240 {
+  font-size: calc(var(--kawaru-fs) * 2.4);
   line-height: 1.15;
 }
 
-.page-subtitle {
-  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.25rem);
+/* ----------------------------------------------------------------------------
+   具名特例 kawaru-text-<语义名> —— 等比阶梯装不下的字号，两类：
+   (a) 曲线形状不同：依赖 vh，或 vw 斜率远陡于全局基准（整屏展示字）。
+   (b) 标注「单位」的：不是给自己用的字号，而是给后代 em 盒子当参照。
+       后代在这些容器里用 em 是合法的——这就是它们存在的理由。
+
+   新增只许加在这里，模板里不要再写裸 text-[clamp(...)]，例外集中一处才可审计。
+   只设 font-size 不设 line-height，交给调用处的 leading-*（产物里排在本区之后）。
+   ---------------------------------------------------------------------------- */
+
+/* Hero 主标题（单位）。min(…, 9.5vh) 让矮屏按高度收敛，保证整屏放得下。 */
+@utility kawaru-text-home-title {
+  font-size: clamp(2.5rem, min(12vw, 9.5vh), 8rem);
+}
+
+/* FooterScene "The Team"（单位）。48→144px，斜率远陡于基准。 */
+@utility kawaru-text-home-team {
+  font-size: clamp(3rem, 12vw, 9rem);
+}
+
+/* 场景级 h2（StatsScene "Stats" 等）。28.8px→56px。 */
+@utility kawaru-text-home-scene {
+  font-size: clamp(1.8rem, 1rem + 4vw, 3.5rem);
+}
+
+/* 环形图卡片（单位）。给 DonutStatSection 的 h-[4.5em] 图表盒当高度参照。 */
+@utility kawaru-text-home-donut {
+  font-size: clamp(1rem, 12vw, 4rem);
+}
+
+/* FeatureGallery（单位）。给悬停词 text-[min(20.5cqw,2.5em)] 当 em 参照——
+   那处要跟容器宽度(cqw)走，档位替代不了。 */
+@utility kawaru-text-home-gallery {
+  font-size: clamp(0.8rem, 1.1vw, 2rem);
+}
+
+/* VersionTimeline（单位）。给 .tl-icon{2em}、hr{min-height:4em}、
+   .timeline-start 的 gap/padding/min-width 等布局 em 当参照。 */
+@utility kawaru-text-home-timeline {
+  font-size: clamp(0.8rem, 1.1vw, 3rem);
+}
+
+/* 页面主标题。斜率 1.7vw 远陡于基准的 0.4vw，等比档位两头不靠
+   （240 档移动端 +22%、187 档桌面 -22%）。 */
+@utility kawaru-text-page-title {
+  font-size: clamp(2rem, 1.5rem + 1.7vw, 3rem);
+}
+
+/* 移动端导航抽屉三档。斜率 4.2/3/2.5vw 远陡于基准：窄屏要把字撑大到可点击。 */
+@utility kawaru-text-drawer-brand {
+  font-size: clamp(1.4rem, 4.2vw, 2rem);
+}
+@utility kawaru-text-drawer-group {
+  font-size: clamp(0.95rem, 3vw, 1.4rem);
+}
+@utility kawaru-text-drawer-item {
+  font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+}
+
+/* 表单字段图标。字号用数字档位就够（控件文字 87、标签 95），
+   但图标是「尺寸」不是「字号」，数字档位表达不了，故单列。 */
+@utility kawaru-field-icon {
+  width: calc(var(--kawaru-fs) * 1.45);
+  height: calc(var(--kawaru-fs) * 1.45);
 }
 
 /* ---------- 场景叙事：进场动画（v-reveal 指令）---------- */

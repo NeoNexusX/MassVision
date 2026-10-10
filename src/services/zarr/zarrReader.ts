@@ -4,9 +4,11 @@
  * Handles single- and multi-chunk arrays of any dimensionality (1D/2D/3D+).
  * All chunks are fetched in parallel through the caller-supplied `fetchChunk`
  * (one OSS GET + decodePayload per chunk-grid coordinate), then reassembled;
- * edge chunks smaller than chunk_shape are handled per the v3 spec (stored
- * unpadded). Pure (no instance state, no network) - fetching stays in each
- * store via the shared OssClient.
+ * edge chunks are read in either layout writers use - spec-compliant unpadded
+ * (actual size) or padded to the full chunk_shape (detected by payload size;
+ * last-dimension padding interleaves fill values with real data, so the
+ * strides must match the stored layout). Pure (no instance state, no
+ * network) - fetching stays in each store via the shared OssClient.
  */
 
 import { bytesPerElement } from './zarrDtype'
@@ -30,16 +32,18 @@ export async function readFullArray(
   const chunkCounts = shape.map((s, i) => Math.ceil(s / chunkShape[i]!))
   const totalChunks = chunkCounts.reduce((a, b) => a * b, 1)
 
-  // Fast path: single chunk covering the whole array.
+  // Fast path: single chunk covering the whole array. Only take it when the
+  // payload is exactly the array size - an oversized payload may be a chunk
+  // padded to chunk_shape (see the padded-edge handling below) and needs the
+  // general path's stride logic to be read correctly.
   if (totalChunks === 1) {
     const payload = await fetchChunk(shape.map(() => 0))
+    if (payload.byteLength === totalBytes) return payload
     if (payload.byteLength < totalBytes) {
       throw new Error(
         `[zarrReader] ${label}: chunk too small (${payload.byteLength} < ${totalBytes} bytes)`,
       )
     }
-    // Truncate trailing padding if the writer left any.
-    return payload.byteLength === totalBytes ? payload : payload.subarray(0, totalBytes)
   }
 
   // Enumerate every chunk-grid coordinate (row-major over the grid).
@@ -76,10 +80,21 @@ export async function readFullArray(
       )
     }
 
+    // The v3 spec stores edge chunks unpadded, but some writers pad every
+    // chunk to the full chunk_shape (fill value in the unused tail). Padding
+    // in the LAST dimension interleaves fill values with real data, so the
+    // payload size tells the two layouts apart and the strides must match:
+    // padded chunks are laid out at full chunk_shape, unpadded at `actual`.
+    const fullChunkBytes = chunkShape.reduce((a, b) => a * b, 1) * bpe
+    const padded = chunkBytes < fullChunkBytes && payload.byteLength >= fullChunkBytes
+
     // Element strides (row-major) within this chunk.
     const chunkStrides = new Array<number>(ndim)
     chunkStrides[ndim - 1] = 1
-    for (let i = ndim - 2; i >= 0; i--) chunkStrides[i] = chunkStrides[i + 1]! * actual[i + 1]!
+    for (let i = ndim - 2; i >= 0; i--) {
+      const dimLen = padded ? chunkShape[i + 1]! : actual[i + 1]!
+      chunkStrides[i] = chunkStrides[i + 1]! * dimLen
+    }
 
     // Copy row by row along the last dim (contiguous in both buffers).
     const lastBytes = actual[ndim - 1]! * bpe

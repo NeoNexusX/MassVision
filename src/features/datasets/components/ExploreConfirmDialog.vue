@@ -16,20 +16,20 @@ const emit = defineEmits<{
 <template>
   <ConfirmDialog
     :open="open"
-    title="Prepare Visualization"
-    confirm-label="Generate"
+:title="$t('datasets.explore.title')"
+    :confirm-label="$t('datasets.explore.confirm')"
     :loading="loading"
     @confirm="emit('confirm')"
     @cancel="emit('cancel')"
   >
-    <span class="block mb-2">This dataset hasn't been prepared for visualization yet. We'll generate an optimized view so you can explore it interactively. This may take a while.</span>
+    <span class="block mb-2">{{ $t('datasets.explore.body') }}</span>
     <a
       href="/docs/guide/view-data"
       target="_blank"
       rel="noopener noreferrer"
-      class="link link-primary text-sm"
+      class="link link-primary kawaru-text-87"
     >
-      Learn more about viewing data
+      {{ $t('datasets.explore.learnMore') }}
     </a>
   </ConfirmDialog>
 </template>

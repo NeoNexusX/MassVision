@@ -4,11 +4,12 @@ import BaseScene from './BaseScene.vue'
 import FeatureGallery from './FeatureGallery.vue'
 import VersionTimeline from './VersionTimeline.vue'
 import { getContent } from '@/features/home/config/contentConfig'
+import type { LocalizedText } from '@/shared/config/localizedText'
 
 const { features, hero, timeline } = getContent()
 
 /** 画廊项 = 配置项，但 image 已合并好回退、必为 string */
-type FeatureCard = { word: string; title?: string; desc?: string; image: string }
+type FeatureCard = { word: string; title?: LocalizedText; desc?: LocalizedText; image: string }
 
 /** 合并图片回退：每项自带 image 优先，留空则取 hero.gallery 同序号图 */
 const items = computed<FeatureCard[]>(() =>

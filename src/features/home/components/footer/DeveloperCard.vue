@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { localized } from '@/shared/config/localizedText'
 import type { TeamMember } from '@/features/home/config/contentConfig'
 
 /**
@@ -67,14 +68,14 @@ const initials = computed(() =>
           />
         </div>
         <!-- 职位 -->
-        <div class="member-role w-full truncate font-medium text-base-content/70">{{ member.role }}</div>
+        <div class="member-role w-full truncate font-medium text-base-content/70">{{ localized(member.role) }}</div>
         <!-- 学校 -->
         <div
           v-if="member.school"
           class="member-sub flex items-center justify-center gap-[0.4em] text-base-content/60 "
         >
           <SvgIcon type="institution" class="w-[1.5em] shrink-0" />
-          <div class="truncate leading-none">{{ member.school }}</div>
+          <div class="truncate leading-none">{{ localized(member.school) }}</div>
         </div>
         <!-- 学位 -->
         <div
@@ -82,7 +83,7 @@ const initials = computed(() =>
           class="member-meta flex items-center justify-center gap-[0.4em] text-base-content/80"
         >
           <SvgIcon type="research" class="w-[1.5em] shrink-0 text-primary" />
-          <div class="truncate leading-none">{{ member.degree }}</div>
+          <div class="truncate leading-none">{{ localized(member.degree) }}</div>
         </div>
       </div>
     </div>

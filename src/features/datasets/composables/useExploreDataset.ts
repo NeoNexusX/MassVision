@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router'
 import { rawConvertProcess } from '@/features/datasets/api/datasetApi'
 import { parseAlgorithms } from '@/shared/utils/methodsNormalize'
 import { useToast } from '@/shared/composables/useToast'
+import { t } from '@/i18n'
 import { useAuthStore } from '@/shared/auth/authStore'
 import { extractBackendError } from '@/shared/api/httpClient'
 import type { File } from '@/features/datasets/types/dataset'
@@ -31,7 +32,7 @@ export function useExploreDataset() {
     if (!ds) return
     isConverting.value = true
     try {
-      const result = await rawConvertProcess(ds.id)
+      const result = await rawConvertProcess(ds.publicId)
       const runId = result.id
       // 更新本地数据集记录，下次点击直接进 View
       ds.defaultRunId = runId
@@ -41,18 +42,22 @@ export function useExploreDataset() {
       const isOwner = currentUserId != null && result.user_id === currentUserId
 
       // 不管是首次还是重复调用，成功提示都一样
-      showToast('Task is in progress, please wait.', 'success')
+      showToast(t('datasets.explore.inProgress'), 'success')
 
       if (isOwner) {
         // 创建者 → 跳转到 Workspace
         router.push({
           name: 'Workspace',
-          state: { runId, datasetName: ds.filename || ds.name, fileId: ds.id },
+          state: { runId, datasetName: ds.filename || ds.name, filePublicId: ds.publicId },
         })
       }
     } catch (error) {
-      const message = extractBackendError(error, 'Failed to create visualization task')
-      showToast(message, 'error')
+      // 404 = 源文件已不存在或正在删除（publicId 失效）
+      if ((error as { response?: { status?: number } })?.response?.status === 404) {
+        showToast(t('common.feedback.fileMissing'), 'error')
+      } else {
+        showToast(extractBackendError(error, t('common.feedback.createFailed')), 'error')
+      }
       console.error('raw-convert failed:', error)
     } finally {
       isConverting.value = false
@@ -66,8 +71,8 @@ export function useExploreDataset() {
    * - 有 defaultRunId → 直接跳转可视化工作台
    * - 无 defaultRunId → 弹出确认对话框创建新任务
    */
-  const handleExplore = (fileId: string, datasets: File[]) => {
-    const ds = datasets.find((d) => d.id === fileId)
+  const handleExplore = (publicId: string, datasets: File[]) => {
+    const ds = datasets.find((d) => d.publicId === publicId)
     if (!ds) return
 
     if (ds.defaultRunId) {
@@ -77,7 +82,7 @@ export function useExploreDataset() {
         state: {
           runId: String(ds.defaultRunId),
           datasetName: ds.filename || ds.name,
-          fileId: Number(ds.id),
+          filePublicId: ds.publicId,
           // defaultRunId 恒为 raw-convert 可视化任务（rawConvertProcess 创建），
           // 其 params_json 约定为 '__RAW_CONVERT__'；与 workspace 列表解析出的 methods 一致
           methods: parseAlgorithms('__RAW_CONVERT__'),

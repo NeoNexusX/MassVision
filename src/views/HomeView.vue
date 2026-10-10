@@ -4,7 +4,7 @@
     ref="rootRef"
     class="home-scroll bg-base-100 text-base-content"
     tabindex="0"
-    aria-label="MassVision home scenes"
+    :aria-label="$t('home.scenes.ariaLabel')"
   >
     <HeroScene :class="{ 'is-active': activeSceneIndex === 0 }" />
     <FeatureScene :class="{ 'is-active': activeSceneIndex === 1 }" />

@@ -1,0 +1,60 @@
+{
+  "home": {
+    "actions": {
+      "join": "Join to start",
+      "datasets": "View Datasets"
+    },
+    "stats": {
+      "title": "Stats",
+      "datasetsTotal": "{count} datasets total",
+      "totalDatasets": "Total Datasets",
+      "totalDownloads": "Total Downloads",
+      "websiteVisits": "Website Visits",
+      "organismParts": "Organism Parts",
+      "ionSourceTypes": "Ion Source Types",
+      "loadFailed": {
+        "organism": "Failed to load organism stats",
+        "category": "Failed to load dataset category stats",
+        "ionSource": "Failed to load ion source stats",
+        "analyzer": "Failed to load analyzer stats",
+        "platform": "Failed to load platform overview",
+        "visits": "Failed to load visits stats"
+      },
+      "tooltip": "{count} dataset ({percent}%) | {count} datasets ({percent}%)"
+    },
+    "heatmap": {
+      "summary": "Commit activity summary",
+      "total": "Total:",
+      "activeDays": "Active days:",
+      "lastDays": "Last {days} days",
+      "branch": "Branch:",
+      "commits": "commits",
+      "rateLimited": "GitHub API rate limited (remaining {remaining}), resets at {time}",
+      "unknownTime": "unknown time",
+      "loadFailed": "Failed to load GitHub activity",
+      "tooltip": "{date}: {count} commit | {date}: {count} commits",
+      "defaultTitle": "{owner}/{repo} Commit Activity",
+      "less": "Less",
+      "more": "More"
+    },
+    "footer": {
+      "team": "The Team",
+      "tagline": "Built by people who love science and engineering.",
+      "poweredBy": "Powered by",
+      "copyright": "Copyright © {year} - All rights reserved by Bionet",
+      "website": "Bionet Lab Website",
+      "email": "Bionet Lab Email",
+      "wechat": "WeChat Official Account",
+      "github": "Join us on GitHub",
+      "recruitment": "Join the Lab",
+      "computingFramework": "Computing Framework",
+      "aliyun": "Aliyun"
+    },
+    "scenes": {
+      "ariaLabel": "MassVision home scenes"
+    },
+    "team": {
+      "carousel": "Development team"
+    }
+  }
+}

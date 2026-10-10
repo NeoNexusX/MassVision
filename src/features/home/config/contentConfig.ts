@@ -16,6 +16,8 @@
  * runtimeConfig 的 `_config` 求值时序设的，与这里无关）。
  */
 
+import type { LocalizedText } from '@/shared/config/localizedText'
+
 /**
  * 功能展示项（FeatureScene 联动画廊的「联动单元」：词语 + 图片 + 卡片文案，按数组顺序一一对应）。
  *
@@ -29,9 +31,9 @@ export interface FeatureItem {
   /** 画廊图片上方的词，如 'OPEN' */
   word: string
   /** 左侧卡片标题 */
-  title?: string
+  title?: LocalizedText
   /** 左侧卡片描述 */
-  desc?: string
+  desc?: LocalizedText
   /** 图片 URL；留空回退到 hero.gallery 同序号图 */
   image?: string
 }
@@ -44,11 +46,11 @@ export interface FeatureItem {
  */
 export interface TimelineItem {
   /** 时间节点 */
-  date: string
+  date: LocalizedText
   /** 版本号 */
   version: string
   /** 版本更新特性 */
-  features: string[]
+  features: LocalizedText[]
 }
 
 /**
@@ -67,11 +69,11 @@ export interface TeamMember {
   /** 姓名 */
   name: string
   /** 职位 / 角色 */
-  role: string
+  role: LocalizedText
   /** 学位，如 'Ph.D.' / 'M.Sc.' / 'B.Sc.' */
-  degree?: string
+  degree?: LocalizedText
   /** 学校 / 机构 */
-  school?: string
+  school?: LocalizedText
   /** 头像 URL（OSS 链接）；可选 */
   avatar?: string
   /** 个人主页链接；填写后点击卡片跳转 */
@@ -89,7 +91,7 @@ export interface GithubHeatmapConfig {
   /** 统计最近多少天，默认 365 */
   days?: number
   /** 热力图标题；缺省时显示 "{owner}/{repo} Commit Activity" */
-  title?: string
+  title?: LocalizedText
   /** 点击标题跳转的仓库页面地址；缺省时标题不可点击 */
   repoUrl?: string
   /** 热力图朝向：'auto'（大屏纵向/小屏横向，默认）| 'horizontal' | 'vertical' */
@@ -117,7 +119,7 @@ export interface HomeContent {
   /** 首屏 Hero 区 */
   hero: {
     /** 轮播展示的标语（每行一句，可含符号，如 "FREE ∞"） */
-    taglines: string[]
+    taglines: LocalizedText[]
     /** 悬停画廊：一组图片 URL，横向并排，悬停某张时展开放大；留空则不显示 */
     gallery?: string[]
   }

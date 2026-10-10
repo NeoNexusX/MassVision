@@ -18,6 +18,13 @@ coverage
 dist-docs
 docs/.vitepress/cache
 docs/.vitepress/dist
+docs/.vitepress/.temp
+
+# AI 审查工具的本地产物
+.codex-review/
+
+# MassBank 离线索引构建的本地产物（下载缓存/重试脚本，见 build-massbank-index.mjs）
+scripts/.massbank-*
 
 # Editor directories and files
 .vscode/*
@@ -33,6 +40,22 @@ docs/.vitepress/dist
 public/QQ_*.png
 public/combin.zarr/
 public/reference/
+public/前端对接说明.md
+
+# AI Agent 设计文档与注释打分方案（本地参考，不入库）
+/ANNOTATION-SCORING.md
+/注释多证据打分方案.md
+public/AI Agent 架构总结.md
+public/AI-Agent-BYOK配置方案.md
+public/AI-Agent代码目录结构说明.md
+
+# 谱图/通路离线索引（体积大不入库，由 scripts/build-*-index.mjs 本地生成）
+public/data/
+
+# 冒烟测试临时脚本/截图（自标注「跑完即删」）与本地二进制参考文件
+/smoke-tmp.mjs
+/smoke-assistant-tmp.png
+*.pptx
 
 *.tsbuildinfo
 
@@ -57,3 +80,4 @@ playwright-report/
 *.njsproj
 *.sln
 *.sw?
+public/说明 (1).md

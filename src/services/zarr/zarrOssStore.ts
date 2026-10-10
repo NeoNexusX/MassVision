@@ -1,25 +1,25 @@
 /**
- * On-demand reader for MassFlow MSI Zarr v1.0 data stored in Alibaba Cloud OSS.
+ * On-demand reader for MassFlow MSI Zarr v1.1 data stored in Alibaba Cloud OSS.
  *
- * New format (v1.0) supports two data layouts:
- *   - ion-major continuous → ion image + mean spectrum (existing feature)
- *   - pixel-major processed → TIC image + per-pixel spectrum (new feature)
+ * Intensities live in up to two groups, each carrying row_axis + encoding
+ * attributes; the first one present is the main data group:
+ *   - ion_image/ (ion-major, continuous) → ion image + mean spectrum
+ *   - spectra/   (pixel-major) → processed: TIC image + per-pixel spectrum;
+ *     continuous (next to ion_image/): per-pixel spectrum + region comparison
  *
- * v1.1 keeps the same semantics but splits the single data/ group into
- * ion_image/ (ion-major, continuous) and/or spectra/ (pixel-major); the
- * reader picks the first group carrying row_axis + encoding attributes.
+ * The v1.0 layout (everything in a single data/ group) is not supported:
+ * init() rejects it with {@link ZarrIncompatibleError}.
  *
  * Layout:
- *   <root>/.zattrs              — root attributes (format, spatial_shape, etc.)
- *   <root>/metadata/.zattrs     — semantic metadata
+ *   <root>/zarr.json            — root attributes (format, spatial_shape, etc.)
+ *   <root>/metadata/zarr.json   — semantic metadata
  *   <root>/axes/coordinates     — (n_pixels, 3) uint32, pixel coordinates
  *   <root>/axes/mz              — shared m/z axis (continuous only)
- *   <root>/data/.zattrs         — row_axis + encoding   (v1.0)
- *   <root>/ion_image/.zattrs    — row_axis + encoding   (v1.1, continuous)
- *   <root>/spectra/.zattrs      — row_axis + encoding   (v1.1, pixel-major)
- *   <root>/<data>/intensity/    — 1D float32, flattened intensity values
- *   <root>/<data>/offsets/      — (n_rows+1,) int64, row boundary indices
- *   <root>/<data>/mz/           — per-point m/z (processed only)
+ *   <root>/ion_image/zarr.json  — row_axis=ion + encoding=continuous
+ *   <root>/spectra/zarr.json    — row_axis=pixel + encoding
+ *   <root>/<group>/intensity/   — 1D float32, flattened intensity values
+ *   <root>/<group>/offsets/     — (n_rows+1,) int64, row boundary indices
+ *   <root>/spectra/mz/          — per-point m/z (processed only)
  *   <root>/stats/mean_spectrum/ — optional, pre-computed mean spectrum
  *   <root>/stats/tic/           — optional, pre-computed TIC (both modes)
  *
@@ -51,6 +51,20 @@ import { decodePayload } from './zarrDecode'
 import { normalizeDtype, bytesPerElement, makeTypedArray } from './zarrDtype'
 import { readFullArray } from './zarrReader'
 
+// ---------- errors ----------
+
+/**
+ * The store is not in the MassFlow MSI Zarr v1.1 layout (e.g. a v1.0 single
+ * data/ group). The UI shows a localized "incompatible format" message for it
+ * instead of the raw reader error.
+ */
+export class ZarrIncompatibleError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ZarrIncompatibleError'
+  }
+}
+
 // ---------- main store ----------
 
 /**
@@ -78,8 +92,8 @@ export class ZarrOssStore {
   private oss: OssClient
   private folderPath: string
   private sourceLabel: string
-  /** Data group root: 'data' (v1.0) or 'ion_image' / 'spectra' (v1.1). */
-  private dataPath = 'data'
+  /** Main data group: the first of ion_image/ / spectra/ present. */
+  private dataPath: 'ion_image' | 'spectra' = 'ion_image'
   private _disposed = false
 
   // Mode detection
@@ -98,7 +112,7 @@ export class ZarrOssStore {
   private coordinatesMeta: ZarrV3ArrayMetadata | null = null
   private meanSpectrumMeta: ZarrV3ArrayMetadata | null = null
   private ticMeta: ZarrV3ArrayMetadata | null = null
-  // spectra 组（v1.1 双组布局的像素主序侧；v1.0 探测不到，保持 null）
+  // spectra 组（像素主序 + continuous 编码；processed 的 spectra 是主数据组，这里保持 null）
   private spectraIntensityMeta: ZarrV3ArrayMetadata | null = null
   private spectraOffsetsMeta: ZarrV3ArrayMetadata | null = null
 
@@ -343,9 +357,9 @@ export class ZarrOssStore {
       console.warn('[ZarrOssStore] stats/tic not available.')
     }
 
-    // spectra 组（v1.1 双组布局的像素主序侧，非致命）
-    // 与 readDataAttrs 的 dataPath 探测独立——dataPath 选了 ion_image/ 或
-    // data/，spectra 是另外那组，必须单独读。v1.0 单组布局没有它，只记日志。
+    // spectra 组（continuous 的像素主序侧，非致命）
+    // 与 readDataAttrs 的 dataPath 探测独立——continuous 的主数据组是 ion_image/，
+    // spectra 是另外那组，必须单独读；缺失只记日志，像素谱 / 区域比较用到时再报错。
     await this.probeSpectraGroup()
 
     if (import.meta.env.DEV) {
@@ -368,10 +382,10 @@ export class ZarrOssStore {
   }
 
   /**
-   * 非致命探测 spectra 组（v1.1 双组布局）。
+   * 非致命探测 spectra 组。
    * 与 dataPath 探测独立：主组可能是 ion_image/（continuous）或 spectra/
-   * （processed），这里找的是像素主序 + continuous 编码的那组，供区域比较
-   * 按谱取。探测失败（v1.0 无此组 / 属性不符）只记日志、两个字段置空。
+   * （processed），这里找的是像素主序 + continuous 编码的那组，供像素谱和
+   * 区域比较按谱取。探测失败（无此组 / 属性不符）只记日志、两个字段置空。
    */
   private async probeSpectraGroup(): Promise<void> {
     try {
@@ -461,12 +475,12 @@ export class ZarrOssStore {
     }
   }
 
-  /** Whether the pixel-major spectra group is available (v1.1 dual-group layout). */
+  /** Whether the pixel-major continuous spectra group is available. */
   get hasSpectra(): boolean {
     return !!this.spectraIntensityMeta && !!this.spectraOffsetsMeta
   }
 
-  /** Load spectra offsets (n_pixels+1 rows). v1.0 (no spectra group) returns null. */
+  /** Load spectra offsets (n_pixels+1 rows). Returns null without a continuous spectra group. */
   async loadSpectraOffsets(): Promise<number[] | null> {
     if (this._spectraOffsets) return this._spectraOffsets
     if (this.spectraOffsetsPending) return this.spectraOffsetsPending
@@ -681,8 +695,7 @@ export class ZarrOssStore {
 
       const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
       // Fetch chunks directly (bypass the LRU cache): each chunk is read once
-      // in this scan, so caching it would only evict other chunks. Mirrors
-      // streamIonStats.
+      // in this scan, so caching it would only evict other chunks.
       const batch: Promise<Float32Array | Float64Array>[] = []
       for (let ci = batchStart; ci < batchEnd; ci++) {
         batch.push(this.fetchAndDecode1DChunk(this.intensityPath, this.intensityMeta!, ci))
@@ -714,14 +727,18 @@ export class ZarrOssStore {
   }
 
   /**
-   * For pixel-major processed:
-   *   mz = data_mz[offsets[p]:offsets[p+1]]
-   *   intensity = data_intensity[offsets[p]:offsets[p+1]]
+   * Read one pixel's spectrum (pixel index in axes/coordinates order).
+   *
+   * processed (main group spectra/):
+   *   mz = spectra/mz[offsets[p]:offsets[p+1]]
+   *   intensity = spectra/intensity[offsets[p]:offsets[p+1]]
+   * continuous: see {@link getContinuousPixelSpectrum}.
+   *
+   * Returns null for an empty processed spectrum.
    */
   async getPixelSpectrum(pixelIndex: number): Promise<PixelSpectrum | null> {
-    if (this._dataMode !== 'processed') {
-      throw new Error('[ZarrOssStore] getPixelSpectrum only available in processed mode')
-    }
+    if (this._dataMode === 'continuous') return this.getContinuousPixelSpectrum(pixelIndex)
+    if (this._dataMode !== 'processed') throw new Error('[ZarrOssStore] call init() first')
 
     const offsets = await this.loadOffsets()
     const coords = await this.loadCoordinates()
@@ -752,6 +769,65 @@ export class ZarrOssStore {
       y,
       mz: mzSlice,
       intensity: intensitySlice,
+    }
+  }
+
+  /**
+   * Continuous pixel spectrum from the pixel-major spectra group:
+   *   intensity = spectra/intensity[offsets[p]:offsets[p+1]]
+   * Rows are dense - value k is the intensity of bin k of the shared axes/mz,
+   * which is returned as `mz` (shared reference, not copied). A row usually
+   * sits in one chunk, so this costs one or two OSS reads through the spectra
+   * chunk cache (shared with region comparison).
+   */
+  private async getContinuousPixelSpectrum(pixelIndex: number): Promise<PixelSpectrum> {
+    const intensityMeta = this.spectraIntensityMeta
+    if (!intensityMeta || !this.spectraOffsetsMeta) {
+      throw new Error(
+        '[ZarrOssStore] pixel spectra require the spectra group (row_axis=pixel, encoding=continuous)',
+      )
+    }
+
+    const [offsets, coords, mzAxis] = await Promise.all([
+      this.loadSpectraOffsets(),
+      this.loadCoordinates(),
+      this.loadMzAxis(),
+    ])
+    if (!offsets || !mzAxis) {
+      throw new Error('[ZarrOssStore] spectra offsets or m/z axis unavailable')
+    }
+
+    const nPixels = offsets.length - 1
+    if (pixelIndex < 0 || pixelIndex >= nPixels) {
+      throw new Error(
+        `[ZarrOssStore] pixelIndex out of range: ${pixelIndex} (total ${nPixels} pixels)`,
+      )
+    }
+
+    const start = offsets[pixelIndex]!
+    const end = offsets[pixelIndex + 1]!
+    // Same dense-row invariant streamRegionStatsBySpectra relies on.
+    if (end - start !== mzAxis.length) {
+      throw new Error(
+        `[ZarrOssStore] spectra row ${pixelIndex} has ${end - start} values, expected ${mzAxis.length} (m/z axis length)`,
+      )
+    }
+
+    const intensity = (await this.read1DSlice(
+      'spectra/intensity',
+      intensityMeta,
+      start,
+      end,
+      this.spectraChunkCache,
+      this.inFlightSpectra,
+    )) as Float32Array
+
+    return {
+      pixelIndex,
+      x: coords[pixelIndex * 3]!,
+      y: coords[pixelIndex * 3 + 1]!,
+      mz: mzAxis,
+      intensity,
     }
   }
 
@@ -831,17 +907,16 @@ export class ZarrOssStore {
   }
 
   /**
-   * Read the data group attributes and set {@link dataPath}.
+   * Read the main data group attributes and set {@link dataPath}.
    *
-   * v1.0 stores a single data group at data/. v1.1 splits it into
-   * ion_image/ (ion-major → continuous) and/or spectra/ (pixel-major).
-   * The first candidate group whose zarr.json carries row_axis + encoding
-   * wins; a candidate that is simply absent (not_found) falls through, while
-   * a group that exists but lacks the attributes is a hard error (same as
-   * the original data/-only behavior).
+   * v1.1 stores ion_image/ (ion-major → continuous) and/or spectra/
+   * (pixel-major). The first candidate group present wins; a candidate that
+   * is simply absent (not_found) falls through, while a group that exists but
+   * lacks row_axis + encoding is a hard error. Neither group present means an
+   * unsupported layout (v1.0 kept everything in a single data/ group).
    */
   private async readDataAttrs(): Promise<DataAttrs> {
-    const candidates = ['data', 'ion_image', 'spectra']
+    const candidates = ['ion_image', 'spectra'] as const
     for (const path of candidates) {
       let meta: ZarrV3GroupMetadata
       try {
@@ -873,8 +948,8 @@ export class ZarrOssStore {
         `[ZarrOssStore] ${path}/zarr.json missing required attributes (row_axis, encoding)`,
       )
     }
-    throw new Error(
-      '[ZarrOssStore] no data group found (tried data/, ion_image/, spectra/)',
+    throw new ZarrIncompatibleError(
+      '[ZarrOssStore] no MassFlow MSI Zarr v1.1 data group found (tried ion_image/, spectra/)',
     )
   }
 
@@ -1140,10 +1215,10 @@ export class ZarrOssStore {
   /**
    * Build a 1D pixel-index mask from a 2D raster mask.
    *
-   * The intensity array stores each ion's pixel values in the order of
-   * axes/coordinates (j-th value ↔ coordinates[j]). A 2D raster mask
-   * (indexed by [row * width + col]) must be converted to this 1D
-   * coordinates order so the streaming scan can look up mask[j] in O(1).
+   * Pixel-major rows (spectra/) are stored in the order of axes/coordinates
+   * (row j ↔ coordinates[j]). A 2D raster mask (indexed by
+   * [row * width + col]) must be converted to this 1D coordinates order so
+   * the region scans can look up mask[j] in O(1).
    */
   async buildPixelMask(raster: Uint8Array): Promise<{ mask: Uint8Array; pixelCount: number }> {
     const coords = await this.loadCoordinates()
@@ -1164,101 +1239,9 @@ export class ZarrOssStore {
   }
 
   /**
-   * Stream through ALL intensity chunks and accumulate per-ion statistics
-   * (sum, count of non-zero pixels) for one or more pixel masks.
-   *
-   * For each non-zero intensity value at global index g:
-   *   ion   = the i where offsets[i] <= g < offsets[i+1]  (monotonic cursor)
-   *   pixel = g - offsets[ion]  (pixel index j, same j as in the mask)
-   *   For each region r: if mask[r][j], accumulate sum/count.
-   *
-   * Chunks are fetched directly (no LRU cache) to avoid polluting the small
-   * cache used by single-ion image loads. In-flight dedup is not needed -
-   * each chunk is read exactly once in the sequential scan.
-   */
-  async streamIonStats(
-    masks: Uint8Array[],
-    onProgress?: (done: number, total: number) => void,
-    isCancelled?: () => boolean,
-  ): Promise<{ sum: Float64Array; count: Int32Array }[]> {
-    if (this._dataMode !== 'continuous') {
-      throw new Error('[ZarrOssStore] streamIonStats only available in continuous mode')
-    }
-    if (!this.intensityMeta || !this.offsetsMeta) {
-      throw new Error('[ZarrOssStore] call init() first')
-    }
-    if (!masks.length) return []
-
-    const offsets = await this.loadOffsets()
-    if (this._disposed) return []
-    const nIons = offsets.length - 1
-    const maskLen = masks[0]!.length
-
-    // Per-region accumulators
-    const results = masks.map(() => ({
-      sum: new Float64Array(nIons),
-      count: new Int32Array(nIons),
-    }))
-
-    const cs = this.intensityMeta.chunk_grid.configuration.chunk_shape[0]!
-    const totalChunks = Math.ceil(this.totalIntensityPoints / cs)
-    const BATCH_SIZE = 12
-
-    let cursor = 0 // current ion index, advances monotonically
-
-    for (let batchStart = 0; batchStart < totalChunks; batchStart += BATCH_SIZE) {
-      if (this._disposed) return results
-      if (isCancelled?.()) return results
-
-      const batchEnd = Math.min(batchStart + BATCH_SIZE, totalChunks)
-      const batch: Promise<Float32Array | Float64Array>[] = []
-      for (let ci = batchStart; ci < batchEnd; ci++) {
-        batch.push(this.fetchAndDecode1DChunk(this.intensityPath, this.intensityMeta, ci))
-      }
-      const chunks = (await Promise.all(batch)) as Float32Array[]
-      if (this._disposed) return results
-      if (isCancelled?.()) return results
-
-      for (let k = 0; k < chunks.length; k++) {
-        const ci = batchStart + k
-        const chunk = chunks[k]!
-        const chunkStart = ci * cs
-
-        for (let i = 0; i < chunk.length; i++) {
-          const globalIdx = chunkStart + i
-          if (globalIdx >= this.totalIntensityPoints) break
-          const v = chunk[i]!
-          if (v === 0 || !Number.isFinite(v)) continue
-
-          // Advance cursor to the ion containing globalIdx
-          while (cursor + 1 < nIons && offsets[cursor + 1]! <= globalIdx) {
-            cursor++
-          }
-          const pixelIdx = globalIdx - offsets[cursor]!
-          if (pixelIdx < 0 || pixelIdx >= maskLen) continue
-
-          for (let r = 0; r < masks.length; r++) {
-            if (masks[r]![pixelIdx]!) {
-              results[r]!.sum[cursor]! += v
-              results[r]!.count[cursor]!++
-            }
-          }
-        }
-      }
-
-      onProgress?.(batchEnd, totalChunks)
-      // Yield to keep the UI responsive between batches
-      await new Promise((r) => setTimeout(r, 0))
-    }
-
-    return results
-  }
-
-  /**
-   * Region comparison via the pixel-major spectra group (v1.1 dual-group
-   * layout): instead of streaming the ENTIRE intensity array (ion-major),
-   * fetch only the spectra of the masked pixels — work scales with region
-   * size, not dataset size.
+   * Region comparison via the pixel-major spectra group: instead of
+   * streaming the ENTIRE ion-major intensity array, fetch only the spectra
+   * of the masked pixels — work scales with region size, not dataset size.
    *
    * For each region, per pixel p in the mask:
    *   spectrum = spectra/intensity[offsets[p] : offsets[p+1]]

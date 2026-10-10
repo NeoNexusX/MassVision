@@ -12,20 +12,44 @@ hero:
       text: 快速开始
       link: /zh/guide/getting-started
 features:
-  - title: 上传数据
-    details: 上传配对的 imzML/ibd 文件，填写采集与样本元数据，并通过查重、压缩和 OSS 分片上传完成导入。
+  - title: 快速开始
+    details: 了解 SpatialXomics 平台概述、核心功能与快速上手步骤。
+    link: /zh/guide/getting-started
+    linkText: 查看指南
+  - title: 账户管理
+    details: 注册、登录、找回密码，以及个人资料与权限管理。
+    link: /zh/guide/account-management
+    linkText: 查看指南
+  - title: 查找数据集
+    details: 浏览与检索公开数据集，按条件筛选找到需要的数据。
+    link: /zh/guide/finding-datasets
+    linkText: 查看指南
+  - title: 数据集总览
+    details: 查看数据集元数据与详情页，复制分享链接并下载原始文件。
+    link: /zh/guide/dataset-overview
+    linkText: 查看指南
+  - title: 数据可视化
+    details: 查看离子图、TIC 图与质谱，使用 UMAP/KMeans、ROI、区域比较与注释匹配进行空间分析。
+    link: /zh/guide/data-visualization
+    linkText: 查看指南
+  - title: 上传数据集
+    details: 上传配对的 imzML/ibd 文件，填写元数据并完成查重、压缩与分片上传。
     link: /zh/guide/upload-data
     linkText: 查看指南
-  - title: 查看数据
-    details: 查看离子图、TIC 图和质谱，并使用 UMAP、KMeans、ROI、区域比较和注释 CSV 完成探索。
-    link: /zh/guide/view-data
+  - title: 数据集分析
+    details: 按 spectrum/storage mode 选择兼容的预处理方法，配置参数并提交分析任务。
+    link: /zh/guide/dataset-analysis
     linkText: 查看指南
-  - title: 下载数据
-    details: 从列表或详情页下载数据集原始 imzML/ibd 文件对，并了解登录与下载冷却限制。
-    link: /zh/guide/download-data
+  - title: 工作区
+    details: 查看分析任务面板与状态跟踪，打开或删除结果并排查失败原因。
+    link: /zh/guide/workspace
     linkText: 查看指南
-  - title: 创建分析
-    details: 在工作区选择数据源，并按 spectrum/storage mode 配置兼容的预处理方法后提交任务。
-    link: /zh/guide/create-analysis
+  - title: 数据集合
+    details: 把相关公开数据集组织成带学术元数据的数据集合，管理成员顺序并公开分享。
+    link: /zh/guide/collections
+    linkText: 查看指南
+  - title: 导航说明
+    details: 了解平台页面结构与各功能入口的导航方式。
+    link: /zh/guide/navigation
     linkText: 查看指南
 ---

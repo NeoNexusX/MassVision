@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PaginationFooter from '../PaginationFooter.vue'
+import { i18n, loadCoreMessages } from '@/i18n'
 
 const baseProps = {
   currentPage: 2,
@@ -13,7 +14,11 @@ const baseProps = {
 }
 
 const mountFooter = (props: Partial<typeof baseProps> & Record<string, unknown> = {}) =>
-  mount(PaginationFooter, { props: { ...baseProps, ...props } })
+  mount(PaginationFooter, { props: { ...baseProps, ...props }, global: { plugins: [i18n] } })
+
+
+// 组件模板用 $t：挂载时装上 i18n 实例，并预先加载英文语言包（断言保持英文原文）
+beforeAll(() => Promise.all([loadCoreMessages('en')]))
 
 describe('PaginationFooter', () => {
   it('mirrors pageSizeOptions into the select, in order', () => {

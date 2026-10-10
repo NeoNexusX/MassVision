@@ -5,7 +5,7 @@ defineProps<{ label: string }>()
 
 <template>
   <div class="flex flex-col">
-    <span class="text-[13px] font-semibold tracking-wider text-base-content/40 mb-1">{{
+    <span class="kawaru-text-81 font-semibold tracking-wider text-base-content/40 mb-1">{{
       label
     }}</span>
     <span class="text-base-content break-words"><slot /></span>
